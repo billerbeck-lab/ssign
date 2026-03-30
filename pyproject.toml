@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssign"
+version = "0.1.0"
+description = "Secretion-system Identification for Gram Negatives"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Billerbeck Lab"},
+]
+keywords = ["bioinformatics", "secretion-system", "gram-negative", "protein", "genomics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "streamlit>=1.30.0",
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "biopython>=1.80",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "scipy>=1.10",
+    "requests>=2.28",
+    "pyyaml>=6.0",
+    "macsyfinder>=2.1",
+    "pybiolib",
+    "pyrodigal>=3.5",
+    "pyhmmer>=0.10",
+]
+
+[project.optional-dependencies]
+remote = [
+    "pybiolib",
+]
+full = [
+    "deepsece",
+    "pybiolib",
+    "fair-esm>=2.0",
+    "torch>=2.0",
+    "goatools",
+    "obonet",
+    "networkx",
+    "jinja2",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+
+[project.scripts]
+ssign = "ssign_app.cli:main"
+hmmsearch = "ssign_app.shims.hmmsearch:main"
+
+[project.urls]
+Homepage = "https://github.com/billerbeck-lab/ssign"
+Documentation = "https://github.com/billerbeck-lab/ssign#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "shims/*.py", ".streamlit/*"]

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Stale / duplicate directories
+bin/bin/
+app/
+gui/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ssign runtime
+ssign_results/
+ssign_progress.json
+*.tmp
+
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+results/
+
+# Test artifacts
+tests/e2e_work/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Large model files (DeepSecE ESM)
+*.pt
+*.bin
+*.safetensors
+
+# Secrets / credentials
+.env
+*.pem
