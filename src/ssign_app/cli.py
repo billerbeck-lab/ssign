@@ -9,8 +9,10 @@ Usage:
 
 import argparse
 import os
+import re
 import subprocess
 import sys
+import threading
 
 BANNER = r"""
   ┌─────────────────────────────────────────┐
@@ -96,9 +98,28 @@ def main():
     print(flush=True)
 
     try:
-        # Suppress Streamlit's default banner ("You can now view...")
-        # by capturing its stderr (where it prints the banner)
-        subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Filter Streamlit's startup banner from stderr while still
+        # showing real errors (import failures, config problems, etc.)
+        _banner_re = re.compile(
+            r"You can now view|Network URL|External URL|Local URL"
+        )
+
+        proc = subprocess.Popen(
+            cmd, env=env, stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE, text=True,
+        )
+
+        def _filter_stderr():
+            for line in proc.stderr:
+                if _banner_re.search(line) or not line.strip():
+                    continue
+                sys.stderr.write(line)
+                sys.stderr.flush()
+
+        t = threading.Thread(target=_filter_stderr, daemon=True)
+        t.start()
+        proc.wait()
+        t.join(timeout=1)
     except KeyboardInterrupt:
         print("\nssign stopped.")
     except FileNotFoundError:
