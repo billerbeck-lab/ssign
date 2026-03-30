@@ -128,9 +128,13 @@ def main():
             r"You can now view|Network URL|External URL|Local URL"
         )
 
+        # Pass through [ssign] pipeline progress on stdout,
+        # drop Streamlit's own stdout noise
+        _ssign_line_re = re.compile(r"^\[ssign\]")
+
         proc = subprocess.Popen(
-            cmd, env=env, stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE, text=True,
+            cmd, env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
 
         def _filter_stderr():
@@ -140,10 +144,19 @@ def main():
                 sys.stderr.write(line)
                 sys.stderr.flush()
 
-        t = threading.Thread(target=_filter_stderr, daemon=True)
-        t.start()
+        def _filter_stdout():
+            for line in proc.stdout:
+                if _ssign_line_re.match(line):
+                    sys.stdout.write(f"  {line}")
+                    sys.stdout.flush()
+
+        t1 = threading.Thread(target=_filter_stderr, daemon=True)
+        t2 = threading.Thread(target=_filter_stdout, daemon=True)
+        t1.start()
+        t2.start()
         proc.wait()
-        t.join(timeout=1)
+        t1.join(timeout=1)
+        t2.join(timeout=1)
     except KeyboardInterrupt:
         print("\nssign stopped.")
     except FileNotFoundError:

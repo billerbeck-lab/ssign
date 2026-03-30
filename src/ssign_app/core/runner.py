@@ -1260,12 +1260,13 @@ class PipelineRunner:
         # 2. Summary — report text + enrichment summary + Fisher table
         self._build_summary(outdir / f"{sid}_summary.txt")
 
-        # 3. Figures directory
+        # 3. Figures directory (per-sample subfolder for parallel safety)
         if 'figures_dir' in self.files and os.path.exists(self.files['figures_dir']):
-            dest = outdir / "figures"
-            if dest.exists():
-                shutil.rmtree(dest)
-            shutil.copytree(self.files['figures_dir'], dest)
+            dest = outdir / "figures" / sid
+            dest.mkdir(parents=True, exist_ok=True)
+            for fig_file in Path(self.files['figures_dir']).iterdir():
+                if fig_file.is_file():
+                    shutil.copy2(fig_file, dest / fig_file.name)
 
     def _build_master_csv(self, output_path: Path):
         """Build a single CSV: secretion systems on top, substrates below.
