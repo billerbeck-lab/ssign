@@ -2,7 +2,7 @@
 
 **ssign** links established bioinformatic tools into a single pipeline that identifies secretion systems and their associated secreted proteins in gram-negative bacterial genomes. Given one or more genome files, ssign detects which secretion systems are present, predicts which proteins are secreted through them, and optionally annotates those proteins with functional and structural information.
 
-Built for the [Billerbeck Lab](https://www.imperial.ac.uk/people/s.billerbeck) at Imperial College London. Version 0.1.0 (Beta).
+Built for the [Billerbeck Lab](https://www.billerbecklab.com/) at Imperial College London. Version 0.1.0 (Beta).
 
 ---
 
