@@ -358,6 +358,10 @@ with st.sidebar:
     st.divider()
     from ssign_app import __version__
     st.caption(f"ssign v{__version__} | GPLv3 | Billerbeck Lab")
+    st.markdown(
+        "[GitHub](https://github.com/billerbeck-lab/ssign) · "
+        "[Report a bug](https://github.com/billerbeck-lab/ssign/issues)"
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -728,9 +732,14 @@ with tab_pipeline:
                 dlp_found = shutil.which("deeplocpro") is not None
                 dlp_path = st.text_input("DeepLocPro install path", key="dlp_path")
                 if not dlp_found and not dlp_path:
-                    st.warning(
-                        "deeplocpro not found in PATH. Local mode requires a DTU academic "
-                        "license and ~5 GB model download + GPU recommended."
+                    st.info(
+                        "**DeepLocPro is not installed locally.** Local mode requires a "
+                        "free DTU academic license (~5 GB model download, GPU recommended).\n\n"
+                        "To install:\n"
+                        "1. Register at https://services.healthtech.dtu.dk/services/DeepLocPro-1.0/\n"
+                        "2. Download and follow DTU's install instructions\n"
+                        "3. Enter the install path above\n\n"
+                        "Alternatively, use **cloud mode** (no install needed)."
                     )
             else:
                 st.caption(
@@ -763,8 +772,14 @@ with tab_pipeline:
                     sp_found = shutil.which("signalp6") is not None
                     sp_path = st.text_input("SignalP install path", key="sp_path")
                     if not sp_found and not sp_path:
-                        st.warning(
-                            "signalp6 not found in PATH. Local mode requires a DTU academic license."
+                        st.info(
+                            "**SignalP 6.0 is not installed locally.** Local mode requires a "
+                            "free DTU academic license (~1 GB download).\n\n"
+                            "To install:\n"
+                            "1. Register at https://services.healthtech.dtu.dk/services/SignalP-6.0/\n"
+                            "2. Download and follow DTU's install instructions\n"
+                            "3. Enter the install path above\n\n"
+                            "Alternatively, use **cloud mode** (no install needed)."
                         )
                 else:
                     st.caption("Cloud mode (~2-5 min per genome, no setup needed).")
@@ -804,8 +819,6 @@ with tab_pipeline:
             st.success("DeepSecE is installed and ready.")
             run_deepsece = st.checkbox(
                 "Enable DeepSecE", value=True, key="run_deepsece",
-                help="Cross-checks DeepLocPro localization predictions and identifies "
-                     "additional secreted proteins for enrichment and verification.",
             )
             if run_deepsece:
                 with st.expander("DeepSecE threshold", expanded=False):
@@ -816,8 +829,6 @@ with tab_pipeline:
             run_deepsece = st.checkbox(
                 "Enable DeepSecE", value=False, key="run_deepsece",
                 disabled=True,
-                help="Cross-checks DeepLocPro localization predictions and identifies "
-                     "additional secreted proteins for enrichment and verification.",
             )
             st.info(
                 "**DeepSecE is not installed** but is recommended. It predicts which "
@@ -1120,7 +1131,7 @@ with tab_pipeline:
                 "**BLAST+ is not installed** (needed for ortholog grouping).\n\n"
                 "Ortholog grouping clusters secreted proteins across genomes into "
                 "groups of related proteins, useful for comparative analysis.\n\n"
-                "To install:\n"
+                "To install (~200 MB):\n"
                 "```\nsudo apt install ncbi-blast+\n```\n"
                 "Or: `conda install -c bioconda blast`\n\n"
                 "ssign works without BLAST+ — ortholog grouping will be skipped."

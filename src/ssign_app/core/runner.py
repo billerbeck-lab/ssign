@@ -348,6 +348,7 @@ class PipelineRunner:
         core_failed = False
         n_skipped = 0
         step_counter = 0
+        any_step_ran = False  # Track if any step ran (for forcing downstream re-runs)
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -369,7 +370,13 @@ class PipelineRunner:
                 step_counter += 1
                 step_id = func.__name__.replace("_step_", "")
 
-                if step_id in skip_steps:
+                # Downstream steps (integrate, orthologs, enrichment, report,
+                # figures) must re-run if ANY upstream step ran, since their
+                # output depends on all upstream results
+                _downstream = {"integrate", "orthologs", "enrichment", "report", "figures"}
+                _force_rerun = step_id in _downstream and any_step_ran
+
+                if step_id in skip_steps and not _force_rerun:
                     n_skipped += 1
                     pct = int(100 * step_counter / total)
                     self.progress(name, pct, f"Skipped (already done) | {self._elapsed_str()} elapsed")
@@ -383,6 +390,7 @@ class PipelineRunner:
                     continue
 
                 steps_to_run.append((name, func, step_id, step_counter))
+                any_step_ran = True
 
             if not steps_to_run:
                 continue
