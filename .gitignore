@@ -31,6 +31,7 @@ Thumbs.db
 # ssign runtime
 ssign_results/
 ssign_progress.json
+*_progress.json
 *.tmp
 
 # Nextflow
