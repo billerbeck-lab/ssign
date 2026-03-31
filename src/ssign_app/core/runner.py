@@ -388,9 +388,9 @@ class PipelineRunner:
                         step_id, True, "Resumed (already completed)"))
                     continue
 
-                if core_failed and step_id in CORE_STEPS:
+                if core_failed:
                     self.results.append(StepResult(
-                        step_id, False, "Skipped (earlier step failed)"))
+                        step_id, False, "Skipped (earlier core step failed)"))
                     continue
 
                 steps_to_run.append((name, func, step_id, step_counter))
@@ -409,7 +409,7 @@ class PipelineRunner:
                     f"{len(steps_to_run)} tools running simultaneously | {self._elapsed_str()} elapsed",
                 )
                 print(
-                    f"[ssign] Starting parallel group: {step_names}",
+                    f"[ssign] [{self.config.sample_id}] Starting parallel group: {step_names}",
                     flush=True,
                 )
 
@@ -427,7 +427,7 @@ class PipelineRunner:
                             result = future.result()
                             self.results.append(result)
                             print(
-                                f"[ssign] Finished (parallel): {name} -> "
+                                f"[ssign] [{self.config.sample_id}] Finished (parallel): {name} -> "
                                 f"{'OK' if result.success else 'FAILED: ' + result.message[:100]}",
                                 flush=True,
                             )
@@ -440,7 +440,7 @@ class PipelineRunner:
                                     core_failed = True
                         except Exception as e:
                             print(
-                                f"[ssign] EXCEPTION (parallel): "
+                                f"[ssign] [{self.config.sample_id}] EXCEPTION (parallel): "
                                 f"{name} -> {e}",
                                 flush=True,
                             )
@@ -458,7 +458,7 @@ class PipelineRunner:
                     pct = int(100 * sc / total)
                     self.progress(name, pct, f"Step {sc}/{total} | {self._elapsed_str()} elapsed")
                     print(
-                        f"[ssign] Starting step {sc}/{total}: "
+                        f"[ssign] [{self.config.sample_id}] Starting step {sc}/{total}: "
                         f"{name} ({step_id})",
                         flush=True,
                     )
@@ -468,7 +468,7 @@ class PipelineRunner:
                         self.results.append(result)
                         self._save_progress()
                         print(
-                            f"[ssign] Finished step {sc}/{total}: "
+                            f"[ssign] [{self.config.sample_id}] Finished step {sc}/{total}: "
                             f"{name} -> "
                             f"{'OK' if result.success else 'FAILED: ' + result.message[:100]}",
                             flush=True,
@@ -484,7 +484,7 @@ class PipelineRunner:
                                 core_failed = True
                     except Exception as e:
                         print(
-                            f"[ssign] EXCEPTION in step {sc}/{total}: "
+                            f"[ssign] [{self.config.sample_id}] EXCEPTION in step {sc}/{total}: "
                             f"{name} -> {e}",
                             flush=True,
                         )
