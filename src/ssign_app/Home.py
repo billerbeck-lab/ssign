@@ -51,32 +51,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Custom connection error — replace Streamlit's generic message with ssign-specific one
-# Uses st.markdown (not components.html) so the script runs in the main page context
-# rather than an iframe, which can't access the parent DOM.
-st.markdown('''
+# Custom connection error — use components.html with parent.document to access
+# the main page from the iframe. Also add CSS fallback to hide the generic hint.
+import streamlit.components.v1 as components
+components.html('''
 <script>
-(function() {
-    const observer = new MutationObserver(function() {
-        const walker = document.createTreeWalker(
-            document.body, NodeFilter.SHOW_TEXT, null, false
-        );
-        while (walker.nextNode()) {
-            const node = walker.currentNode;
-            if (node.textContent.includes('Is Streamlit still running')) {
-                node.textContent = 'ssign server stopped. To restart, run: ssign';
-            }
-            if (node.textContent.includes('streamlit run')) {
-                node.textContent = node.textContent.replace(
-                    /streamlit run \\S+/g, 'ssign'
-                );
-            }
+// Access the parent (main Streamlit page) from the iframe
+var doc = window.parent.document;
+var observer = new MutationObserver(function() {
+    var els = doc.querySelectorAll('pre, code, span, p, div');
+    for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.innerText && el.innerText.indexOf('streamlit run') !== -1) {
+            el.innerText = el.innerText.replace(/streamlit run \\S+/g, 'ssign');
         }
-    });
-    observer.observe(document.body, {childList: true, subtree: true, characterData: true});
-})();
+        if (el.innerText && el.innerText.indexOf('Is Streamlit still running') !== -1) {
+            el.innerText = 'ssign server stopped. To restart, run: ssign';
+        }
+    }
+});
+observer.observe(doc.body, {childList: true, subtree: true, characterData: true});
 </script>
-''', unsafe_allow_html=True)
+''', height=0)
 
 # ─────────────────────────────────────────────────────────────────────
 # Session state defaults
