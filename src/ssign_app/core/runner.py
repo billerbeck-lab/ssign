@@ -553,7 +553,7 @@ class PipelineRunner:
             if self.config.original_filename:
                 extract_args.extend(["--original-filename", self.config.original_filename])
             rc, stdout, stderr = run_script("extract_proteins.py", extract_args)
-            tool_name = "Prodigal" if fmt == 'fasta_contigs' else "GenBank parser"
+            tool_name = {"fasta_contigs": "Prodigal", "protein_fasta": "Protein FASTA"}.get(fmt, "GenBank parser")
 
         if rc == 0:
             self.files['proteins'] = proteins_path

@@ -394,11 +394,12 @@ with tab_upload:
 
     uploaded_files = st.file_uploader(
         "Choose genome file(s)",
-        type=["gbff", "gbk", "gb", "gff", "gff3", "fasta", "fna", "fa"],
+        type=["gbff", "gbk", "gb", "gff", "gff3", "gtf", "fasta", "fna", "fa", "faa"],
         help=(
-            "GenBank (.gbff/.gbk), GFF3 (.gff3), or FASTA contigs (.fasta/.fna). "
-            "Upload multiple files for batch processing. GenBank files are recommended "
-            "as they include gene names and functional annotations."
+            "GenBank (.gbff/.gbk/.gb), GFF3 (.gff/.gff3/.gtf), FASTA contigs "
+            "(.fasta/.fna/.fa), or protein FASTA (.faa). Upload multiple files for "
+            "batch processing. GenBank files are recommended as they include gene "
+            "names and functional annotations."
         ),
         accept_multiple_files=True,
     )
@@ -419,7 +420,7 @@ with tab_upload:
         sample_names = []
         for f in uploaded_files:
             sn = f.name
-            for suffix in ['.gbff', '.gbk', '.gb', '.gff3', '.gff', '.fasta', '.fna', '.fa']:
+            for suffix in ['.gbff', '.gbk', '.gb', '.gff3', '.gff', '.gtf', '.fasta', '.fna', '.fa', '.faa']:
                 sn = sn.replace(suffix, '')
             sn = sn.replace('_genomic', '')
             sample_names.append(sn)

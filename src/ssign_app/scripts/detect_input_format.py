@@ -16,9 +16,11 @@ def detect_format(filepath: str) -> str:
     # Extension-based detection
     if ext in ('.gbff', '.gbk', '.gb'):
         return 'genbank'
-    if ext in ('.gff', '.gff3'):
+    if ext in ('.gff', '.gff3', '.gtf'):
         return 'gff3'
-    if ext in ('.fasta', '.fna', '.fa', '.faa'):
+    if ext == '.faa':
+        return 'protein_fasta'
+    if ext in ('.fasta', '.fna', '.fa'):
         # Could be annotated proteins or raw contigs — check content
         return _inspect_fasta(filepath)
 

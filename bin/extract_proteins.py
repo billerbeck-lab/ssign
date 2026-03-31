@@ -218,7 +218,7 @@ def main():
     # Determine parser
     if ext in ('.gbff', '.gbk', '.gb'):
         entries = list(extract_from_genbank(args.input, args.sample))
-    elif ext in ('.gff', '.gff3'):
+    elif ext in ('.gff', '.gff3', '.gtf'):
         if not args.fasta:
             logger.error("GFF3 input requires --fasta argument")
             sys.exit(1)
