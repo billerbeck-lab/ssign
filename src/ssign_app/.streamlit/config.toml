@@ -6,7 +6,3 @@ enableCORS = false
 
 [browser]
 gatherUsageStats = false
-
-[theme]
-primaryColor = "#1B6B93"
-font = "sans serif"
