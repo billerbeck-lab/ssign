@@ -52,17 +52,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Custom connection error popup
+# Custom connection error — replace Streamlit's generic message with ssign-specific one
 components.html('''
 <script>
-const observer = new MutationObserver(function(mutations) {
-    document.querySelectorAll('[data-testid="stConnectionStatus"] span, .stException span').forEach(function(el) {
-        if (el.textContent.includes('Is Streamlit still running')) {
-            el.textContent = 'ssign server disconnected. To restart, run: ssign';
+const observer = new MutationObserver(function() {
+    document.querySelectorAll('span, p, div, pre').forEach(function(el) {
+        if (!el.children.length && el.textContent) {
+            if (el.textContent.includes('Is Streamlit still running')) {
+                el.textContent = 'ssign server stopped. To restart, run: ssign';
+            }
+            if (el.textContent.includes('streamlit run')) {
+                el.textContent = el.textContent.replace(
+                    /streamlit run \\S+/g, 'ssign'
+                );
+            }
         }
     });
 });
-observer.observe(document.body, {childList: true, subtree: true});
+observer.observe(document.body, {childList: true, subtree: true, characterData: true});
 </script>
 ''', height=0)
 
@@ -506,7 +513,7 @@ with tab_upload:
                 "**Bakta is not installed** but is optional. It provides richer genome "
                 "annotation than Prodigal for raw FASTA input.\n\n"
                 "To install (~2 GB for light database):\n"
-                "```\npip install bakta\nbakta_db download --output /path/db --type light\n```\n\n"
+                "```\npip install ssign[bakta]\nbakta_db download --output /path/db --type light\n```\n\n"
                 "ssign works without Bakta — it will use Prodigal for gene prediction, "
                 "which is still effective but produces fewer functional annotations."
             )
@@ -836,7 +843,8 @@ with tab_pipeline:
                 "independent cross-check against DeepLocPro. This improves confidence "
                 "in secreted protein identification and may yield additional candidates.\n\n"
                 "To install (~7.3 GB total: ~2 GB for PyTorch, ~5.3 GB for ESM model):\n"
-                "```\npip install ssign[full]\n```\n\n"
+                "```\npip install ssign[deepsece]\n```\n"
+                "Or install everything: `pip install ssign[full]`\n\n"
                 "ssign works without DeepSecE — it will use DeepLocPro alone for "
                 "secreted protein identification, which is still effective but loses the "
                 "cross-validation benefit."

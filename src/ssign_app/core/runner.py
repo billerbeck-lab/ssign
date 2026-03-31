@@ -215,7 +215,7 @@ class PipelineRunner:
         # DeepSecE: large optional dependency (torch + ESM + DeepSecE)
         if not self.config.skip_deepsece:
             for pkg, install in [
-                ("torch", "pip install 'ssign[full]'  # or: pip install torch"),
+                ("torch", "pip install 'ssign[deepsece]'  # or: pip install torch"),
                 ("esm", "pip install fair-esm"),
             ]:
                 try:

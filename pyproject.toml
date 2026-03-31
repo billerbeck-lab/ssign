@@ -35,21 +35,28 @@ dependencies = [
     "pybiolib",
     "pyrodigal>=3.5",
     "pyhmmer>=0.10",
+    "jinja2>=3.0",
+    "networkx>=3.0",
 ]
 
 [project.optional-dependencies]
-remote = [
-    "pybiolib",
-]
-full = [
+# Individual tool extras (pip install ssign[deepsece], etc.)
+deepsece = [
     "deepsece",
-    "pybiolib",
     "fair-esm>=2.0",
     "torch>=2.0",
+]
+bakta = [
+    "bakta>=1.5",
+]
+# Full: all optional Python dependencies
+full = [
+    "deepsece",
+    "fair-esm>=2.0",
+    "torch>=2.0",
+    "bakta>=1.5",
     "goatools",
     "obonet",
-    "networkx",
-    "jinja2",
 ]
 dev = [
     "pytest>=7.0",

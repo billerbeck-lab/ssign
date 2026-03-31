@@ -70,17 +70,19 @@ This opens an interface where you upload genome files and configure the pipeline
 
 ### Optional dependencies
 
-| Dependency | Size | Purpose | How to enable |
-|-----------|------|---------|---------------|
-| **DeepSecE** | ~7.3 GB (ESM model) | Additional secreted protein prediction | Toggle in GUI settings |
-| **Bakta** | ~2 GB (database) | Higher-quality ORF prediction for FASTA input | Toggle in GUI settings |
+| Dependency | Size | Install individually | Purpose |
+|-----------|------|---------------------|---------|
+| **DeepSecE** | ~7.3 GB (ESM model) | `pip install ssign[deepsece]` | Additional secreted protein prediction |
+| **Bakta** | ~2 GB (database) | `pip install ssign[bakta]` | Higher-quality ORF prediction for FASTA input |
+| **BLAST+** | ~200 MB | `sudo apt install ncbi-blast+` | Ortholog grouping across genomes (not pip-installable) |
 
-Install all optional dependencies with:
+Install all optional Python dependencies with:
 
 ```bash
 pip install ssign[full]
 ```
-Or follow install instructions in the GUI.
+
+Or install only what you need — extras can be combined: `pip install ssign[deepsece,bakta]`
 
 ## Output
 
