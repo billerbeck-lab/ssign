@@ -24,9 +24,9 @@ Secreted proteins are identified through guilt-by-association: proteins encoded 
 
 ### Stage 3 — Secreted Protein Annotation (Optional)
 
-If your genome is already well-annotated (e.g. from Bakta, Prokka, or NCBI RefSeq), you can skip these tools to save significant time — the existing annotations from your input file are already included in the results. You can always re-run with annotation tools enabled later using the Resume feature.
+If you think your genome is already well-annotated, you can skip these tools to save significant time, the existing annotations from your input file are already included in the results. You can always re-run with annotation tools enabled later using the Resume feature.
 
-Each detected secreted protein can be annotated using any combination of five tools, all running via free cloud APIs:
+Each detected secreted protein can be annotated using any combination of five tools:
 
 | Tool | What it provides | API provider |
 |------|-----------------|--------------|
@@ -54,7 +54,7 @@ GenBank format is recommended because it contains both the nucleotide sequence a
 
 ## Installation
 
-Everything is pip-installable. No system packages, Docker, or Nextflow required.
+Everything is pip-installable.
 
 ```bash
 pip install ssign
@@ -66,7 +66,7 @@ Then launch the GUI:
 ssign
 ```
 
-This opens a Streamlit interface where you upload genome files and configure the pipeline.
+This opens an interface where you upload genome files and configure the pipeline.
 
 ### Optional dependencies
 
@@ -75,11 +75,12 @@ This opens a Streamlit interface where you upload genome files and configure the
 | **DeepSecE** | ~7.3 GB (ESM model) | Additional secreted protein prediction | Toggle in GUI settings |
 | **Bakta** | ~2 GB (database) | Higher-quality ORF prediction for FASTA input | Toggle in GUI settings |
 
-Install optional dependencies with:
+Install all optional dependencies with:
 
 ```bash
 pip install ssign[full]
 ```
+Or follow install instructions in the GUI.
 
 ## Output
 
