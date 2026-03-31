@@ -51,26 +51,30 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Custom connection error — use components.html with parent.document to access
-# the main page from the iframe. Also add CSS fallback to hide the generic hint.
+# Custom connection error — use setInterval to periodically check for and
+# replace Streamlit's generic error message. MutationObserver can fail if the
+# iframe or observer gets destroyed during connection loss.
 import streamlit.components.v1 as components
 components.html('''
 <script>
-// Access the parent (main Streamlit page) from the iframe
-var doc = window.parent.document;
-var observer = new MutationObserver(function() {
-    var els = doc.querySelectorAll('pre, code, span, p, div');
-    for (var i = 0; i < els.length; i++) {
-        var el = els[i];
-        if (el.innerText && el.innerText.indexOf('streamlit run') !== -1) {
-            el.innerText = el.innerText.replace(/streamlit run \\S+/g, 'ssign');
-        }
-        if (el.innerText && el.innerText.indexOf('Is Streamlit still running') !== -1) {
-            el.innerText = 'ssign server stopped. To restart, run: ssign';
-        }
-    }
-});
-observer.observe(doc.body, {childList: true, subtree: true, characterData: true});
+(function() {
+    var doc;
+    try { doc = window.parent.document; } catch(e) { doc = document; }
+    setInterval(function() {
+        try {
+            var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+                var n = walker.currentNode;
+                if (n.nodeValue.indexOf('Is Streamlit still running') > -1) {
+                    n.nodeValue = 'ssign server stopped. To restart, run: ssign';
+                }
+                if (n.nodeValue.indexOf('streamlit run') > -1) {
+                    n.nodeValue = n.nodeValue.replace(/streamlit run [^\\s]+/g, 'ssign');
+                }
+            }
+        } catch(e) {}
+    }, 500);
+})();
 </script>
 ''', height=0)
 
