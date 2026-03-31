@@ -432,9 +432,11 @@ with tab_upload:
             + ", ".join(f.name for f in uploaded_files)
         )
 
-        # Auto-detect organism from each GenBank file (for per-genome taxonomy)
-        if "per_genome_taxonomy" not in st.session_state:
-            per_genome_tax = {}
+        # Extract organism names from GenBank files (local parsing only, no API)
+        # Taxonomy resolution (NCBI API) is deferred to when the user configures
+        # BLASTp exclusion, to avoid blocking the GUI on upload.
+        if "per_genome_organisms" not in st.session_state:
+            per_genome_orgs = {}
             for f in uploaded_files:
                 ext_lower = Path(f.name).suffix.lower()
                 if ext_lower not in ('.gbff', '.gbk', '.gb'):
@@ -467,29 +469,10 @@ with tab_upload:
                                 and parts[1].isalpha()):
                             org_name = f"{parts[0]} {parts[1]}"
                     if org_name:
-                        try:
-                            from ssign_app.scripts.resolve_taxonomy import resolve_organism
-                            tax_info = resolve_organism(org_name)
-                        except Exception:
-                            tax_info = {"species": None, "genus": None}
-                        per_genome_tax[f.name] = {
-                            "organism": org_name,
-                            "species": tax_info.get("species"),
-                            "genus": tax_info.get("genus"),
-                        }
+                        per_genome_orgs[f.name] = org_name
                 except Exception:
                     pass
-
-            st.session_state.per_genome_taxonomy = per_genome_tax
-
-            # Also set legacy single-genome fields for backwards compat
-            if per_genome_tax:
-                first_tax = next(iter(per_genome_tax.values()))
-                st.session_state.detected_organism = first_tax.get("organism", "")
-                st.session_state.organism_resolved = {
-                    "species": first_tax.get("species"),
-                    "genus": first_tax.get("genus"),
-                }
+            st.session_state.per_genome_organisms = per_genome_orgs
 
     st.divider()
 
@@ -912,11 +895,9 @@ with tab_pipeline:
                         "or not yet in NCBI databases."
                     )
 
-                # Per-genome taxonomy detection
-                per_genome_tax = st.session_state.get("per_genome_taxonomy", {})
-                detected_organisms = {
-                    v["organism"] for v in per_genome_tax.values() if v.get("organism")
-                }
+                # Show detected organisms (from local GenBank parsing, no API call)
+                per_genome_orgs = st.session_state.get("per_genome_organisms", {})
+                detected_organisms = set(per_genome_orgs.values())
 
                 if detected_organisms:
                     if len(detected_organisms) == 1:
@@ -926,21 +907,14 @@ with tab_pipeline:
                         st.info(
                             f"Detected organisms: {org_list}\n\n"
                             "Taxonomy exclusion will be applied **per genome** — each "
-                            "genome's own species/genus is excluded from its BLASTp search."
+                            "genome's own species/genus is excluded from its BLASTp search. "
+                            "Taxonomy IDs are resolved automatically when the pipeline runs."
                         )
 
-                # Build exclusion level options
-                has_any_species = any(
-                    v.get("species") for v in per_genome_tax.values()
-                )
-                has_any_genus = any(
-                    v.get("genus") for v in per_genome_tax.values()
-                )
-
+                # Exclusion level options (taxonomy IDs resolved at run time)
                 exclusion_options = []
-                if has_any_species:
+                if detected_organisms:
                     exclusion_options.append("Exclude input species (per genome)")
-                if has_any_genus:
                     exclusion_options.append("Exclude input genus (per genome)")
                 exclusion_options.append("Custom taxonomy ID(s)")
                 exclusion_options.append("No exclusion (include all hits)")
@@ -952,7 +926,6 @@ with tab_pipeline:
                     key="blastp_exclusion_mode",
                 )
 
-                # Store the exclusion level for per-genome resolution at run time
                 if "species" in exclusion_choice.lower():
                     st.session_state.blastp_exclusion_level = "species"
                 elif "genus" in exclusion_choice.lower():
@@ -970,7 +943,7 @@ with tab_pipeline:
                     st.session_state.blastp_exclusion_level = "none"
                     st.session_state.blastp_taxid = ""
 
-                if not detected_organisms and not has_any_species:
+                if not detected_organisms:
                     st.caption(
                         "No organisms auto-detected (FASTA input has no organism metadata). "
                         "Select **Custom** to enter NCBI taxonomy IDs, or **No exclusion** "
@@ -1232,16 +1205,38 @@ with tab_run:
         # ── Helper: resolve per-genome BLASTp taxid ──
 
         def _resolve_blastp_taxid(filename: str) -> str:
-            """Resolve the BLASTp exclusion taxid for a specific genome file."""
+            """Resolve the BLASTp exclusion taxid for a specific genome file.
+
+            Taxonomy resolution (NCBI API) happens here at run time, not during
+            upload, to avoid blocking the GUI. Results are cached in session state.
+            """
             level = st.session_state.get("blastp_exclusion_level", "species")
             if level == "none":
                 return ""
             if level == "custom":
                 return st.session_state.get("blastp_taxid", "")
 
-            per_genome_tax = st.session_state.get("per_genome_taxonomy", {})
-            genome_tax = per_genome_tax.get(filename, {})
-            tax_entry = genome_tax.get(level)  # "species" or "genus"
+            # Get organism name (extracted locally during upload)
+            per_genome_orgs = st.session_state.get("per_genome_organisms", {})
+            org_name = per_genome_orgs.get(filename, "")
+            if not org_name:
+                return ""
+
+            # Resolve taxonomy via NCBI (cached after first call)
+            cache_key = "_tax_cache"
+            if cache_key not in st.session_state:
+                st.session_state[cache_key] = {}
+            cache = st.session_state[cache_key]
+
+            if org_name not in cache:
+                try:
+                    from ssign_app.scripts.resolve_taxonomy import resolve_organism
+                    cache[org_name] = resolve_organism(org_name)
+                except Exception:
+                    cache[org_name] = {"species": None, "genus": None}
+
+            tax_info = cache[org_name]
+            tax_entry = tax_info.get(level)
             if tax_entry and isinstance(tax_entry, dict):
                 return str(tax_entry.get("taxid", ""))
             return ""
