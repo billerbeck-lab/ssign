@@ -514,12 +514,10 @@ with tab_upload:
                               placeholder="/path/to/bakta_db")
         else:
             st.info(
-                "**Bakta is not installed** but is optional. It provides richer genome "
-                "annotation than Prodigal for raw FASTA input.\n\n"
-                "To install (~2 GB for light database):\n"
-                "```\npip install ssign[bakta]\nbakta_db download --output /path/db --type light\n```\n\n"
-                "ssign works without Bakta — it will use Prodigal for gene prediction, "
-                "which is still effective but produces fewer functional annotations."
+                "**Bakta is not installed** but is optional for raw FASTA input.\n\n"
+                "Install (~2 GB): `pip install ssign[bakta]` then download the database.\n\n"
+                "See the [installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md) "
+                "for detailed instructions."
             )
 
     with col2:
@@ -771,13 +769,10 @@ with tab_pipeline:
                 dlp_path = st.text_input("DeepLocPro install path", key="dlp_path")
                 if not dlp_found and not dlp_path:
                     st.info(
-                        "**DeepLocPro is not installed locally.** Local mode requires a "
-                        "free DTU academic license (~5 GB model download, GPU recommended).\n\n"
-                        "To install:\n"
-                        "1. Register at https://services.healthtech.dtu.dk/services/DeepLocPro-1.0/\n"
-                        "2. Download and follow DTU's install instructions\n"
-                        "3. Enter the install path above\n\n"
-                        "Alternatively, use **cloud mode** (no install needed)."
+                        "**DeepLocPro is not installed locally.** Requires DTU academic "
+                        "license (~5 GB, GPU recommended). See the "
+                        "[installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md). "
+                        "Or use **cloud mode** (no install needed)."
                     )
             else:
                 st.caption(
@@ -811,13 +806,10 @@ with tab_pipeline:
                     sp_path = st.text_input("SignalP install path", key="sp_path")
                     if not sp_found and not sp_path:
                         st.info(
-                            "**SignalP 6.0 is not installed locally.** Local mode requires a "
-                            "free DTU academic license (~1 GB download).\n\n"
-                            "To install:\n"
-                            "1. Register at https://services.healthtech.dtu.dk/services/SignalP-6.0/\n"
-                            "2. Download and follow DTU's install instructions\n"
-                            "3. Enter the install path above\n\n"
-                            "Alternatively, use **cloud mode** (no install needed)."
+                            "**SignalP 6.0 is not installed locally.** Requires DTU academic "
+                            "license (~1 GB). See the "
+                            "[installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md). "
+                            "Or use **cloud mode** (no install needed)."
                         )
                 else:
                     st.caption("Cloud mode (~2-5 min per genome, no setup needed).")
@@ -869,16 +861,11 @@ with tab_pipeline:
                 disabled=True,
             )
             st.info(
-                "**DeepSecE is not installed** but is recommended. It predicts which "
-                "secretion system type each protein is secreted by, providing an "
-                "independent cross-check against DeepLocPro. This improves confidence "
-                "in secreted protein identification and may yield additional candidates.\n\n"
-                "To install (~7.3 GB total: ~2 GB for PyTorch, ~5.3 GB for ESM model):\n"
-                "```\npip install ssign[deepsece]\n```\n"
-                "Or install everything: `pip install ssign[full]`\n\n"
-                "ssign works without DeepSecE — it will use DeepLocPro alone for "
-                "secreted protein identification, which is still effective but loses the "
-                "cross-validation benefit."
+                "**DeepSecE is not installed** but is recommended. It provides an "
+                "independent cross-check against DeepLocPro.\n\n"
+                "Install (~7.3 GB): `pip install ssign[deepsece]` (run inside your ssign venv)\n\n"
+                "See the [installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md) "
+                "for detailed instructions."
             )
 
         st.divider()
