@@ -735,8 +735,9 @@ class PipelineRunner:
 
         if rc == 0:
             self.files['neighborhood_proteins'] = neighborhood_fasta
+            n_neigh = sum(1 for line in open(neighborhood_fasta) if line.startswith('>'))
             return StepResult("extract_neighborhood", True,
-                              "Neighborhood proteins extracted")
+                              f"{n_neigh} neighborhood proteins")
         return StepResult("extract_neighborhood", False, stderr[:500])
 
     # ── Phase 3: Prediction ──
@@ -926,7 +927,9 @@ class PipelineRunner:
         if rc == 0:
             self.files['substrates_filtered'] = out_filtered
             self.files['substrates_all'] = out_all
-            return StepResult("filtering", True, "Filtering complete")
+            n_subs = sum(1 for line in open(out_filtered) if not line.startswith('locus_tag') and line.strip()) - 1
+            n_subs = max(0, n_subs)
+            return StepResult("filtering", True, f"{n_subs} secreted proteins")
         return StepResult("filtering", False, stderr[:500])
 
     # ── Phase 5: Annotation ──

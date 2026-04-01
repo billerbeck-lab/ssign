@@ -1433,28 +1433,79 @@ with tab_run:
                 status_text = st.empty()
                 genome_progress.append((progress_bar, status_text))
 
+            # ── Dynamic time estimate placeholder ──
+            estimate_box = st.empty()
+
             # ── Run genomes (parallel if multiple, sequential if single) ──
             all_results = []
             resume = st.session_state.get("resume_run", False)
 
             if n_genomes_to_run > 1:
-                import threading
+                import threading, time as _time, re as _re
                 from concurrent.futures import ThreadPoolExecutor, as_completed
                 from streamlit.runtime.scriptrunner import get_script_run_ctx, add_script_run_ctx
 
-                # Capture Streamlit's script context so worker threads can
-                # update progress widgets without "missing ScriptRunContext" warnings
                 _ctx = get_script_run_ctx()
+                _start_time = _time.monotonic()
 
-                # Per-API semaphores for concurrency control across genomes.
-                # All genomes run simultaneously — semaphores ensure API rate
-                # limits are respected. While one genome waits for HHpred,
-                # others continue through local steps or other API tools.
+                # Shared counters for dynamic estimate
+                _counts_lock = threading.Lock()
+                _genome_counts = {}  # {idx: {'neighborhood': N, 'secreted': N, 'done': bool}}
+
+                # Per-protein timing constants (measured)
+                _SEC_PER_NEIGH_DLP = 6    # DeepLocPro: ~6s per neighborhood protein
+                _SEC_PER_SEC_HH = 260     # HHpred: ~260s per secreted protein
+                _SEC_PER_SEC_BLAST = 30   # BLASTp: ~30s per secreted protein
+                _SEC_PER_SEC_IPRS = 15    # InterProScan: ~15s per secreted protein
+
+                def _update_estimate():
+                    """Recalculate and display time estimate based on discovered protein counts."""
+                    with _counts_lock:
+                        counted = [c for c in _genome_counts.values() if c.get('secreted') is not None]
+                        done = sum(1 for c in _genome_counts.values() if c.get('done'))
+                        remaining = n_genomes_to_run - done
+
+                    if not counted or remaining == 0:
+                        return
+
+                    # Average from discovered genomes
+                    avg_sec = sum(c['secreted'] for c in counted) / len(counted)
+                    total_sec_remaining = avg_sec * remaining
+
+                    # HHpred is sequential (sem=1), others are parallel
+                    hh_enabled = st.session_state.get("run_hh", False)
+                    if hh_enabled:
+                        hh_remaining_min = total_sec_remaining * _SEC_PER_SEC_HH / 60
+                    else:
+                        hh_remaining_min = 0
+
+                    blastp_enabled = st.session_state.get("run_blastp", False)
+                    iprs_enabled = st.session_state.get("run_iprs", False)
+                    other_ann_min = max(
+                        total_sec_remaining * _SEC_PER_SEC_BLAST / 60 / 5 if blastp_enabled else 0,
+                        total_sec_remaining * _SEC_PER_SEC_IPRS / 60 / 5 if iprs_enabled else 0,
+                    )
+
+                    elapsed = (_time.monotonic() - _start_time) / 60
+                    est_remaining = max(0, hh_remaining_min + other_ann_min)
+
+                    if est_remaining >= 60:
+                        est_str = f"~{est_remaining/60:.1f} hours"
+                    else:
+                        est_str = f"~{est_remaining:.0f} minutes"
+
+                    estimate_box.info(
+                        f"**{done}/{n_genomes_to_run} genomes complete** | "
+                        f"Elapsed: {elapsed:.0f} min | "
+                        f"Est. remaining: {est_str} | "
+                        f"Avg {avg_sec:.0f} secreted proteins/genome"
+                    )
+
                 _api_sem = {
-                    'dtu': threading.Semaphore(5),    # DTU (DeepLocPro + SignalP): 5 concurrent
-                    'ncbi': threading.Semaphore(5),   # NCBI BLASTp: 5 concurrent
-                    'mpi': threading.Semaphore(1),    # MPI HHpred: 1 at a time (200 jobs/hr limit)
-                    'ebi': threading.Semaphore(5),    # EBI InterProScan: 5 concurrent (30 req/s limit)
+                    'dtu': threading.Semaphore(5),
+                    'ncbi': threading.Semaphore(5),
+                    'mpi': threading.Semaphore(1),
+                    'ebi': threading.Semaphore(5),
                 }
 
                 def _run_one_genome(idx):
@@ -1466,9 +1517,30 @@ with tab_run:
                         bar.progress(min(pct, 100) / 100)
                         status.markdown(f"**{step}** \u2014 {msg}")
 
+                        # Parse protein counts from step messages
+                        try:
+                            m = _re.search(r'(\d+)\s+neighborhood proteins', msg)
+                            if m:
+                                with _counts_lock:
+                                    _genome_counts.setdefault(idx, {})['neighborhood'] = int(m.group(1))
+
+                            m = _re.search(r'(\d+)\s+secreted proteins', msg)
+                            if m:
+                                with _counts_lock:
+                                    _genome_counts.setdefault(idx, {})['secreted'] = int(m.group(1))
+                                _update_estimate()
+                        except Exception:
+                            pass
+
                     runner = PipelineRunner(cfg, progress_callback=_update,
                                             api_semaphores=_api_sem)
-                    return runner.run(resume=resume)
+                    result = runner.run(resume=resume)
+
+                    with _counts_lock:
+                        _genome_counts.setdefault(idx, {})['done'] = True
+                    _update_estimate()
+
+                    return result
 
                 with ThreadPoolExecutor(max_workers=n_genomes_to_run) as executor:
                     futures = {
@@ -1488,11 +1560,31 @@ with tab_run:
                             )
             else:
                 # Single genome — run directly
+                import time as _time, re as _re
+                _start_time = _time.monotonic()
                 bar, status = genome_progress[0]
 
                 def _update_single(step, pct, msg):
                     bar.progress(min(pct, 100) / 100)
                     status.markdown(f"**{step}** \u2014 {msg}")
+                    # Update estimate when protein counts are discovered
+                    try:
+                        m = _re.search(r'(\d+)\s+secreted proteins', msg)
+                        if m:
+                            n_sec = int(m.group(1))
+                            elapsed = (_time.monotonic() - _start_time) / 60
+                            hh_min = n_sec * 260 / 60 if st.session_state.get("run_hh") else 0
+                            blast_min = n_sec * 30 / 60 if st.session_state.get("run_blastp") else 0
+                            iprs_min = n_sec * 15 / 60 if st.session_state.get("run_iprs") else 0
+                            ann_min = max(hh_min, blast_min, iprs_min)
+                            est_str = f"~{ann_min:.0f} min" if ann_min < 60 else f"~{ann_min/60:.1f} hr"
+                            estimate_box.info(
+                                f"**{n_sec} secreted proteins found** | "
+                                f"Elapsed: {elapsed:.0f} min | "
+                                f"Annotation est: {est_str}"
+                            )
+                    except Exception:
+                        pass
 
                 runner = PipelineRunner(genome_configs[0], progress_callback=_update_single)
                 with st.spinner(f"Running ssign pipeline..."):
