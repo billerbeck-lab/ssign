@@ -34,26 +34,46 @@ TOOL_HIT_COLUMNS = {
 }
 
 
-def _compute_tool_counts(df):
-    """Add n_tools_with_hits and annotation_tools columns."""
-    def _count_hits(row):
-        hits = []
+def _compute_consensus(df):
+    """Compute annotation consensus and tool counts for each protein."""
+    from ssign_app.scripts.annotation_consensus import compute_consensus
+
+    consensus_rows = []
+    for _, row in df.iterrows():
+        # Collect descriptions from each tool
+        tool_descs = {}
         for tool, col in TOOL_HIT_COLUMNS.items():
             if col not in df.columns:
                 continue
             val = row.get(col, '')
             if pd.isna(val) or not str(val).strip():
                 continue
-            # For GBFF, skip generic annotations
+            # Skip generic GBFF annotations
             if tool == 'GBFF' and str(val).strip().lower() in (
                 'hypothetical protein', 'uncharacterized protein', ''):
                 continue
-            hits.append(tool)
-        return hits
+            tool_descs[tool] = str(val).strip()
 
-    hit_lists = df.apply(_count_hits, axis=1)
-    df['n_tools_with_hits'] = hit_lists.apply(len)
-    df['annotation_tools'] = hit_lists.apply(lambda x: ','.join(x) if x else '')
+        consensus = compute_consensus(tool_descs)
+        consensus_rows.append(consensus)
+
+    # Add consensus columns to dataframe
+    consensus_df = pd.DataFrame(consensus_rows)
+    for col in consensus_df.columns:
+        df[col] = consensus_df[col].values
+
+    # Also add the simple annotation_tools list
+    df['annotation_tools'] = [
+        ','.join(sorted(td.keys())) if td else ''
+        for td in [
+            {t: row.get(c, '') for t, c in TOOL_HIT_COLUMNS.items()
+             if c in df.columns and pd.notna(row.get(c, '')) and str(row.get(c, '')).strip()
+             and not (t == 'GBFF' and str(row.get(c, '')).strip().lower() in
+                      ('hypothetical protein', 'uncharacterized protein', ''))}
+            for _, row in df.iterrows()
+        ]
+    ]
+
     return df
 
 
@@ -138,8 +158,8 @@ def main():
         except Exception as e:
             logger.warning(f"Failed to merge {ann_file}: {e}")
 
-    # Compute tool hit counts
-    df = _compute_tool_counts(df)
+    # Compute annotation consensus across tools
+    df = _compute_consensus(df)
 
     # Write output
     df.to_csv(args.output, index=False)
