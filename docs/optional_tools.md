@@ -88,18 +88,3 @@ By default, ssign runs SignalP via the free DTU cloud API. Local mode is faster 
 1. Register for a free academic license at [DTU SignalP 6.0](https://services.healthtech.dtu.dk/services/SignalP-6.0/)
 2. Download and install following DTU's instructions
 3. In ssign, select "Local install" for SignalP and enter the install path
-
----
-
-## Install Everything At Once
-
-To install all pip-installable optional dependencies:
-
-```bash
-source ~/.ssign-env/bin/activate
-pip install ssign[full]
-```
-
-This installs DeepSecE + Bakta. BLAST+, DeepLocPro (local), and SignalP (local) still need separate installation as described above.
-
-You can also combine specific extras: `pip install ssign[deepsece,bakta]`
