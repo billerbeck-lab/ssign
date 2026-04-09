@@ -235,6 +235,37 @@ def _merge_genome_outputs(outdir: str, sample_names: list[str]):
 
     if summary_parts:
         with open(os.path.join(outdir, "ssign_summary.txt"), 'w') as f:
+            # Cross-genome summary header
+            if len(sample_names) > 1 and 'proteins' in merged and not merged['proteins'].empty:
+                df_all = merged['proteins']
+                n_genomes = df_all['sample_id'].nunique() if 'sample_id' in df_all.columns else len(sample_names)
+                n_total = len(df_all)
+                avg_per_genome = n_total / n_genomes if n_genomes > 0 else 0
+
+                f.write("=" * 60 + "\n")
+                f.write("  CROSS-GENOME SUMMARY\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(f"Genomes analyzed: {n_genomes}\n")
+                f.write(f"Total secreted proteins: {n_total}\n")
+                f.write(f"Average per genome: {avg_per_genome:.1f}\n\n")
+
+                if 'nearby_ss_types' in df_all.columns:
+                    f.write("Secreted proteins by SS type (total across genomes):\n")
+                    for ss, count in df_all['nearby_ss_types'].value_counts().items():
+                        f.write(f"  {ss}: {count}\n")
+                    f.write("\n")
+
+                if 'broad_annotation' in df_all.columns:
+                    non_empty = df_all['broad_annotation'].dropna()
+                    non_empty = non_empty[non_empty != '']
+                    if not non_empty.empty:
+                        f.write("Most common annotations:\n")
+                        for ann, count in non_empty.value_counts().head(10).items():
+                            f.write(f"  {ann}: {count}\n")
+                        f.write("\n")
+
+                f.write("\n")
+
             f.write('\n'.join(summary_parts))
 
     # ── 3. Regenerate combined figures from merged data ──
