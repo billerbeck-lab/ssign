@@ -208,7 +208,12 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
 
     def _mmap_torch_load(*args, **kwargs):
         kwargs.setdefault("mmap", True)
-        return _orig_torch_load(*args, **kwargs)
+        try:
+            return _orig_torch_load(*args, **kwargs)
+        except RuntimeError:
+            # ESM-1b uses old pickle format which doesn't support mmap
+            kwargs.pop("mmap", None)
+            return _orig_torch_load(*args, **kwargs)
 
     torch.load = _mmap_torch_load
 

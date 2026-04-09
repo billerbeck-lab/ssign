@@ -270,6 +270,19 @@ def find_output_file(output_dir):
             if fname.endswith('.signalp5'):
                 return os.path.join(root, fname)
 
+    # Priority 4: output.json (newer DTU API format)
+    for root, dirs, files in os.walk(output_dir):
+        for fname in files:
+            if fname == "output.json":
+                # Convert JSON to TSV format for downstream parsing
+                json_path = os.path.join(root, fname)
+                tsv_path = os.path.join(root, "prediction_results.txt")
+                try:
+                    _convert_signalp_json_to_tsv(json_path, tsv_path)
+                    return tsv_path
+                except Exception as e:
+                    logger.warning(f"Failed to convert SignalP JSON: {e}")
+
     raise FileNotFoundError(f"No SignalP output in {output_dir}")
 
 
