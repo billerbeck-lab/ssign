@@ -844,11 +844,17 @@ with tab_pipeline:
         with col2:
             st.markdown(
                 "**SignalP 6.0** — Signal Peptides",
-                help="Predicts signal peptides (Sec/SPI, Sec/SPII, Tat/SPI, Tat/SPII) "
-                     "which indicate a protein is targeted for secretion via the Sec or "
-                     "Tat translocation pathways.",
+                help="Predicts N-terminal signal peptides (Sec/SPI, Sec/SPII, Tat/SPI, "
+                     "Tat/SPII, PILIN) recognised by signal peptidases. Only useful for "
+                     "T2SS and T5SS substrates which use the Sec pathway to cross the "
+                     "inner membrane. T1SS, T3SS, T4SS, T6SS substrates do NOT have "
+                     "N-terminal signal peptides — SignalP will return 'OTHER' for them.",
             )
-            st.caption("Detects signal peptides indicating secretion pathway targeting.")
+            st.caption(
+                "Detects Sec/Tat signal peptides — most useful for T2SS and T5SS. "
+                "T1SS/T3SS/T4SS/T6SS substrates use different secretion mechanisms "
+                "and will be predicted as 'OTHER' (not a tool failure)."
+            )
             run_signalp = st.checkbox(
                 "Enable SignalP 6.0", value=False, key="run_signalp",
                 help="Adds signal peptide predictions as an additional layer of evidence "
