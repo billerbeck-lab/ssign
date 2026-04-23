@@ -158,7 +158,7 @@ question reaches someone who can actually help.
 | Press / public-engagement                                                  | Email Sonja                                                                | Dr. Sonja Billerbeck                            |
 
 **Active maintainer (as of v0.9.0):** M. Teo Reid
-([`@reidmat`](https://github.com/reidmat), `teoreid@gmail.com`). A lab
+([`@reidmat`](https://github.com/reidmat), `t.reid25@imperial.ac.uk`). A lab
 successor will be named in `SYSADMIN.md` before Teo departs Imperial in
 October 2026; until then, GitHub Issues are the fastest path to a technical
 answer.

@@ -10,14 +10,14 @@ readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.10"
 authors = [
-    {name = "M. Teo Reid", email = "teoreid@gmail.com"},
+    {name = "M. Teo Reid", email = "t.reid25@imperial.ac.uk"},
     {name = "Owen Terpstra", email = "owen.terpstra@rug.nl"},
     {name = "Karan Kumar", email = "karan.kumar@rwth-aachen.de"},
     {name = "Sonja Billerbeck", email = "s.billerbeck@imperial.ac.uk"},
 ]
 maintainers = [
     {name = "Sonja Billerbeck", email = "s.billerbeck@imperial.ac.uk"},
-    {name = "M. Teo Reid", email = "teoreid@gmail.com"},
+    {name = "M. Teo Reid", email = "t.reid25@imperial.ac.uk"},
 ]
 keywords = [
     "bioinformatics",
