@@ -37,6 +37,12 @@ Work toward v1.0.0 publication release. See the roadmap in project memory
   secondary fallback. Env var `SSIGN_DEEPSECE_CHECKPOINT_URL` lets
   institutional mirrors override at runtime. GUI download instructions
   updated with the Zenodo mirror first.
+- **Drop `pybiolib` from base deps.** The library had zero imports in the
+  codebase — DTU remote-mode code (DeepLocPro + SignalP, still live until
+  Phase 2.3 lands) uses raw `requests` against DTU's webface directly, not
+  BioLib. Three DTU diagnostic scripts (`tests/test_dtu_*.py`) also removed;
+  they were standalone HTTP-poking scripts like the HHpred debug scripts
+  purged in Phase 2.1c.
 - **Taxonomy resolution now local** via `taxopy` against NCBI `taxdump`.
   Replaces ~210 lines of E-utilities / urllib / XML parsing in
   `resolve_taxonomy.py`. Default dump location `~/.ssign/taxdump/` with
