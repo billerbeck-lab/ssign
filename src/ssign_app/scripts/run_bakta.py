@@ -23,10 +23,9 @@ import csv
 import logging
 import os
 import subprocess
-import sys
 import tempfile
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -53,25 +52,50 @@ def run_bakta(contigs_fasta, db_path, sample_id, output_dir, threads=4):
     """
     cmd = [
         "bakta",
-        "--db", db_path,
-        "--output", output_dir,
-        "--prefix", sample_id,
-        "--threads", str(threads),
-        "--force",     # Overwrite if exists
-        "--skip-plot", # Skip plot (not needed in pipeline)
+        "--db",
+        db_path,
+        "--output",
+        output_dir,
+        "--prefix",
+        sample_id,
+        "--threads",
+        str(threads),
+        "--force",  # Overwrite if exists
+        "--skip-plot",  # Skip plot (not needed in pipeline)
         contigs_fasta,
     ]
 
     logger.info(f"Running Bakta: bakta --db {db_path} --prefix {sample_id} ...")
+    # FRAGILE: subprocess call requires the `bakta` binary on PATH
+    # If this breaks: pip install ssign[bakta] (or pip install bakta>=1.5)
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=14400,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=14400,
         )
-        if result.returncode != 0:
-            logger.error(f"Bakta failed:\n{result.stderr[:1000]}")
-            raise RuntimeError(f"Bakta exit code {result.returncode}")
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("Bakta timed out after 4 hours")
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"Bakta binary not found: {e}\n"
+            f"  Common causes:\n"
+            f"    - Bakta is not installed or not on PATH\n"
+            f"  How to fix:\n"
+            f"    - pip install ssign[bakta]      # installs bakta>=1.5\n"
+            f"    - Or:  pip install bakta\n"
+            f"    - Or:  conda install -c bioconda bakta"
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(
+            f"Bakta timed out after 4 hours: {e}\n"
+            f"  How to fix:\n"
+            f"    - Reduce genome size or split into contigs\n"
+            f"    - Increase --threads if more CPUs are available"
+        ) from e
+
+    if result.returncode != 0:
+        logger.error(f"Bakta failed:\n{result.stderr[:1000]}")
+        raise RuntimeError(f"Bakta exit code {result.returncode}")
 
     proteins_faa = os.path.join(output_dir, f"{sample_id}.faa")
     tsv_path = os.path.join(output_dir, f"{sample_id}.tsv")
@@ -89,10 +113,14 @@ def parse_bakta_tsv(tsv_path):
 
     Returns list of dicts matching gene_info.tsv format:
         locus_tag, protein_id, gene, product, contig, start, end, strand
+
+    TODO (Phase 3.2.a): surface the DbXrefs column to expose EC / COG / GO /
+    KEGG / PFAM cross-references once annotation_consensus.py is extended to
+    vote with them. Currently discarded.
     """
     entries = []
     with open(tsv_path) as f:
-        reader = csv.DictReader(f, delimiter='\t')
+        reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             feat_type = row.get(_COL_TYPE, "").strip()
             if feat_type not in _PROTEIN_TYPES:
@@ -108,16 +136,19 @@ def parse_bakta_tsv(tsv_path):
             except (ValueError, TypeError):
                 start, end = 0, 0
 
-            entries.append({
-                "locus_tag": locus_tag,
-                "protein_id": "",
-                "gene": row.get(_COL_GENE, "").strip(),
-                "product": row.get(_COL_PRODUCT, "hypothetical protein").strip() or "hypothetical protein",
-                "contig": row.get(_COL_SEQ_ID, "").strip(),
-                "start": start,
-                "end": end,
-                "strand": row.get(_COL_STRAND, "+").strip(),
-            })
+            entries.append(
+                {
+                    "locus_tag": locus_tag,
+                    "protein_id": "",
+                    "gene": row.get(_COL_GENE, "").strip(),
+                    "product": row.get(_COL_PRODUCT, "hypothetical protein").strip()
+                    or "hypothetical protein",
+                    "contig": row.get(_COL_SEQ_ID, "").strip(),
+                    "start": start,
+                    "end": end,
+                    "strand": row.get(_COL_STRAND, "+").strip(),
+                }
+            )
 
     return entries
 
@@ -138,9 +169,9 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
 
     with open(bakta_faa_path) as f:
         for line in f:
-            if line.startswith('>'):
+            if line.startswith(">"):
                 if current_tag and current_tag in wanted:
-                    seqs[current_tag] = "".join(current_seq).rstrip('*')
+                    seqs[current_tag] = "".join(current_seq).rstrip("*")
                 # Bakta header: >{locus_tag} {description}
                 current_tag = line[1:].strip().split()[0]
                 current_seq = []
@@ -148,10 +179,10 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
                 current_seq.append(line.strip())
 
         if current_tag and current_tag in wanted:
-            seqs[current_tag] = "".join(current_seq).rstrip('*')
+            seqs[current_tag] = "".join(current_seq).rstrip("*")
 
     n_written = 0
-    with open(out_fasta, 'w') as f:
+    with open(out_fasta, "w") as f:
         for e in entries:
             tag = e["locus_tag"]
             seq = seqs.get(tag, "")
@@ -159,7 +190,7 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
                 continue
             f.write(f">{tag}\n")
             for i in range(0, len(seq), 80):
-                f.write(seq[i:i+80] + "\n")
+                f.write(seq[i : i + 80] + "\n")
             n_written += 1
 
     logger.info(f"Wrote {n_written} protein sequences")
@@ -167,7 +198,9 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Bakta and convert output to ssign format")
+    parser = argparse.ArgumentParser(
+        description="Run Bakta and convert output to ssign format"
+    )
     parser.add_argument("--input", required=True, help="Input genome FASTA (contigs)")
     parser.add_argument("--db", required=True, help="Path to Bakta database")
     parser.add_argument("--sample", required=True, help="Sample identifier")
@@ -190,10 +223,18 @@ def main():
         write_proteins_fasta(bakta_faa, entries, args.out_proteins)
 
     # Write gene_info TSV
-    fieldnames = ["locus_tag", "protein_id", "gene", "product",
-                  "contig", "start", "end", "strand"]
-    with open(args.out_gene_info, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
+    fieldnames = [
+        "locus_tag",
+        "protein_id",
+        "gene",
+        "product",
+        "contig",
+        "start",
+        "end",
+        "strand",
+    ]
+    with open(args.out_gene_info, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for e in entries:
             writer.writerow(e)
@@ -201,5 +242,5 @@ def main():
     logger.info(f"Done: {len(entries)} proteins annotated for {args.sample}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
