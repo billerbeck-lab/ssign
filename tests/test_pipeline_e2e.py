@@ -1,21 +1,41 @@
 #!/usr/bin/env python3
-"""End-to-end pipeline test using Xanthobacter genome.
+"""Manual end-to-end pipeline runner for the T1SS fixture genome.
 
-Runs the full pipeline with:
-- DeepSecE SKIPPED (requires 7.3GB ESM model)
-- DeepLocPro in REMOTE mode (DTU web server)
-- BLASTp in REMOTE mode (NCBI web)
-- InterProScan in REMOTE mode (EBI web)
-- ProtParam computed locally
-- HH-suite SKIPPED (slow, optional)
-- SignalP SKIPPED
+NOT a pytest test — this is a hand-run script that invokes the full
+PipelineRunner on the bundled T1SS fixture and prints a human-readable
+summary. The authoritative pytest integration test lives in
+`tests/integration/test_pipeline_fixture.py`.
+
+What runs:
+- Input format detection + protein extraction (always runs)
+- MacSyFinder secretion-system detection (requires MacSyFinder + TXSScan)
+- DeepLocPro localisation prediction (currently runs via DTU's webface;
+  will move to local install in Phase 2.3 once DTU redistribution is
+  cleared)
+- Proximity analysis + cross-validation + T5SS handling + reporting
+
+Heavy annotation tools (BLASTp, HH-suite, InterProScan, Bakta, EggNOG,
+PLM-Effector, pLM-BLAST) are **skipped** by default here — they all need
+local databases and, in a few cases, a GPU. Turn any of them on by
+providing the database path / weights dir plus `skip_*=False`.
+
+Remote-mode tools that were removed in Phase 2:
+- BLASTp NCBI remote fallback  (2.1b) — require --blastp-db
+- HH-suite MPI Toolkit remote  (2.1c) — require local hh-suite install
+- InterProScan EBI web service (2.1c) — require local InterProScan
+- Foldseek scaffolding         (2.1a) — dropped entirely
+
+Usage:
+    python tests/test_pipeline_e2e.py [output_dir]
+
+Output dir defaults to /tmp/ssign_e2e_test. Pipeline supports resume via
+the persisted progress JSON.
 """
 
 import logging
 import os
 import sys
 
-# Add package to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from ssign_app.core.runner import PipelineConfig, PipelineRunner
@@ -23,39 +43,43 @@ from ssign_app.core.runner import PipelineConfig, PipelineRunner
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
-def main():
-    # Input: Xanthobacter genome (GenBank)
-    test_data = os.path.join(
-        os.path.dirname(__file__), "data", "Xanthobacter_tagetidis_TagT2C_genomic.gbff"
+def main() -> int:
+    fixture = os.path.join(
+        os.path.dirname(__file__),
+        "fixtures",
+        "Xanthobacter_tagetidis_ATCC_700314_contig_87.gbff",
     )
-    if not os.path.exists(test_data):
-        print(f"ERROR: Test genome not found: {test_data}")
-        sys.exit(1)
+    if not os.path.exists(fixture):
+        print(f"ERROR: T1SS fixture not found: {fixture}", file=sys.stderr)
+        print(
+            "Run this script from the repo root so the fixture path resolves.",
+            file=sys.stderr,
+        )
+        return 1
 
-    outdir = os.environ.get("SSIGN_TEST_OUTDIR", "/tmp/ssign_e2e_test")
+    outdir = sys.argv[1] if len(sys.argv) > 1 else "/tmp/ssign_e2e_test"
     os.makedirs(outdir, exist_ok=True)
 
     config = PipelineConfig(
-        input_path=test_data,
-        sample_id="xantest",
+        input_path=fixture,
+        sample_id="t1ss_fixture",
         outdir=outdir,
         # Core settings
         wholeness_threshold=0.8,
         excluded_systems=["Flagellum", "Tad", "T3SS"],
         conf_threshold=0.8,
         proximity_window=3,
-        # Skip heavy tools
-        skip_deepsece=True,  # ESM model too large for test env
-        skip_signalp=True,  # Optional
-        skip_hhsuite=True,  # Optional, slow
+        # Prediction tools
+        deeplocpro_mode="remote",  # DTU webface; replaced by local in Phase 2.3
+        skip_deepsece=True,  # ESM model is too large for a laptop run
+        skip_signalp=True,  # Optional; skip by default
+        # Annotation — all skipped; enable individually by providing a DB path
+        skip_blastp=True,
+        skip_hhsuite=True,
+        skip_interproscan=True,
         skip_plmblast=True,
-        skip_structure=True,
-        # Enable core annotation
-        skip_blastp=False,
-        skip_interproscan=False,
-        skip_protparam=False,
-        # DeepLocPro
-        deeplocpro_mode="remote",
+        skip_protparam=False,  # Fast and local, always run
+        skip_structure=True,  # Foldseek was dropped in Phase 2
     )
 
     def progress_cb(step, pct, msg):
@@ -64,35 +88,28 @@ def main():
     runner = PipelineRunner(config, progress_callback=progress_cb)
     results = runner.run(resume=True)
 
-    # Summary
     print("\n" + "=" * 60)
     print("PIPELINE RESULTS")
     print("=" * 60)
-    passed = 0
-    failed = 0
+    passed = failed = 0
     for r in results:
         status = "OK" if r.success else "FAIL"
-        if r.success:
-            passed += 1
-        else:
-            failed += 1
+        passed += int(r.success)
+        failed += int(not r.success)
         print(f"  [{status:4s}] {r.name}: {r.message}")
 
     print(f"\n{passed} passed, {failed} failed out of {len(results)} steps")
 
-    # Check key output files
     print("\n--- Output files ---")
-    for f in sorted(os.listdir(outdir)):
-        fpath = os.path.join(outdir, f)
-        if os.path.isfile(fpath):
-            size = os.path.getsize(fpath)
-            print(f"  {f}: {size:,} bytes")
-        elif os.path.isdir(fpath):
-            n = len(os.listdir(fpath))
-            print(f"  {f}/: {n} files")
+    for entry in sorted(os.listdir(outdir)):
+        path = os.path.join(outdir, entry)
+        if os.path.isfile(path):
+            print(f"  {entry}: {os.path.getsize(path):,} bytes")
+        elif os.path.isdir(path):
+            print(f"  {entry}/: {len(os.listdir(path))} files")
 
-    sys.exit(0 if failed == 0 else 1)
+    return 0 if failed == 0 else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
