@@ -52,7 +52,6 @@ def main():
         skip_structure=True,
         # Enable core annotation
         skip_blastp=False,
-        blastp_mode="remote",
         skip_interproscan=False,
         interproscan_mode="remote",
         skip_protparam=False,

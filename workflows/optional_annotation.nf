@@ -6,7 +6,6 @@
  */
 
 include { BLASTP_LOCAL }     from '../modules/local/blastp'
-include { BLASTP_REMOTE }    from '../modules/local/blastp'
 include { HHSUITE_LOCAL }    from '../modules/local/hhsuite'
 include { HHSUITE_REMOTE }   from '../modules/local/hhsuite'
 include { INTERPROSCAN_LOCAL }  from '../modules/local/interproscan'
@@ -22,15 +21,10 @@ workflow OPTIONAL_ANNOTATION {
     // Collect all annotation outputs into a single channel per sample
     ch_annotations = Channel.empty()
 
-    // --- BLASTp ---
+    // --- BLASTp (local only as of v1.0.0) ---
     if (!params.skip_blastp) {
-        if (params.blastp_mode == 'local') {
-            BLASTP_LOCAL(ch_substrates.join(ch_proteins))
-            ch_annotations = ch_annotations.mix(BLASTP_LOCAL.out.annotations)
-        } else {
-            BLASTP_REMOTE(ch_substrates.join(ch_proteins))
-            ch_annotations = ch_annotations.mix(BLASTP_REMOTE.out.annotations)
-        }
+        BLASTP_LOCAL(ch_substrates.join(ch_proteins))
+        ch_annotations = ch_annotations.mix(BLASTP_LOCAL.out.annotations)
     }
 
     // --- HH-suite ---

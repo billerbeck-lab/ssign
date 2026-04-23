@@ -39,7 +39,6 @@ def run_genome(genome_path, sample_id, outdir, enable_hhpred=True):
         skip_structure=True,
         # Enable annotation tools
         skip_blastp=False,
-        blastp_mode="remote",
         skip_hhsuite=not enable_hhpred,
         hhsuite_mode="remote",
         skip_interproscan=False,

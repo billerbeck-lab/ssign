@@ -66,7 +66,6 @@ class PipelineConfig:
 
     # Phase 5: Annotation tools
     skip_blastp: bool = False
-    blastp_mode: str = "remote"
     blastp_db: str = ""
     blastp_exclude_taxid: str = ""
     blastp_min_pident: float = 80.0
@@ -1107,9 +1106,15 @@ class PipelineRunner:
 
         output = self._wf(f"{self.config.sample_id}_blastp.csv")
 
+        if not self.config.blastp_db:
+            return StepResult(
+                "blastp",
+                False,
+                "BLASTp requires a local database. Set `blastp_db` in the "
+                "config to the path of your BLAST+ database (e.g. NR).",
+            )
+
         args = [
-            "--mode",
-            self.config.blastp_mode,
             "--substrates",
             self.files.get("substrates_filtered", ""),
             "--proteins",
@@ -1118,6 +1123,8 @@ class PipelineRunner:
             self.config.sample_id,
             "--output",
             output,
+            "--db",
+            self.config.blastp_db,
             "--min-pident",
             str(self.config.blastp_min_pident),
             "--min-qcov",
@@ -1125,19 +1132,10 @@ class PipelineRunner:
             "--evalue",
             str(self.config.blastp_evalue),
         ]
-        if self.config.blastp_mode == "local" and self.config.blastp_db:
-            args.extend(["--db", self.config.blastp_db])
         if self.config.blastp_exclude_taxid:
             args.extend(["--exclude-taxid", self.config.blastp_exclude_taxid])
 
-        sem = self.api_sem.get("ncbi")
-        if sem:
-            sem.acquire()
-        try:
-            rc, stdout, stderr = run_script("run_blastp.py", args, timeout=7200)
-        finally:
-            if sem:
-                sem.release()
+        rc, stdout, stderr = run_script("run_blastp.py", args, timeout=7200)
         if rc == 0:
             self.files["blastp"] = output
             return StepResult("blastp", True, "BLASTp complete")

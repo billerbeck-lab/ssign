@@ -44,8 +44,7 @@
 | Parameter                | Default  | Description                                      |
 | ------------------------ | -------- | ------------------------------------------------ |
 | `--skip_blastp`          | `false`  | Skip BLASTp                                      |
-| `--blastp_mode`          | `remote` | `local` or `remote`                              |
-| `--blastp_db`            | `null`   | Path to local BLAST database                     |
+| `--blastp_db`            | `null`   | Path to local BLAST database (required)          |
 | `--blastp_evalue`        | `1e-5`   | E-value threshold                                |
 | `--blastp_min_pident`    | `80`     | Minimum percent identity                         |
 | `--blastp_min_qcov`      | `80`     | Minimum query coverage                           |

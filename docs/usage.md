@@ -70,20 +70,19 @@ Genome_C,/path/to/contigs.fasta,
 
 Each annotation tool supports **local** and/or **remote** mode:
 
-| Tool         | Local                                               | Remote                                 | Recommended                                         | Notes                                         |
-| ------------ | --------------------------------------------------- | -------------------------------------- | --------------------------------------------------- | --------------------------------------------- |
-| BLASTp       | `--blastp_mode local --blastp_db /path`             | `--blastp_mode remote` (default)       | Remote for <50 proteins; local swissprot for larger | nr: ~300GB, swissprot: ~1.5GB                 |
-| HH-suite     | `--hhsuite_mode local` + DB paths                   | `--hhsuite_mode remote` (default)      | Remote for <100 proteins                            | Pfam-A: ~3GB, PDB70: ~20GB, UniClust30: ~25GB |
-| InterProScan | `--interproscan_mode local --interproscan_db /path` | `--interproscan_mode remote` (default) | Remote for <200 proteins                            | Local install: ~80GB                          |
-| pLM-BLAST    | `--plmblast_ecod_db /path`                          | N/A (MPI ECOD70 is broken)             | Local only                                          | ECOD70: ~5-10GB                               |
+| Tool         | Local                                               | Remote                                 | Recommended              | Notes                                         |
+| ------------ | --------------------------------------------------- | -------------------------------------- | ------------------------ | --------------------------------------------- |
+| BLASTp       | `--blastp_db /path` (required)                      | **removed in v1.0.0**                  | Local only               | NR: ~390GB, Swiss-Prot: ~1.5GB                |
+| HH-suite     | `--hhsuite_mode local` + DB paths                   | `--hhsuite_mode remote` (default)      | Remote for <100 proteins | Pfam-A: ~3GB, PDB70: ~20GB, UniClust30: ~25GB |
+| InterProScan | `--interproscan_mode local --interproscan_db /path` | `--interproscan_mode remote` (default) | Remote for <200 proteins | Local install: ~80GB                          |
+| pLM-BLAST    | `--plmblast_ecod_db /path`                          | N/A (MPI ECOD70 is broken)             | Local only               | ECOD70: ~5-10GB                               |
 
 ### Rate Limits (Remote Mode)
 
-| Tool                   | Rate Limit              | Practical Limit                    |
-| ---------------------- | ----------------------- | ---------------------------------- |
-| BLASTp (NCBI)          | 3 requests/sec          | ~50 proteins/run before throttling |
-| HH-suite (MPI Toolkit) | 200 jobs/hr, 2000/day   | ~100 proteins/run comfortable      |
-| InterProScan (EBI)     | 30 req/sec, 25k seq/day | ~200 proteins/run comfortable      |
+| Tool                   | Rate Limit              | Practical Limit               |
+| ---------------------- | ----------------------- | ----------------------------- |
+| HH-suite (MPI Toolkit) | 200 jobs/hr, 2000/day   | ~100 proteins/run comfortable |
+| InterProScan (EBI)     | 30 req/sec, 25k seq/day | ~200 proteins/run comfortable |
 
 ## Skipping Tools
 
