@@ -32,6 +32,11 @@ Work toward v1.0.0 publication release. See the roadmap in project memory
   verify what pipeline produced the incoming GenBank annotations. Provides
   uniform, reproducible annotation for consensus voting. Users with curated
   GenBanks can opt out via `--use-input-annotations`.
+- **DeepSecE checkpoint mirrored to Zenodo** (URL finalised at v1.0.0 release,
+  placeholder in the script until then). SJTU origin server kept as a
+  secondary fallback. Env var `SSIGN_DEEPSECE_CHECKPOINT_URL` lets
+  institutional mirrors override at runtime. GUI download instructions
+  updated with the Zenodo mirror first.
 - **Pipeline-order change** — move `enrichment_testing` before
   `filter_by_stats_and_dlp`; stats filter default ON for ≥10 genomes,
   OFF with warning otherwise.

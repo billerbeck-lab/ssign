@@ -15,24 +15,40 @@ import argparse
 import csv
 import logging
 import os
-import sys
 import tempfile
 import time
 import urllib.request
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # DeepSecE class labels (index order from the model)
 PREDICTED_LABELS = ["-", "I", "II", "III", "IV", "VI"]
 SS_MAP = {
-    "-": "Non-secreted", "I": "T1SS", "II": "T2SS",
-    "III": "T3SS", "IV": "T4SS", "VI": "T6SS",
+    "-": "Non-secreted",
+    "I": "T1SS",
+    "II": "T2SS",
+    "III": "T3SS",
+    "IV": "T4SS",
+    "VI": "T6SS",
 }
 
-CHECKPOINT_URL = "https://tool2-mml.sjtu.edu.cn/DeepSecE/checkpoint.pt"
-# No official mirror exists; the SJTU server is the only source.
-CHECKPOINT_URLS = [CHECKPOINT_URL]
+# Primary mirror: ssign's own Zenodo deposit. URL will be filled in at
+# v1.0.0 release when the checkpoint is uploaded. Until then, the list
+# falls back to the SJTU origin server (known-unreliable).
+#
+# Override at runtime via the SSIGN_DEEPSECE_CHECKPOINT_URL environment
+# variable — useful for institutional mirrors or CI caches.
+CHECKPOINT_URL_ZENODO = (
+    "https://zenodo.org/records/PLACEHOLDER/files/deepsece_checkpoint.pt"
+)
+CHECKPOINT_URL_SJTU = "https://tool2-mml.sjtu.edu.cn/DeepSecE/checkpoint.pt"
+
+_env_override = os.environ.get("SSIGN_DEEPSECE_CHECKPOINT_URL", "").strip()
+if _env_override:
+    CHECKPOINT_URLS = [_env_override]
+else:
+    CHECKPOINT_URLS = [CHECKPOINT_URL_ZENODO, CHECKPOINT_URL_SJTU]
 DEFAULT_CHECKPOINT_DIR = os.path.join(os.path.expanduser("~"), ".ssign", "models")
 DEFAULT_CHECKPOINT = os.path.join(DEFAULT_CHECKPOINT_DIR, "deepsece_checkpoint.pt")
 # Expected checkpoint size: ~2.5 GB (includes ESM-1b weights + classifier).
@@ -80,6 +96,7 @@ def _download_with_retries(url, dest):
         logger.info(f"  Attempt {attempt}/{DOWNLOAD_MAX_RETRIES}: {url}")
         partial = dest + ".part"
         try:
+
             def _progress(block_num, block_size, total_size):
                 if total_size > 0:
                     pct = min(100, block_num * block_size * 100 // total_size)
@@ -88,7 +105,9 @@ def _download_with_retries(url, dest):
 
             # Set a global socket timeout so hung connections don't block forever
             urllib.request.urlretrieve(
-                url, partial, reporthook=_progress,
+                url,
+                partial,
+                reporthook=_progress,
             )
 
             # Atomically move into place only if the size looks right
@@ -109,7 +128,7 @@ def _download_with_retries(url, dest):
             if os.path.exists(partial):
                 os.remove(partial)
             if attempt < DOWNLOAD_MAX_RETRIES:
-                wait = 2 ** attempt  # 2 s, 4 s, 8 s
+                wait = 2**attempt  # 2 s, 4 s, 8 s
                 logger.info(f"  Waiting {wait}s before retry...")
                 time.sleep(wait)
 
@@ -131,6 +150,7 @@ def _ensure_checkpoint(checkpoint_path=None):
     logger.info(f"Downloading DeepSecE checkpoint (~2.5 GB) to {path} ...")
 
     import socket
+
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(DOWNLOAD_TIMEOUT_SEC)
 
@@ -144,28 +164,31 @@ def _ensure_checkpoint(checkpoint_path=None):
 
     # All URLs / retries exhausted
     logger.error(
-        "All download attempts failed. The SJTU server "
-        "(tool2-mml.sjtu.edu.cn) may be temporarily unavailable."
+        "All download attempts failed. Tried: %s",
+        ", ".join(CHECKPOINT_URLS),
     )
     logger.error(
         "Please download the checkpoint manually and place it at:\n"
         f"  {path}\n"
         "\n"
-        "Using wget (recommended — it handles retries automatically):\n"
-        f"  wget -c --tries=5 --timeout=60 {CHECKPOINT_URL} -O \"{path}\"\n"
+        "Primary mirror (ssign Zenodo deposit):\n"
+        f'  wget -c --tries=5 --timeout=60 {CHECKPOINT_URL_ZENODO} -O "{path}"\n'
         "\n"
-        "Or using curl:\n"
-        f"  curl -L --retry 5 --connect-timeout 60 -o \"{path}\" {CHECKPOINT_URL}"
+        "Fallback (origin, SJTU — unreliable):\n"
+        f'  wget -c --tries=5 --timeout=60 {CHECKPOINT_URL_SJTU} -O "{path}"\n'
+        "\n"
+        "Or point SSIGN_DEEPSECE_CHECKPOINT_URL at your own mirror."
     )
     raise RuntimeError(
         f"Could not download DeepSecE checkpoint after "
-        f"{DOWNLOAD_MAX_RETRIES} attempts per URL.\n"
+        f"{DOWNLOAD_MAX_RETRIES} attempts per URL ({len(CHECKPOINT_URLS)} URLs tried).\n"
         f"  Common causes:\n"
-        f"    - SJTU server (tool2-mml.sjtu.edu.cn) is temporarily down\n"
-        f"    - Network/firewall blocking the download\n"
+        f"    - All mirrors temporarily down\n"
+        f"    - Network/firewall blocking downloads\n"
         f"    - Slow connection causing timeouts (currently {DOWNLOAD_TIMEOUT_SEC}s)\n"
         f"  How to fix:\n"
-        f"    - Download manually with wget: wget -c --tries=5 {CHECKPOINT_URL} -O \"{path}\"\n"
+        f'    - Download manually with wget: wget -c --tries=5 {CHECKPOINT_URL_ZENODO} -O "{path}"\n'
+        f"    - Or set SSIGN_DEEPSECE_CHECKPOINT_URL to an institutional mirror\n"
         f"    - Then re-run this script (it will find the cached checkpoint)"
     )
 
@@ -365,11 +388,21 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
     n_secreted = 0
     with open(out_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "protein_id", "deepsece_prediction", "deepsece_ss_type",
-            "nonsec_prob", "T1_prob", "T2_prob", "T3_prob", "T4_prob", "T6_prob",
-            "max_prob", "length",
-        ])
+        writer.writerow(
+            [
+                "protein_id",
+                "deepsece_prediction",
+                "deepsece_ss_type",
+                "nonsec_prob",
+                "T1_prob",
+                "T2_prob",
+                "T3_prob",
+                "T4_prob",
+                "T6_prob",
+                "max_prob",
+                "length",
+            ]
+        )
         for i, pid in enumerate(all_names):
             pred_label = PREDICTED_LABELS[all_preds[i]]
             ss_type = SS_MAP[pred_label]
@@ -377,13 +410,21 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
             if pred_label != "-":
                 n_secreted += 1
 
-            writer.writerow([
-                pid, pred_label, ss_type,
-                f"{all_probs[i][0]:.4f}", f"{all_probs[i][1]:.4f}",
-                f"{all_probs[i][2]:.4f}", f"{all_probs[i][3]:.4f}",
-                f"{all_probs[i][4]:.4f}", f"{all_probs[i][5]:.4f}",
-                f"{max_prob:.4f}", all_lengths[i],
-            ])
+            writer.writerow(
+                [
+                    pid,
+                    pred_label,
+                    ss_type,
+                    f"{all_probs[i][0]:.4f}",
+                    f"{all_probs[i][1]:.4f}",
+                    f"{all_probs[i][2]:.4f}",
+                    f"{all_probs[i][3]:.4f}",
+                    f"{all_probs[i][4]:.4f}",
+                    f"{all_probs[i][5]:.4f}",
+                    f"{max_prob:.4f}",
+                    all_lengths[i],
+                ]
+            )
 
     logger.info(f"DeepSecE: {n_secreted}/{len(all_names)} predicted as SS substrates")
     return out_path
@@ -393,14 +434,14 @@ def parse_deepsece_output(results_path):
     """Parse DeepSecE output into standardized format."""
     entries = []
 
-    for sep in [',', '\t']:
+    for sep in [",", "\t"]:
         try:
             with open(results_path) as f:
                 reader = csv.DictReader(f, delimiter=sep)
                 for row in reader:
                     entry = {}
                     for raw_col, std_col in _COLUMN_MAP.items():
-                        entry[std_col] = row.get(raw_col, '')
+                        entry[std_col] = row.get(raw_col, "")
                     entries.append(entry)
                 if entries:
                     return entries
@@ -420,7 +461,8 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         results_path = run_deepsece(
-            args.input, tmpdir,
+            args.input,
+            tmpdir,
             checkpoint_path=args.checkpoint if args.checkpoint else None,
         )
         entries = parse_deepsece_output(results_path)
@@ -428,12 +470,12 @@ def main():
     logger.info(f"Parsed {len(entries)} DeepSecE predictions for {args.sample}")
 
     fieldnames = list(_COLUMN_MAP.values())
-    with open(args.output, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
+    with open(args.output, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for e in entries:
             writer.writerow(e)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
