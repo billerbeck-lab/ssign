@@ -155,12 +155,11 @@ question reaches someone who can actually help.
 | Bug reports, feature requests, install troubles, code questions            | [GitHub Issues](https://github.com/reidmat/ssign/issues)                   | Active maintainer                               |
 | Pull request review                                                        | GitHub PR                                                                  | Active maintainer                               |
 | Scientific collaboration, data-sharing, partnerships, authorship inquiries | Email: [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk) | Dr. Sonja Billerbeck (PI, corresponding author) |
-| Press / public-engagement                                                  | Email Sonja                                                                | Dr. Sonja Billerbeck                            |
 
 **Active maintainer (as of v0.9.0):** M. Teo Reid
 ([`@reidmat`](https://github.com/reidmat), `t.reid25@imperial.ac.uk`). A lab
-successor will be named in `SYSADMIN.md` before Teo departs Imperial in
-October 2026; until then, GitHub Issues are the fastest path to a technical
+successor will be named in `SYSADMIN.md` before
+September 2026; until then, GitHub Issues are the fastest path to a technical
 answer.
 
 **Please do not email the PI with bug reports or installation trouble** —
