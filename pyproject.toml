@@ -120,3 +120,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "shims/*.py", ".streamlit/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit", "tests/integration"]
+markers = [
+    "integration: per-tool or whole-pipeline tests that require external tools to be installed. Skipped automatically when a tool or its database is missing. Run explicitly with `pytest -m integration`.",
+]
