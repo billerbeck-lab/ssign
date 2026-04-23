@@ -147,5 +147,22 @@ not welcome here.
 
 ## Contact
 
-For anything that doesn't fit the issue/PR workflow, email the corresponding
-author: **Dr. Sonja Billerbeck** — `s.billerbeck@imperial.ac.uk`.
+Different channels for different needs — please use the right one so your
+question reaches someone who can actually help.
+
+| Need                                                                       | Channel                                                                    | Who                                             |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
+| Bug reports, feature requests, install troubles, code questions            | [GitHub Issues](https://github.com/reidmat/ssign/issues)                   | Active maintainer                               |
+| Pull request review                                                        | GitHub PR                                                                  | Active maintainer                               |
+| Scientific collaboration, data-sharing, partnerships, authorship inquiries | Email: [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk) | Dr. Sonja Billerbeck (PI, corresponding author) |
+| Press / public-engagement                                                  | Email Sonja                                                                | Dr. Sonja Billerbeck                            |
+
+**Active maintainer (as of v0.9.0):** M. Teo Reid
+([`@reidmat`](https://github.com/reidmat), `teoreid@gmail.com`). A lab
+successor will be named in `SYSADMIN.md` before Teo departs Imperial in
+October 2026; until then, GitHub Issues are the fastest path to a technical
+answer.
+
+**Please do not email the PI with bug reports or installation trouble** —
+those belong on GitHub Issues where they're searchable for future users.
+The PI is not set up to debug software.

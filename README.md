@@ -130,11 +130,11 @@ ssign ships in three tiers. Pick the one that matches your storage capacity
 and use case. You can always upgrade later by running the tier-aware database
 fetcher with a new `--tier`.
 
-| Tier         | Target user                                      | Disk    | What's included                                                                                   | Install                       |
-| ------------ | ------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **base**     | Casual bench researcher, quick screens, teaching | ~17 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
-| **extended** | Lab research, HPC without 1.5 TB to spare        | ~130 GB | base + EggNOG + HH-suite (Pfam + PDB70) + InterProScan + pLM-BLAST                                | `pip install ssign[extended]` |
-| **full**     | Paper-grade analysis, reproducibility, webserver | ~630 GB | extended + BLAST NR + Bakta full DB + HH-suite UniRef30                                           | `pip install ssign[full]`     |
+| Tier         | Disk    | What's included                                                                                   | Install                       |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **base**     | ~17 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
+| **extended** | ~130 GB | base + EggNOG + HH-suite (Pfam + PDB70) + InterProScan + pLM-BLAST                                | `pip install ssign[extended]` |
+| **full**     | ~630 GB | extended + BLAST NR + Bakta full DB + HH-suite UniRef30                                           | `pip install ssign[full]`     |
 
 After pip install, download the matching database bundle:
 

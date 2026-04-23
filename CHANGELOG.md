@@ -27,6 +27,11 @@ Work toward v1.0.0 publication release. See the roadmap in project memory
   (~630 GB) — with tier-aware database fetcher pulling from pinned Zenodo
   DOIs. The `extended` tier is the sensible default for lab researchers who
   don't want to download 390 GB of BLAST NR.
+- **Re-annotate all inputs with Bakta by default** — even GenBank input gets
+  re-run through Bakta (and EggNOG at the extended/full tier), since we can't
+  verify what pipeline produced the incoming GenBank annotations. Provides
+  uniform, reproducible annotation for consensus voting. Users with curated
+  GenBanks can opt out via `--use-input-annotations`.
 - **Pipeline-order change** — move `enrichment_testing` before
   `filter_by_stats_and_dlp`; stats filter default ON for ≥10 genomes,
   OFF with warning otherwise.
