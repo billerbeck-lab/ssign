@@ -17,6 +17,16 @@ Work toward v1.0.0 publication release. See the roadmap in project memory
 - **New tools** — Bakta + EggNOG (whole-genome annotation), PLM-Effector
   (first-class prediction tool), pLM-BLAST / ECOD70 (substrate annotation).
 - **Dropped tools** — Foldseek, ESM3.
+- **Nextflow "power mode" deprecated** — code in `bin/`, `modules/local/`,
+  `workflows/`, and `main.nf` to be removed. The Python runner covers all
+  power-mode use cases (including HPC batches via Singularity + CLI). This
+  removes the double-maintenance burden of mirroring every script between
+  `bin/` and `src/ssign_app/scripts/`. Users who relied on Nextflow batching
+  will be guided toward CLI + Singularity in the v1.0.0 migration notes.
+- **Three install tiers** — `base` (~17 GB), `extended` (~130 GB), `full`
+  (~630 GB) — with tier-aware database fetcher pulling from pinned Zenodo
+  DOIs. The `extended` tier is the sensible default for lab researchers who
+  don't want to download 390 GB of BLAST NR.
 - **Pipeline-order change** — move `enrichment_testing` before
   `filter_by_stats_and_dlp`; stats filter default ON for ≥10 genomes,
   OFF with warning otherwise.

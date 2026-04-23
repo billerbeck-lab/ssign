@@ -66,6 +66,9 @@ dependencies = [
 
 [project.optional-dependencies]
 # Individual tool extras (pip install ssign[deepsece], etc.)
+# v1.0.0 will promote deepsece + bakta into base deps per the install-tier
+# decision (base tier = prediction + Bakta light). For now they remain
+# optional to avoid breaking v0.9.0 workflows.
 deepsece = [
     "deepsece",
     "fair-esm>=2.0",
@@ -74,12 +77,25 @@ deepsece = [
 bakta = [
     "bakta>=1.5",
 ]
-# Full: all optional Python dependencies
+# Install tiers (pip-extras side of the 3-tier decision; database tier is
+# picked separately via scripts/fetch_databases.sh --tier {base,extended,full}).
+# 'extended' and 'full' have the same Python packages — the difference
+# between them is which databases get downloaded.
+extended = [
+    "deepsece",
+    "fair-esm>=2.0",
+    "torch>=2.0",
+    "bakta>=1.5",
+    "eggnog-mapper",
+    "goatools",
+    "obonet",
+]
 full = [
     "deepsece",
     "fair-esm>=2.0",
     "torch>=2.0",
     "bakta>=1.5",
+    "eggnog-mapper",
     "goatools",
     "obonet",
 ]

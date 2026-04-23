@@ -9,7 +9,7 @@ abstract: >-
   PLM-Effector, SignalP), per-component genomic proximity analysis, and multi-tool
   functional annotation (BLASTp, HH-suite, InterProScan, Bakta, EggNOG, pLM-BLAST,
   ProtParam) to generate a ranked, evidence-linked list of candidate substrates
-  together with a publication-ready report.
+  together with a summary HTML report and intermediate tables.
 authors:
   - given-names: "M. Teo"
     family-names: "Reid"

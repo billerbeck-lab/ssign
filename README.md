@@ -75,7 +75,7 @@ extras (Bakta, DeepSecE, BLAST+), and dependency management — are in
 │    → integrated annotations + consensus voting across tools             │
 │                                                                         │
 │  Stage 5: Integration + Reporting                                       │
-│    → HTML report, result tables, publication-ready figures              │
+│    → HTML report, result tables, summary figures                        │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -105,8 +105,10 @@ they require a companion FASTA that the browser cannot pair safely.
   other systems detected but without high-confidence substrates.
 - `ssign_results_raw.csv` — complete unfiltered per-protein results.
 - `ssign_summary.txt` — plain-text summary.
-- `figures/` — publication-ready figures (system diagrams, annotation
-  heatmaps, enrichment plots).
+- `figures/` — summary figures produced by the pipeline (system diagrams,
+  annotation heatmaps, enrichment plots). These are summary-quality, not
+  paper-quality; publication figures are regenerated separately from scripts
+  in the top-level `figures/` directory.
 - HTML report with embedded interactive tables.
 
 ---
@@ -125,43 +127,70 @@ All configurable in the GUI or via CLI flags. Full parameter reference in
 
 ---
 
-## Optional dependencies
+## Install tiers
 
-ssign's core pipeline runs with just `pip install ssign`. Extras enable
-additional tools:
+ssign ships in three tiers. Pick the one that matches your storage capacity
+and use case. You can always upgrade later by running the tier-aware database
+fetcher with a new `--tier`.
 
-| Extra      | What it enables                                | Install                                          |
-| ---------- | ---------------------------------------------- | ------------------------------------------------ |
-| `deepsece` | DeepSecE effector prediction (~7 GB ESM model) | `pip install ssign[deepsece]`                    |
-| `bakta`    | Bakta gene annotation (~2 GB light DB)         | `pip install ssign[bakta]` + `bakta_db download` |
-| `full`     | All of the above + ortholog analysis           | `pip install ssign[full]`                        |
-| `dev`      | Test + lint dependencies                       | `pip install ssign[dev]`                         |
+| Tier         | Target user                                      | Disk    | What's included                                                                                   | Install                       |
+| ------------ | ------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **base**     | Casual bench researcher, quick screens, teaching | ~17 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
+| **extended** | Lab research, HPC without 1.5 TB to spare        | ~130 GB | base + EggNOG + HH-suite (Pfam + PDB70) + InterProScan + pLM-BLAST                                | `pip install ssign[extended]` |
+| **full**     | Paper-grade analysis, reproducibility, webserver | ~630 GB | extended + BLAST NR + Bakta full DB + HH-suite UniRef30                                           | `pip install ssign[full]`     |
 
-BLAST+ is a system binary, not pip-installable:
-
-```bash
-# Debian/Ubuntu
-sudo apt install ncbi-blast+
-# macOS
-brew install blast
-# Conda
-conda install -c bioconda blast
-```
-
----
-
-## Power mode (Nextflow)
-
-For HPC batch runs with local databases and all tools containerised, ssign
-also ships as a **Nextflow DSL2 pipeline**. Fully reproducible across
-Docker / Singularity / Apptainer.
+After pip install, download the matching database bundle:
 
 ```bash
-nextflow run main.nf --input genome.gbff --outdir results -profile docker
+bash scripts/fetch_databases.sh --tier base       # or: extended / full
 ```
 
-Requires Nextflow ≥ 22.10, Java 11+, and Docker or Singularity. Power mode
-status beyond v1.0.0 is under review; see the plan file in project memory.
+The fetcher pulls from **pinned Zenodo DOIs** — identical bytes on every
+run, forever. See [`data/README.md`](data/README.md) for what each tier
+downloads.
+
+### pip vs Docker
+
+Pick one of:
+
+- **pip** (the commands above) — installs into your Python environment. Flexible
+  but depends on your system's Python, CUDA, and libraries staying compatible.
+- **Docker** (`docker pull billerbeck-lab/ssign:1.0.0`) — frozen SHA-pinned
+  environment, guaranteed reproducible for 5+ years. Recommended for paper-
+  reproducibility and webserver deployments. Available from v1.0.0 onwards.
+
+Both pip and Docker work with any install tier — the tier is controlled by
+which database bundle you fetch, not by which environment you choose.
+
+### Cherry-picking individual tools
+
+If none of the three tiers matches your situation, pick individual extras:
+
+```bash
+pip install ssign[deepsece]          # just DeepSecE on top of base
+pip install ssign[bakta,deepsece]    # combine any pip extras
+pip install ssign[dev]               # test + lint dependencies (for contributors)
+```
+
+System binaries (BLAST+, HH-suite, InterProScan) are installed separately
+per your platform:
+
+```bash
+# BLAST+
+sudo apt install ncbi-blast+      # Debian/Ubuntu
+brew install blast                 # macOS
+conda install -c bioconda blast    # Conda (cross-platform)
+
+# HH-suite (extended + full)
+sudo apt install hhsuite
+conda install -c bioconda hhsuite
+
+# InterProScan (extended + full) — Java, manual install
+# See docs/optional_tools.md for step-by-step instructions.
+```
+
+Full platform-specific install guide: [`docs/optional_tools.md`](docs/optional_tools.md)
+(will migrate to `docs/how-to/install.md` at v1.0.0).
 
 ---
 
@@ -191,16 +220,11 @@ Track progress in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Citing ssign
 
-If you use ssign in your research, please cite the software itself in
-addition to the underlying tools. At v1.0.0 we will have a Zenodo DOI +
-published paper DOI; for the pre-publication baseline, cite via
-[`CITATION.cff`](CITATION.cff) or the GitHub tag `v0.9.0-prerefactor`.
-
-The [forthcoming paper]:
-
-> Reid, M. T., Terpstra, O., Kumar, K., & Billerbeck, S. ssign: an integrated
-> pipeline for secretion-system and secreted-protein identification in
-> Gram-negative bacterial genomes. _In preparation_, 2026.
+If you use ssign in your research, please cite the software itself in addition
+to the underlying tools. At v1.0.0 we will have a Zenodo DOI and, once the
+manuscript is published, a paper DOI — both will be listed here. For the
+pre-publication baseline, cite via [`CITATION.cff`](CITATION.cff) or the
+GitHub tag `v0.9.0-prerefactor`.
 
 ---
 
