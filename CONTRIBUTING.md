@@ -54,7 +54,7 @@ link them externally.
 ## Development setup
 
 ```bash
-git clone https://github.com/reidmat/ssign.git
+git clone https://github.com/billerbeck-lab/ssign.git
 cd ssign
 python -m venv .venv
 source .venv/bin/activate
@@ -152,7 +152,7 @@ question reaches someone who can actually help.
 
 | Need                                                                       | Channel                                                                    | Who                                             |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| Bug reports, feature requests, install troubles, code questions            | [GitHub Issues](https://github.com/reidmat/ssign/issues)                   | Active maintainer                               |
+| Bug reports, feature requests, install troubles, code questions            | [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues)            | Active maintainer                               |
 | Pull request review                                                        | GitHub PR                                                                  | Active maintainer                               |
 | Scientific collaboration, data-sharing, partnerships, authorship inquiries | Email: [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk) | Dr. Sonja Billerbeck (PI, corresponding author) |
 

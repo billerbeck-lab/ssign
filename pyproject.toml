@@ -109,11 +109,11 @@ ssign = "ssign_app.cli:main"
 hmmsearch = "ssign_app.shims.hmmsearch:main"
 
 [project.urls]
-Homepage = "https://github.com/reidmat/ssign"
-Documentation = "https://github.com/reidmat/ssign#readme"
-Source = "https://github.com/reidmat/ssign"
-Issues = "https://github.com/reidmat/ssign/issues"
-Changelog = "https://github.com/reidmat/ssign/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/billerbeck-lab/ssign"
+Documentation = "https://github.com/billerbeck-lab/ssign#readme"
+Source = "https://github.com/billerbeck-lab/ssign"
+Issues = "https://github.com/billerbeck-lab/ssign/issues"
+Changelog = "https://github.com/billerbeck-lab/ssign/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]

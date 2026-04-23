@@ -23,8 +23,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        "Get help": "https://github.com/reidmat/ssign",
-        "Report a Bug": "https://github.com/reidmat/ssign/issues",
+        "Get help": "https://github.com/billerbeck-lab/ssign",
+        "Report a Bug": "https://github.com/billerbeck-lab/ssign/issues",
         "About": "ssign — Secretion-system Identification for Gram Negatives",
     },
 )
@@ -438,8 +438,8 @@ with st.sidebar:
 
     st.caption(f"ssign v{__version__} | GPLv3 | Billerbeck Lab")
     st.markdown(
-        "[GitHub](https://github.com/reidmat/ssign) · "
-        "[Report a bug](https://github.com/reidmat/ssign/issues)"
+        "[GitHub](https://github.com/billerbeck-lab/ssign) · "
+        "[Report a bug](https://github.com/billerbeck-lab/ssign/issues)"
     )
 
 
@@ -582,7 +582,7 @@ with tab_upload:
             st.info(
                 "**Bakta is not installed** but is optional for raw FASTA input.\n\n"
                 "Install (~2 GB): `pip install ssign[bakta]` then download the database.\n\n"
-                "See the [installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md) "
+                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md) "
                 "for detailed instructions."
             )
 
@@ -903,7 +903,7 @@ with tab_pipeline:
                     st.info(
                         "**DeepLocPro is not installed locally.** Requires DTU academic "
                         "license (~5 GB, GPU recommended). See the "
-                        "[installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md). "
+                        "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md). "
                         "Or use **cloud mode** (no install needed)."
                     )
             else:
@@ -946,7 +946,7 @@ with tab_pipeline:
                         st.info(
                             "**SignalP 6.0 is not installed locally.** Requires DTU academic "
                             "license (~1 GB). See the "
-                            "[installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md). "
+                            "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md). "
                             "Or use **cloud mode** (no install needed)."
                         )
                 else:
@@ -1054,7 +1054,7 @@ with tab_pipeline:
                 "**DeepSecE is not installed** but is recommended. It provides an "
                 "independent cross-check against DeepLocPro.\n\n"
                 "Install (~7.3 GB): `pip install ssign[deepsece]` (run inside your ssign venv)\n\n"
-                "See the [installation guide](https://github.com/reidmat/ssign/blob/main/docs/optional_tools.md) "
+                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md) "
                 "for detailed instructions."
             )
 

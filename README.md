@@ -35,7 +35,7 @@ In the meantime, you can run ssign locally (below) or via Google Colab (see
 python3 -m venv .venv && source .venv/bin/activate
 
 # Install (from PyPI once v1.0.0 ships; currently from source)
-pip install git+https://github.com/reidmat/ssign.git@v0.9.0-prerefactor
+pip install git+https://github.com/billerbeck-lab/ssign.git@v0.9.0-prerefactor
 
 # Launch the GUI
 ssign
@@ -87,11 +87,11 @@ v1.0.0).
 
 ## Supported inputs
 
-| Format                      | Extensions              |
-| --------------------------- | ----------------------- |
-| Genbank                     | `.gbff`, `.gbk`, `.gb`  |
-| FASTA contigs               | `.fasta`, `.fna`, `.fa` |
-| Protein FASTA               | `.faa`                  |
+| Format        | Extensions              |
+| ------------- | ----------------------- |
+| Genbank       | `.gbff`, `.gbk`, `.gb`  |
+| FASTA contigs | `.fasta`, `.fna`, `.fa` |
+| Protein FASTA | `.faa`                  |
 
 ---
 
