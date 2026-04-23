@@ -386,8 +386,11 @@ with st.sidebar:
     st.divider()
 
     st.info(
-        "ssign runs the majority of tools via cloud APIs. For local/HPC execution "
-        "with full databases, install **ssign-power** and use the command line interface."
+        "Annotation tools run locally against databases fetched from Zenodo "
+        "(see `scripts/fetch_databases.sh`). Pick an install tier — **base** "
+        "(~17 GB) for prediction only, **extended** (~130 GB) adds EggNOG + "
+        "HH-suite + InterProScan + pLM-BLAST, **full** (~630 GB) adds BLAST NR. "
+        "See the README for details."
     )
 
     st.divider()
@@ -463,7 +466,8 @@ with tab_upload:
             "GenBank (.gbff/.gbk/.gb), FASTA contigs (.fasta/.fna/.fa), or "
             "protein FASTA (.faa). Upload multiple files for batch processing. "
             "GenBank files are recommended as they include gene names and "
-            "functional annotations. GFF3 files are supported in ssign-power only."
+            "functional annotations. GFF3 files require a companion FASTA "
+            "and are only supported via the CLI (`ssign run`)."
         ),
         accept_multiple_files=True,
     )
@@ -555,8 +559,8 @@ with tab_upload:
             "(no additional setup) or Bakta (richer annotation, requires database download). "
             "Protein FASTA (.faa) files are read directly.\n\n"
             "**Note:** GFF3/GTF files are not supported in the GUI because they require "
-            "a companion FASTA file. Use GenBank format instead, or use ssign-power "
-            "(Nextflow) for GFF3 input."
+            "a companion FASTA file. Use GenBank format instead, or the CLI "
+            "(`ssign run genome.gff --fasta genome.fna ...`) for GFF3 input."
         )
         bakta_available = shutil.which("bakta") is not None
         use_bakta = st.checkbox(
@@ -1268,11 +1272,10 @@ with tab_pipeline:
 
         st.divider()
 
-        st.markdown("**ssign-power only**")
+        st.markdown("**Coming in v1.0.0**")
         st.caption(
-            "The following tools require local databases or 3D protein structures "
-            "and are only available in **ssign-power** (Nextflow + Docker). "
-            "They are not available in the cloud-based ssign GUI."
+            "The following tool will be integrated as a first-class "
+            "annotation source in v1.0.0. Disabled for now."
         )
 
         col_check, col_info = st.columns([1.5, 3.5])
@@ -1280,9 +1283,9 @@ with tab_pipeline:
             st.checkbox("pLM-BLAST (ECOD70)", value=False, key="run_plm", disabled=True)
         with col_info:
             st.caption(
-                "Protein language model-based remote homology detection. Requires "
-                "local pLM-BLAST installation (GitHub only, not pip-installable) + "
-                "ECOD70 database (~10 GB). Available in ssign-power."
+                "Protein language model-based remote homology detection against the "
+                "ECOD70 structural database (~20 GB). Included in the **extended** "
+                "and **full** install tiers."
             )
 
         st.divider()
@@ -1775,11 +1778,12 @@ with tab_run:
                         f"Avg {avg_sec:.0f} secreted proteins/genome"
                     )
 
+                # DTU BioLib is the only remaining rate-limited remote service
+                # (used by DeepLocPro + SignalP in remote mode). The ncbi/mpi/
+                # ebi semaphores were removed with Phase 2.1 (BLAST/HH-suite/
+                # InterProScan are local-only now).
                 _api_sem = {
                     "dtu": threading.Semaphore(5),
-                    "ncbi": threading.Semaphore(5),
-                    "mpi": threading.Semaphore(1),
-                    "ebi": threading.Semaphore(5),
                 }
 
                 def _run_one_genome(idx):
