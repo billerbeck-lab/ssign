@@ -77,3 +77,6 @@ models/**
 
 # Claude Code instructions (not for public release)
 CLAUDE.md
+
+# Local drafts (correspondence, WIP notes not intended for commit)
+.drafts/
