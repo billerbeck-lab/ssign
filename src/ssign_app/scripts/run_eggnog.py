@@ -35,6 +35,19 @@ _COL_EVALUE = "evalue"
 _COL_DESCRIPTION = "Description"
 _COL_PREFERRED_NAME = "Preferred_name"
 
+# Rich-annotation columns surfaced for annotation-consensus voting
+# (Phase 3.2.c). Fields come through as comma- or slash-separated lists
+# in the raw TSV; we re-split and re-join on semicolon for our output
+# TSV so downstream code sees a consistent separator across tools.
+_COL_COG_CATEGORY = "COG_category"
+_COL_EC = "EC"
+_COL_KEGG_KO = "KEGG_ko"
+_COL_GOS = "GOs"
+_COL_PFAMS = "PFAMs"
+
+# emapper uses "-" to mean "no annotation" in any rich field.
+_EMAPPER_MISSING = "-"
+
 
 def run_emapper(proteins_fasta, db_path, sample_id, output_dir, threads=4):
     """Run emapper.py on a protein FASTA file.
@@ -94,6 +107,22 @@ def run_emapper(proteins_fasta, db_path, sample_id, output_dir, threads=4):
     return annotations_path
 
 
+def _split_rich_field(value):
+    """Split an emapper multi-value cell into a clean list.
+
+    emapper uses comma separators for most multi-value columns (GOs,
+    EC, PFAMs, KEGG_ko), but uses "-" as a sentinel for "no annotation"
+    and emits empty strings on unannotated rows. This helper normalises
+    all three edge cases.
+    """
+    if value is None:
+        return []
+    stripped = value.strip()
+    if not stripped or stripped == _EMAPPER_MISSING:
+        return []
+    return [part.strip() for part in stripped.split(",") if part.strip()]
+
+
 def parse_eggnog_annotations(annotations_path):
     """Parse an EggNOG-mapper `.emapper.annotations` TSV.
 
@@ -102,11 +131,14 @@ def parse_eggnog_annotations(annotations_path):
     on the remaining tab-separated rows.
 
     Returns list of dicts with columns:
-        protein_id, seed_ortholog, evalue, description, preferred_name
+        protein_id, seed_ortholog, evalue, description, preferred_name,
+        cog_category, ec_numbers, kegg_ko, go_terms, pfam_ids
 
-    TODO (Phase 3.2.a): surface COG_category / EC / KEGG_ko / GOs / PFAMs
-    columns once annotation_consensus.py is extended to vote with them.
-    Currently these richer fields are discarded.
+    Multi-value fields (ec_numbers, kegg_ko, go_terms, pfam_ids) are
+    returned as lists; callers joining them for TSV output should
+    semicolon-separate to stay consistent with Bakta's gene_info output.
+    cog_category is a short single-letter-or-string code and stays as a
+    string.
     """
     entries = []
     with open(annotations_path) as f:
@@ -118,6 +150,9 @@ def parse_eggnog_annotations(annotations_path):
         if not protein_id or protein_id == "-":
             continue
 
+        cog_raw = row.get(_COL_COG_CATEGORY, "").strip()
+        cog_category = "" if cog_raw in ("", _EMAPPER_MISSING) else cog_raw
+
         entries.append(
             {
                 "protein_id": protein_id,
@@ -125,6 +160,11 @@ def parse_eggnog_annotations(annotations_path):
                 "evalue": row.get(_COL_EVALUE, "").strip(),
                 "description": row.get(_COL_DESCRIPTION, "").strip() or "-",
                 "preferred_name": row.get(_COL_PREFERRED_NAME, "").strip(),
+                "cog_category": cog_category,
+                "ec_numbers": _split_rich_field(row.get(_COL_EC)),
+                "kegg_ko": _split_rich_field(row.get(_COL_KEGG_KO)),
+                "go_terms": _split_rich_field(row.get(_COL_GOS)),
+                "pfam_ids": _split_rich_field(row.get(_COL_PFAMS)),
             }
         )
 
@@ -152,18 +192,29 @@ def main():
 
     logger.info(f"Parsed {len(entries)} annotations from EggNOG-mapper")
 
+    # Multi-value fields are lists in `entries`; join with semicolons for
+    # a single TSV cell (same convention as run_bakta.py's gene_info).
     fieldnames = [
         "protein_id",
         "seed_ortholog",
         "evalue",
         "description",
         "preferred_name",
+        "cog_category",
+        "ec_numbers",
+        "kegg_ko",
+        "go_terms",
+        "pfam_ids",
     ]
+    _LIST_FIELDS = {"ec_numbers", "kegg_ko", "go_terms", "pfam_ids"}
     with open(args.out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for e in entries:
-            writer.writerow(e)
+            row = {
+                k: (";".join(e[k]) if k in _LIST_FIELDS else e[k]) for k in fieldnames
+            }
+            writer.writerow(row)
 
     logger.info(f"Done: wrote {len(entries)} annotations to {args.out}")
 

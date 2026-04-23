@@ -13,7 +13,7 @@ SCRIPTS_DIR = os.path.abspath(
 )
 sys.path.insert(0, SCRIPTS_DIR)
 
-from run_eggnog import parse_eggnog_annotations  # noqa: E402
+from run_eggnog import _split_rich_field, parse_eggnog_annotations  # noqa: E402, F401
 
 
 # Representative emapper 2.1.x .annotations fixture. Lines starting with
@@ -104,7 +104,7 @@ class TestParseEggnogAnnotations:
         assert entries == []
 
     def test_output_shape_is_stable(self, tmp_dir):
-        """Every entry must contain the five expected fields for downstream consumers."""
+        """Every entry must contain the expected fields for downstream consumers."""
         path = os.path.join(tmp_dir, "sample.emapper.annotations")
         with open(path, "w") as f:
             f.write(_EGGNOG_FIXTURE)
@@ -116,6 +116,85 @@ class TestParseEggnogAnnotations:
             "evalue",
             "description",
             "preferred_name",
+            "cog_category",
+            "ec_numbers",
+            "kegg_ko",
+            "go_terms",
+            "pfam_ids",
         }
         for e in entries:
             assert required <= set(e.keys())
+
+
+class TestRichFieldsSurfaced:
+    def test_annotated_row_populates_rich_fields(self, tmp_dir):
+        """GENE_00001 in the fixture has EC, KEGG_ko, GOs, PFAMs, COG_category."""
+        path = os.path.join(tmp_dir, "sample.emapper.annotations")
+        with open(path, "w") as f:
+            f.write(_EGGNOG_FIXTURE)
+
+        entries = parse_eggnog_annotations(path)
+        e1 = next(e for e in entries if e["protein_id"] == "GENE_00001")
+        assert e1["cog_category"] == "M"
+        assert e1["ec_numbers"] == ["2.7.7.6"]
+        assert e1["kegg_ko"] == ["ko:K03040"]
+        assert e1["go_terms"] == ["GO:0003677"]
+        assert e1["pfam_ids"] == ["RNA_pol_Rpb1"]
+
+    def test_dash_sentinels_become_empty(self, tmp_dir):
+        """GENE_00003 has COG_category but '-' for every multi-value field."""
+        path = os.path.join(tmp_dir, "sample.emapper.annotations")
+        with open(path, "w") as f:
+            f.write(_EGGNOG_FIXTURE)
+
+        entries = parse_eggnog_annotations(path)
+        e3 = next(e for e in entries if e["protein_id"] == "GENE_00003")
+        assert e3["cog_category"] == "L"
+        assert e3["ec_numbers"] == []
+        assert e3["kegg_ko"] == []
+        assert e3["go_terms"] == []
+        assert e3["pfam_ids"] == []
+
+    def test_multi_value_row_splits_on_comma(self, tmp_dir):
+        path = os.path.join(tmp_dir, "sample.emapper.annotations")
+        with open(path, "w") as f:
+            f.write(
+                "#query\tseed_ortholog\tevalue\tscore\teggNOG_OGs\t"
+                "max_annot_lvl\tCOG_category\tDescription\tPreferred_name\t"
+                "GOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\t"
+                "KEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\tPFAMs\n"
+                "GENE_X\t83333.x\t1e-10\t50\tCOG@1\t2|B\tM\tmulti\tname\t"
+                "GO:0001,GO:0002\t1.1.1.1,2.2.2.2\tko:K1,ko:K2\t-\t-\t-\t"
+                "-\t-\t-\t-\t-\tPF1234,PF5678\n"
+            )
+
+        entries = parse_eggnog_annotations(path)
+        e = entries[0]
+        assert e["go_terms"] == ["GO:0001", "GO:0002"]
+        assert e["ec_numbers"] == ["1.1.1.1", "2.2.2.2"]
+        assert e["kegg_ko"] == ["ko:K1", "ko:K2"]
+        assert e["pfam_ids"] == ["PF1234", "PF5678"]
+
+
+class TestSplitRichField:
+    def test_none_returns_empty_list(self):
+        assert _split_rich_field(None) == []
+
+    def test_empty_string_returns_empty_list(self):
+        assert _split_rich_field("") == []
+        assert _split_rich_field("   ") == []
+
+    def test_dash_sentinel_returns_empty_list(self):
+        assert _split_rich_field("-") == []
+
+    def test_single_value_returned_as_one_element_list(self):
+        assert _split_rich_field("1.1.1.1") == ["1.1.1.1"]
+
+    def test_comma_separated_values_split(self):
+        assert _split_rich_field("a,b,c") == ["a", "b", "c"]
+
+    def test_whitespace_around_entries_stripped(self):
+        assert _split_rich_field(" a , b , c ") == ["a", "b", "c"]
+
+    def test_empty_fragments_dropped(self):
+        assert _split_rich_field("a,,b") == ["a", "b"]

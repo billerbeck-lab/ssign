@@ -39,9 +39,16 @@ _COL_STRAND = "Strand"
 _COL_LOCUS_TAG = "Locus Tag"
 _COL_GENE = "Gene"
 _COL_PRODUCT = "Product"
+_COL_DBXREFS = "DbXrefs"
 
 # Only these feature types contain proteins
 _PROTEIN_TYPES = {"CDS", "sORF"}
+
+# Prefixes we surface from the DbXrefs column for annotation-consensus
+# voting (Phase 3.2.c). Other prefixes we see in Bakta output
+# (UniParc, SO, UniRef) are useful for provenance but aren't scoring
+# features, so we drop them at parse time to keep the output TSV narrow.
+_DBXREF_PREFIXES_TO_SURFACE = {"EC", "COG", "GO", "KEGG", "RefSeq", "Pfam"}
 
 
 def run_bakta(contigs_fasta, db_path, sample_id, output_dir, threads=4):
@@ -108,15 +115,65 @@ def run_bakta(contigs_fasta, db_path, sample_id, output_dir, threads=4):
     return proteins_faa, tsv_path
 
 
+def parse_dbxrefs(dbxrefs_field):
+    """Split Bakta's DbXrefs column into a per-prefix dict of ID lists.
+
+    Bakta emits entries as a comma-separated string like:
+        "EC:3.6.5.n1, COG:COG0481, GO:GO:0001234, RefSeq:WP_123.1"
+
+    GO IDs are themselves prefixed (`GO:GO:...`), so we split on the
+    first colon only. Entries whose prefix isn't in
+    `_DBXREF_PREFIXES_TO_SURFACE` are discarded.
+
+    Returns a dict like:
+        {"ec_numbers": ["3.6.5.n1"], "cog_ids": ["COG0481"], "go_terms": [...], ...}
+    Missing prefixes map to empty lists.
+    """
+    result = {
+        "ec_numbers": [],
+        "cog_ids": [],
+        "go_terms": [],
+        "kegg_ids": [],
+        "refseq_ids": [],
+        "pfam_ids": [],
+    }
+    if not dbxrefs_field or not dbxrefs_field.strip():
+        return result
+
+    prefix_to_key = {
+        "EC": "ec_numbers",
+        "COG": "cog_ids",
+        "GO": "go_terms",
+        "KEGG": "kegg_ids",
+        "RefSeq": "refseq_ids",
+        "Pfam": "pfam_ids",
+    }
+
+    for raw_entry in dbxrefs_field.split(","):
+        entry = raw_entry.strip()
+        if not entry or ":" not in entry:
+            continue
+        prefix, _, value = entry.partition(":")
+        prefix = prefix.strip()
+        value = value.strip()
+        if not value or prefix not in _DBXREF_PREFIXES_TO_SURFACE:
+            continue
+        result[prefix_to_key[prefix]].append(value)
+
+    return result
+
+
 def parse_bakta_tsv(tsv_path):
     """Parse Bakta TSV annotation table.
 
-    Returns list of dicts matching gene_info.tsv format:
-        locus_tag, protein_id, gene, product, contig, start, end, strand
+    Returns list of dicts in gene_info.tsv shape:
+        locus_tag, protein_id, gene, product, contig, start, end, strand,
+        ec_numbers, cog_ids, go_terms, kegg_ids, refseq_ids, pfam_ids
 
-    TODO (Phase 3.2.a): surface the DbXrefs column to expose EC / COG / GO /
-    KEGG / PFAM cross-references once annotation_consensus.py is extended to
-    vote with them. Currently discarded.
+    The six cross-reference fields are lists; they're joined with
+    semicolons when we write to TSV (an empty list becomes the empty
+    string). Annotation-consensus voting (Phase 3.2.c) uses these to
+    map each protein to broad functional categories.
     """
     entries = []
     with open(tsv_path) as f:
@@ -136,6 +193,8 @@ def parse_bakta_tsv(tsv_path):
             except (ValueError, TypeError):
                 start, end = 0, 0
 
+            xrefs = parse_dbxrefs(row.get(_COL_DBXREFS, ""))
+
             entries.append(
                 {
                     "locus_tag": locus_tag,
@@ -147,6 +206,7 @@ def parse_bakta_tsv(tsv_path):
                     "start": start,
                     "end": end,
                     "strand": row.get(_COL_STRAND, "+").strip(),
+                    **xrefs,
                 }
             )
 
@@ -222,7 +282,9 @@ def main():
         # Write cleaned proteins FASTA
         write_proteins_fasta(bakta_faa, entries, args.out_proteins)
 
-    # Write gene_info TSV
+    # Write gene_info TSV. List-valued cross-reference fields are joined
+    # with semicolons for a single-line TSV cell — annotation_consensus.py
+    # (Phase 3.2.c) splits them again on the consuming side.
     fieldnames = [
         "locus_tag",
         "protein_id",
@@ -232,12 +294,29 @@ def main():
         "start",
         "end",
         "strand",
+        "ec_numbers",
+        "cog_ids",
+        "go_terms",
+        "kegg_ids",
+        "refseq_ids",
+        "pfam_ids",
     ]
+    _LIST_FIELDS = {
+        "ec_numbers",
+        "cog_ids",
+        "go_terms",
+        "kegg_ids",
+        "refseq_ids",
+        "pfam_ids",
+    }
     with open(args.out_gene_info, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for e in entries:
-            writer.writerow(e)
+            row = {
+                k: (";".join(e[k]) if k in _LIST_FIELDS else e[k]) for k in fieldnames
+            }
+            writer.writerow(row)
 
     logger.info(f"Done: {len(entries)} proteins annotated for {args.sample}")
 

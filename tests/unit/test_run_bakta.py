@@ -13,7 +13,7 @@ SCRIPTS_DIR = os.path.abspath(
 )
 sys.path.insert(0, SCRIPTS_DIR)
 
-from run_bakta import parse_bakta_tsv, write_proteins_fasta  # noqa: E402
+from run_bakta import parse_bakta_tsv, parse_dbxrefs, write_proteins_fasta  # noqa: E402, F401
 
 
 # Minimal Bakta TSV fixture. Real Bakta output also contains header lines
@@ -108,8 +108,78 @@ class TestParseBaktaTsv:
             "start",
             "end",
             "strand",
+            "ec_numbers",
+            "cog_ids",
+            "go_terms",
+            "kegg_ids",
+            "refseq_ids",
+            "pfam_ids",
         }
         assert required <= set(entries[0].keys())
+
+    def test_dbxrefs_surfaced_per_entry(self, tmp_dir):
+        """The DbXrefs column should populate ec_numbers / cog_ids etc."""
+        tsv = os.path.join(tmp_dir, "sample.tsv")
+        with open(tsv, "w") as f:
+            f.write(_BAKTA_TSV_FIXTURE)
+
+        entries = parse_bakta_tsv(tsv)
+        e1 = next(e for e in entries if e["locus_tag"] == "GENE_00001")
+        assert e1["ec_numbers"] == ["3.6.5.n1"]
+        assert e1["cog_ids"] == ["COG0481"]
+
+        e2 = next(e for e in entries if e["locus_tag"] == "GENE_00002")
+        assert e2["ec_numbers"] == []
+        assert e2["cog_ids"] == []
+
+
+class TestParseDbxrefs:
+    def test_empty_field_returns_empty_lists(self):
+        result = parse_dbxrefs("")
+        assert result["ec_numbers"] == []
+        assert result["cog_ids"] == []
+        assert result["go_terms"] == []
+
+    def test_whitespace_field_returns_empty_lists(self):
+        assert parse_dbxrefs("   ")["ec_numbers"] == []
+
+    def test_single_ec_number(self):
+        assert parse_dbxrefs("EC:1.2.3.4")["ec_numbers"] == ["1.2.3.4"]
+
+    def test_multiple_prefixes_in_one_field(self):
+        result = parse_dbxrefs("EC:1.2.3.4, COG:COG1234, KEGG:K99999")
+        assert result["ec_numbers"] == ["1.2.3.4"]
+        assert result["cog_ids"] == ["COG1234"]
+        assert result["kegg_ids"] == ["K99999"]
+
+    def test_go_id_with_double_prefix_preserved(self):
+        """GO IDs embed another 'GO:' prefix; partition on first colon
+        should leave the canonical 'GO:0001234' form intact."""
+        result = parse_dbxrefs("GO:GO:0001234")
+        assert result["go_terms"] == ["GO:0001234"]
+
+    def test_unknown_prefix_ignored(self):
+        """UniParc / SO / UniRef are real Bakta prefixes but aren't
+        scoring features, so they should not appear in output fields."""
+        result = parse_dbxrefs("UniParc:UPI000123, SO:0001217")
+        assert result["ec_numbers"] == []
+        assert result["cog_ids"] == []
+        assert result["refseq_ids"] == []
+
+    def test_refseq_captured(self):
+        assert parse_dbxrefs("RefSeq:WP_123.1")["refseq_ids"] == ["WP_123.1"]
+
+    def test_pfam_captured(self):
+        assert parse_dbxrefs("Pfam:PF12345")["pfam_ids"] == ["PF12345"]
+
+    def test_multiple_entries_same_prefix(self):
+        result = parse_dbxrefs("EC:1.1.1.1, EC:2.2.2.2")
+        assert result["ec_numbers"] == ["1.1.1.1", "2.2.2.2"]
+
+    def test_entry_without_colon_skipped(self):
+        """Malformed entries missing the 'prefix:value' colon should not crash."""
+        result = parse_dbxrefs("EC:1.2.3.4, malformed")
+        assert result["ec_numbers"] == ["1.2.3.4"]
 
 
 class TestWriteProteinsFasta:
