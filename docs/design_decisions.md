@@ -96,6 +96,37 @@ Entries are organised by pipeline stage. Each has three parts:
   > signal-peptide, and proximity analyses are robust to small
   > N-terminal coordinate shifts.
 
+### 1.1.1 EggNOG-mapper is not a CDS caller
+
+- **Decision:** EggNOG-mapper is used strictly as a functional-annotation
+  tool on pre-called proteins via `--itype proteins`. It is never used
+  as a CDS caller, even though it technically supports two gene-
+  prediction modes (`--genepred prodigal` and `--genepred search`).
+
+- **Rationale:** The eggNOG-mapper v2 paper (Cantalapiedra et al., 2021)
+  states explicitly: "ORF detection, only available for prokaryotic
+  assemblies, is performed using Prodigal." Gene prediction is listed
+  as the 4th feature in the paper's abstract — a convenience add-on
+  for users who want to start from contigs, not a primary capability.
+  The paper makes **no accuracy claims for gene prediction** and does
+  **not benchmark it against other callers**. The official GitHub
+  README describes eggNOG-mapper as "a tool for fast functional
+  annotation of novel sequences." `--genepred prodigal` would be
+  exactly equivalent to Bakta's Pyrodigal (same upstream tool).
+  `--genepred search` (blastx-based inference against the eggNOG
+  database) has no peer-reviewed accuracy data published and is
+  homology-biased by construction — genes without eggNOG hits are
+  missed entirely and 5' boundaries are unreliable because the mode
+  has no explicit start-codon model.
+
+- **Defensive coding:** `run_eggnog.py` passes `--itype proteins`
+  explicitly, so EggNOG cannot silently fall into gene-prediction mode
+  even if its default ever changes.
+
+- **Citations:**
+  - [Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_ 38(12):5825–5829](https://doi.org/10.1093/molbev/msab293) — eggNOG-mapper v2, Prodigal integration noted as convenience feature.
+  - eggnog-mapper GitHub README (accessed 2026-04-24) — describes the tool as a functional annotator.
+
 ### 1.2 Re-annotate by default (Phase 3.3)
 
 - **Decision:** When the input is a GenBank file, `ssign` re-runs Bakta

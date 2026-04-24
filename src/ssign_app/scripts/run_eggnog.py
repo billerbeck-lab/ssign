@@ -59,6 +59,12 @@ def run_emapper(proteins_fasta, db_path, sample_id, output_dir, threads=4):
         "emapper.py",
         "-i",
         proteins_fasta,
+        # Explicit --itype proteins: EggNOG-mapper can also do ab-initio gene
+        # prediction (wrapping Prodigal) when given DNA contigs. ssign gives
+        # it Bakta-predicted proteins, so we force `proteins` to guarantee no
+        # double CDS-calling even if EggNOG's default ever changes.
+        "--itype",
+        "proteins",
         "--output-dir",
         output_dir,
         "-o",
