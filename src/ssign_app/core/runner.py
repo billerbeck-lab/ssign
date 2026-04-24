@@ -85,6 +85,23 @@ class PipelineConfig:
     skip_plmblast: bool = True
     plmblast_db: str = ""
 
+    # Phase 3.2.d: EggNOG-mapper (annotation-tier). Skipped by default
+    # since the database is ~50 GB; extended/full install tier enables it.
+    skip_eggnog: bool = True
+    eggnog_db: str = ""
+
+    # Phase 3.2.d: PLM-Effector (prediction-tier, equal to DLP/DSE per
+    # the cross-validate refactor in 3.2.b). Skipped by default — needs a
+    # GPU plus ~15 GB of pretrained PLM weights. When enabled, ssign runs
+    # PLM-Effector once per SS type in `plm_effector_types` and merges
+    # the outputs into a single `passes_threshold` flag fed to
+    # cross_validate_predictions.
+    skip_plm_effector: bool = True
+    plm_effector_weights_dir: str = ""
+    plm_effector_types: list = field(
+        default_factory=lambda: ["T1SE", "T2SE", "T3SE", "T4SE", "T6SE"]
+    )
+
     skip_protparam: bool = False
     skip_structure: bool = True
 
@@ -285,13 +302,22 @@ class PipelineRunner:
         #     [blastp || hhsuite || interproscan || protparam]  ← PARALLEL GROUP 2
         #   → integrate → orthologs → enrichment → report → figures
 
-        # Prediction tools (parallel group 1)
+        # Prediction tools (parallel group 1) — equal secretion predictors
+        # per cross_validate 3.2.b. SignalP runs with them but is recorded
+        # evidence-only in the cross-validation step.
         prediction_steps = [
             ("Predicting localization (DeepLocPro)", self._step_deeplocpro),
         ]
         if not self.config.skip_deepsece:
             prediction_steps.append(
                 ("Predicting secretion type (DeepSecE)", self._step_deepsece)
+            )
+        if not self.config.skip_plm_effector:
+            prediction_steps.append(
+                (
+                    "Predicting effectors (PLM-Effector, 5 types)",
+                    self._step_plm_effector,
+                )
             )
         if not self.config.skip_signalp:
             prediction_steps.append(
@@ -307,6 +333,10 @@ class PipelineRunner:
             annotation_steps.append(("Running BLASTp", self._step_blastp))
         if not self.config.skip_interproscan:
             annotation_steps.append(("Running InterProScan", self._step_interproscan))
+        if not self.config.skip_eggnog:
+            annotation_steps.append(("Running EggNOG-mapper", self._step_eggnog))
+        if not self.config.skip_plmblast:
+            annotation_steps.append(("Running pLM-BLAST", self._step_plm_blast))
         if not self.config.skip_protparam:
             annotation_steps.append(
                 ("Computing physicochemical properties", self._step_protparam)
@@ -952,6 +982,7 @@ class PipelineRunner:
             )
 
         dse = self.files.get("deepsece", "")
+        plm_e = self.files.get("plm_effector", "")
         sp = self.files.get("signalp", "")
 
         valid_sys = self.files.get("valid_systems", "")
@@ -974,6 +1005,8 @@ class PipelineRunner:
         ]
         if dse and os.path.exists(dse):
             args.extend(["--deepsece", dse])
+        if plm_e and os.path.exists(plm_e):
+            args.extend(["--plm-effector", plm_e])
         if sp and os.path.exists(sp):
             args.extend(["--signalp", sp])
 
@@ -1233,15 +1266,134 @@ class PipelineRunner:
             return StepResult("protparam", True, "ProtParam complete")
         return StepResult("protparam", False, stderr[:500])
 
+    def _step_eggnog(self) -> StepResult:
+        err = self._check_substrates_exist("eggnog")
+        if err:
+            return err
+        if not self.config.eggnog_db:
+            return StepResult(
+                "eggnog",
+                False,
+                "EggNOG-mapper requires a database. Set `eggnog_db` in the "
+                "config (extended/full install tier fetches it automatically).",
+            )
+
+        output = self._wf(f"{self.config.sample_id}_eggnog.tsv")
+        args = [
+            "--input",
+            self.files.get("proteins", ""),
+            "--db",
+            self.config.eggnog_db,
+            "--sample",
+            self.config.sample_id,
+            "--out",
+            output,
+        ]
+        rc, stdout, stderr = run_script("run_eggnog.py", args, timeout=14400)
+        if rc == 0:
+            self.files["eggnog"] = output
+            return StepResult("eggnog", True, "EggNOG-mapper complete")
+        return StepResult("eggnog", False, stderr[:500])
+
+    def _step_plm_blast(self) -> StepResult:
+        err = self._check_substrates_exist("plm_blast")
+        if err:
+            return err
+        if not self.config.plmblast_db:
+            return StepResult(
+                "plm_blast",
+                False,
+                "pLM-BLAST requires an ECOD70 database. Set `plmblast_db` "
+                "in the config; fetch from ftp.tuebingen.mpg.de.",
+            )
+
+        output = self._wf(f"{self.config.sample_id}_plm_blast.tsv")
+        args = [
+            "--input",
+            self.files.get("proteins", ""),
+            "--ecod-db",
+            self.config.plmblast_db,
+            "--out",
+            output,
+        ]
+        rc, stdout, stderr = run_script("run_plm_blast.py", args, timeout=14400)
+        if rc == 0:
+            self.files["plm_blast"] = output
+            return StepResult("plm_blast", True, "pLM-BLAST complete")
+        return StepResult("plm_blast", False, stderr[:500])
+
+    def _step_plm_effector(self) -> StepResult:
+        """Run PLM-Effector once per SS type, then merge into a single TSV.
+
+        The merged TSV has one row per protein with `passes_threshold=1`
+        iff the ensemble flagged it for at least one SS type. That shape
+        is what cross_validate_predictions expects (see 3.2.b).
+        """
+        if not self.config.plm_effector_weights_dir:
+            return StepResult(
+                "plm_effector",
+                False,
+                "PLM-Effector requires a weights directory. Set "
+                "`plm_effector_weights_dir` in the config; extended/full "
+                "install tier fetches the weights automatically.",
+            )
+
+        per_type_paths = []
+        for eff_type in self.config.plm_effector_types:
+            per_type_out = self._wf(
+                f"{self.config.sample_id}_plm_effector_{eff_type}.tsv"
+            )
+            args = [
+                "--input",
+                self.files.get("proteins", ""),
+                "--weights-dir",
+                self.config.plm_effector_weights_dir,
+                "--effector-type",
+                eff_type,
+                "--out",
+                per_type_out,
+            ]
+            rc, stdout, stderr = run_script("run_plm_effector.py", args, timeout=14400)
+            if rc != 0:
+                return StepResult(
+                    "plm_effector",
+                    False,
+                    f"PLM-Effector failed on {eff_type}: {stderr[:400]}",
+                )
+            per_type_paths.append(per_type_out)
+
+        merged = self._wf(f"{self.config.sample_id}_plm_effector_merged.tsv")
+        rc, stdout, stderr = run_script(
+            "merge_plm_effector_outputs.py",
+            ["--inputs"] + per_type_paths + ["--out", merged],
+        )
+        if rc == 0:
+            self.files["plm_effector"] = merged
+            return StepResult(
+                "plm_effector",
+                True,
+                f"PLM-Effector complete ({len(per_type_paths)} types merged)",
+            )
+        return StepResult("plm_effector", False, stderr[:500])
+
     # ── Phase 6: Integration ──
 
     def _step_integrate(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_integrated.csv")
 
         # Annotation tools only (NOT SignalP — that's a prediction tool,
-        # already included via cross_validate → substrates_filtered)
+        # already included via cross_validate → substrates_filtered).
+        # EggNOG + pLM-BLAST added in 3.2.d; PLM-Effector stays prediction-
+        # tier and is consumed by cross_validate, not integrate.
         annotation_files = []
-        for key in ["blastp", "hhsuite", "interproscan", "protparam"]:
+        for key in [
+            "blastp",
+            "hhsuite",
+            "interproscan",
+            "eggnog",
+            "plm_blast",
+            "protparam",
+        ]:
             if key in self.files and os.path.exists(self.files[key]):
                 annotation_files.append(self.files[key])
 
