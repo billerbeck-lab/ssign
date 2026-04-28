@@ -121,6 +121,70 @@ def _resolve_plmblast_script() -> str:
     return "plmblast.py"
 
 
+def _resolve_embeddings_script(plmblast_script: str) -> str:
+    """Locate pLM-BLAST's `embeddings.py` (one level above `scripts/plmblast.py`)."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(plmblast_script)))
+    candidate = os.path.join(repo_root, "embeddings.py")
+    if os.path.exists(candidate):
+        return candidate
+    raise RuntimeError(
+        f"embeddings.py not found next to plmblast.py at {repo_root}. "
+        f"pLM-BLAST install appears incomplete; re-clone from "
+        f"https://github.com/labstructbioinf/pLM-BLAST"
+    )
+
+
+def _embed_query_fasta(
+    embed_script: str,
+    proteins_fasta: str,
+    out_dir: str,
+    embedder: str = "pt",
+) -> None:
+    """Run pLM-BLAST's embeddings.py to convert a FASTA into a directory
+    of per-sequence .emb files (the format plmblast.py searches).
+
+    `embedder` defaults to `pt` (ProtT5-XL UniRef50), matching the
+    embedder used to build the public ECOD70 database. ESM-2 etc. will
+    only work against a database embedded with that same model.
+    """
+    cmd = [
+        "python",
+        embed_script,
+        "start",
+        proteins_fasta,
+        out_dir,
+        "--asdir",
+        "-embedder",
+        embedder,
+    ]
+    logger.info(
+        f"Embedding query: embeddings.py start {proteins_fasta} <dir> "
+        f"--asdir -embedder {embedder}"
+    )
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"pLM-BLAST embeddings.py not runnable: {e}\n"
+            f"  How to fix:\n"
+            f"    - pip install git+https://github.com/labstructbioinf/pLM-BLAST.git\n"
+            f"    - Or clone the repo and set SSIGN_PLMBLAST_SCRIPT to its scripts/plmblast.py"
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(
+            f"pLM-BLAST embedding timed out after 4 hours: {e}\n"
+            f"  How to fix:\n"
+            f"    - Reduce query size\n"
+            f"    - Use a GPU (--cuda) — embedding is ~100x faster"
+        ) from e
+    if result.returncode != 0:
+        logger.error(f"pLM-BLAST embedding failed:\n{result.stderr[:1000]}")
+        raise RuntimeError(
+            f"pLM-BLAST embedding exit code {result.returncode}: "
+            f"{result.stderr[:300]}"
+        )
+
+
 def run_plmblast(
     proteins_fasta: str,
     ecod_db: str,
@@ -128,53 +192,73 @@ def run_plmblast(
     cpc: int = 70,
     threads: int = 4,
 ) -> str:
-    """Run pLM-BLAST against ECOD70 and return the CSV output path."""
+    """Run pLM-BLAST against ECOD70 and return the CSV output path.
+
+    Two-step pipeline: ProtT5-embed the query FASTA into a temp
+    directory, then search the embedding DB. The embedding step
+    dominates wall time on CPU (~5-10 sec per 500-aa protein).
+    """
     script = _resolve_plmblast_script()
-    cmd = [
-        "python",
-        script,
-        ecod_db,
-        proteins_fasta,
-        out_csv,
-        "-cpc",
-        str(cpc),
-        "--workers",
-        str(threads),
-    ]
+    embed_script = _resolve_embeddings_script(script)
 
-    logger.info(
-        f"Running pLM-BLAST: {' '.join(cmd[:3])} <db> <query> {out_csv} -cpc {cpc}"
-    )
-    # FRAGILE: subprocess call requires pLM-BLAST's scripts/plmblast.py
-    # on PATH, or set SSIGN_PLMBLAST_SCRIPT to its absolute path.
-    # If this breaks: pip install git+https://github.com/labstructbioinf/pLM-BLAST.git
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
-    except FileNotFoundError as e:
-        raise RuntimeError(
-            f"pLM-BLAST script not found: {e}\n"
-            f"  Common causes:\n"
-            f"    - pLM-BLAST is not installed\n"
-            f"    - plmblast.py is not on PATH\n"
-            f"  How to fix:\n"
-            f"    - pip install git+https://github.com/labstructbioinf/pLM-BLAST.git\n"
-            f"    - Or set SSIGN_PLMBLAST_SCRIPT=/path/to/pLM-BLAST/scripts/plmblast.py"
-        ) from e
-    except subprocess.TimeoutExpired as e:
-        raise RuntimeError(
-            f"pLM-BLAST timed out after 4 hours: {e}\n"
-            f"  How to fix:\n"
-            f"    - Reduce query size\n"
-            f"    - Increase --threads if more CPUs are available\n"
-            f"    - Use a smaller ECOD subset (e.g. ECOD50 instead of ECOD70)"
-        ) from e
+    with tempfile.TemporaryDirectory() as tmpdir:
+        query_emb_dir = os.path.join(tmpdir, "query")
+        # Step 1: embed the query FASTA. Reuses ProtT5 weights from
+        # SSIGN_PROTT5_PATH / HF cache; downloads from HuggingFace
+        # if neither is available.
+        _embed_query_fasta(embed_script, proteins_fasta, query_emb_dir)
 
-    if result.returncode != 0:
-        logger.error(f"pLM-BLAST failed:\n{result.stderr[:1000]}")
-        raise RuntimeError(f"pLM-BLAST exit code {result.returncode}")
+        # Step 2: pLM-BLAST search. plmblast.py uses single-dash long
+        # flags (`-cpc`, `-workers`) per its argparse setup in
+        # alntools/parser.py. Don't change to double-dash.
+        cmd = [
+            "python",
+            script,
+            ecod_db,
+            query_emb_dir,
+            out_csv,
+            "-cpc",
+            str(cpc),
+            "-workers",
+            str(threads),
+        ]
 
-    if not os.path.exists(out_csv):
-        raise FileNotFoundError(f"pLM-BLAST output not found: {out_csv}")
+        logger.info(
+            f"Running pLM-BLAST: {' '.join(cmd[:3])} <db> <query_emb> "
+            f"{out_csv} -cpc {cpc}"
+        )
+        # FRAGILE: subprocess call requires pLM-BLAST's scripts/plmblast.py
+        # on PATH, or set SSIGN_PLMBLAST_SCRIPT to its absolute path.
+        # If this breaks: pip install git+https://github.com/labstructbioinf/pLM-BLAST.git
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=14400
+            )
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"pLM-BLAST script not found: {e}\n"
+                f"  Common causes:\n"
+                f"    - pLM-BLAST is not installed\n"
+                f"    - plmblast.py is not on PATH\n"
+                f"  How to fix:\n"
+                f"    - pip install git+https://github.com/labstructbioinf/pLM-BLAST.git\n"
+                f"    - Or set SSIGN_PLMBLAST_SCRIPT=/path/to/pLM-BLAST/scripts/plmblast.py"
+            ) from e
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"pLM-BLAST timed out after 4 hours: {e}\n"
+                f"  How to fix:\n"
+                f"    - Reduce query size\n"
+                f"    - Increase --threads if more CPUs are available\n"
+                f"    - Use a smaller ECOD subset (e.g. ECOD50 instead of ECOD70)"
+            ) from e
+
+        if result.returncode != 0:
+            logger.error(f"pLM-BLAST failed:\n{result.stderr[:1000]}")
+            raise RuntimeError(f"pLM-BLAST exit code {result.returncode}")
+
+        if not os.path.exists(out_csv):
+            raise FileNotFoundError(f"pLM-BLAST output not found: {out_csv}")
 
     return out_csv
 
