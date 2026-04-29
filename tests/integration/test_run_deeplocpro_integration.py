@@ -1,33 +1,61 @@
-"""Integration tests for run_deeplocpro.py (BioLib remote + DTU local).
+"""Integration tests for run_deeplocpro.py (BioLib remote + local install).
 
-The DTU local path is gated on Sonja's redistribution email; the test
-skips cleanly until SSIGN_DEEPLOCPRO_PATH is set to a real install.
-The remote path (current Easy Mode default) requires only network +
-`pybiolib`.
+Both modes invoke the script as a subprocess (the way runner.py does),
+which produces the ssign-format TSV (`locus_tag`, `predicted_localization`,
+`extracellular_prob`, ...) — the same format downstream consumers
+(cross_validate_predictions, proximity_analysis) read.
 
-Run remote with:
+Run remote:
     pytest -m integration tests/integration/test_run_deeplocpro_integration.py::TestRemote
 
-Run local with:
-    SSIGN_DEEPLOCPRO_PATH=/path/to/deeplocpro pytest -m integration \\
+Run local:
+    SSIGN_DEEPLOCPRO_PATH=/path/to/install pytest -m integration \\
         tests/integration/test_run_deeplocpro_integration.py::TestLocal
 """
 
+import csv
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
-from conftest import read_tsv, skip_unless_biolib, skip_unless_dtu_local
+from conftest import skip_unless_biolib, skip_unless_dtu_local
 
 
 pytestmark = pytest.mark.integration
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = PROJECT_ROOT / "src" / "ssign_app" / "scripts" / "run_deeplocpro.py"
+
 REQUIRED_COLUMNS = {
     "locus_tag",
     "predicted_localization",
-    "dlp_extracellular_prob",
+    "extracellular_prob",
 }
+
+
+def _read_ssign_tsv(path: str) -> list:
+    with open(path) as f:
+        return list(csv.DictReader(f, delimiter="\t"))
+
+
+def _run_dlp(tmp_dir, fasta, mode, deeplocpro_path=""):
+    """Invoke run_deeplocpro.py via subprocess (matches runner.py)."""
+    out = os.path.join(tmp_dir, "dlp_predictions.tsv")
+    cmd = [
+        sys.executable, str(SCRIPT),
+        "--input", fasta,
+        "--sample", "test",
+        "--mode", mode,
+        "--output", out,
+    ]
+    if deeplocpro_path:
+        cmd.extend(["--deeplocpro-path", deeplocpro_path])
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
+    return out, result
 
 
 class TestRemote:
@@ -35,35 +63,31 @@ class TestRemote:
         self, tmp_dir, dtu_test_proteins
     ):
         skip_unless_biolib()
-        from run_deeplocpro import run_remote_deeplocpro
+        out, result = _run_dlp(tmp_dir, dtu_test_proteins, mode="remote")
+        if result.returncode != 0:
+            pytest.skip(
+                f"BioLib remote call failed (probably network): "
+                f"{result.stderr[-300:]}"
+            )
 
-        output_dir = os.path.join(tmp_dir, "dlp_out")
-        os.makedirs(output_dir)
-        try:
-            run_remote_deeplocpro(dtu_test_proteins, output_dir)
-        except Exception as e:
-            pytest.skip(f"BioLib remote call failed (probably network): {e}")
-
-        tsv = os.path.join(output_dir, "deeplocpro_predictions.tsv")
-        assert os.path.exists(tsv), "Remote DLP did not produce predictions.tsv"
-        rows = read_tsv(tsv)
+        assert os.path.exists(out), "Remote DLP did not produce output TSV"
+        rows = _read_ssign_tsv(out)
         assert len(rows) > 0
         assert REQUIRED_COLUMNS <= set(rows[0].keys())
 
-        # Biological sanity: BIMENO_04457 is a known autotransporter; DLP
-        # should produce a numeric extracellular probability for it.
-        # Don't assert a specific threshold (model versions drift); just
-        # that the protein-of-interest got predicted on. SignalP doesn't
-        # get an analogous check because every autotransporter has an
-        # N-terminal signal peptide — trivially true, not informative.
+        # Biological sanity: BIMENO_04457 (autotransporter) gets a
+        # numeric extracellular probability. Don't pin a threshold —
+        # model versions drift; just confirm it ran.
         target = next(
             (r for r in rows if r["locus_tag"] == "BIMENO_04457"), None
         )
         assert target is not None
         try:
-            float(target["dlp_extracellular_prob"])
+            float(target["extracellular_prob"])
         except (KeyError, ValueError):
-            pytest.fail("BIMENO_04457 row missing or non-numeric ext probability")
+            pytest.fail(
+                "BIMENO_04457 row missing or non-numeric extracellular_prob"
+            )
 
 
 class TestLocal:
@@ -71,14 +95,15 @@ class TestLocal:
         self, tmp_dir, dtu_test_proteins
     ):
         path = skip_unless_dtu_local("SSIGN_DEEPLOCPRO_PATH", "DeepLocPro")
-        from run_deeplocpro import run_local_deeplocpro
+        out, result = _run_dlp(
+            tmp_dir, dtu_test_proteins, mode="local", deeplocpro_path=path
+        )
+        assert result.returncode == 0, (
+            f"Local DLP exit {result.returncode}\n"
+            f"stderr: {result.stderr[-500:]}"
+        )
 
-        output_dir = os.path.join(tmp_dir, "dlp_out")
-        os.makedirs(output_dir)
-        run_local_deeplocpro(dtu_test_proteins, path, output_dir)
-
-        tsv = os.path.join(output_dir, "deeplocpro_predictions.tsv")
-        assert os.path.exists(tsv)
-        rows = read_tsv(tsv)
+        assert os.path.exists(out)
+        rows = _read_ssign_tsv(out)
         assert len(rows) > 0
         assert REQUIRED_COLUMNS <= set(rows[0].keys())

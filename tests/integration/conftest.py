@@ -179,6 +179,16 @@ def skip_unless_dtu_local(env_var: str, tool_label: str) -> str:
     return path
 
 
+def dlp_pipeline_kwargs() -> dict:
+    """Return PipelineConfig kwargs for DeepLocPro: local if
+    SSIGN_DEEPLOCPRO_PATH points at a dir containing the `deeplocpro`
+    script, else remote BioLib."""
+    path = os.environ.get("SSIGN_DEEPLOCPRO_PATH", "").strip()
+    if path and os.path.isfile(os.path.join(path, "deeplocpro")):
+        return {"deeplocpro_mode": "local", "deeplocpro_path": path}
+    return {"deeplocpro_mode": "remote"}
+
+
 def read_tsv(path: str) -> list:
     """Parse a tab-separated file with a header row into list[dict]."""
     import csv

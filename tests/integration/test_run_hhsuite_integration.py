@@ -37,6 +37,9 @@ def _skip_unless_hhsuite_ready():
     pfam = os.environ.get("SSIGN_HHSUITE_PFAM")
     pdb70 = os.environ.get("SSIGN_HHSUITE_PDB70")
     uniclust = os.environ.get("SSIGN_HHSUITE_UNICLUST")
+    # HH-suite DBs are passed by *prefix* (e.g. .../pdb70 → loads
+    # pdb70_a3m.ffdata, pdb70_hhm.ffdata, ...). Validate by checking the
+    # required `_a3m.ffdata` companion file rather than the bare prefix.
     missing = [
         name
         for name, path in [
@@ -44,12 +47,12 @@ def _skip_unless_hhsuite_ready():
             ("SSIGN_HHSUITE_PDB70", pdb70),
             ("SSIGN_HHSUITE_UNICLUST", uniclust),
         ]
-        if not path or not os.path.exists(path)
+        if not path or not os.path.exists(f"{path}_a3m.ffdata")
     ]
     if missing:
         pytest.skip(
             f"HH-suite DBs unavailable ({', '.join(missing)}). "
-            f"GWDG mirror dead as of 2026-04-29; defer to HPC."
+            f"Set <var>=<DB-prefix-without-suffix> for each DB."
         )
     return pfam, pdb70, uniclust
 

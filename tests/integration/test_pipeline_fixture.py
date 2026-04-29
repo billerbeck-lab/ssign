@@ -40,14 +40,17 @@ SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "s
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
+from conftest import dlp_pipeline_kwargs  # noqa: E402
+
 
 def _skip_unless_pipeline_prereqs_ready():
     """Skip the current test unless every whole-pipeline prerequisite is met."""
     if os.environ.get("SSIGN_RUN_FULL_PIPELINE") != "1":
         pytest.skip(
             "SSIGN_RUN_FULL_PIPELINE=1 not set — whole-pipeline test is "
-            "opt-in because it takes several minutes and reaches out to "
-            "the DTU webface for DeepLocPro."
+            "opt-in because it takes several minutes; by default it hits "
+            "the DTU webface for DeepLocPro, or runs DLP locally if "
+            "SSIGN_DEEPLOCPRO_PATH is set."
         )
 
     # MacSyFinder 2.x renamed the Python package: `macsypy` (legacy) →
@@ -60,40 +63,42 @@ def _skip_unless_pipeline_prereqs_ready():
         pytest.skip("macsyfinder binary not on PATH")
 
 
+def _make_t1ss_config(tmp_dir, t1ss_fixture_gbff):
+    """Shared PipelineConfig for the two test methods.
+
+    use_input_annotations=True skips Bakta re-annotation (Phase 3.3.c
+    default) — keeps the test fast and self-contained.
+    """
+    from ssign_app.core.runner import PipelineConfig
+    return PipelineConfig(
+        input_path=t1ss_fixture_gbff,
+        sample_id="t1ss_fixture",
+        outdir=tmp_dir,
+        use_input_annotations=True,
+        wholeness_threshold=0.8,
+        excluded_systems=["Flagellum", "Tad", "T3SS"],
+        conf_threshold=0.8,
+        proximity_window=3,
+        # Keep the run cheap — skip every heavy annotation tool
+        **dlp_pipeline_kwargs(),
+        skip_deepsece=True,
+        skip_signalp=True,
+        skip_blastp=True,
+        skip_hhsuite=True,
+        skip_interproscan=True,
+        skip_plmblast=True,
+        skip_protparam=False,
+        skip_structure=True,
+    )
+
+
 class TestPipelineOnT1SSFixture:
     def test_pipeline_runs_and_detects_t1ss(self, tmp_dir, t1ss_fixture_gbff):
         _skip_unless_pipeline_prereqs_ready()
 
-        from ssign_app.core.runner import PipelineConfig, PipelineRunner
+        from ssign_app.core.runner import PipelineRunner
 
-        # use_input_annotations=True skips Bakta re-annotation (Phase
-        # 3.3.c default) — keeps the test fast and self-contained. To
-        # exercise the re-annotation path, set SSIGN_BAKTA_DB env var
-        # (then this test would also need bakta_db= here, but the
-        # current invariants don't require Bakta-specific output).
-        config = PipelineConfig(
-            input_path=t1ss_fixture_gbff,
-            sample_id="t1ss_fixture",
-            outdir=tmp_dir,
-            use_input_annotations=True,
-            # Core
-            wholeness_threshold=0.8,
-            excluded_systems=["Flagellum", "Tad", "T3SS"],
-            conf_threshold=0.8,
-            proximity_window=3,
-            # Keep the run cheap — skip every heavy annotation tool
-            deeplocpro_mode="remote",
-            skip_deepsece=True,
-            skip_signalp=True,
-            skip_blastp=True,
-            skip_hhsuite=True,
-            skip_interproscan=True,
-            skip_plmblast=True,
-            skip_protparam=False,
-            skip_structure=True,
-        )
-
-        runner = PipelineRunner(config)
+        runner = PipelineRunner(_make_t1ss_config(tmp_dir, t1ss_fixture_gbff))
         results = runner.run(resume=False)
 
         failed = [r for r in results if not r.success]
@@ -122,29 +127,9 @@ class TestPipelineOnT1SSFixture:
         it fails, the pipeline has regressed on real secretion biology."""
         _skip_unless_pipeline_prereqs_ready()
 
-        from ssign_app.core.runner import PipelineConfig, PipelineRunner
+        from ssign_app.core.runner import PipelineRunner
 
-        config = PipelineConfig(
-            input_path=t1ss_fixture_gbff,
-            sample_id="t1ss_fixture",
-            outdir=tmp_dir,
-            use_input_annotations=True,
-            wholeness_threshold=0.8,
-            excluded_systems=["Flagellum", "Tad", "T3SS"],
-            conf_threshold=0.8,
-            proximity_window=3,
-            deeplocpro_mode="remote",
-            skip_deepsece=True,
-            skip_signalp=True,
-            skip_blastp=True,
-            skip_hhsuite=True,
-            skip_interproscan=True,
-            skip_plmblast=True,
-            skip_protparam=False,
-            skip_structure=True,
-        )
-
-        PipelineRunner(config).run(resume=False)
+        PipelineRunner(_make_t1ss_config(tmp_dir, t1ss_fixture_gbff)).run(resume=False)
 
         found_in = []
         for root, _dirs, files in os.walk(tmp_dir):

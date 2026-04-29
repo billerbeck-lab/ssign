@@ -999,7 +999,7 @@ with tab_pipeline:
         deepsece_available = False
         deepsece_checkpoint_ok = False
         try:
-            import DeepSecE
+            import DeepSecE  # noqa: F401 -- import IS the availability check; ImportError caught below
 
             deepsece_available = True
             # Check if the model checkpoint exists (~2.5 GB)
@@ -1621,6 +1621,9 @@ with tab_run:
             n_genomes_to_run = len(input_paths)
             genome_configs = []
             genome_progress = []  # (progress_bar, status_text) per genome
+            # Divide local CPU budget across concurrent genomes — without this,
+            # macsyfinder -w {cpu_count} × N genomes oversubscribes cores.
+            _cpu_per_genome = max(1, (os.cpu_count() or 4) // max(1, n_genomes_to_run))
 
             for file_idx, input_path in enumerate(input_paths):
                 if n_genomes_to_run > 1:
@@ -1702,6 +1705,7 @@ with tab_run:
                         st.session_state.get("og_min_pident", 40)
                     ),
                     ortholog_min_qcov=float(st.session_state.get("og_min_qcov", 70)),
+                    cpu_per_genome=_cpu_per_genome,
                 )
                 genome_configs.append(config)
 

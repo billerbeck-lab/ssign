@@ -19,6 +19,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
 
+from ssign_app.scripts.ssign_lib.constants import HHSUITE_MIN_PROB
+
 logger = logging.getLogger(__name__)
 
 # The bin/ directory containing all pipeline scripts
@@ -42,6 +44,16 @@ class PipelineConfig:
     # Phase 2: SS detection
     wholeness_threshold: float = 0.8
     excluded_systems: list = field(default_factory=lambda: ["Flagellum", "Tad", "T3SS"])
+    # MacSyFinder --db-type: "ordered_replicon" preserves gene-order signal
+    # (more sensitive — recommended default). Switch to "unordered" for
+    # highly fragmented assemblies where contig boundaries would otherwise
+    # produce false-positive proximity calls.
+    macsyfinder_db_type: str = "ordered_replicon"
+
+    # CPU budget per genome for parallel sub-tools (e.g. macsyfinder -w).
+    # When N genomes run concurrently, set this to cpu_count // N to avoid
+    # oversubscribing cores. Defaults to all available cores.
+    cpu_per_genome: int = field(default_factory=lambda: os.cpu_count() or 4)
 
     # Phase 3: Prediction
     conf_threshold: float = 0.8
@@ -84,7 +96,7 @@ class PipelineConfig:
     hhsuite_pfam_db: str = ""
     hhsuite_pdb70_db: str = ""
     hhsuite_uniclust_db: str = ""
-    hhpred_min_probability: float = 40.0  # HHpred/Pfam min probability to keep hit
+    hhsuite_min_prob: float = HHSUITE_MIN_PROB
 
     skip_interproscan: bool = False
     interproscan_db: str = ""
@@ -807,35 +819,40 @@ class PipelineRunner:
         # macsy-models GitHub repository. Can fail behind corporate firewalls
         # or if GitHub is unreachable. Models persist in ~/.macsyfinder/ after
         # first successful install, so this usually only runs once.
-        # If this breaks: run manually: macsydata install --user TXSScan
-        install_cmd = ["macsydata", "install", "--user", "TXSScan"]
-        try:
-            install_result = subprocess.run(
-                install_cmd, capture_output=True, text=True, timeout=120
-            )
-            if install_result.returncode != 0:
-                logger.warning(
-                    f"macsydata install returned exit code "
-                    f"{install_result.returncode}. TXSScan models may "
-                    f"already be installed — continuing.\n"
-                    f"  If MacSyFinder fails, run manually:\n"
-                    f"    macsydata install --user TXSScan"
+        # Pin to TXSScan==1.1.4 — the version ssign was validated against.
+        # If this breaks: run manually: macsydata install --user TXSScan==1.1.4
+        txsscan_meta = Path.home() / ".macsyfinder" / "models" / "TXSScan" / "metadata.yml"
+        if txsscan_meta.exists() and "vers: 1.1.4" in txsscan_meta.read_text():
+            logger.info("TXSScan 1.1.4 already installed — skipping macsydata install")
+        else:
+            install_cmd = ["macsydata", "install", "--user", "TXSScan==1.1.4"]
+            try:
+                install_result = subprocess.run(
+                    install_cmd, capture_output=True, text=True, timeout=120
                 )
-        except FileNotFoundError:
-            return StepResult(
-                "macsyfinder",
-                False,
-                "macsydata command not found.\n"
-                "  Install: pip install macsyfinder\n"
-                "  It should have been installed as a dependency of ssign.",
-            )
-        except subprocess.TimeoutExpired:
-            logger.warning(
-                "macsydata install timed out — TXSScan models may already "
-                "exist. Continuing."
-            )
-        except Exception:
-            pass  # May already be installed
+                if install_result.returncode != 0:
+                    logger.warning(
+                        f"macsydata install returned exit code "
+                        f"{install_result.returncode}. TXSScan models may "
+                        f"already be installed — continuing.\n"
+                        f"  If MacSyFinder fails, run manually:\n"
+                        f"    macsydata install --user TXSScan==1.1.4"
+                    )
+            except FileNotFoundError:
+                return StepResult(
+                    "macsyfinder",
+                    False,
+                    "macsydata command not found.\n"
+                    "  Install: pip install macsyfinder\n"
+                    "  It should have been installed as a dependency of ssign.",
+                )
+            except subprocess.TimeoutExpired:
+                logger.warning(
+                    "macsydata install timed out — TXSScan models may already "
+                    "exist. Continuing."
+                )
+            except Exception:
+                pass  # May already be installed
 
         # FRAGILE: macsyfinder CLI — internally calls hmmsearch via subprocess.
         # Our pyhmmer shim (installed as console_script 'hmmsearch') should be
@@ -847,12 +864,14 @@ class PipelineRunner:
             "--sequence-db",
             proteins,
             "--db-type",
-            "ordered_replicon",
+            self.config.macsyfinder_db_type,
             "--models",
             "TXSScan",
             "all",
             "--out-dir",
             msf_out,
+            "-w",
+            str(self.config.cpu_per_genome),
             "--mute",
         ]
 
@@ -1324,6 +1343,7 @@ class PipelineRunner:
             args.extend(["--pfam-db", self.config.hhsuite_pfam_db])
         if self.config.hhsuite_pdb70_db:
             args.extend(["--pdb70-db", self.config.hhsuite_pdb70_db])
+        args.extend(["--min-prob", str(self.config.hhsuite_min_prob)])
 
         rc, stdout, stderr = run_script("run_hhsuite.py", args, timeout=14400)
         if rc == 0:

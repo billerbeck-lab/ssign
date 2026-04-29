@@ -164,12 +164,23 @@ class TestParseDbxrefs:
         assert result["go_terms"] == ["GO:0001234"]
 
     def test_unknown_prefix_ignored(self):
-        """UniParc / SO / UniRef are real Bakta prefixes but aren't
-        scoring features, so they should not appear in output fields."""
-        result = parse_dbxrefs("UniParc:UPI000123, SO:0001217")
+        """SO (sequence-ontology) is a real Bakta prefix that ssign
+        doesn't surface — confirm it doesn't bleed into other fields."""
+        result = parse_dbxrefs("SO:0001217")
         assert result["ec_numbers"] == []
         assert result["cog_ids"] == []
         assert result["refseq_ids"] == []
+        assert result["uniref_ids"] == []
+        assert result["uniparc_ids"] == []
+
+    def test_uniref_and_uniparc_surfaced(self):
+        """UniRef + UniParc are surfaced for provenance (most-populated
+        cross-references in Bakta light-DB output)."""
+        result = parse_dbxrefs(
+            "UniRef:UniRef50_X1, UniParc:UPI000123"
+        )
+        assert result["uniref_ids"] == ["UniRef50_X1"]
+        assert result["uniparc_ids"] == ["UPI000123"]
 
     def test_refseq_captured(self):
         assert parse_dbxrefs("RefSeq:WP_123.1")["refseq_ids"] == ["WP_123.1"]
