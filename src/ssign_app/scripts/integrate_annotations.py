@@ -40,7 +40,18 @@ TOOL_HIT_COLUMNS = {
 
 def _compute_consensus(df):
     """Compute annotation consensus and tool counts for each protein."""
-    from ssign_app.scripts.annotation_consensus import compute_consensus
+    # Relative import (script directory is on sys.path when invoked as
+    # a subprocess by runner.py, AND when invoked directly via
+    # `python integrate_annotations.py`). The previous absolute path
+    # `ssign_app.scripts.annotation_consensus` only worked if the
+    # package was pip-installed.
+    import os as _os
+    import sys as _sys
+
+    _here = _os.path.dirname(_os.path.abspath(__file__))
+    if _here not in _sys.path:
+        _sys.path.insert(0, _here)
+    from annotation_consensus import compute_consensus
 
     consensus_rows = []
     for _, row in df.iterrows():
