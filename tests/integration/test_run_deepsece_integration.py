@@ -29,8 +29,9 @@ pytestmark = pytest.mark.integration
 
 
 def _skip_unless_deepsece():
-    if importlib.util.find_spec("deepsece") is None:
-        pytest.skip("deepsece not installed; pip install ssign[extended]")
+    # The pip package installs as `DeepSecE` (capital D), not lowercase.
+    if importlib.util.find_spec("DeepSecE") is None:
+        pytest.skip("DeepSecE not installed; pip install ssign[extended]")
     ckpt = os.environ.get(
         "SSIGN_DEEPSECE_CHECKPOINT",
         os.path.expanduser("~/.ssign/models/deepsece_checkpoint.pt"),
