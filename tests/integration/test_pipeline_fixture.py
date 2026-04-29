@@ -123,6 +123,7 @@ class TestPipelineOnT1SSFixture:
             input_path=t1ss_fixture_gbff,
             sample_id="t1ss_fixture",
             outdir=tmp_dir,
+            use_input_annotations=True,
             wholeness_threshold=0.8,
             excluded_systems=["Flagellum", "Tad", "T3SS"],
             conf_threshold=0.8,
