@@ -63,10 +63,16 @@ class TestPipelineOnT1SSFixture:
 
         from ssign_app.core.runner import PipelineConfig, PipelineRunner
 
+        # use_input_annotations=True skips Bakta re-annotation (Phase
+        # 3.3.c default) — keeps the test fast and self-contained. To
+        # exercise the re-annotation path, set SSIGN_BAKTA_DB env var
+        # (then this test would also need bakta_db= here, but the
+        # current invariants don't require Bakta-specific output).
         config = PipelineConfig(
             input_path=t1ss_fixture_gbff,
             sample_id="t1ss_fixture",
             outdir=tmp_dir,
+            use_input_annotations=True,
             # Core
             wholeness_threshold=0.8,
             excluded_systems=["Flagellum", "Tad", "T3SS"],
