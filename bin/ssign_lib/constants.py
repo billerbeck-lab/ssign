@@ -45,6 +45,13 @@ LINKER_LENGTH = 30  # aa — alpha-helix linker between passenger and barrel
 # --- System filtering ---
 DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad", "T3SS"]
 
+# --- T5SS subtypes ---
+# Bounded set MacSyFinder/TXSScan emits for type-V secretion systems.
+# Used to apply the "Extracellular OR Outer membrane" DLP rule —
+# biology accepts both passenger-cleaved (extracellular) and surface-
+# displayed (outer-membrane-tethered) forms across all five subtypes.
+T5SS_SUBTYPES = frozenset({"T5SS", "T5aSS", "T5bSS", "T5cSS", "T5dSS", "T5eSS"})
+
 # --- DeepSecE to MacSyFinder SS type mapping ---
 # DeepSecE predicts broad types; MacSyFinder uses specific names.
 DSE_TO_MACSYFINDER = {

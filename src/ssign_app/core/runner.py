@@ -1143,6 +1143,9 @@ class PipelineRunner:
             args.extend(["--plm-effector", plm_e])
         if sp and os.path.exists(sp):
             args.extend(["--signalp", sp])
+        ss_components = self.files.get("ss_components", "")
+        if ss_components and os.path.exists(ss_components):
+            args.extend(["--ss-components", ss_components])
 
         rc, stdout, stderr = run_script("cross_validate_predictions.py", args)
         if rc == 0:

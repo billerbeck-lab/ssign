@@ -11,6 +11,8 @@ Inputs (one row per protein each):
                      calling cross_validate)
     --signalp        SignalP signal-peptide predictions (optional)
     --valid-systems  MacSyFinder-validated secretion systems for this genome
+    --ss-components  Per-protein SS component table (locus_tag → ss_type).
+                     Used to apply T5SS-specific localisation rule.
 
 Rule (3.2.b):
     DeepLocPro, DeepSecE, and PLM-Effector are treated as equal
@@ -19,6 +21,14 @@ Rule (3.2.b):
     `n_prediction_tools_agreeing` (0-3). SignalP is evidence-only —
     its determination goes into `signalp_supports_secretion` but does
     not trip `is_secreted` on its own.
+
+T5SS localisation rule: T5SS substrates (T5aSS autotransporter
+passenger, T5bSS TpsA passenger, T5cSS trimeric AT, T5dSS hybrid,
+T5eSS inverse AT) are biologically valid as either extracellular
+(cleaved off) OR outer-membrane-tethered (surface-displayed). For
+proteins whose ss_components row gives a T5*SS subtype, DLP triggers
+on max(extracellular_prob, outer_membrane_prob) >= conf_threshold
+instead of just extracellular_prob.
 
 DSE T3SS reliability guard (preserved from earlier logic): DeepSecE
 flags far more T3SS candidates than MacSyFinder validates
@@ -31,16 +41,34 @@ import argparse
 import csv
 import logging
 import os
+import sys
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import T5SS_SUBTYPES  # noqa: E402
 
 
 # SignalP's "protein has no signal peptide" sentinels
 _SP_NEGATIVE = {"OTHER", "", "No signal peptide"}
 # DeepSecE's "protein is not a secretion substrate" sentinels
 _DSE_NEGATIVE = {"Non-secreted", "", "OTHER"}
+
+
+def _is_t5ss_subtype(ss_type: str) -> bool:
+    """True for any T5SS subtype (T5SS, T5aSS, T5bSS, T5cSS, T5dSS, T5eSS).
+
+    Substrates of every T5 subtype are legitimately either extracellular
+    (passenger cleaved) or outer-membrane-tethered (surface-displayed),
+    so the DLP rule relaxes for these. Bounded set lives in
+    ssign_lib/constants.py so MacSyFinder/TXSScan namespace changes are
+    a single edit.
+    """
+    return ss_type in T5SS_SUBTYPES
 
 
 def _load_tsv_by_locus(path: str):
@@ -74,10 +102,40 @@ def _genome_has_t3ss(valid_systems_path: str) -> bool:
     return False
 
 
-def _dlp_flag(dlp_row: dict, conf_threshold: float) -> tuple:
-    """(is_secreted_by_dlp, extracellular_prob)."""
-    prob = _float_or_zero(dlp_row.get("extracellular_prob", 0))
-    return prob >= conf_threshold, prob
+def _load_ss_component_types(path: str) -> dict:
+    """Return {locus_tag: ss_type} from validate_macsyfinder_systems.py output.
+
+    Empty dict if the path is missing or empty (e.g. genomes with no
+    validated systems). Excluded systems are skipped — those proteins
+    aren't real components of the surviving SS calls.
+    """
+    if not path or not os.path.exists(path):
+        return {}
+    out = {}
+    with open(path) as f:
+        for row in csv.DictReader(f, delimiter="\t"):
+            if row.get("excluded", "False").lower() == "true":
+                continue
+            tag = row.get("locus_tag", "").strip()
+            ss_type = row.get("ss_type", "").strip()
+            if tag and ss_type:
+                out[tag] = ss_type
+    return out
+
+
+def _dlp_flag(dlp_row: dict, conf_threshold: float, ss_type: str = "") -> tuple:
+    """(is_secreted_by_dlp, extracellular_prob).
+
+    For T5SS substrates the rule is `max(ext, om) >= conf_threshold` —
+    biology accepts both passenger-cleaved (extracellular) and surface-
+    displayed (outer membrane) forms. For all other proteins it's the
+    standard `ext >= conf_threshold`.
+    """
+    ext_prob = _float_or_zero(dlp_row.get("extracellular_prob", 0))
+    if _is_t5ss_subtype(ss_type):
+        om_prob = _float_or_zero(dlp_row.get("outer_membrane_prob", 0))
+        return max(ext_prob, om_prob) >= conf_threshold, ext_prob
+    return ext_prob >= conf_threshold, ext_prob
 
 
 def _dse_flag(dse_row: dict, has_t3ss: bool) -> tuple:
@@ -158,12 +216,20 @@ def cross_validate(
     sample_id: str,
     conf_threshold: float,
     has_t3ss: bool,
+    ss_component_types: dict | None = None,
 ):
     """Yield one output dict per protein across the union of inputs.
+
+    `ss_component_types` is an optional `{locus_tag: ss_type}` map for
+    proteins that MacSyFinder validated as SS components. Used to relax
+    the DLP rule for T5SS subtypes (passenger can be extracellular OR
+    outer-membrane-tethered). Non-component / neighborhood proteins
+    pass through with the standard extracellular-only rule.
 
     Factored out as a pure function so it's directly unit-testable without
     touching the filesystem.
     """
+    ss_component_types = ss_component_types or {}
     all_loci = sorted(
         set(dlp_data.keys())
         | set(dse_data.keys())
@@ -177,7 +243,8 @@ def cross_validate(
         plm_e = plm_e_data.get(locus, {})
         sp = sp_data.get(locus, {})
 
-        dlp_secreted, ext_prob = _dlp_flag(dlp, conf_threshold)
+        component_ss_type = ss_component_types.get(locus, "")
+        dlp_secreted, ext_prob = _dlp_flag(dlp, conf_threshold, component_ss_type)
         dse_secreted, dse_type, dse_max, t3ss_flagged = _dse_flag(dse, has_t3ss)
         plm_e_secreted = _plm_effector_flag(plm_e)
         sp_supports, sp_pred, sp_prob = _signalp_supports(sp)
@@ -236,6 +303,16 @@ def main():
     )
     parser.add_argument("--signalp", default="")
     parser.add_argument("--valid-systems", required=True)
+    parser.add_argument(
+        "--ss-components",
+        default="",
+        help=(
+            "Per-protein SS component table from validate_macsyfinder_systems.py. "
+            "Used to apply the T5SS-specific 'Extracellular OR Outer membrane' "
+            "DLP rule. Optional — without it, all proteins use the standard "
+            "extracellular-only rule."
+        ),
+    )
     parser.add_argument("--sample", required=True)
     parser.add_argument("--conf-threshold", type=float, default=0.8)
     parser.add_argument("--output", required=True)
@@ -247,6 +324,7 @@ def main():
     dse_data = _load_tsv_by_locus(args.deepsece)
     plm_e_data = _load_tsv_by_locus(args.plm_effector)
     sp_data = _load_tsv_by_locus(args.signalp)
+    ss_component_types = _load_ss_component_types(args.ss_components)
 
     if not dse_data:
         logger.info("DeepSecE not available — running without DSE trigger")
@@ -269,6 +347,7 @@ def main():
             sample_id=args.sample,
             conf_threshold=args.conf_threshold,
             has_t3ss=has_t3ss,
+            ss_component_types=ss_component_types,
         ):
             if row["dse_T3SS_flagged"]:
                 n_flagged_t3ss += 1

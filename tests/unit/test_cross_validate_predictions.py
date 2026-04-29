@@ -10,6 +10,8 @@ evidence-only rule, the DSE T3SS flagging guard, and the
 import os
 import sys
 
+import pytest
+
 SCRIPTS_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
 )
@@ -18,13 +20,14 @@ sys.path.insert(0, SCRIPTS_DIR)
 from cross_validate_predictions import cross_validate  # noqa: E402, F401
 
 
-def _dlp_row(locus, ext_prob):
+def _dlp_row(locus, ext_prob, om_prob=0.0):
     return {
         "locus_tag": locus,
         "extracellular_prob": str(ext_prob),
+        "outer_membrane_prob": str(om_prob),
         "predicted_localization": "Extracellular" if ext_prob >= 0.5 else "Cytoplasm",
         "max_localization": "Extracellular" if ext_prob >= 0.5 else "Cytoplasm",
-        "max_probability": str(ext_prob),
+        "max_probability": str(max(ext_prob, om_prob)),
     }
 
 
@@ -53,7 +56,10 @@ def _sp_row(locus, prediction, probability=0.95):
     }
 
 
-def _run(dlp=None, dse=None, plm_e=None, sp=None, has_t3ss=False, conf_threshold=0.8):
+def _run(
+    dlp=None, dse=None, plm_e=None, sp=None,
+    has_t3ss=False, conf_threshold=0.8, ss_component_types=None,
+):
     return list(
         cross_validate(
             dlp_data=dlp or {},
@@ -63,6 +69,7 @@ def _run(dlp=None, dse=None, plm_e=None, sp=None, has_t3ss=False, conf_threshold
             sample_id="sample1",
             conf_threshold=conf_threshold,
             has_t3ss=has_t3ss,
+            ss_component_types=ss_component_types,
         )
     )
 
@@ -184,6 +191,78 @@ class TestDseT3ssGuard:
     def test_non_t3ss_dse_calls_never_flagged(self):
         rows = _run(dse={"G1": _dse_row("G1", "T1SS")}, has_t3ss=False)
         assert rows[0]["dse_T3SS_flagged"] is False
+
+
+class TestT5SSLocalisationRule:
+    """T5SS substrates: DLP triggers on Extracellular OR Outer membrane.
+
+    Biology: T5aSS autotransporter passenger can be cleaved (extracellular)
+    or remain tethered (outer membrane). T5b/c/d/e all have similar duality
+    or surface display. The standard extracellular-only rule under-calls
+    these — relax to max(ext, om) >= conf_threshold for T5*SS components.
+    """
+
+    def test_t5a_om_protein_triggers_dlp(self):
+        """A T5aSS component with OM=0.95, ext=0.05 should be flagged."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.05, om_prob=0.95)},
+            ss_component_types={"G1": "T5aSS"},
+        )
+        assert rows[0]["is_secreted"] is True
+        assert rows[0]["secretion_evidence"] == "DeepLocPro"
+
+    @pytest.mark.parametrize(
+        "subtype", ["T5SS", "T5aSS", "T5bSS", "T5cSS", "T5dSS", "T5eSS"]
+    )
+    def test_all_t5_subtypes_apply_rule(self, subtype):
+        """Every TXSScan T5SS subtype gets the relaxed rule."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.05, om_prob=0.95)},
+            ss_component_types={"G1": subtype},
+        )
+        assert rows[0]["is_secreted"] is True
+
+    def test_t5a_extracellular_protein_still_triggers(self):
+        """Standard extracellular case still works for T5SS."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.95, om_prob=0.0)},
+            ss_component_types={"G1": "T5aSS"},
+        )
+        assert rows[0]["is_secreted"] is True
+
+    def test_non_t5_om_protein_does_not_trigger(self):
+        """A T1SS component with OM=0.95, ext=0.05 should NOT be flagged
+        — T1SS substrates are extracellular, not OM-tethered."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.05, om_prob=0.95)},
+            ss_component_types={"G1": "T1SS"},
+        )
+        assert rows[0]["is_secreted"] is False
+        assert rows[0]["n_prediction_tools_agreeing"] == 0
+
+    def test_unmapped_protein_uses_standard_rule(self):
+        """Proteins absent from ss_component_types (neighborhood, not a
+        component) get the standard extracellular-only rule."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.05, om_prob=0.95)},
+            ss_component_types={},  # G1 not a component of any system
+        )
+        assert rows[0]["is_secreted"] is False
+
+    def test_t5a_below_threshold_in_both_does_not_trigger(self):
+        """If neither ext nor OM crosses threshold, even T5SS shouldn't pass."""
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", ext_prob=0.3, om_prob=0.4)},
+            ss_component_types={"G1": "T5aSS"},
+            conf_threshold=0.8,
+        )
+        assert rows[0]["is_secreted"] is False
+
+    def test_no_ss_components_arg_preserves_old_behaviour(self):
+        """Calling cross_validate without ss_component_types kwarg = same
+        behaviour as before this change."""
+        rows = _run(dlp={"G1": _dlp_row("G1", ext_prob=0.95)})  # no ss_component_types
+        assert rows[0]["is_secreted"] is True
 
 
 class TestOutputShape:
