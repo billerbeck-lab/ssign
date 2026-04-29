@@ -104,10 +104,15 @@ class TestPipelineOnT1SSFixture:
         # Output directory should be populated
         assert os.listdir(tmp_dir), "Output directory is empty after pipeline run"
 
-        # Core artefacts expected by downstream consumers
-        proteins_path = os.path.join(tmp_dir, "t1ss_fixture_proteins.faa")
-        assert os.path.exists(proteins_path), (
-            "Expected protein FASTA not produced by extract_proteins step"
+        # Core artefacts expected by downstream consumers. The runner
+        # writes intermediate workfiles into a tempdir (`runner.work_dir`)
+        # and copies final products into `outdir` (== tmp_dir for this
+        # test). The proteins FASTA is the intermediate one — fetched
+        # via the runner's file registry, not by guessing the path.
+        proteins_path = runner.files.get("proteins")
+        assert proteins_path and os.path.exists(proteins_path), (
+            f"Expected protein FASTA missing from runner.files. "
+            f"runner.files keys: {list(runner.files.keys())}"
         )
         assert os.path.getsize(proteins_path) > 0
 
