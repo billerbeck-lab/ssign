@@ -89,8 +89,17 @@ extended = [
     "eggnog-mapper",
     "goatools",
     "obonet",
-    "transformers>=4.30",
+    # transformers >=5.0 removes batch_encode_plus, breaking pLM-BLAST and
+    # PLM-Effector; numpy >=2.0 removes np.issubsctype, breaking pLM-BLAST.
+    # Both bounds verified via integration tests on 2026-04-29.
+    "transformers>=4.38,<5.0",
+    "numpy>=1.26,<2.0",
     "xgboost>=2.0",
+    # Required at runtime by pLM-BLAST: protobuf for ProtT5 SentencePiece
+    # tokenizer; mkl + mkl-service are direct imports in plmblast.py.
+    "protobuf",
+    "mkl",
+    "mkl-service",
 ]
 full = [
     "deepsece",
@@ -100,8 +109,12 @@ full = [
     "eggnog-mapper",
     "goatools",
     "obonet",
-    "transformers>=4.30",
+    "transformers>=4.38,<5.0",
+    "numpy>=1.26,<2.0",
     "xgboost>=2.0",
+    "protobuf",
+    "mkl",
+    "mkl-service",
 ]
 dev = [
     "pytest>=7.0",
