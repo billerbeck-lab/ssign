@@ -147,11 +147,23 @@ def _embed_query_fasta(
     embedder used to build the public ECOD70 database. ESM-2 etc. will
     only work against a database embedded with that same model.
     """
+    # embeddings.py only accepts .csv/.p/.pkl/.fas/.fasta extensions —
+    # NOT .faa, which is what ssign uses internally and what most
+    # protein-FASTA tools emit. Symlink to a .fasta path so the upstream
+    # extension check passes; the file content is identical.
+    if proteins_fasta.endswith((".fasta", ".fas")):
+        embed_input = proteins_fasta
+    else:
+        embed_input = os.path.join(
+            os.path.dirname(out_dir), "_proteins_for_embed.fasta"
+        )
+        os.symlink(os.path.abspath(proteins_fasta), embed_input)
+
     cmd = [
         "python",
         embed_script,
         "start",
-        proteins_fasta,
+        embed_input,
         out_dir,
         "--asdir",
         "-embedder",
