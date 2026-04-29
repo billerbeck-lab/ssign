@@ -28,6 +28,22 @@ EXCLUDE_TERMS = [
     "predicted protein",
 ]
 
+# BLAST outfmt 6 column indices, mirroring the order in BLAST_OUTFMT below.
+# Centralised so the parser doesn't drift if the format string changes.
+BLAST_OUTFMT = (
+    "6 qseqid sseqid pident length mismatch gapopen qstart qend "
+    "sstart send evalue bitscore stitle qlen slen"
+)
+_COL_QSEQID = 0
+_COL_SSEQID = 1
+_COL_PIDENT = 2
+_COL_ALN_LEN = 3
+_COL_EVALUE = 10
+_COL_BITSCORE = 11
+_COL_STITLE = 12
+_COL_QLEN = 13
+_BLAST_MIN_FIELDS = 15  # all 15 outfmt fields must be present
+
 
 def load_substrate_ids(substrates_path):
     """Load substrate locus_tags from substrate TSV."""
@@ -40,8 +56,6 @@ def load_substrate_ids(substrates_path):
 
 def run_local_blastp(query_fasta, db_path, evalue, exclude_taxid, num_threads=4):
     """Run local BLAST+ blastp and return parsed hits."""
-    outfmt = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle qlen slen"
-
     cmd = [
         "blastp",
         "-query",
@@ -49,11 +63,16 @@ def run_local_blastp(query_fasta, db_path, evalue, exclude_taxid, num_threads=4)
         "-db",
         db_path,
         "-outfmt",
-        outfmt,
+        BLAST_OUTFMT,
         "-evalue",
         str(evalue),
+        # -max_target_seqs is the documented BLAST+ footgun (Shah 2019,
+        # bioinformatics 35:1613): does NOT return top-N best hits — returns
+        # the first N to cross the e-value threshold during DB traversal.
+        # 500 is the BLAST web default; widening the candidate pool plus
+        # explicit bitscore-sort below recovers the actual best hit.
         "-max_target_seqs",
-        "10",
+        "500",
         "-num_threads",
         str(num_threads),
     ]
@@ -91,37 +110,47 @@ def run_local_blastp(query_fasta, db_path, evalue, exclude_taxid, num_threads=4)
 
 
 def parse_blast_tabular(output_text):
-    """Parse BLAST tabular output (outfmt 6)."""
-    hits = {}
+    """Parse BLAST tabular output (outfmt 6) and return best hit per query.
+
+    Sorts every query's hits by bitscore (descending) and keeps the top
+    one. Don't trust BLAST's row ordering: with -max_target_seqs widened
+    to 500 the input contains many candidates per query, and BLAST does
+    NOT guarantee they're sorted by score (the row order reflects DB
+    traversal order). Picking by bitscore here ensures we keep the
+    actually-best hit.
+    """
+    rows_by_query: dict[str, list[list[str]]] = {}
     for line in output_text.strip().split("\n"):
         if not line:
             continue
         parts = line.split("\t")
-        if len(parts) < 15:
+        if len(parts) < _BLAST_MIN_FIELDS:
             continue
+        rows_by_query.setdefault(parts[_COL_QSEQID], []).append(parts)
 
-        query_id = parts[0]
-        # BLAST outfmt 6 is sorted by bitscore per query, so the first hit
-        # we encounter for each query_id is the best.
-        if query_id in hits:
-            continue
+    hits = {}
+    for query_id, rows in rows_by_query.items():
+        rows.sort(key=lambda r: float(r[_COL_BITSCORE]), reverse=True)
+        best = rows[0]
 
-        pident = float(parts[2])
-        qlen = int(parts[13])
-        aln_len = int(parts[3])
+        pident = float(best[_COL_PIDENT])
+        qlen = int(best[_COL_QLEN])
+        aln_len = int(best[_COL_ALN_LEN])
         qcov = (aln_len / qlen * 100) if qlen > 0 else 0
 
-        # CRITICAL: only check PRIMARY description (before first " >")
-        hit_desc = parts[12]
-        primary_desc = hit_desc.split(" >")[0]
+        # NCBI concatenates redundant subject titles with " >" in stitle —
+        # take only the first segment so the description filter doesn't
+        # see "hypothetical protein >RecName: hemolysin..." as hypothetical.
+        primary_desc = best[_COL_STITLE].split(" >")[0]
 
         hits[query_id] = {
             "locus_tag": query_id,
-            "blastp_hit_accession": parts[1],
+            "blastp_hit_accession": best[_COL_SSEQID],
             "blastp_hit_description": primary_desc[:200],
             "blastp_pident": round(pident, 1),
             "blastp_qcov": round(qcov, 1),
-            "blastp_evalue": float(parts[10]),
+            "blastp_evalue": float(best[_COL_EVALUE]),
+            "blastp_bitscore": float(best[_COL_BITSCORE]),
         }
 
     return hits
@@ -198,6 +227,7 @@ def main():
         "blastp_pident",
         "blastp_qcov",
         "blastp_evalue",
+        "blastp_bitscore",
     ]
     with open(args.output, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

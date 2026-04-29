@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -17,6 +18,12 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import (
+    HHBLITS_ITERATIONS,
+    HHBLITS_TIMEOUT_S,
+    HHSEARCH_TIMEOUT_S,
+    HHSUITE_MIN_PROB,
+)
 from ssign_lib.fasta_io import read_fasta
 
 # Regex for HHR hit table lines — works for both PDB (desc ends with ;) and Pfam (multiple ;)
@@ -43,7 +50,10 @@ def load_substrate_ids(substrates_path):
     return ids
 
 
-def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2):
+def _run_one(
+    pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir,
+    cpu_per_job=2, min_prob=HHSUITE_MIN_PROB,
+):
     """Run hhblits + hhsearch for a single protein. Returns {} on per-protein failure.
 
     Raises RuntimeError only for binary-not-found (whole-pipeline fatal).
@@ -60,7 +70,7 @@ def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2
         "-d",
         uniclust_db,
         "-n",
-        "2",
+        str(HHBLITS_ITERATIONS),
         "-cpu",
         str(cpu_per_job),
         # -o /dev/null: discard hhblits' text report; we only need the .a3m
@@ -70,10 +80,11 @@ def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2
         a3m_file,
     ]
 
-    # FRAGILE: subprocess requires hhblits on PATH
+    # FRAGILE: subprocess requires hhblits on PATH.
     try:
         subprocess.run(
-            cmd_hhblits, capture_output=True, text=True, timeout=600, check=True
+            cmd_hhblits, capture_output=True, text=True,
+            timeout=HHBLITS_TIMEOUT_S, check=True,
         )
     except FileNotFoundError as e:
         raise RuntimeError(
@@ -83,7 +94,9 @@ def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2
             f"    - Conda:         conda install -c bioconda hhsuite"
         ) from e
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-        logger.warning(f"hhblits failed for {pid}: {e}")
+        # type name disambiguates "DB too slow" (TimeoutExpired) from
+        # "DB corrupt / missing" (CalledProcessError) when debugging.
+        logger.warning(f"hhblits {type(e).__name__} for {pid}: {e}")
         return {}
 
     entry = {}
@@ -107,10 +120,10 @@ def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2
                 cmd_hhsearch,
                 capture_output=True,
                 text=True,
-                timeout=600,
+                timeout=HHSEARCH_TIMEOUT_S,
                 check=True,
             )
-            entry.update(parse_hhr(hhr_file, db_name))
+            entry.update(parse_hhr(hhr_file, db_name, min_prob=min_prob))
         except FileNotFoundError as e:
             raise RuntimeError(
                 f"hhsearch binary not found: {e}\n"
@@ -119,21 +132,26 @@ def _run_one(pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir, cpu_per_job=2
                 f"    - Conda:         conda install -c bioconda hhsuite"
             ) from e
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            logger.warning(f"hhsearch {db_name} failed for {pid}: {e}")
+            logger.warning(
+                f"hhsearch {db_name} {type(e).__name__} for {pid}: {e}"
+            )
 
     if entry:
         entry["locus_tag"] = pid
     return entry
 
 
-def run_local_hhsuite(
-    sequences, pfam_db, pdb70_db, uniclust_db, output_dir, max_workers=4, cpu_per_job=2
+def run_hhsuite_parallel(
+    sequences, pfam_db, pdb70_db, uniclust_db, output_dir,
+    max_workers=4, cpu_per_job=2, min_prob=HHSUITE_MIN_PROB,
 ):
     """Run hhblits + hhsearch across all proteins in a thread pool.
 
     ThreadPool (not Process): hhblits/hhsearch are subprocess calls, so the GIL
     isn't contended — threads give the same parallelism as processes with less
     overhead. max_workers × cpu_per_job should not exceed available cores.
+
+    `min_prob` is the HHR-Prob cutoff for keeping the top-1 hit per database.
     """
     results = {}
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
@@ -147,6 +165,7 @@ def run_local_hhsuite(
                 uniclust_db,
                 output_dir,
                 cpu_per_job,
+                min_prob,
             ): pid
             for pid, seq in sequences.items()
         }
@@ -158,8 +177,13 @@ def run_local_hhsuite(
     return results
 
 
-def parse_hhr(hhr_path, db_prefix):
-    """Parse HHR result file and extract top hit."""
+def parse_hhr(hhr_path, db_prefix, min_prob=HHSUITE_MIN_PROB):
+    """Parse HHR result file and extract top hit if Prob >= min_prob.
+
+    Returns {} when the file is missing, the table is empty, or the top
+    hit's Prob falls below the cutoff. Filtering on Prob (not E-value)
+    matches Söding-lab guidance for remote homology.
+    """
     if not os.path.exists(hhr_path):
         return {}
 
@@ -173,10 +197,13 @@ def parse_hhr(hhr_path, db_prefix):
                 m = _HHR_HIT_RE.match(line)
                 if m:
                     hit_id, desc, prob, evalue, score = m.group(1, 2, 3, 4, 5)
+                    prob_f = float(prob)
+                    if prob_f < min_prob:
+                        return {}
                     return {
                         f"{db_prefix}_top1_id": hit_id,
                         f"{db_prefix}_top1_description": desc.strip("; ")[:200],
-                        f"{db_prefix}_top1_probability": float(prob),
+                        f"{db_prefix}_top1_probability": prob_f,
                         f"{db_prefix}_top1_evalue": float(evalue),
                         f"{db_prefix}_top1_score": float(score),
                     }
@@ -197,6 +224,16 @@ def main():
         help="Path to UniRef30/UniClust30 HH-suite database (required for hhblits MSA)",
     )
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--min-prob",
+        type=float,
+        default=HHSUITE_MIN_PROB,
+        help=(
+            f"Minimum HHR Prob (0-100) to keep the top-1 hit per DB. "
+            f"Defaults to {HHSUITE_MIN_PROB} (Söding-lab guidance: ≥95 "
+            f"near-certain, ≥50 worth considering)."
+        ),
+    )
     args = parser.parse_args()
 
     if not args.pfam_db and not args.pdb70_db:
@@ -209,8 +246,13 @@ def main():
     logger.info(f"Processing {len(sub_seqs)} substrate proteins for {args.sample}")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        results = run_local_hhsuite(
-            sub_seqs, args.pfam_db, args.pdb70_db, args.uniclust_db, tmpdir
+        results = run_hhsuite_parallel(
+            sub_seqs,
+            args.pfam_db,
+            args.pdb70_db,
+            args.uniclust_db,
+            tmpdir,
+            min_prob=args.min_prob,
         )
 
     # Determine output columns from results

@@ -13,8 +13,6 @@ validation in cross_validate_predictions.py).
 import argparse
 import csv
 import logging
-import os
-import sys
 from collections import defaultdict
 
 from Bio import SeqIO
@@ -60,10 +58,6 @@ def get_neighborhood_proteins(gene_order, ss_components, window):
     neighborhood = set()
 
     for contig, genes in gene_order.items():
-        # Build position → locus_tag map and find component positions
-        pos_to_locus = {pos: locus for pos, locus in genes}
-        positions = [pos for pos, _ in genes]
-
         for i, (pos, locus) in enumerate(genes):
             if locus in ss_components:
                 # Include the component itself

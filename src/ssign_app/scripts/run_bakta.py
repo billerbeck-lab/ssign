@@ -46,14 +46,13 @@ _COL_DBXREFS = "DbXrefs"
 # across Bakta versions.
 _PROTEIN_TYPES = {"cds", "sorf"}
 
-# Prefixes we surface from the DbXrefs column for annotation-consensus
-# voting (Phase 3.2.c). Other prefixes we see in Bakta output
-# (UniParc, SO, UniRef) are useful for provenance but aren't scoring
-# features, so we drop them at parse time to keep the output TSV narrow.
+# Prefixes we surface from the DbXrefs column. EC/COG/GO/KEGG/RefSeq/Pfam
+# feed annotation_consensus voting (Phase 3.2.c); UniRef/UniParc are
+# carried for provenance (most-populated fields in light-DB output).
+# Other Bakta prefixes (e.g. SO sequence-ontology terms) are dropped.
 #
-# Output field names align with run_eggnog.py so annotation_consensus
-# can treat Bakta and EggNOG rows uniformly (e.g. both emit `kegg_ko`
-# rather than Bakta using a custom `kegg_ko`).
+# Field names align with run_eggnog.py so annotation_consensus can treat
+# Bakta and EggNOG rows uniformly.
 _DBXREF_PREFIX_TO_OUTPUT_KEY = {
     "EC": "ec_numbers",
     "COG": "cog_ids",
@@ -61,6 +60,8 @@ _DBXREF_PREFIX_TO_OUTPUT_KEY = {
     "KEGG": "kegg_ko",
     "RefSeq": "refseq_ids",
     "Pfam": "pfam_ids",
+    "UniRef": "uniref_ids",
+    "UniParc": "uniparc_ids",
 }
 _DBXREF_OUTPUT_KEYS = tuple(_DBXREF_PREFIX_TO_OUTPUT_KEY.values())
 
@@ -137,7 +138,7 @@ def parse_dbxrefs(dbxrefs_field):
 
     GO IDs are themselves prefixed (`GO:GO:...`), so we split on the
     first colon only. Entries whose prefix isn't in
-    `_DBXREF_PREFIXES_TO_SURFACE` are discarded.
+    `_DBXREF_PREFIX_TO_OUTPUT_KEY` are discarded.
 
     Returns a dict like:
         {"ec_numbers": ["3.6.5.n1"], "cog_ids": ["COG0481"], "go_terms": [...], ...}
@@ -296,6 +297,8 @@ def main():
     # Write gene_info TSV. List-valued cross-reference fields are joined
     # with semicolons for a single-line TSV cell — annotation_consensus.py
     # (Phase 3.2.c) splits them again on the consuming side.
+    # List fields and their column ordering are derived from
+    # _DBXREF_OUTPUT_KEYS so adding a new prefix above can't desync the writer.
     fieldnames = [
         "locus_tag",
         "protein_id",
@@ -305,21 +308,9 @@ def main():
         "start",
         "end",
         "strand",
-        "ec_numbers",
-        "cog_ids",
-        "go_terms",
-        "kegg_ko",
-        "refseq_ids",
-        "pfam_ids",
+        *_DBXREF_OUTPUT_KEYS,
     ]
-    _LIST_FIELDS = {
-        "ec_numbers",
-        "cog_ids",
-        "go_terms",
-        "kegg_ko",
-        "refseq_ids",
-        "pfam_ids",
-    }
+    _LIST_FIELDS = set(_DBXREF_OUTPUT_KEYS)
     with open(args.out_gene_info, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()

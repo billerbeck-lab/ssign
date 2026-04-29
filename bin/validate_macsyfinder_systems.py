@@ -9,6 +9,7 @@ Adapted from extract_substrate_sequences.py system validation logic.
 
 import argparse
 import csv
+import io
 import logging
 import os
 import re
@@ -18,66 +19,103 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def parse_sys_id(sys_id: str) -> str:
-    """Extract SS type from MacSyFinder sys_id string.
+def parse_sys_id(sys_id: str, model_fqn: str = "") -> str:
+    """Extract SS type from MacSyFinder sys_id or model_fqn.
 
-    Examples:
-        'TXSS__T2SS' -> 'T2SS'
-        'TXSS__T5aSS' -> 'T5aSS'
-        'TXSS__Flagellum' -> 'Flagellum'
+    MacSyFinder v2 sys_id format: 'replicon_SStype_N'
+    model_fqn is more reliable: 'TXSScan/bacteria/diderm/T5aSS' -> 'T5aSS'
+
+    Falls back to regex extraction from sys_id if model_fqn not available.
     """
-    parts = sys_id.split('__')
-    return parts[-1] if parts else sys_id
+    # Prefer model_fqn (most reliable)
+    if model_fqn:
+        return model_fqn.rstrip('/').split('/')[-1]
+
+    # Fallback: try double-underscore format (older MacSyFinder)
+    if '__' in sys_id:
+        return sys_id.split('__')[-1]
+
+    # MacSyFinder v2 format: repliconname_SStype_N
+    # Match known SS type patterns
+    m = re.search(r'(T[1-9][a-z]*SS[a-z]*|Flagellum|Tad|Com|MSH|T4P|pT4SS[it])',
+                  sys_id, re.IGNORECASE)
+    if m:
+        return m.group(1)
+
+    return sys_id
 
 
 def parse_macsyfinder_results(msf_dir: str):
-    """Parse MacSyFinder all_systems.tsv output.
+    """Parse MacSyFinder best_solution.tsv output.
+
+    `best_solution.tsv` is the canonical authoritative output: highest-
+    scoring non-overlapping combination of systems. `all_systems.tsv`
+    contains overlapping candidates (the same components can appear in
+    multiple competing system calls, e.g. T1SS_1 and T1SS_2 both built
+    from the same hit_ids), which downstream proximity analysis would
+    then double-count. See MacSyFinder docs (Néron et al. 2023).
 
     Returns list of system dicts with: sys_id, ss_type, wholeness,
     components (list of {gene, gene_name, ...}).
+
+    Handles MacSyFinder v2 TSV format with # comment headers and blank lines.
     """
-    systems_file = os.path.join(msf_dir, "all_systems.tsv")
+    systems_file = os.path.join(msf_dir, "best_solution.tsv")
 
     if not os.path.exists(systems_file):
-        # Try alternative location
+        # Some MacSyFinder versions / sample-prefixed runs use {sample}_best_solution.tsv
         for fname in os.listdir(msf_dir):
-            if fname.endswith("_all_systems.tsv") or fname == "all_systems.tsv":
+            if fname.endswith("_best_solution.tsv") or fname == "best_solution.tsv":
                 systems_file = os.path.join(msf_dir, fname)
                 break
 
     if not os.path.exists(systems_file):
-        logger.warning(f"No all_systems.tsv found in {msf_dir}")
+        logger.warning(f"No best_solution.tsv found in {msf_dir}")
         return []
 
-    systems = {}
+    # Read file, skip comment lines (starting with #) and blank lines
+    data_lines = []
     with open(systems_file) as f:
-        reader = csv.DictReader(f, delimiter='\t')
-        for row in reader:
-            sys_id = row.get('sys_id', '')
-            if not sys_id:
-                continue
+        for line in f:
+            stripped = line.strip()
+            if stripped and not stripped.startswith('#'):
+                data_lines.append(stripped)
 
-            if sys_id not in systems:
-                # Parse wholeness from the system-level fields
-                try:
-                    wholeness = float(row.get('sys_wholeness', 0))
-                except (ValueError, TypeError):
-                    wholeness = 0.0
+    if not data_lines:
+        logger.warning("best_solution.tsv is empty (no data lines)")
+        return []
 
-                systems[sys_id] = {
-                    'sys_id': sys_id,
-                    'ss_type': parse_sys_id(sys_id),
-                    'wholeness': wholeness,
-                    'components': [],
-                }
+    # First non-comment line is the header
+    reader = csv.DictReader(io.StringIO('\n'.join(data_lines)), delimiter='\t')
 
-            # Add this component
-            systems[sys_id]['components'].append({
-                'gene': row.get('hit_id', ''),
-                'gene_name': row.get('gene_name', ''),
-                'sys_status': row.get('sys_status', ''),
-                'gene_status': row.get('gene_status', ''),
-            })
+    systems = {}
+    for row in reader:
+        sys_id = row.get('sys_id', '')
+        if not sys_id:
+            continue
+
+        model_fqn = row.get('model_fqn', '')
+
+        if sys_id not in systems:
+            try:
+                wholeness = float(row.get('sys_wholeness', 0))
+            except (ValueError, TypeError):
+                wholeness = 0.0
+
+            systems[sys_id] = {
+                'sys_id': sys_id,
+                'ss_type': parse_sys_id(sys_id, model_fqn),
+                'wholeness': wholeness,
+                'components': [],
+            }
+
+        # Add this component
+        systems[sys_id]['components'].append({
+            'gene': row.get('hit_id', ''),
+            'gene_name': row.get('gene_name', ''),
+            'sys_status': row.get('hit_status', ''),
+            'gene_status': row.get('hit_status', ''),
+        })
 
     return list(systems.values())
 

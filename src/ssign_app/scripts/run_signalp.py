@@ -50,8 +50,16 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
         signalp_bin,
         "--fastafile", input_fasta,
         "--output_dir", output_dir,
-        "--organism", "gram-",
+        # SignalP v6 collapsed v5's gram-/gram+/arch into a single
+        # "other" group (the protein language model no longer needs
+        # organism information); only `eukarya`/`euk`/`other` are valid.
+        "--organism", "other",
         "--format", "txt",
+        "--mode", "fast",
+        # Cap threads — upstream default of 8 oversubscribes on small
+        # machines (and on multi-genome runs where each PipelineRunner
+        # would spawn its own 8-thread pool).
+        "--torch_num_threads", str(min(4, os.cpu_count() or 1)),
     ]
 
     logger.info(f"Running local SignalP: {' '.join(cmd[:4])}...")
@@ -270,62 +278,88 @@ def find_output_file(output_dir):
             if fname.endswith('.signalp5'):
                 return os.path.join(root, fname)
 
-    # Priority 4: output.json (newer DTU API format)
-    for root, dirs, files in os.walk(output_dir):
-        for fname in files:
-            if fname == "output.json":
-                # Convert JSON to TSV format for downstream parsing
-                json_path = os.path.join(root, fname)
-                tsv_path = os.path.join(root, "prediction_results.txt")
-                try:
-                    _convert_signalp_json_to_tsv(json_path, tsv_path)
-                    return tsv_path
-                except Exception as e:
-                    logger.warning(f"Failed to convert SignalP JSON: {e}")
-
     raise FileNotFoundError(f"No SignalP output in {output_dir}")
 
 
-def parse_signalp_output(results_path):
-    """Parse SignalP output file.
+_SIGNALP6_COLS = (
+    "ID", "Prediction", "OTHER",
+    "SP(Sec/SPI)", "LIPO(Sec/SPII)", "TAT(Tat/SPI)",
+    "TATLIPO(Tat/SPII)", "PILIN(Sec/SPIII)", "CS Position",
+)
+_COL_ID, _COL_PRED, _COL_OTHER = 0, 1, 2
+_COL_SP, _COL_LIPO, _COL_TAT, _COL_TATLIPO, _COL_PILIN = 3, 4, 5, 6, 7
+_COL_CS = 8
 
-    SignalP 6.0 output (tab-separated, with header starting with #):
-    # ID  Prediction  SP(Sec/SPI)  TAT(Tat/SPI)  LIPO(Sec/SPII)  ...  CS Position
+# CS position cell looks like "CS pos: 20-21. Pr: 0.9756" — extract just
+# the position range so downstream consumers don't have to re-parse.
+_CS_POS_RE = re.compile(r"CS pos:\s*(\d+-\d+)")
+
+
+def parse_signalp_output(results_path):
+    """Parse SignalP 6.0 prediction_results.txt.
+
+    Format (header line begins with `#`):
+        # ID	Prediction	OTHER	SP(Sec/SPI)	LIPO(Sec/SPII)	TAT(Tat/SPI)
+            TATLIPO(Tat/SPII)	PILIN(Sec/SPIII)	CS Position
+
+    The ID column carries the full FASTA header (locus_tag + description);
+    we keep only the first whitespace-delimited token so the locus_tag
+    matches the rest of the pipeline.
+
+    `signalp_probability` is the max across the five signal-peptide-type
+    probabilities (SP/LIPO/TAT/TATLIPO/PILIN) — the OTHER column is
+    excluded so non-secreted proteins report ~0 instead of ~1.
     """
     entries = []
-
     with open(results_path) as f:
         for line in f:
-            if line.startswith('#') or not line.strip():
+            if not line.strip():
+                continue
+            if line.startswith('#'):
+                # Two '#' lines precede the data: a metadata banner
+                # (`# SignalP-6.0  Organism: Other  Timestamp: ...`) and
+                # the column-header line (`# ID  Prediction  OTHER  ...`).
+                # Validate the latter against the expected v6 schema so
+                # format drift fails loudly rather than silently zeroing
+                # all probabilities.
+                header = tuple(
+                    c.strip() for c in line.lstrip('#').strip().split('\t')
+                )
+                if header and header[0] == 'ID' and header != _SIGNALP6_COLS:
+                    logger.warning(
+                        "SignalP header drift — expected %s, got %s",
+                        _SIGNALP6_COLS, header,
+                    )
                 continue
 
-            parts = line.strip().split('\t')
-            if len(parts) < 3:
+            parts = line.rstrip('\n').split('\t')
+            if len(parts) <= _COL_PILIN:
                 continue
 
-            protein_id = parts[0]
-            prediction = parts[1]
+            locus_tag = parts[_COL_ID].split()[0] if parts[_COL_ID] else ""
+            if not locus_tag:
+                continue
 
-            # Find CS position (column that contains "CS pos:")
-            cs_position = ""
-            for part in parts:
-                if "CS pos:" in part:
-                    cs_position = part
-
-            # Find max probability among signal peptide types
-            max_prob = 0.0
-            for part in parts[2:]:
+            sp_probs = []
+            for col in (_COL_SP, _COL_LIPO, _COL_TAT, _COL_TATLIPO, _COL_PILIN):
                 try:
-                    prob = float(part)
-                    if prob > max_prob:
-                        max_prob = prob
+                    sp_probs.append(float(parts[col]))
                 except ValueError:
-                    continue
+                    logger.warning(
+                        "Non-float in SignalP col %d for %s: %r",
+                        col, locus_tag, parts[col],
+                    )
+                    sp_probs.append(0.0)
+            sp_max = max(sp_probs) if sp_probs else 0.0
+
+            cs_raw = parts[_COL_CS] if len(parts) > _COL_CS else ""
+            cs_match = _CS_POS_RE.search(cs_raw)
+            cs_position = cs_match.group(1) if cs_match else ""
 
             entries.append({
-                'locus_tag': protein_id,
-                'signalp_prediction': prediction,
-                'signalp_probability': round(max_prob, 4),
+                'locus_tag': locus_tag,
+                'signalp_prediction': parts[_COL_PRED],
+                'signalp_probability': round(sp_max, 4),
                 'signalp_cs_position': cs_position,
             })
 

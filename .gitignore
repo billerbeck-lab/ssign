@@ -77,6 +77,10 @@ models/**
 
 # Claude Code instructions (not for public release)
 CLAUDE.md
+.claude/
 
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
+
+# Stray pipeline outputs from interactive testing
+macsyfinder_out/

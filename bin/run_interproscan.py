@@ -33,6 +33,21 @@ _COL_GO_TERMS = 13
 _MISSING = "-"
 _GO_ID_RE = re.compile(r"(GO:\d+)")
 
+# Bacteria-relevant member DBs. PANTHER (eukaryote-leaning, slowest IPS
+# member) is excluded by default. Pass --applications "" to run all DBs.
+DEFAULT_IPS_APPLICATIONS = (
+    "Pfam",
+    "TIGRFAM",
+    "HAMAP",
+    "SMART",
+    "PIRSF",
+    "SUPERFAMILY",
+    "Gene3D",
+    "ProSiteProfiles",
+    "ProSitePatterns",
+    "CDD",
+)
+
 
 def load_substrate_ids(substrates_path):
     ids = set()
@@ -42,8 +57,20 @@ def load_substrate_ids(substrates_path):
     return ids
 
 
-def run_local_interproscan(query_fasta, db_path, output_dir):
-    """Run InterProScan locally and return path to the TSV output."""
+def run_local_interproscan(
+    query_fasta, db_path, output_dir, applications="", offline=False,
+):
+    """Run InterProScan locally and return path to the TSV output.
+
+    By default, IPS queries the EBI precalculated-match lookup service
+    (5-10× speedup on previously-seen sequences; falls back to local
+    HMMs after a ~30 s connection timeout if unreachable). Pass
+    `offline=True` to add `-dp` and skip the lookup outright — useful
+    on isolated networks where the timeout would dominate runtime.
+
+    `applications` restricts the member-DB scan; pass "" to use IPS
+    defaults.
+    """
     output_file = os.path.join(output_dir, "results.tsv")
     cmd = [
         "interproscan.sh",
@@ -55,8 +82,11 @@ def run_local_interproscan(query_fasta, db_path, output_dir):
         "tsv",
         "-goterms",
         "-pathways",
-        "-dp",
     ]
+    if offline:
+        cmd.append("-dp")
+    if applications:
+        cmd.extend(["-appl", applications])
     if db_path:
         cmd.extend(["-d", db_path])
 
@@ -149,6 +179,24 @@ def main():
         default="",
         help="Optional -d path to custom InterProScan data directory",
     )
+    parser.add_argument(
+        "--applications",
+        default=",".join(DEFAULT_IPS_APPLICATIONS),
+        help=(
+            "Comma-separated InterProScan member DBs to run (-appl). "
+            "Default skips PANTHER (eukaryote-leaning, slowest IPS member). "
+            "Pass empty string to run all DBs."
+        ),
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help=(
+            "Add -dp to skip the EBI precalc-match lookup service. "
+            "Use on isolated networks where the lookup-timeout (~30 s/run) "
+            "would dominate runtime."
+        ),
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -165,7 +213,11 @@ def main():
             for pid, seq in unique_seqs.items():
                 f.write(f">{pid}\n{seq}\n")
 
-        tsv_path = run_local_interproscan(tmp_fasta, args.db, tmpdir)
+        tsv_path = run_local_interproscan(
+            tmp_fasta, args.db, tmpdir,
+            applications=args.applications,
+            offline=args.offline,
+        )
         results_unique = parse_interproscan_tsv(tsv_path, set(unique_seqs.keys()))
 
     results = expand_results_dict(results_unique, seq_groups)

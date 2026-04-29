@@ -9,10 +9,10 @@ Adapted from extract_substrate_sequences.py system validation logic.
 
 import argparse
 import csv
+import io
 import logging
 import os
 import re
-from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -45,24 +45,31 @@ def parse_sys_id(sys_id: str, model_fqn: str = "") -> str:
 
 
 def parse_macsyfinder_results(msf_dir: str):
-    """Parse MacSyFinder all_systems.tsv output.
+    """Parse MacSyFinder best_solution.tsv output.
+
+    `best_solution.tsv` is the canonical authoritative output: highest-
+    scoring non-overlapping combination of systems. `all_systems.tsv`
+    contains overlapping candidates (the same components can appear in
+    multiple competing system calls, e.g. T1SS_1 and T1SS_2 both built
+    from the same hit_ids), which downstream proximity analysis would
+    then double-count. See MacSyFinder docs (Néron et al. 2023).
 
     Returns list of system dicts with: sys_id, ss_type, wholeness,
     components (list of {gene, gene_name, ...}).
 
     Handles MacSyFinder v2 TSV format with # comment headers and blank lines.
     """
-    systems_file = os.path.join(msf_dir, "all_systems.tsv")
+    systems_file = os.path.join(msf_dir, "best_solution.tsv")
 
     if not os.path.exists(systems_file):
-        # Try alternative location
+        # Some MacSyFinder versions / sample-prefixed runs use {sample}_best_solution.tsv
         for fname in os.listdir(msf_dir):
-            if fname.endswith("_all_systems.tsv") or fname == "all_systems.tsv":
+            if fname.endswith("_best_solution.tsv") or fname == "best_solution.tsv":
                 systems_file = os.path.join(msf_dir, fname)
                 break
 
     if not os.path.exists(systems_file):
-        logger.warning(f"No all_systems.tsv found in {msf_dir}")
+        logger.warning(f"No best_solution.tsv found in {msf_dir}")
         return []
 
     # Read file, skip comment lines (starting with #) and blank lines
@@ -74,11 +81,10 @@ def parse_macsyfinder_results(msf_dir: str):
                 data_lines.append(stripped)
 
     if not data_lines:
-        logger.warning("all_systems.tsv is empty (no data lines)")
+        logger.warning("best_solution.tsv is empty (no data lines)")
         return []
 
     # First non-comment line is the header
-    import io
     reader = csv.DictReader(io.StringIO('\n'.join(data_lines)), delimiter='\t')
 
     systems = {}

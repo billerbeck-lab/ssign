@@ -1,9 +1,13 @@
 # Vendored from https://github.com/zhengdd0422/PLM-Effector's upstream
 # `trainer.py` (CC-BY 3.0). Renamed to `inference.py` because the kept
 # functions are all inference-time — there is no training code here.
-# Upstream imports of `os`, `gc`, `random`, `numpy`, and the large block
-# of sklearn.metrics have been dropped; none of them are referenced in
-# the two prediction helpers below.
+# Upstream imports of `random`, `numpy`, and the large block of
+# sklearn.metrics have been dropped; only `os`/`gc`/`torch` remain since
+# the prediction helpers below memory-map model files (os.path.join) and
+# explicitly free GPU memory between models (gc.collect).
+import gc
+import os
+
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 

@@ -25,7 +25,6 @@ Version history:
 """
 
 import argparse
-import datetime
 import sys
 
 try:
@@ -147,18 +146,16 @@ def write_text_output(f, results, args, n_targets, n_residues):
     # Header
     f.write("# hmmsearch :: search profile(s) against a sequence database\n")
     f.write(f"# HMMER 3.4 (pyhmmer shim v{SHIM_VERSION})\n")
-    f.write(f"# - - - - - - - - - - - - - - - - - - - - - - - - -\n")
+    f.write("# - - - - - - - - - - - - - - - - - - - - - - - - -\n")
     f.write(f"# query HMM file:                  {args.hmmfile}\n")
     f.write(f"# target sequence database:         {args.seqdb}\n")
     f.write(f"# output directed to file:          {args.output}\n")
-    now = datetime.datetime.now().strftime("%a %b %d %H:%M:%S %Y")
-    f.write(f"# - - - - - - - - - - - - - - - - - - - - - - - - -\n\n")
+    f.write("# - - - - - - - - - - - - - - - - - - - - - - - - -\n\n")
 
     for hmm, top_hits in results:
         query_name = _decode(hmm.name) or "unnamed"
         query_acc = _decode(hmm.accession) or "-"
         query_desc = _decode(hmm.description)
-        query_len = hmm.M  # model length
 
         f.write(f"Query:       {query_name}  [{query_desc}]\n")
         f.write(f"Accession:   {query_acc}\n")
@@ -265,13 +262,13 @@ def write_tblout(f, results, args):
              exp, reg, clu, ov, env, dom, rep, inc, description
     """
     f.write(
-        f"# --- full sequence ---- --- best 1 domain ---- --- domain "
-        f"number estimation ----\n"
+        "# --- full sequence ---- --- best 1 domain ---- --- domain "
+        "number estimation ----\n"
     )
     f.write(
-        f"# target name        accession  query name           accession"
-        f"    E-value  score  bias   E-value  score  bias   exp reg clu"
-        f"  ov env dom rep inc description of target\n"
+        "# target name        accession  query name           accession"
+        "    E-value  score  bias   E-value  score  bias   exp reg clu"
+        "  ov env dom rep inc description of target\n"
     )
     f.write(f"#{'':->18s} {'':->10s} {'':->20s} {'':->10s} {'':->9s}"
             f" {'':->6s} {'':->5s} {'':->9s} {'':->6s} {'':->5s}"
