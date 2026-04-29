@@ -130,3 +130,58 @@ def emapper_db():
     """Path to an EggNOG database. Skips the test if `emapper.py` is missing
     or SSIGN_EGGNOG_DB is unset / points to a non-existent path."""
     return _skip_unless_tool_and_db("emapper.py", "SSIGN_EGGNOG_DB")
+
+
+# ── DTU prediction-tool tests (DeepLocPro, SignalP) ─────────────────────
+# Shared helpers for the BioLib-remote and DTU-local-install integration
+# tests. Both DLP and SignalP have the same shape: small protein FASTA
+# in, TSV out; remote path needs `biolib`, local path needs a binary.
+
+# A single autotransporter sequence (BIMENO_04457 from the T5aSS fixture)
+# — minimal viable input. Biolib charges by compute, so the smaller the
+# payload the cheaper. One real-biology record exercises the wrapper +
+# parser end-to-end and lets us sanity-check the localization / signal-
+# peptide call against a known autotransporter.
+_DTU_TEST_PROTEINS = (
+    ">BIMENO_04457\n"
+    "MKKVALLAALLPALIPSAQAATTHQKVKVGKEEFNQKAQHPDAQTLAYLAEQCNLKKTSAALDIEKHLIKQDKAS\n"
+    "AKWNRELDQKGQALAAAFKEKQRADIIDPDIRAKAPATERRAVQYHIARLERHLFQNALSRRADLRKSQGDQSGV\n"
+)
+
+
+@pytest.fixture
+def dtu_test_proteins(tmp_dir):
+    """Single-record protein FASTA used by DLP + SignalP integration tests."""
+    path = os.path.join(tmp_dir, "proteins.faa")
+    with open(path, "w") as f:
+        f.write(_DTU_TEST_PROTEINS)
+    return path
+
+
+def skip_unless_biolib():
+    """Skip a test unless `pybiolib` is importable. Used by DLP+SignalP
+    remote-mode integration tests."""
+    import importlib.util
+
+    if importlib.util.find_spec("biolib") is None:
+        pytest.skip(
+            "pybiolib not installed; install with `pip install ssign[extended]`"
+        )
+
+
+def skip_unless_dtu_local(env_var: str, tool_label: str) -> str:
+    """Skip unless *env_var* points to an existing DTU-binary install path."""
+    path = os.environ.get(env_var)
+    if not path:
+        pytest.skip(f"{env_var} env var not set ({tool_label} local install)")
+    if not os.path.exists(path):
+        pytest.skip(f"{env_var}={path} does not exist")
+    return path
+
+
+def read_tsv(path: str) -> list:
+    """Parse a tab-separated file with a header row into list[dict]."""
+    import csv
+
+    with open(path) as f:
+        return list(csv.DictReader(f, delimiter="\t"))
