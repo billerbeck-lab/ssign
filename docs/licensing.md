@@ -72,27 +72,42 @@ Sources: [InterPro license](https://interpro-documentation.readthedocs.io/en/lat
 [SMART FAQ](https://smart.embl.de/help/FAQ.shtml) ·
 [SUPERFAMILY reuse](https://reusabledata.org/supfam.html)
 
-## EggNOG database — ⚠️ AMBIGUOUS, awaiting EMBL response
+## EggNOG — code is AGPL-3.0, database is ⚠️ AMBIGUOUS
 
-EggNOG-mapper code is **AGPL-3.0**, redistribution-friendly. The database
-itself is the issue.
+These are two separate things and only one is the licensing question we care
+about for the Docker image:
 
-We checked the [EggNOG website](http://eggnog5.embl.de/), the entire download
-tree at `/download/`, the `eggnog-mapper` repo, the EggNOG 5.0 paper
-(Huerta-Cepas et al., NAR 2019), and the wiki. **No license clause is stated
-anywhere** — only third-party MIT notices for the website's bundled JS
-(Bootstrap).
+|     | What it is | License | Redistribution OK? |
+| --- | --- | --- | --- |
+| **eggnog-mapper code** | ~5,000-line Python tool that runs DIAMOND + parses output | AGPL-3.0 ([`LICENSE.txt`](https://github.com/eggnogdb/eggnog-mapper/blob/master/LICENSE.txt)) | ✅ Yes — standard AGPL terms (include LICENSE + source pointer) |
+| **EggNOG database** | ~50 GB of precomputed ortholog data the tool queries against | **Unspecified** | ⚠️ Ambiguous — see below |
+
+This split (open-source code, separately-licensed data) is the common
+bioinformatics pattern. Bakta does it (Apache code, Bakta DB), Prokka does it
+(GPL code, mixed-licence bundled DBs), InterProScan does it (Apache core,
+mixed-licence member DBs). Bundling the *code* is straightforward; bundling
+the *data files* is the question we have to ask EMBL.
+
+For the **database**: we checked the
+[EggNOG website](http://eggnog5.embl.de/), the entire download tree at
+`/download/`, the `eggnog-mapper` repo (which only carries the AGPL covering
+the *code*), the EggNOG papers (Huerta-Cepas 2019 for v5.0,
+Hernández-Plaza 2023 for v6.0), and the wiki. **No license clause is stated
+anywhere for the data files** — only the AGPL-3.0 on the code repo and
+third-party MIT notices for the website's bundled JS.
 
 Under default copyright law (EU/Germany, EMBL-Heidelberg), absence of a
-license means **all rights reserved** — silence is not permission. Bakta,
-Prokka, and nf-core/funcscan all use `download_eggnog_data.py` as the
-install path; no public Docker image redistributes the ~50 GB database.
+license on the data files means **all rights reserved** — silence is not
+permission. Bakta, Prokka, and nf-core/funcscan all use
+`download_eggnog_data.py` as the install path; no public Docker image
+redistributes the ~50 GB database itself.
 
-**Action:** v1.0.0 Docker image fetches the EggNOG DB via `eggnog-mapper`'s
-own `download_eggnog_data.py` at first install (same UX as IPS). In parallel,
+**Action:** v1.0.0 Docker image bundles the eggnog-mapper *code* (AGPL is
+straightforward to comply with) but fetches the *database* via
+`download_eggnog_data.py` at first install — same UX as IPS. In parallel,
 the Billerbeck Lab has emailed `eggnog@embl.de` to request explicit
-redistribution permission; if granted, a future release can bundle the DB
-to make the Docker image fully self-contained.
+redistribution permission for the database files; if granted, a future
+release can bundle the DB to make the Docker image fully self-contained.
 
 ## SignalP 6.0 + DeepLocPro — ⏳ Awaiting DTU response
 

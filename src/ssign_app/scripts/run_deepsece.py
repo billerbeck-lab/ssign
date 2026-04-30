@@ -39,9 +39,7 @@ SS_MAP = {
 #
 # Override at runtime via the SSIGN_DEEPSECE_CHECKPOINT_URL environment
 # variable — useful for institutional mirrors or CI caches.
-CHECKPOINT_URL_ZENODO = (
-    "https://zenodo.org/records/PLACEHOLDER/files/deepsece_checkpoint.pt"
-)
+CHECKPOINT_URL_ZENODO = "https://zenodo.org/records/PLACEHOLDER/files/deepsece_checkpoint.pt"
 CHECKPOINT_URL_SJTU = "https://tool2-mml.sjtu.edu.cn/DeepSecE/checkpoint.pt"
 
 _env_override = os.environ.get("SSIGN_DEEPSECE_CHECKPOINT_URL", "").strip()
@@ -115,8 +113,7 @@ def _download_with_retries(url, dest):
                 size = os.path.getsize(partial)
                 if size < MIN_CHECKPOINT_BYTES:
                     logger.warning(
-                        f"  Downloaded file is only {size:,} bytes "
-                        f"(expected ≥{MIN_CHECKPOINT_BYTES:,}). Retrying..."
+                        f"  Downloaded file is only {size:,} bytes (expected ≥{MIN_CHECKPOINT_BYTES:,}). Retrying..."
                     )
                     os.remove(partial)
                     raise RuntimeError("Truncated download")
@@ -253,7 +250,7 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
             f"    - DeepSecE is not installed in this environment\n"
             f"  How to fix:\n"
             f"    - pip install DeepSecE\n"
-            f"    - Or: pip install git+https://github.com/SijinHuang/DeepSecE.git"
+            f"    - Or: pip install git+https://github.com/zhangyumeng1sjtu/DeepSecE.git"
         ) from e
 
     # FRAGILE: ESM (Evolutionary Scale Modeling) import requires fair-esm package
@@ -324,9 +321,7 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
     # FRAGILE: Checkpoint loading can fail with MemoryError or corrupted file
     # If this breaks: re-download the checkpoint or ensure sufficient RAM
     try:
-        state_dict = torch.load(
-            checkpoint, map_location=device, weights_only=True, mmap=True
-        )
+        state_dict = torch.load(checkpoint, map_location=device, weights_only=True, mmap=True)
         model.load_state_dict(state_dict, strict=False)
         del state_dict
         gc.collect()

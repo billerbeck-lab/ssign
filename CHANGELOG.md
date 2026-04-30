@@ -24,6 +24,19 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   until the v1.0.0 deposit), SJTU origin retained as fallback.
 - Repository moved to the `billerbeck-lab` GitHub organisation. Old
   `reidmat/ssign` URLs continue to redirect.
+- Bakta minimum bumped from `>=1.5` (2022) to `>=1.10` (2024) — required
+  to read the Bakta DB v6 schema. v1.5 cannot parse modern Bakta DBs.
+
+### Notes
+
+- **EggNOG database v7.0** (Hernández-Plaza et al., NAR 2025, 54:D402) is
+  the new state-of-the-art, but ssign v1.0.0 ships against EggNOG v6.0.
+  Reason: eggnog-mapper 2.1.13 does not yet read v7 — see
+  [eggnog-mapper#588](https://github.com/eggnogdb/eggnog-mapper/issues/588).
+  When upstream adds v7 support we'll bump to track it.
+- **DeepSecE error message** in `run_deepsece.py` previously pointed at
+  `github.com/SijinHuang/DeepSecE` (404, dead fork). Fixed to point at the
+  real upstream `github.com/zhangyumeng1sjtu/DeepSecE`.
 
 ### Removed
 

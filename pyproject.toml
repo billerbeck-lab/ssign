@@ -75,7 +75,7 @@ deepsece = [
     "torch>=2.0",
 ]
 bakta = [
-    "bakta>=1.5",
+    "bakta>=1.10",
 ]
 # Install tiers (pip-extras side of the 3-tier decision; database tier is
 # picked separately via scripts/fetch_databases.sh --tier {base,extended,full}).
@@ -85,7 +85,7 @@ extended = [
     "deepsece",
     "fair-esm>=2.0",
     "torch>=2.0",
-    "bakta>=1.5",
+    "bakta>=1.10",
     "eggnog-mapper",
     "goatools",
     "obonet",
@@ -105,7 +105,7 @@ full = [
     "deepsece",
     "fair-esm>=2.0",
     "torch>=2.0",
-    "bakta>=1.5",
+    "bakta>=1.10",
     "eggnog-mapper",
     "goatools",
     "obonet",
