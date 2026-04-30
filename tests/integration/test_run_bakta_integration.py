@@ -12,9 +12,7 @@ Run explicitly with:
 import os
 
 import pytest
-
 from run_bakta import parse_bakta_tsv, run_bakta  # noqa: E402
-
 
 pytestmark = pytest.mark.integration
 

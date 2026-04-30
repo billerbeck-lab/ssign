@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
+from dedup_sequences import deduplicate_dict, expand_results_dict
 from ssign_lib.constants import TOOL_TIMEOUT_S
 from ssign_lib.fasta_io import read_fasta
 from ssign_lib.substrates import load_substrate_ids
-from dedup_sequences import deduplicate_dict, expand_results_dict
 
 # InterProScan TSV column indices (0-based, no header)
 _COL_PROTEIN_ID = 0

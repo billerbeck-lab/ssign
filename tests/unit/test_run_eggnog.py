@@ -20,7 +20,6 @@ from run_eggnog import (  # noqa: E402, F401
     write_substrates_only_fasta,
 )
 
-
 # Representative emapper 2.1.x .annotations fixture. Lines starting with
 # '##' are comments emitted by emapper before and after the data block;
 # the parser must skip them. The column header line begins with '#query'.

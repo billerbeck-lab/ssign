@@ -41,7 +41,6 @@ from ssign_lib.substrates import (  # noqa: E402
     write_substrates_only_fasta,
 )
 
-
 _OUTPUT_FIELDNAMES = [
     "protein_id",
     "target_id",

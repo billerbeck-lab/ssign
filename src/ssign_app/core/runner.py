@@ -2212,8 +2212,8 @@ def run_cross_genome_orthologs(
 
     Returns dict with n_proteins, n_groups, genomes_updated, file paths.
     """
-    from Bio import SeqIO
     import pandas as pd
+    from Bio import SeqIO
 
     result = {
         "n_proteins": 0,

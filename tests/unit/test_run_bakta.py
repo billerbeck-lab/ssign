@@ -15,7 +15,6 @@ sys.path.insert(0, SCRIPTS_DIR)
 
 from run_bakta import parse_bakta_tsv, parse_dbxrefs, write_proteins_fasta  # noqa: E402, F401
 
-
 # Bakta TSV fixture mirroring the real Bakta 1.12 output format:
 #   - Comment lines starting with "# " (software / DB / DOI / URL).
 #   - A header line that *also* starts with "#" but is the column header

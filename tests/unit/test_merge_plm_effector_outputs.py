@@ -19,7 +19,6 @@ from merge_plm_effector_outputs import (  # noqa: E402, F401
     write_merged_tsv,
 )
 
-
 _HEADER = (
     "seq_id\tmodel1\tmodel2\tmodel3\tmodel4\tmodel5\tmodel6\t"
     "stacking\tpasses_threshold\teffector_type\n"

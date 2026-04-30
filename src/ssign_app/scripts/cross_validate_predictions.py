@@ -54,7 +54,6 @@ import logging
 import os
 import sys
 
-
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -62,7 +61,6 @@ _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 from ssign_lib.constants import T5SS_COMPONENT_RULES  # noqa: E402
-
 
 # SignalP's "protein has no signal peptide" sentinels
 _SP_NEGATIVE = {"OTHER", "", "No signal peptide"}

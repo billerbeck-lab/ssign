@@ -24,7 +24,6 @@ import torch
 from .inference import loadmodel_4predict, loadmodel_4test
 from .utils import pool_features, set_seed
 
-
 # Per-effector XGBoost decision thresholds. Values come directly from
 # Zheng et al. 2026's Table 4 / supplementary — best F1 threshold
 # calibrated on their held-out evaluation set.

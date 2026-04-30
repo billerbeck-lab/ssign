@@ -153,9 +153,11 @@ line-length = 120
 
 [tool.ruff.lint]
 # Start permissive: pyflakes (F) catches real bugs, pycodestyle (E/W)
-# catches obvious style issues. Import sorting (I), naming (N), and
-# docstring rules (D) are deferred to Phase 6 (see plan).
-select = ["E", "F", "W"]
+# catches obvious style issues, isort (I) keeps imports tidy. Naming (N)
+# and docstring rules (D) remain deferred — N would force a sweep across
+# old code with `camelCase` left over from upstream tools, D would be a
+# multi-week docstring-writing project.
+select = ["E", "F", "I", "W"]
 
 [tool.ruff.lint.per-file-ignores]
 # Scripts in src/ssign_app/scripts/ use sys.path manipulation to import

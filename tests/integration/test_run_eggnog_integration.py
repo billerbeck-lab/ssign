@@ -12,9 +12,7 @@ Run explicitly with:
 import os
 
 import pytest
-
 from run_eggnog import parse_eggnog_annotations, run_emapper  # noqa: E402
-
 
 pytestmark = pytest.mark.integration
 

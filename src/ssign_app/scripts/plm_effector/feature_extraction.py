@@ -22,7 +22,6 @@ from .utils import (
     read_fasta_for_prediction_terminal,
 )
 
-
 _MODEL_SUBDIRS = {
     "ProtBert": "prot_bert",
     "ProtT5": "prot_t5_xl_uniref50",

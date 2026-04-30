@@ -34,7 +34,6 @@ if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
 
-
 # Bakta TSV column names (tab-separated, with header)
 # Sequence Id | Type | Start | Stop | Strand | Locus Tag | Gene | Product | DbXrefs
 _COL_SEQ_ID = "Sequence Id"

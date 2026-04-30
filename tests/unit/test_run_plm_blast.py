@@ -19,7 +19,6 @@ from run_plm_blast import (  # noqa: E402, F401
     write_substrates_only_fasta,
 )
 
-
 # Representative pLM-BLAST CSV fixture. Real output columns verified on
 # first integration run — swap in the actual captured output as a fixture
 # once we run pLM-BLAST against the T1SS fixture on CX3.

@@ -36,7 +36,6 @@ from ssign_lib.substrates import (  # noqa: E402
     write_substrates_only_fasta,
 )
 
-
 # emapper .annotations column names (v2.1+). The header line starts with
 # '#query'; any line starting with '##' is a comment and must be skipped.
 _COL_QUERY = "#query"

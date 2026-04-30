@@ -5,9 +5,9 @@ Launch with: ssign (after pip install) or streamlit run Home.py
 """
 
 import os
+import shutil
 import tempfile
 from pathlib import Path
-import shutil
 
 import streamlit as st
 
@@ -511,8 +511,9 @@ with tab_upload:
                 if ext_lower not in (".gbff", ".gbk", ".gb"):
                     continue
                 try:
-                    from Bio import SeqIO
                     import io
+
+                    from Bio import SeqIO
 
                     f.seek(0)
                     content = f.read().decode("utf-8", errors="replace")
@@ -625,8 +626,8 @@ with tab_upload:
     outdir_val = st.session_state.get("outdir_input", "")
     if outdir_val and _has_previous_progress(outdir_val):
         try:
-            import json
             import glob as _glob
+            import json
 
             # Collect per-genome progress files from .ssign/ subdirectory
             ssign_dir = os.path.join(outdir_val, ".ssign")
@@ -1726,13 +1727,14 @@ with tab_run:
             resume = st.session_state.get("resume_run", False)
 
             if n_genomes_to_run > 1:
+                import re as _re
                 import threading
                 import time as _time
-                import re as _re
                 from concurrent.futures import ThreadPoolExecutor, as_completed
+
                 from streamlit.runtime.scriptrunner import (
-                    get_script_run_ctx,
                     add_script_run_ctx,
+                    get_script_run_ctx,
                 )
 
                 _ctx = get_script_run_ctx()
@@ -1862,8 +1864,8 @@ with tab_run:
                             all_results.append(StepResult("pipeline", False, str(e)))
             else:
                 # Single genome — run directly
-                import time as _time
                 import re as _re
+                import time as _time
 
                 _start_time = _time.monotonic()
                 bar, status = genome_progress[0]
@@ -2004,8 +2006,8 @@ with tab_run:
                 st.info(f"All output files are saved to: `{output_dir}`")
 
                 # ZIP download
-                import zipfile
                 import io
+                import zipfile
 
                 zip_buf = io.BytesIO()
                 with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:

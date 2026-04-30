@@ -20,9 +20,7 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from conftest import skip_unless_biolib, skip_unless_dtu_local
-
 
 pytestmark = pytest.mark.integration
 

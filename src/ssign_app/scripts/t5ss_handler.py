@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 import os as _os
 import sys as _sys
+
 _scripts_dir = _os.path.dirname(_os.path.abspath(__file__))
 if _scripts_dir not in _sys.path:
     _sys.path.insert(0, _scripts_dir)

@@ -199,6 +199,7 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
     Returns path to the output CSV.
     """
     import argparse
+
     import numpy as np
 
     # FRAGILE: torch import requires PyTorch installation (large dependency)

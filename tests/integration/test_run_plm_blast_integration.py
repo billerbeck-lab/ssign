@@ -13,9 +13,7 @@ import os
 import shutil
 
 import pytest
-
 from run_plm_blast import parse_plmblast_csv, run_plmblast  # noqa: E402
-
 
 pytestmark = pytest.mark.integration
 

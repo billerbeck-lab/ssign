@@ -19,7 +19,6 @@ import subprocess
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
