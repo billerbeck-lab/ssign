@@ -23,10 +23,16 @@ import csv
 import logging
 import os
 import subprocess
+import sys
 import tempfile
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
 
 
 # Bakta TSV column names (tab-separated, with header)
@@ -95,7 +101,7 @@ def run_bakta(contigs_fasta, db_path, sample_id, output_dir, threads=4):
             cmd,
             capture_output=True,
             text=True,
-            timeout=14400,
+            timeout=TOOL_TIMEOUT_S,
         )
     except FileNotFoundError as e:
         raise RuntimeError(
@@ -212,8 +218,7 @@ def parse_bakta_tsv(tsv_path):
                 "locus_tag": locus_tag,
                 "protein_id": "",
                 "gene": row.get(_COL_GENE, "").strip(),
-                "product": row.get(_COL_PRODUCT, "hypothetical protein").strip()
-                or "hypothetical protein",
+                "product": row.get(_COL_PRODUCT, "hypothetical protein").strip() or "hypothetical protein",
                 "contig": row.get(_COL_SEQ_ID, "").strip(),
                 "start": start,
                 "end": end,
@@ -270,9 +275,7 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run Bakta and convert output to ssign format"
-    )
+    parser = argparse.ArgumentParser(description="Run Bakta and convert output to ssign format")
     parser.add_argument("--input", required=True, help="Input genome FASTA (contigs)")
     parser.add_argument("--db", required=True, help="Path to Bakta database")
     parser.add_argument("--sample", required=True, help="Sample identifier")
@@ -283,9 +286,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Run Bakta
-        bakta_faa, bakta_tsv = run_bakta(
-            args.input, args.db, args.sample, tmpdir, args.threads
-        )
+        bakta_faa, bakta_tsv = run_bakta(args.input, args.db, args.sample, tmpdir, args.threads)
 
         # Parse annotation table
         entries = parse_bakta_tsv(bakta_tsv)
@@ -315,9 +316,7 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for e in entries:
-            row = {
-                k: (";".join(e[k]) if k in _LIST_FIELDS else e[k]) for k in fieldnames
-            }
+            row = {k: (";".join(e[k]) if k in _LIST_FIELDS else e[k]) for k in fieldnames}
             writer.writerow(row)
 
     logger.info(f"Done: {len(entries)} proteins annotated for {args.sample}")

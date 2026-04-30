@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import TOOL_TIMEOUT_S
 from ssign_lib.fasta_io import read_fasta
 from ssign_lib.substrates import load_substrate_ids
 from dedup_sequences import deduplicate_dict, expand_results_dict
@@ -91,7 +92,7 @@ def run_local_interproscan(
     # FRAGILE: subprocess call requires interproscan.sh on PATH
     # If this breaks: install InterProScan from https://www.ebi.ac.uk/interpro/download/
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"InterProScan (interproscan.sh) not found: {e}\n"

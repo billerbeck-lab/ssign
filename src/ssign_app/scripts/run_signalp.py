@@ -16,13 +16,19 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import time
 
 import requests as http_requests
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
 
 DTU_SUBMIT_URL = "https://services.healthtech.dtu.dk/cgi-bin/webface2.cgi"
 DTU_RESULTS_BASE = "https://services.healthtech.dtu.dk/services/SignalP-6.0/tmp"
@@ -32,15 +38,16 @@ DTU_POLL_INTERVAL = 5
 
 # ── Local mode ──
 
+
 def run_local_signalp(input_fasta, signalp_path, output_dir):
     """Run SignalP 6.0 CLI locally."""
     # Handle 0-sequence input gracefully: write empty output and return
     with open(input_fasta) as _f:
-        n_seqs = sum(1 for line in _f if line.startswith('>'))
+        n_seqs = sum(1 for line in _f if line.startswith(">"))
     if n_seqs == 0:
         logger.info("0 sequences in input FASTA — writing empty output")
         empty_out = os.path.join(output_dir, "signalp_results.tsv")
-        with open(empty_out, 'w') as f:
+        with open(empty_out, "w") as f:
             f.write("locus_tag\tsignalp_prediction\tsignalp_probability\tsignalp_cs_position\n")
         return empty_out
 
@@ -48,25 +55,31 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
 
     cmd = [
         signalp_bin,
-        "--fastafile", input_fasta,
-        "--output_dir", output_dir,
+        "--fastafile",
+        input_fasta,
+        "--output_dir",
+        output_dir,
         # SignalP v6 collapsed v5's gram-/gram+/arch into a single
         # "other" group (the protein language model no longer needs
         # organism information); only `eukarya`/`euk`/`other` are valid.
-        "--organism", "other",
-        "--format", "txt",
-        "--mode", "fast",
+        "--organism",
+        "other",
+        "--format",
+        "txt",
+        "--mode",
+        "fast",
         # Cap threads — upstream default of 8 oversubscribes on small
         # machines (and on multi-genome runs where each PipelineRunner
         # would spawn its own 8-thread pool).
-        "--torch_num_threads", str(min(4, os.cpu_count() or 1)),
+        "--torch_num_threads",
+        str(min(4, os.cpu_count() or 1)),
     ]
 
     logger.info(f"Running local SignalP: {' '.join(cmd[:4])}...")
     # FRAGILE: subprocess call requires signalp6 binary on PATH or at signalp_path
     # If this breaks: install SignalP 6.0 locally or switch to --mode remote
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"SignalP binary (signalp6) not found: {e}\n"
@@ -79,7 +92,7 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
         ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(
-            f"SignalP timed out after 2 hours: {e}\n"
+            f"SignalP timed out after 4 hours: {e}\n"
             f"  How to fix:\n"
             f"    - Reduce the number of input sequences\n"
             f"    - Or use --mode remote to offload computation to DTU servers"
@@ -94,6 +107,7 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
 
 # ── Remote mode (DTU web server) ──
 
+
 def run_remote_signalp(input_fasta, output_dir, max_retries=3):
     """Submit to DTU SignalP 6.0 web server with retry on failure."""
     for attempt in range(1, max_retries + 1):
@@ -102,10 +116,7 @@ def run_remote_signalp(input_fasta, output_dir, max_retries=3):
         except RuntimeError as e:
             if attempt < max_retries:
                 wait = 30 * attempt
-                logger.warning(
-                    f"DTU SignalP attempt {attempt}/{max_retries} failed: {e}. "
-                    f"Retrying in {wait}s..."
-                )
+                logger.warning(f"DTU SignalP attempt {attempt}/{max_retries} failed: {e}. Retrying in {wait}s...")
                 time.sleep(wait)
             else:
                 raise
@@ -118,16 +129,16 @@ def _run_remote_signalp_once(input_fasta, output_dir):
     """
     logger.info("Submitting to DTU SignalP 6.0 web server...")
 
-    with open(input_fasta, 'rb') as f:
+    with open(input_fasta, "rb") as f:
         fasta_content = f.read()
 
-    n_seqs = sum(1 for line in fasta_content.decode().split('\n') if line.startswith('>'))
+    n_seqs = sum(1 for line in fasta_content.decode().split("\n") if line.startswith(">"))
 
     # Handle 0-sequence input gracefully: write empty output and return
     if n_seqs == 0:
         logger.info("0 sequences in input FASTA — writing empty output")
         empty_out = os.path.join(output_dir, "signalp_results.tsv")
-        with open(empty_out, 'w') as f:
+        with open(empty_out, "w") as f:
             f.write("locus_tag\tsignalp_prediction\tsignalp_probability\tsignalp_cs_position\n")
         return empty_out
 
@@ -135,8 +146,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
 
     if n_seqs > 5000:
         raise RuntimeError(
-            f"DTU SignalP accepts max 5000 sequences, got {n_seqs}. "
-            "Use --mode local for larger datasets."
+            f"DTU SignalP accepts max 5000 sequences, got {n_seqs}. Use --mode local for larger datasets."
         )
 
     # Submit via file upload
@@ -200,9 +210,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
     for poll_num in range(DTU_MAX_POLL):
         time.sleep(DTU_POLL_INTERVAL)
         try:
-            ajax_resp = http_requests.get(
-                f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}", timeout=15
-            )
+            ajax_resp = http_requests.get(f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}", timeout=15)
             status_data = ajax_resp.json()
             status = status_data.get("status", "unknown")
             runtime = status_data.get("runtime", 0)
@@ -211,10 +219,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
                 logger.info(f"DTU SignalP job completed in {runtime}s")
                 break
             elif status in ("failed", "error"):
-                raise RuntimeError(
-                    f"DTU SignalP job failed after {runtime}s. "
-                    "Try again later or use local mode."
-                )
+                raise RuntimeError(f"DTU SignalP job failed after {runtime}s. Try again later or use local mode.")
             else:
                 if poll_num % 6 == 0:
                     logger.info(f"DTU SignalP job {status} (runtime={runtime}s)")
@@ -236,7 +241,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
             file_resp = http_requests.get(file_url, timeout=30)
             if file_resp.status_code == 200:
                 local_path = os.path.join(output_dir, fname)
-                with open(local_path, 'w') as f:
+                with open(local_path, "w") as f:
                     f.write(file_resp.text)
                 logger.info(f"Downloaded: {fname} ({len(file_resp.text)} bytes)")
 
@@ -246,7 +251,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
         resp = http_requests.get(candidate_url, timeout=15)
         if resp.status_code == 200 and len(resp.text) > 10:
             local_path = os.path.join(output_dir, candidate)
-            with open(local_path, 'w') as f:
+            with open(local_path, "w") as f:
                 f.write(resp.text)
             logger.info(f"Downloaded: {candidate}")
 
@@ -267,7 +272,7 @@ def find_output_file(output_dir):
     # Priority 2: any file with "prediction" or "summary" in name
     for root, dirs, files in os.walk(output_dir):
         for fname in files:
-            if ("prediction" in fname or "summary" in fname) and fname.endswith('.txt'):
+            if ("prediction" in fname or "summary" in fname) and fname.endswith(".txt"):
                 fpath = os.path.join(root, fname)
                 if os.path.getsize(fpath) > 10:
                     return fpath
@@ -275,16 +280,22 @@ def find_output_file(output_dir):
     # Priority 3: .signalp5 files (local install output)
     for root, dirs, files in os.walk(output_dir):
         for fname in files:
-            if fname.endswith('.signalp5'):
+            if fname.endswith(".signalp5"):
                 return os.path.join(root, fname)
 
     raise FileNotFoundError(f"No SignalP output in {output_dir}")
 
 
 _SIGNALP6_COLS = (
-    "ID", "Prediction", "OTHER",
-    "SP(Sec/SPI)", "LIPO(Sec/SPII)", "TAT(Tat/SPI)",
-    "TATLIPO(Tat/SPII)", "PILIN(Sec/SPIII)", "CS Position",
+    "ID",
+    "Prediction",
+    "OTHER",
+    "SP(Sec/SPI)",
+    "LIPO(Sec/SPII)",
+    "TAT(Tat/SPI)",
+    "TATLIPO(Tat/SPII)",
+    "PILIN(Sec/SPIII)",
+    "CS Position",
 )
 _COL_ID, _COL_PRED, _COL_OTHER = 0, 1, 2
 _COL_SP, _COL_LIPO, _COL_TAT, _COL_TATLIPO, _COL_PILIN = 3, 4, 5, 6, 7
@@ -315,24 +326,23 @@ def parse_signalp_output(results_path):
         for line in f:
             if not line.strip():
                 continue
-            if line.startswith('#'):
+            if line.startswith("#"):
                 # Two '#' lines precede the data: a metadata banner
                 # (`# SignalP-6.0  Organism: Other  Timestamp: ...`) and
                 # the column-header line (`# ID  Prediction  OTHER  ...`).
                 # Validate the latter against the expected v6 schema so
                 # format drift fails loudly rather than silently zeroing
                 # all probabilities.
-                header = tuple(
-                    c.strip() for c in line.lstrip('#').strip().split('\t')
-                )
-                if header and header[0] == 'ID' and header != _SIGNALP6_COLS:
+                header = tuple(c.strip() for c in line.lstrip("#").strip().split("\t"))
+                if header and header[0] == "ID" and header != _SIGNALP6_COLS:
                     logger.warning(
                         "SignalP header drift — expected %s, got %s",
-                        _SIGNALP6_COLS, header,
+                        _SIGNALP6_COLS,
+                        header,
                     )
                 continue
 
-            parts = line.rstrip('\n').split('\t')
+            parts = line.rstrip("\n").split("\t")
             if len(parts) <= _COL_PILIN:
                 continue
 
@@ -347,7 +357,9 @@ def parse_signalp_output(results_path):
                 except ValueError:
                     logger.warning(
                         "Non-float in SignalP col %d for %s: %r",
-                        col, locus_tag, parts[col],
+                        col,
+                        locus_tag,
+                        parts[col],
                     )
                     sp_probs.append(0.0)
             sp_max = max(sp_probs) if sp_probs else 0.0
@@ -356,12 +368,14 @@ def parse_signalp_output(results_path):
             cs_match = _CS_POS_RE.search(cs_raw)
             cs_position = cs_match.group(1) if cs_match else ""
 
-            entries.append({
-                'locus_tag': locus_tag,
-                'signalp_prediction': parts[_COL_PRED],
-                'signalp_probability': round(sp_max, 4),
-                'signalp_cs_position': cs_position,
-            })
+            entries.append(
+                {
+                    "locus_tag": locus_tag,
+                    "signalp_prediction": parts[_COL_PRED],
+                    "signalp_probability": round(sp_max, 4),
+                    "signalp_cs_position": cs_position,
+                }
+            )
 
     return entries
 
@@ -370,15 +384,19 @@ def main():
     parser = argparse.ArgumentParser(description="Run SignalP 6.0 (local or remote)")
     parser.add_argument("--input", required=True)
     parser.add_argument("--sample", required=True)
-    parser.add_argument("--mode", choices=['local', 'remote'], default='remote',
-                        help="local: DTU license needed. remote: uses DTU web server (free).")
+    parser.add_argument(
+        "--mode",
+        choices=["local", "remote"],
+        default="remote",
+        help="local: DTU license needed. remote: uses DTU web server (free).",
+    )
     parser.add_argument("--signalp-path", default="", help="Path to SignalP install (local mode)")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            if args.mode == 'local':
+            if args.mode == "local":
                 results_path = run_local_signalp(args.input, args.signalp_path, tmpdir)
             else:
                 results_path = run_remote_signalp(args.input, tmpdir)
@@ -386,13 +404,12 @@ def main():
             entries = parse_signalp_output(results_path)
 
         logger.info(f"Parsed {len(entries)} SignalP predictions for {args.sample}")
-        n_sp = sum(1 for e in entries if e['signalp_prediction'] != 'OTHER')
+        n_sp = sum(1 for e in entries if e["signalp_prediction"] != "OTHER")
         logger.info(f"{n_sp}/{len(entries)} proteins have signal peptides")
 
-        fieldnames = ['locus_tag', 'signalp_prediction', 'signalp_probability',
-                      'signalp_cs_position']
-        with open(args.output, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
+        fieldnames = ["locus_tag", "signalp_prediction", "signalp_probability", "signalp_cs_position"]
+        with open(args.output, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
             writer.writeheader()
             for e in entries:
                 writer.writerow(e)
@@ -408,5 +425,5 @@ def main():
         ) from e
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

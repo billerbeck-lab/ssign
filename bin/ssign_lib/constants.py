@@ -22,6 +22,18 @@ PLDDT_THRESHOLD = 70  # Minimum mean pLDDT for structure acceptance
 BLASTP_MIN_PIDENT = 80  # Minimum percent identity
 BLASTP_MIN_QCOV = 80  # Minimum query coverage
 
+# --- Tool subprocess timeout ---
+# Generic upper bound for any external bioinformatics tool ssign shells
+# out to (BLAST, IPS, EggNOG, Bakta, pLM-BLAST, DLP, SignalP). 4h is
+# deliberately generous — pathological inputs (giant proteome, huge DB,
+# slow disk) can stretch any of these tools well past the typical
+# 10-60 min runtime. A timeout firing means the tool is wedged or the
+# input is unrealistically large; give up rather than block the rest of
+# the pipeline forever. Bump if you see legitimate timeouts.
+# (HH-suite has its own per-stage timeouts a few sections below — those
+# are tighter because they fire per-protein, not per-batch.)
+TOOL_TIMEOUT_S = 14400  # 4h
+
 # --- HH-suite ---
 # HHR Prob (0-100) cutoff for keeping the top-1 hit per DB. Söding-lab
 # guidance: ≥95 near-certain homolog, ≥50 worth considering. ssign default
@@ -55,9 +67,9 @@ DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad", "T3SS"]
 # under-call passengers. If this breaks: pin TXSScan or update keys to
 # match the new model names.
 T5SS_COMPONENT_RULES = {
-    ("T5aSS", "T5aSS_PF03797"):      ("extracellular_prob", "outer_membrane_prob"),
+    ("T5aSS", "T5aSS_PF03797"): ("extracellular_prob", "outer_membrane_prob"),
     ("T5bSS", "T5bSS_translocator"): ("outer_membrane_prob",),
-    ("T5cSS", "T5cSS_PF03895"):      ("extracellular_prob", "outer_membrane_prob"),
+    ("T5cSS", "T5cSS_PF03895"): ("extracellular_prob", "outer_membrane_prob"),
 }
 
 # --- DeepSecE to MacSyFinder SS type mapping ---

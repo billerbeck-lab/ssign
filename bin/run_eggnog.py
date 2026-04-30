@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
 from ssign_lib.substrates import (  # noqa: E402
     load_substrate_ids,
     write_substrates_only_fasta,
@@ -137,7 +138,7 @@ def run_emapper(
     # FRAGILE: subprocess call requires `emapper.py` on PATH
     # If this breaks: pip install ssign[extended] (or pip install eggnog-mapper)
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"emapper.py binary not found: {e}\n"
