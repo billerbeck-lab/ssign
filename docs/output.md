@@ -4,8 +4,6 @@
 
 ```
 results/
-├── pipeline_info/
-│   └── execution_report.html      # Nextflow execution report
 ├── per_genome/
 │   └── <sample_id>/
 │       ├── proteins.faa            # Extracted protein sequences

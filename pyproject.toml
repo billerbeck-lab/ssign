@@ -158,12 +158,11 @@ line-length = 120
 select = ["E", "F", "W"]
 
 [tool.ruff.lint.per-file-ignores]
-# Scripts in src/ssign_app/scripts/ and bin/ use sys.path manipulation
-# to import from ssign_lib before the rest of the imports — required
-# because they run both as standalone scripts and as installed-package
-# code. The mangling MUST happen before the ssign_lib import.
+# Scripts in src/ssign_app/scripts/ use sys.path manipulation to import
+# from ssign_lib before the rest of the imports — required because they
+# run both as standalone scripts and as installed-package code. The
+# mangling MUST happen before the ssign_lib import.
 "src/ssign_app/scripts/*" = ["E402"]
-"bin/*" = ["E402"]
 # Streamlit GUI interleaves component imports with HTML/CSS rendering,
 # and the user-facing text strings (st.warning, st.markdown) carry full
 # GitHub URLs to docs which exceed 120 chars. Line-length doesn't carry

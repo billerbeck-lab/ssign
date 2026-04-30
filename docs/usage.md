@@ -1,6 +1,6 @@
 # Usage
 
-## Easy Mode (GUI)
+## GUI
 
 ```bash
 pip install ssign
@@ -11,88 +11,50 @@ The GUI lets you upload genomes, configure thresholds, select annotation tools,
 and run the pipeline with a progress tracker. Results are saved to your chosen
 output directory.
 
-## Power Mode (Nextflow CLI)
+## CLI
 
 ```bash
-# Single genome (GenBank format — recommended)
-nextflow run ssign/main.nf \
-    --input genome.gbff \
-    -profile local
-
-# Multiple genomes via samplesheet
-nextflow run ssign/main.nf \
-    --input samplesheet.csv \
-    -profile local
-
-# Resume a failed run
-nextflow run ssign/main.nf \
-    --input genome.gbff \
-    -profile local \
-    -resume
+ssign run input.gbff --outdir results
+ssign run input.gbff --outdir results --skip-hhsuite --skip-plmblast
+ssign run input.gbff --outdir results --resume   # resume after a failed step
 ```
 
-## Input Formats
+For HPC and batch use, the CLI is the recommended interface. The GUI is for
+single-genome interactive runs.
 
-### Single Genome File
+## Input Formats
 
 | Format        | Extension               | Description                                                                |
 | ------------- | ----------------------- | -------------------------------------------------------------------------- |
 | GenBank       | `.gbff`, `.gbk`, `.gb`  | Annotated genome (recommended — contains protein sequences and gene order) |
-| GFF3 + FASTA  | `.gff3` + `.fasta`      | Provide both files via samplesheet                                         |
-| FASTA contigs | `.fasta`, `.fna`, `.fa` | Raw contigs — Prodigal will predict ORFs                                   |
-
-### Samplesheet (CSV)
-
-For multiple genomes, create a CSV with columns:
-
-```csv
-sample,input_1,input_2
-Genome_A,/path/to/genomeA.gbff,
-Genome_B,/path/to/genomeB.gff3,/path/to/genomeB.fasta
-Genome_C,/path/to/contigs.fasta,
-```
-
-- `sample`: Unique sample name (used in output file names)
-- `input_1`: Path to primary input file (required)
-- `input_2`: Path to secondary file (only for GFF3+FASTA pairs)
-
-## Execution Profiles
-
-| Profile     | Container   | Scheduler | Use case                             |
-| ----------- | ----------- | --------- | ------------------------------------ |
-| `local`     | Docker      | Local     | Desktop/laptop                       |
-| `hpc_pbs`   | Singularity | PBS       | HPC with PBS (e.g. Imperial College) |
-| `hpc_slurm` | Singularity | SLURM     | HPC with SLURM                       |
-| `cloud_aws` | Docker      | AWS Batch | Cloud execution                      |
-| `test`      | Docker      | Local     | CI testing with small genomes        |
+| GFF3 + FASTA  | `.gff3` + `.fasta`      | Pass both with `--input-gff` and `--input-fasta`                           |
+| FASTA contigs | `.fasta`, `.fna`, `.fa` | Raw contigs — Bakta (or Prodigal as fallback) predicts ORFs                |
 
 ## Annotation Tool Modes
 
-Each annotation tool supports **local** and/or **remote** mode:
+Each annotation tool runs locally against a database the user installs once via
+`scripts/fetch_databases.sh` (Phase 4b). Remote API modes were removed in v1.0.0
+to make runs reproducible offline.
 
-| Tool         | Local                                                      | Remote                | Notes                                       |
-| ------------ | ---------------------------------------------------------- | --------------------- | ------------------------------------------- |
-| BLASTp       | `--blastp_db /path` (required)                             | **removed in v1.0.0** | NR: ~390GB, Swiss-Prot: ~1.5GB              |
-| HH-suite     | `--hhsuite_uniclust_db /path` + Pfam and/or PDB70 DB paths | **removed in v1.0.0** | Pfam-A: ~3GB, PDB70: ~20GB, UniRef30: ~25GB |
-| InterProScan | local-only (`--interproscan_db /path` is optional)         | **removed in v1.0.0** | Local install: ~80GB                        |
-| pLM-BLAST    | `--plmblast_ecod_db /path`                                 | N/A                   | ECOD70: ~5-10GB                             |
+| Tool         | Database                                                   | Approx. size                |
+| ------------ | ---------------------------------------------------------- | --------------------------- |
+| BLASTp       | `--blastp-db /path` (NR or Swiss-Prot)                     | NR ~390 GB, Swiss-Prot ~2 GB |
+| HH-suite     | `--hhsuite-pfam`, `--hhsuite-pdb70`, `--hhsuite-uniref30`  | Pfam ~3 GB, PDB70 ~22 GB, UniRef30 ~25 GB |
+| InterProScan | `--interproscan-path /path/to/install`                     | ~24 GB unpacked             |
+| EggNOG       | `--eggnog-db /path`                                        | ~50 GB                      |
+| pLM-BLAST    | `--plmblast-ecod-db /path`                                 | ECOD70 ~10 GB               |
 
-All annotation tools now run locally only as of v1.0.0. See
-[Install tiers](../README.md#install-tiers) for database sizing per tier.
+See `docs/install.md` for the install-tier table (base / extended / full).
 
 ## Skipping Tools
 
-Any tool can be skipped:
+Any annotation tool can be skipped on the command line:
 
 ```bash
-nextflow run ssign/main.nf \
-    --input genome.gbff \
-    --deeplocpro_path /path/to/deeplocpro \
-    --skip_signalp \
-    --skip_hhsuite \
-    --skip_plmblast \
-    --skip_structure \
-    -profile local
+ssign run input.gbff --outdir results \
+    --skip-signalp \
+    --skip-hhsuite \
+    --skip-plmblast
 ```
 
 ## System Filtering
@@ -100,28 +62,19 @@ nextflow run ssign/main.nf \
 By default, Flagellum, Tad, and T3SS are excluded from substrate identification:
 
 ```bash
-# Default (recommended)
---excluded_systems 'Flagellum,Tad,T3SS'
-
-# Include T3SS
---excluded_systems 'Flagellum,Tad'
-
-# Include everything
---excluded_systems ''
+ssign run input.gbff --outdir results \
+    --excluded-systems 'Flagellum,Tad,T3SS'   # default
 ```
 
 **Why T3SS is excluded by default:** MacSyFinder found zero T3SS across 74 Xanthomonas
 genomes, yet DeepSecE predicted 1,808 T3SS substrates — mostly flagellar protein
-misclassifications. T3SS filtering can be disabled if working with organisms known
-to have T3SS.
+misclassifications. Override with a different list if you're working with organisms
+known to have T3SS.
 
-## GUI (Easy Mode)
-
-The GUI is the primary interface for Easy Mode. It launches automatically via
-the `ssign` command. You can also start it directly:
+## GUI options
 
 ```bash
-ssign                        # recommended
+ssign                        # default port 8501, opens browser
 ssign --port 8502            # custom port
 ssign --no-browser           # don't auto-open browser
 ```

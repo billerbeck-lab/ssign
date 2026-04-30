@@ -1,122 +1,103 @@
 # Configuration
 
-## All Parameters
+All parameters can be passed on the CLI (`ssign run --foo bar`) or in the
+Streamlit GUI sidebar.
 
-### Input/Output
+## Input/Output
 
-| Parameter  | Default     | Description                            |
-| ---------- | ----------- | -------------------------------------- |
-| `--input`  | (required)  | Path to genome file or samplesheet CSV |
-| `--outdir` | `./results` | Output directory                       |
+| Parameter     | Default     | Description                          |
+| ------------- | ----------- | ------------------------------------ |
+| `--input`     | (required)  | Path to genome file                  |
+| `--outdir`    | `./results` | Output directory                     |
+| `--sample-id` | (auto)      | Sample name used in output filenames |
 
-### Phase 1: Input Processing
+## Phase 1: Input Processing
 
-| Parameter     | Default | Description                                          |
-| ------------- | ------- | ---------------------------------------------------- |
-| `--run_bakta` | `false` | Use Bakta instead of Prodigal for unannotated inputs |
-| `--bakta_db`  | `null`  | Path to Bakta database (~30GB)                       |
+| Parameter                  | Default | Description                                                     |
+| -------------------------- | ------- | --------------------------------------------------------------- |
+| `--use-input-annotations`  | `false` | Skip Bakta re-annotation of GenBank input (preserve incoming annotations) |
+| `--bakta-db`               | `null`  | Path to Bakta database (~2 GB light, ~30 GB full)               |
 
-### Phase 2: Secretion System Detection
+## Phase 2: Secretion System Detection
 
 | Parameter               | Default              | Description                             |
 | ----------------------- | -------------------- | --------------------------------------- |
-| `--wholeness_threshold` | `0.8`                | MacSyFinder system completeness minimum |
-| `--excluded_systems`    | `Flagellum,Tad,T3SS` | Comma-separated SS types to exclude     |
+| `--wholeness-threshold` | `0.8`                | MacSyFinder system completeness minimum |
+| `--excluded-systems`    | `Flagellum,Tad,T3SS` | Comma-separated SS types to exclude     |
 
-### Phase 3: Secreted Protein Prediction
+## Phase 3: Secreted Protein Prediction
 
-| Parameter           | Default | Description                                                    |
-| ------------------- | ------- | -------------------------------------------------------------- |
-| `--conf_threshold`  | `0.8`   | DeepLocPro extracellular probability minimum                   |
-| `--deeplocpro_path` | `null`  | Path to local DeepLocPro install (not needed for remote mode)  |
-| `--signalp_path`    | `null`  | Path to local SignalP 6.0 install (not needed for remote mode) |
-| `--skip_signalp`    | `false` | Skip SignalP                                                   |
+| Parameter           | Default  | Description                                                |
+| ------------------- | -------- | ---------------------------------------------------------- |
+| `--conf-threshold`  | `0.8`    | DeepLocPro extracellular probability minimum               |
+| `--deeplocpro-path` | `null`   | Path to local DeepLocPro install (omit to use remote API)  |
+| `--signalp-path`    | `null`   | Path to local SignalP 6.0 install (omit to use remote API) |
+| `--skip-signalp`    | `false`  | Skip SignalP                                               |
+| `--skip-deepsece`   | `true`   | Skip DeepSecE (off by default — needs ~7 GB ESM model)     |
 
-### Phase 4: Substrate Identification
+## Phase 4: Substrate Identification
 
 | Parameter                     | Default | Description                                   |
 | ----------------------------- | ------- | --------------------------------------------- |
-| `--proximity_window`          | `3`     | +/- N genes per SS component                  |
-| `--required_fraction_correct` | `0.8`   | Fraction of SS components correctly localized |
+| `--proximity-window`          | `3`     | +/- N genes per SS component                  |
+| `--required-fraction-correct` | `0.8`   | Fraction of SS components correctly localized |
 
-### Phase 5: Annotation Tools
+## Phase 5: Annotation Tools
 
 | Parameter                | Default | Description                                      |
 | ------------------------ | ------- | ------------------------------------------------ |
-| `--skip_blastp`          | `false` | Skip BLASTp                                      |
-| `--blastp_db`            | `null`  | Path to local BLAST database (required)          |
-| `--blastp_evalue`        | `1e-5`  | E-value threshold                                |
-| `--blastp_min_pident`    | `80`    | Minimum percent identity                         |
-| `--blastp_min_qcov`      | `80`    | Minimum query coverage                           |
-| `--blastp_exclude_taxid` | `null`  | Taxonomy ID to exclude (query organism)          |
-| `--skip_hhsuite`         | `true`  | Skip HH-suite (off by default — needs large DBs) |
-| `--hhsuite_pfam_db`      | `null`  | Pfam-A database path                             |
-| `--hhsuite_pdb70_db`     | `null`  | PDB70 database path                              |
-| `--hhsuite_uniclust_db`  | `null`  | UniClust30 database path                         |
-| `--skip_interproscan`    | `false` | Skip InterProScan                                |
-| `--interproscan_db`      | `null`  | InterProScan install path                        |
-| `--skip_plmblast`        | `true`  | Skip pLM-BLAST (off by default)                  |
-| `--plmblast_ecod_db`     | `null`  | ECOD70 database path                             |
-| `--skip_protparam`       | `false` | Skip ProtParam                                   |
-| `--skip_structure`       | `false` | Skip structure prediction                        |
-| `--plddt_threshold`      | `70`    | Minimum mean pLDDT for structure acceptance      |
+| `--skip-blastp`          | `false` | Skip BLASTp                                      |
+| `--blastp-db`            | `null`  | Path to local BLAST database (required to run)   |
+| `--blastp-evalue`        | `1e-5`  | E-value threshold                                |
+| `--blastp-min-pident`    | `80`    | Minimum percent identity                         |
+| `--blastp-min-qcov`      | `80`    | Minimum query coverage                           |
+| `--blastp-exclude-taxid` | `null`  | Taxonomy ID to exclude (query organism)          |
+| `--skip-hhsuite`         | `true`  | Skip HH-suite (off by default — needs large DBs) |
+| `--hhsuite-pfam`         | `null`  | Pfam-A database path                             |
+| `--hhsuite-pdb70`        | `null`  | PDB70 database path                              |
+| `--hhsuite-uniref30`     | `null`  | UniRef30 database path                           |
+| `--skip-eggnog`          | `false` | Skip EggNOG-mapper                               |
+| `--eggnog-db`            | `null`  | EggNOG database path                             |
+| `--skip-interproscan`    | `false` | Skip InterProScan                                |
+| `--interproscan-path`    | `null`  | InterProScan install directory                   |
+| `--skip-plmblast`        | `true`  | Skip pLM-BLAST (off by default)                  |
+| `--plmblast-ecod-db`     | `null`  | ECOD70 database path                             |
+| `--skip-plm-effector`    | `false` | Skip PLM-Effector                                |
+| `--skip-protparam`       | `false` | Skip ProtParam physicochemical property compute  |
 
-### Phase 6: Reporting
+## Phase 6: Reporting
 
 | Parameter | Default | Description       |
 | --------- | ------- | ----------------- |
 | `--dpi`   | `300`   | Figure resolution |
 
-### Resources
+## Resources
 
-| Parameter      | Default  | Description                   |
-| -------------- | -------- | ----------------------------- |
-| `--max_cpus`   | `16`     | Maximum CPUs per process      |
-| `--max_memory` | `128.GB` | Maximum memory per process    |
-| `--max_time`   | `240.h`  | Maximum wall time per process |
+| Parameter   | Default        | Description                                               |
+| ----------- | -------------- | --------------------------------------------------------- |
+| `--threads` | (CPU count)    | Threads used by parallel-friendly steps (BLAST, HH-suite) |
 
-## HPC Configuration
+## HPC
 
-### PBS (e.g. Imperial College)
+The CLI runs as a single process; HPC use is straightforward via job submission:
+
+### PBS (e.g. Imperial CX3)
 
 ```bash
-nextflow run ssign/main.nf \
-    --input samplesheet.csv \
-    -profile hpc_pbs
-```
-
-The PBS profile uses Singularity containers and submits jobs via `qsub`.
-Customize in `conf/hpc_pbs.config`:
-
-```groovy
-process {
-    executor = 'pbs'
-    queue = 'your_queue_name'
-    clusterOptions = '-l walltime=48:00:00'
-}
-singularity {
-    cacheDir = '/path/to/singularity/cache'
-}
+qsub -l select=1:ncpus=16:mem=64gb:walltime=24:00:00 -- bash -c '
+  module load anaconda3
+  source activate ssign
+  ssign run input.gbff --outdir results --threads 16
+'
 ```
 
 ### SLURM
 
 ```bash
-nextflow run ssign/main.nf \
-    --input samplesheet.csv \
-    -profile hpc_slurm
+sbatch --cpus-per-task=16 --mem=64G --time=24:00:00 --wrap='
+  ssign run input.gbff --outdir results --threads 16
+'
 ```
 
-Customize in `conf/hpc_slurm.config`.
-
-## Custom Container Paths
-
-Override container images in your Nextflow config:
-
-```groovy
-process {
-    withLabel: 'process_annotation' {
-        container = '/path/to/custom/ssign-annotation.sif'
-    }
-}
-```
+For a Singularity-image workflow on HPC (recommended for reproducibility), see
+`docs/how-to/run_on_hpc.md`.

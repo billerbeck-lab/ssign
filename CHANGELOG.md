@@ -32,6 +32,14 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 - Foldseek scaffolding (never reached first-class status; dropped for v1.0.0).
 - `pybiolib` dependency (unused in the codebase) and DTU diagnostic scripts.
 - GUI mode toggles for tools whose remote path has been removed.
+- **Nextflow "Power Mode" pipeline.** `main.nf`, `nextflow.config`,
+  `workflows/`, `modules/local/`, `bin/`, and the per-tool `containers/`
+  Dockerfiles are gone. The pure-Python `ssign run` CLI plus a Phase 4b
+  Singularity image cover the HPC use case without the double-bookkeeping
+  overhead that kept every script mirrored between `bin/` and
+  `src/ssign_app/scripts/`. Migration: replace any
+  `nextflow run main.nf --input X --outdir Y -profile docker` invocation
+  with `ssign run X --outdir Y`. See `docs/design_decisions.md` § 6.3.
 
 ## [0.9.0-prerefactor] — 2026-04-22
 
