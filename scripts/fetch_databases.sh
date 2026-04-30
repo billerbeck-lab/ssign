@@ -132,12 +132,11 @@ _require_command() {
 _wget_with_fallback() {
     # Try the primary URL, fall back to the mirror on failure.
     # $1 = output path, $2 = primary URL, $3 = mirror URL (optional).
+    # Note: wget -c is itself idempotent — it returns immediately if the
+    # remote file is already fully fetched, and resumes from byte offset
+    # if partial. No early "skip if present" check is needed and adding
+    # one would treat a killed-mid-download partial file as complete.
     local out="$1" primary="$2" mirror="${3:-}"
-
-    if [[ -f "$out" ]]; then
-        _log "Skipping download (already present): $out"
-        return 0
-    fi
 
     _log "Fetching $primary -> $out"
     if [[ "$DRY_RUN" -eq 1 ]]; then
