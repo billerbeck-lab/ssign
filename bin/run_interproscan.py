@@ -21,6 +21,7 @@ _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 from ssign_lib.fasta_io import read_fasta
+from ssign_lib.substrates import load_substrate_ids
 from dedup_sequences import deduplicate_dict, expand_results_dict
 
 # InterProScan TSV column indices (0-based, no header)
@@ -49,16 +50,12 @@ DEFAULT_IPS_APPLICATIONS = (
 )
 
 
-def load_substrate_ids(substrates_path):
-    ids = set()
-    with open(substrates_path) as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            ids.add(row["locus_tag"])
-    return ids
-
-
 def run_local_interproscan(
-    query_fasta, db_path, output_dir, applications="", offline=False,
+    query_fasta,
+    db_path,
+    output_dir,
+    applications="",
+    offline=False,
 ):
     """Run InterProScan locally and return path to the TSV output.
 
@@ -106,9 +103,7 @@ def run_local_interproscan(
         ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(
-            f"InterProScan timed out after 4 hours: {e}\n"
-            f"  How to fix:\n"
-            f"    - Reduce the number of input sequences"
+            f"InterProScan timed out after 4 hours: {e}\n  How to fix:\n    - Reduce the number of input sequences"
         ) from e
 
     if result.returncode != 0:
@@ -214,7 +209,9 @@ def main():
                 f.write(f">{pid}\n{seq}\n")
 
         tsv_path = run_local_interproscan(
-            tmp_fasta, args.db, tmpdir,
+            tmp_fasta,
+            args.db,
+            tmpdir,
             applications=args.applications,
             offline=args.offline,
         )
@@ -222,9 +219,7 @@ def main():
 
     results = expand_results_dict(results_unique, seq_groups)
 
-    logger.info(
-        f"Annotated {len(results)}/{len(substrate_ids)} substrates for {args.sample}"
-    )
+    logger.info(f"Annotated {len(results)}/{len(substrate_ids)} substrates for {args.sample}")
 
     fieldnames = [
         "locus_tag",

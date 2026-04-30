@@ -16,6 +16,7 @@ _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 from ssign_lib.fasta_io import read_fasta
+from ssign_lib.substrates import load_substrate_ids
 from dedup_sequences import deduplicate_dict, expand_results_dict
 
 # Terms to exclude from BLASTp hits
@@ -30,10 +31,7 @@ EXCLUDE_TERMS = [
 
 # BLAST outfmt 6 column indices, mirroring the order in BLAST_OUTFMT below.
 # Centralised so the parser doesn't drift if the format string changes.
-BLAST_OUTFMT = (
-    "6 qseqid sseqid pident length mismatch gapopen qstart qend "
-    "sstart send evalue bitscore stitle qlen slen"
-)
+BLAST_OUTFMT = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle qlen slen"
 _COL_QSEQID = 0
 _COL_SSEQID = 1
 _COL_PIDENT = 2
@@ -43,15 +41,6 @@ _COL_BITSCORE = 11
 _COL_STITLE = 12
 _COL_QLEN = 13
 _BLAST_MIN_FIELDS = 15  # all 15 outfmt fields must be present
-
-
-def load_substrate_ids(substrates_path):
-    """Load substrate locus_tags from substrate TSV."""
-    ids = set()
-    with open(substrates_path) as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            ids.add(row["locus_tag"])
-    return ids
 
 
 def run_local_blastp(query_fasta, db_path, evalue, exclude_taxid, num_threads=4):
@@ -179,9 +168,7 @@ def main():
     parser.add_argument("--substrates", required=True)
     parser.add_argument("--proteins", required=True)
     parser.add_argument("--sample", required=True)
-    parser.add_argument(
-        "--db", required=True, help="Path to local BLAST+ database (e.g. NR)"
-    )
+    parser.add_argument("--db", required=True, help="Path to local BLAST+ database (e.g. NR)")
     parser.add_argument("--evalue", type=float, default=1e-5)
     parser.add_argument("--min-pident", type=float, default=80)
     parser.add_argument("--min-qcov", type=float, default=80)
@@ -209,9 +196,7 @@ def main():
         tmp_path = tmp.name
 
     try:
-        hits = run_local_blastp(
-            tmp_path, args.db, args.evalue, args.exclude_taxid, args.threads
-        )
+        hits = run_local_blastp(tmp_path, args.db, args.evalue, args.exclude_taxid, args.threads)
     finally:
         os.unlink(tmp_path)
 

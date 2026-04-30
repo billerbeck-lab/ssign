@@ -25,6 +25,7 @@ from ssign_lib.constants import (
     HHSUITE_MIN_PROB,
 )
 from ssign_lib.fasta_io import read_fasta
+from ssign_lib.substrates import load_substrate_ids
 
 # Regex for HHR hit table lines — works for both PDB (desc ends with ;) and Pfam (multiple ;)
 # Fields (from right): (TLen) TRange QRange Cols SS Score Pval Eval Prob
@@ -42,17 +43,15 @@ _HHR_HIT_RE = re.compile(
 )
 
 
-def load_substrate_ids(substrates_path):
-    ids = set()
-    with open(substrates_path) as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            ids.add(row["locus_tag"])
-    return ids
-
-
 def _run_one(
-    pid, seq, pfam_db, pdb70_db, uniclust_db, output_dir,
-    cpu_per_job=2, min_prob=HHSUITE_MIN_PROB,
+    pid,
+    seq,
+    pfam_db,
+    pdb70_db,
+    uniclust_db,
+    output_dir,
+    cpu_per_job=2,
+    min_prob=HHSUITE_MIN_PROB,
 ):
     """Run hhblits + hhsearch for a single protein. Returns {} on per-protein failure.
 
@@ -83,8 +82,11 @@ def _run_one(
     # FRAGILE: subprocess requires hhblits on PATH.
     try:
         subprocess.run(
-            cmd_hhblits, capture_output=True, text=True,
-            timeout=HHBLITS_TIMEOUT_S, check=True,
+            cmd_hhblits,
+            capture_output=True,
+            text=True,
+            timeout=HHBLITS_TIMEOUT_S,
+            check=True,
         )
     except FileNotFoundError as e:
         raise RuntimeError(
@@ -132,9 +134,7 @@ def _run_one(
                 f"    - Conda:         conda install -c bioconda hhsuite"
             ) from e
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            logger.warning(
-                f"hhsearch {db_name} {type(e).__name__} for {pid}: {e}"
-            )
+            logger.warning(f"hhsearch {db_name} {type(e).__name__} for {pid}: {e}")
 
     if entry:
         entry["locus_tag"] = pid
@@ -142,8 +142,14 @@ def _run_one(
 
 
 def run_hhsuite_parallel(
-    sequences, pfam_db, pdb70_db, uniclust_db, output_dir,
-    max_workers=4, cpu_per_job=2, min_prob=HHSUITE_MIN_PROB,
+    sequences,
+    pfam_db,
+    pdb70_db,
+    uniclust_db,
+    output_dir,
+    max_workers=4,
+    cpu_per_job=2,
+    min_prob=HHSUITE_MIN_PROB,
 ):
     """Run hhblits + hhsearch across all proteins in a thread pool.
 

@@ -35,7 +35,10 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.fasta_io import read_fasta  # noqa: E402
+from ssign_lib.substrates import (  # noqa: E402
+    load_substrate_ids,
+    write_substrates_only_fasta,
+)
 
 
 _OUTPUT_FIELDNAMES = [
@@ -47,34 +50,6 @@ _OUTPUT_FIELDNAMES = [
     "tstart",
     "tend",
 ]
-
-
-def load_substrate_ids(substrates_path):
-    """Return the set of locus_tags listed in a filtered substrates TSV."""
-    ids = set()
-    with open(substrates_path) as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            tag = (row.get("locus_tag") or "").strip()
-            if tag:
-                ids.add(tag)
-    return ids
-
-
-def write_substrates_only_fasta(proteins_path, substrate_ids, out_path):
-    """Write a FASTA containing only proteins whose ID is in `substrate_ids`.
-
-    Returns the number of sequences written.
-    """
-    all_seqs = read_fasta(proteins_path)
-    n = 0
-    with open(out_path, "w") as f:
-        for locus_tag in substrate_ids:
-            seq = all_seqs.get(locus_tag)
-            if not seq:
-                continue
-            f.write(f">{locus_tag}\n{seq}\n")
-            n += 1
-    return n
 
 
 def _write_empty_output(out_path):
@@ -108,9 +83,7 @@ def _resolve_plmblast_script() -> str:
     override = os.environ.get("SSIGN_PLMBLAST_SCRIPT")
     if override:
         if not os.path.exists(override):
-            raise RuntimeError(
-                f"SSIGN_PLMBLAST_SCRIPT points at a missing file: {override}"
-            )
+            raise RuntimeError(f"SSIGN_PLMBLAST_SCRIPT points at a missing file: {override}")
         return override
 
     for candidate in ("plmblast.py", "plmblast"):
@@ -158,9 +131,7 @@ def _embed_query_fasta(
     if proteins_fasta.endswith((".fasta", ".fas")):
         embed_input = proteins_fasta
     else:
-        embed_input = os.path.join(
-            os.path.dirname(out_base), "_proteins_for_embed.fasta"
-        )
+        embed_input = os.path.join(os.path.dirname(out_base), "_proteins_for_embed.fasta")
         os.symlink(os.path.abspath(proteins_fasta), embed_input)
 
     pt_path = f"{out_base}.pt"
@@ -173,10 +144,7 @@ def _embed_query_fasta(
         "-embedder",
         embedder,
     ]
-    logger.info(
-        f"Embedding query: embeddings.py start {proteins_fasta} {pt_path} "
-        f"-embedder {embedder}"
-    )
+    logger.info(f"Embedding query: embeddings.py start {proteins_fasta} {pt_path} -embedder {embedder}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
     except FileNotFoundError as e:
@@ -195,18 +163,14 @@ def _embed_query_fasta(
         ) from e
     if result.returncode != 0:
         logger.error(f"pLM-BLAST embedding failed:\n{result.stderr[:1000]}")
-        raise RuntimeError(
-            f"pLM-BLAST embedding exit code {result.returncode}: "
-            f"{result.stderr[:300]}"
-        )
+        raise RuntimeError(f"pLM-BLAST embedding exit code {result.returncode}: {result.stderr[:300]}")
 
     # Rename the index file (see docstring NB).
     src_csv = f"{pt_path}.csv"
     dst_csv = f"{out_base}.csv"
     if not os.path.exists(src_csv):
         raise RuntimeError(
-            f"embeddings.py exited 0 but did not produce {src_csv}; "
-            f"pLM-BLAST output layout may have changed upstream"
+            f"embeddings.py exited 0 but did not produce {src_csv}; pLM-BLAST output layout may have changed upstream"
         )
     os.rename(src_csv, dst_csv)
 
@@ -245,17 +209,12 @@ def run_plmblast(
             str(threads),
         ]
 
-        logger.info(
-            f"Running pLM-BLAST: {' '.join(cmd[:3])} <db> <query_emb> "
-            f"{out_csv} -cpc {cpc}"
-        )
+        logger.info(f"Running pLM-BLAST: {' '.join(cmd[:3])} <db> <query_emb> {out_csv} -cpc {cpc}")
         # FRAGILE: subprocess call requires pLM-BLAST's scripts/plmblast.py
         # on PATH, or set SSIGN_PLMBLAST_SCRIPT to its absolute path.
         # If this breaks: pip install git+https://github.com/labstructbioinf/pLM-BLAST.git
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=14400
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
         except FileNotFoundError as e:
             raise RuntimeError(
                 f"pLM-BLAST script not found: {e}\n"
@@ -378,15 +337,11 @@ def main() -> int:
         n = write_substrates_only_fasta(args.proteins, substrate_ids, filtered_fasta)
         if n == 0:
             logger.warning(
-                f"No substrate proteins found in {args.proteins} "
-                f"(expected {len(substrate_ids)}); writing empty output"
+                f"No substrate proteins found in {args.proteins} (expected {len(substrate_ids)}); writing empty output"
             )
             _write_empty_output(args.out)
             return 0
-        logger.info(
-            f"pLM-BLAST will search {n} substrate proteins "
-            f"(of {len(substrate_ids)} listed)"
-        )
+        logger.info(f"pLM-BLAST will search {n} substrate proteins (of {len(substrate_ids)} listed)")
 
         raw_csv = os.path.join(tmpdir, "plm_blast_raw.csv")
         try:
