@@ -10,10 +10,9 @@ import os
 import sys
 
 import numpy as np
+import pytest
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
+SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
 sys.path.insert(0, SCRIPTS_DIR)
 
 from plm_effector.utils import (  # noqa: E402
@@ -72,9 +71,7 @@ class TestReadFastaTerminal:
         with open(path, "w") as f:
             f.write(f">LONG\n{seq}\n")
 
-        _, seqs = read_fasta_for_prediction_terminal(
-            path, model_type="esm1", terminal="Nterminal", maxlen=1022
-        )
+        _, seqs = read_fasta_for_prediction_terminal(path, model_type="esm1", terminal="Nterminal", maxlen=1022)
         assert len(seqs) == 1
         assert len(seqs[0]) == 1022
         assert seqs[0][0] == "M"  # First residue preserved
@@ -85,9 +82,7 @@ class TestReadFastaTerminal:
         with open(path, "w") as f:
             f.write(f">LONG\n{seq}\n")
 
-        _, seqs = read_fasta_for_prediction_terminal(
-            path, model_type="esm1", terminal="Cterminal", maxlen=1022
-        )
+        _, seqs = read_fasta_for_prediction_terminal(path, model_type="esm1", terminal="Cterminal", maxlen=1022)
         assert len(seqs) == 1
         assert len(seqs[0]) == 1022
         assert seqs[0][-1] == "E"  # Last residue preserved
@@ -97,9 +92,7 @@ class TestReadFastaTerminal:
         with open(path, "w") as f:
             f.write(">SHORT\nMKTLLL\n")
 
-        _, seqs = read_fasta_for_prediction_terminal(
-            path, model_type="esm1", terminal="Nterminal", maxlen=1022
-        )
+        _, seqs = read_fasta_for_prediction_terminal(path, model_type="esm1", terminal="Nterminal", maxlen=1022)
         assert seqs == ["MKTLLL"]
 
 
@@ -164,3 +157,197 @@ class TestWritePredictionsTsv:
         with open(os.path.join(tmp_dir, "out.tsv")) as f:
             header = f.readline().strip().split("\t")
         assert header[1:9] == [f"model{i}" for i in range(1, 9)]
+
+
+# ---------------------------------------------------------------------------
+# CLI wrapper — run_plm_effector.main()
+# ---------------------------------------------------------------------------
+
+
+class TestCliWrapper:
+    """Pin the CLI plumbing: argument validation, missing-input error
+    paths, exit codes (0=ok, 1=runtime error, 2=missing files/deps).
+
+    The actual prediction is mocked — the real `predict()` requires a GPU
+    and ~15 GB of weights and is exercised by the integration test."""
+
+    def _run(self, monkeypatch, argv, predict_impl=None):
+        """Invoke run_plm_effector.main() with a mocked predict()."""
+        import sys as _sys
+
+        from run_plm_effector import main
+
+        if predict_impl is not None:
+            # The wrapper does `from ssign_app.scripts.plm_effector import predict`
+            # at call time — patch that attribute.
+            import ssign_app.scripts.plm_effector as plm_pkg
+
+            monkeypatch.setattr(plm_pkg, "predict", predict_impl, raising=False)
+
+        monkeypatch.setattr(_sys, "argv", argv)
+        return main()
+
+    def _make_input(self, tmp_dir):
+        path = os.path.join(tmp_dir, "in.faa")
+        with open(path, "w") as f:
+            f.write(">P1\nMKT\n")
+        return path
+
+    def _make_weights_dir(self, tmp_dir):
+        path = os.path.join(tmp_dir, "weights")
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def test_missing_input_returns_code_2(self, tmp_dir, monkeypatch):
+        weights = self._make_weights_dir(tmp_dir)
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                os.path.join(tmp_dir, "does_not_exist.faa"),
+                "--weights-dir",
+                weights,
+                "--effector-type",
+                "T1SE",
+                "--out",
+                os.path.join(tmp_dir, "preds.tsv"),
+            ],
+        )
+        assert rc == 2
+
+    def test_missing_weights_dir_returns_code_2(self, tmp_dir, monkeypatch):
+        input_fasta = self._make_input(tmp_dir)
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                input_fasta,
+                "--weights-dir",
+                os.path.join(tmp_dir, "no_weights"),
+                "--effector-type",
+                "T1SE",
+                "--out",
+                os.path.join(tmp_dir, "preds.tsv"),
+            ],
+        )
+        assert rc == 2
+
+    def test_invalid_effector_type_rejected_by_argparse(self, tmp_dir, monkeypatch):
+        # argparse raises SystemExit(2) on invalid choice
+        with pytest.raises(SystemExit) as exc_info:
+            self._run(
+                monkeypatch,
+                [
+                    "run_plm_effector",
+                    "--input",
+                    self._make_input(tmp_dir),
+                    "--weights-dir",
+                    self._make_weights_dir(tmp_dir),
+                    "--effector-type",
+                    "T9SE",  # not in valid choices
+                    "--out",
+                    os.path.join(tmp_dir, "preds.tsv"),
+                ],
+            )
+        assert exc_info.value.code == 2
+
+    def test_predict_runtime_error_returns_code_1(self, tmp_dir, monkeypatch):
+        def boom(**_kwargs):
+            raise RuntimeError("CUDA out of memory")
+
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                self._make_input(tmp_dir),
+                "--weights-dir",
+                self._make_weights_dir(tmp_dir),
+                "--effector-type",
+                "T1SE",
+                "--out",
+                os.path.join(tmp_dir, "preds.tsv"),
+            ],
+            predict_impl=boom,
+        )
+        assert rc == 1
+
+    def test_predict_filenotfound_returns_code_2(self, tmp_dir, monkeypatch):
+        def missing_weight(**_kwargs):
+            raise FileNotFoundError("missing T1SE_model1_fold0.pth")
+
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                self._make_input(tmp_dir),
+                "--weights-dir",
+                self._make_weights_dir(tmp_dir),
+                "--effector-type",
+                "T1SE",
+                "--out",
+                os.path.join(tmp_dir, "preds.tsv"),
+            ],
+            predict_impl=missing_weight,
+        )
+        assert rc == 2
+
+    def test_predict_success_returns_code_0(self, tmp_dir, monkeypatch):
+        captured = {}
+
+        def fake_predict(**kwargs):
+            captured.update(kwargs)
+            return 3  # n_positive
+
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                self._make_input(tmp_dir),
+                "--weights-dir",
+                self._make_weights_dir(tmp_dir),
+                "--effector-type",
+                "T2SE",
+                "--out",
+                os.path.join(tmp_dir, "preds.tsv"),
+                "--device",
+                "cpu",
+                "--batch-size",
+                "2",
+            ],
+            predict_impl=fake_predict,
+        )
+        assert rc == 0
+        # Verify the wrapper passed the CLI args through to predict()
+        assert captured["effector_type"] == "T2SE"
+        assert captured["device"] == "cpu"
+        assert captured["batch_size"] == 2
+
+    def test_output_parent_dir_auto_created(self, tmp_dir, monkeypatch):
+        """If --out points to a non-existent subdir, the wrapper creates it."""
+
+        def fake_predict(**_kwargs):
+            return 0
+
+        nested_out = os.path.join(tmp_dir, "nested", "subdir", "preds.tsv")
+        rc = self._run(
+            monkeypatch,
+            [
+                "run_plm_effector",
+                "--input",
+                self._make_input(tmp_dir),
+                "--weights-dir",
+                self._make_weights_dir(tmp_dir),
+                "--effector-type",
+                "T1SE",
+                "--out",
+                nested_out,
+            ],
+            predict_impl=fake_predict,
+        )
+        assert rc == 0
+        assert os.path.isdir(os.path.dirname(nested_out))

@@ -427,10 +427,16 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
 
 
 def parse_deepsece_output(results_path):
-    """Parse DeepSecE output into standardized format."""
-    entries = []
+    """Parse DeepSecE output into standardized format.
 
+    Tries comma first (DeepSecE's default), then tab. Validates that the
+    parsed locus_tag is non-empty before accepting a delimiter — without
+    this guard, feeding a tab-separated file to the comma-first pass
+    silently produced rows with empty locus_tag fields instead of falling
+    through to the tab pass.
+    """
     for sep in [",", "\t"]:
+        attempt = []
         try:
             with open(results_path) as f:
                 reader = csv.DictReader(f, delimiter=sep)
@@ -438,13 +444,14 @@ def parse_deepsece_output(results_path):
                     entry = {}
                     for raw_col, std_col in _COLUMN_MAP.items():
                         entry[std_col] = row.get(raw_col, "")
-                    entries.append(entry)
-                if entries:
-                    return entries
+                    attempt.append(entry)
         except Exception:
             continue
+        # Accept this delimiter only if it actually produced populated rows
+        if attempt and attempt[0].get("locus_tag"):
+            return attempt
 
-    return entries
+    return []
 
 
 def main():
