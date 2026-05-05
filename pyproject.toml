@@ -119,6 +119,7 @@ full = [
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "hypothesis>=6.100",
 ]
 
 [project.scripts]

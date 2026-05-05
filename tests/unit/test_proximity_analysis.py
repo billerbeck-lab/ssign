@@ -1,183 +1,382 @@
-"""Tests for proximity analysis logic.
+"""Regression tests for proximity_analysis.py.
 
-Validates:
-- Per-component window (not system-boundary)
-- Multi-contig boundary handling
-- Off-by-one in window calculation
+Replaces the prior sham implementation that re-implemented the proximity
+logic inline instead of testing the production module. These tests:
 
-These tests import from the actual proximity_analysis.py script, which uses
-a main() CLI entry point. We test the core logic by building the same data
-structures directly.
+- Import dse_type_in_genome and main directly from the production script.
+- Cover Critical Bug Fix #1 (per-component ±N window, NOT full-system span).
+- Cover Critical Bug Fix #2 (DSE cross-genome leakage guard).
+
+Inputs are real TSV files written to tmp_dir; main() runs end-to-end via
+sys.argv monkey-patching, then the output TSV is parsed and asserted on.
 """
 
-import csv
 import os
 import sys
 
 import pytest
 
-BIN_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'bin')
-sys.path.insert(0, os.path.abspath(BIN_DIR))
+# Production module
+SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
+sys.path.insert(0, SCRIPTS_DIR)
+
+from _helpers import (  # noqa: E402
+    PREDICTIONS_FIELDS,
+    SS_COMPONENT_FIELDS,
+    make_prediction_row,
+    make_ss_component_row,
+    read_tsv_rows,
+    run_script_main,
+    write_tsv,
+)
+from proximity_analysis import dse_type_in_genome  # noqa: E402
+from proximity_analysis import main as proximity_main  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# dse_type_in_genome — Critical Bug Fix #2
+# ---------------------------------------------------------------------------
+# DSE_TO_MACSYFINDER expansions:
+#   T1SS→[T1SS], T2SS→[T2SS], T3SS→[T3SS],
+#   T4SS→[pT4SSt, T4SS], T6SS→[T6SSi, T6SS]
+# The check is a substring match (`mf_name in genome_type`), so T6SSi
+# covers T6SSii / T6SSiii naturally.
 
 
-def write_tsv(path, fieldnames, rows):
-    """Helper: write a list of dicts as TSV."""
-    with open(path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+@pytest.mark.parametrize(
+    "dse_type, genome, expected",
+    [
+        ("T1SS", {"T1SS"}, True),
+        ("T1SS", {"T2SS", "T6SSi"}, False),
+        ("T6SS", {"T6SSi"}, True),
+        ("T6SS", {"T6SSii"}, True),
+        ("T6SS", {"T6SSiii"}, True),
+        ("T4SS", {"pT4SSt"}, True),
+        ("T4SS", {"T4SS"}, True),
+        ("T1SS", set(), False),
+        # Unknown DSE type → fallback list is [literal]; substring match applies
+        ("Foo", {"Foobar"}, True),
+        ("Foo", {"Bar"}, False),
+    ],
+)
+def test_dse_type_in_genome(dse_type, genome, expected):
+    assert dse_type_in_genome(dse_type, genome) is expected
 
 
-def build_gene_order(genes):
-    """Build genes_by_contig and contig_index from list of gene dicts."""
-    genes_by_contig = {}
-    locus_to_info = {}
-    for g in genes:
-        contig = g['contig_id']
-        if contig not in genes_by_contig:
-            genes_by_contig[contig] = []
-        genes_by_contig[contig].append(g)
-        locus_to_info[g['locus_tag']] = {
-            'contig': contig,
-            'gene_index': int(g['gene_index']),
-        }
-
-    contig_index = {}
-    for contig, gene_list in genes_by_contig.items():
-        idx_map = {}
-        for g in gene_list:
-            idx_map[int(g['gene_index'])] = g['locus_tag']
-        contig_index[contig] = idx_map
-
-    return genes_by_contig, locus_to_info, contig_index
+# ---------------------------------------------------------------------------
+# proximity_analysis.main() — Critical Bug Fix #1 (per-component window)
+# ---------------------------------------------------------------------------
 
 
-def find_nearby_genes(contig_index, locus_to_info, ss_component_loci, component_ss_types, window=3):
-    """Core proximity logic extracted from proximity_analysis.py for testing."""
-    results = []
-    for comp_locus in ss_component_loci:
-        info = locus_to_info.get(comp_locus)
-        if not info:
-            continue
-
-        contig = info['contig']
-        comp_idx = info['gene_index']
-        idx_map = contig_index.get(contig, {})
-        max_idx = max(idx_map.keys()) if idx_map else 0
-
-        for offset in range(-window, window + 1):
-            neighbor_idx = comp_idx + offset
-            if neighbor_idx < 0 or neighbor_idx > max_idx:
-                continue
-
-            neighbor_locus = idx_map.get(neighbor_idx)
-            if not neighbor_locus:
-                continue
-
-            # Skip SS components themselves
-            if neighbor_locus in ss_component_loci:
-                continue
-
-            results.append({
-                'locus_tag': neighbor_locus,
-                'contig': contig,
-                'ss_type': component_ss_types.get(comp_locus, ''),
-            })
-
-    return results
-
-
-@pytest.fixture
-def gene_data():
-    """10 genes on contig_A, 5 on contig_B."""
-    genes = []
-    for i in range(10):
-        genes.append({
-            'contig_id': 'contig_A',
-            'gene_index': str(i),
-            'locus_tag': f'GENE_{i:04d}',
-            'start': str(i * 1000),
-            'end': str(i * 1000 + 999),
-            'strand': '+',
-        })
-    for i in range(5):
-        genes.append({
-            'contig_id': 'contig_B',
-            'gene_index': str(i),
-            'locus_tag': f'GENEB_{i:04d}',
-            'start': str(i * 1000),
-            'end': str(i * 1000 + 999),
-            'strand': '+',
-        })
-    return genes
+def _run_proximity(
+    monkeypatch,
+    tmp_dir,
+    gene_order,
+    ss_components,
+    predictions,
+    *,
+    window=3,
+    conf=0.8,
+):
+    """Invoke proximity_analysis.main() in-process and return parsed output rows."""
+    output_path = os.path.join(tmp_dir, "substrates.tsv")
+    run_script_main(
+        monkeypatch,
+        proximity_main,
+        [
+            "proximity_analysis",
+            "--gene-order",
+            gene_order,
+            "--ss-components",
+            ss_components,
+            "--predictions",
+            predictions,
+            "--sample",
+            "test_sample",
+            "--window",
+            str(window),
+            "--conf-threshold",
+            str(conf),
+            "--output",
+            output_path,
+        ],
+    )
+    return read_tsv_rows(output_path)
 
 
-class TestProximityWindow:
-    def test_window_3_returns_6_neighbors(self, gene_data):
-        """Window=3 around gene 5: genes 2,3,4,6,7,8 (6 neighbors)."""
-        _, locus_to_info, contig_index = build_gene_order(gene_data)
+def _all_loci():
+    """Match the conftest two_contig_genes layout."""
+    return [f"GENE_{i:04d}" for i in range(10)] + [f"GENEB_{i:04d}" for i in range(5)]
 
-        ss_component_loci = {'GENE_0005'}
-        component_ss_types = {'GENE_0005': 'T2SS'}
 
-        results = find_nearby_genes(
-            contig_index, locus_to_info, ss_component_loci,
-            component_ss_types, window=3,
+def _predictions_with_dlp(tmp_dir, dlp_positives):
+    """Predictions TSV: every locus present, listed loci flagged DLP+ (≥0.8)."""
+    rows = [make_prediction_row(locus, dlp_ext=0.95 if locus in dlp_positives else 0.05) for locus in _all_loci()]
+    return write_tsv(os.path.join(tmp_dir, "predictions.tsv"), PREDICTIONS_FIELDS, rows)
+
+
+def _predictions_with_dse(tmp_dir, dse_calls):
+    """Predictions TSV: dse_calls is {locus: dse_ss_type}; DLP=0 for everyone."""
+    rows = [
+        make_prediction_row(
+            locus,
+            dlp_ext=0.0,
+            dse_type=dse_calls[locus] if locus in dse_calls else "Non-secreted",
+            dse_prob=0.95 if locus in dse_calls else 0.0,
         )
+        for locus in _all_loci()
+    ]
+    return write_tsv(os.path.join(tmp_dir, "predictions.tsv"), PREDICTIONS_FIELDS, rows)
 
-        nearby_tags = {r['locus_tag'] for r in results}
-        # Should include genes at index 2-4, 6-8 (not 5 itself)
-        expected = {f'GENE_{i:04d}' for i in range(2, 9) if i != 5}
-        assert nearby_tags == expected
 
-    def test_window_does_not_span_contigs(self, gene_data):
-        """Component at end of contig_A should NOT include contig_B genes."""
-        _, locus_to_info, contig_index = build_gene_order(gene_data)
+class TestPerComponentWindow:
+    """Components live at GENE_0005 + GENE_0006 on contig_A. Window ±3 around either
+    covers genes 2-9 (union), excluding the components themselves."""
 
-        ss_component_loci = {'GENE_0009'}
-        component_ss_types = {'GENE_0009': 'T2SS'}
-
-        results = find_nearby_genes(
-            contig_index, locus_to_info, ss_component_loci,
-            component_ss_types, window=3,
+    def test_per_component_window_returns_expected_neighbors(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        dlp_positives = {f"GENE_{i:04d}" for i in [2, 3, 4, 7, 8, 9]}
+        predictions = _predictions_with_dlp(tmp_dir, dlp_positives)
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
         )
+        assert {r["locus_tag"] for r in rows} == dlp_positives
 
-        nearby_tags = {r['locus_tag'] for r in results}
-        # Only contig_A genes should appear
-        for tag in nearby_tags:
-            assert tag.startswith('GENE_'), f"Cross-contig leak: {tag}"
-        # Should be genes 6, 7, 8 only (9 is the component itself)
-        expected = {'GENE_0006', 'GENE_0007', 'GENE_0008'}
-        assert nearby_tags == expected
-
-    def test_window_at_contig_start(self, gene_data):
-        """Component at gene 0 — window shouldn't go negative."""
-        _, locus_to_info, contig_index = build_gene_order(gene_data)
-
-        ss_component_loci = {'GENE_0000'}
-        component_ss_types = {'GENE_0000': 'T1SS'}
-
-        results = find_nearby_genes(
-            contig_index, locus_to_info, ss_component_loci,
-            component_ss_types, window=3,
+    def test_window_does_not_cross_contigs(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        # All DLP-positive loci sit on contig_B; components are on contig_A.
+        predictions = _predictions_with_dlp(tmp_dir, {f"GENEB_{i:04d}" for i in range(5)})
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
         )
+        assert rows == []
 
-        nearby_tags = {r['locus_tag'] for r in results}
-        expected = {'GENE_0001', 'GENE_0002', 'GENE_0003'}
-        assert nearby_tags == expected
-
-    def test_component_excluded_from_results(self, gene_data):
-        """The SS component itself should never appear as a substrate."""
-        _, locus_to_info, contig_index = build_gene_order(gene_data)
-
-        ss_component_loci = {'GENE_0005'}
-        component_ss_types = {'GENE_0005': 'T2SS'}
-
-        results = find_nearby_genes(
-            contig_index, locus_to_info, ss_component_loci,
-            component_ss_types, window=3,
+    def test_components_themselves_are_not_substrates(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        predictions = _predictions_with_dlp(tmp_dir, {"GENE_0005", "GENE_0006"})
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
         )
+        assert rows == []
 
-        nearby_tags = {r['locus_tag'] for r in results}
-        assert 'GENE_0005' not in nearby_tags
+    def test_excluded_components_skipped(self, monkeypatch, tmp_dir, gene_order_tsv):
+        ss_components = write_tsv(
+            os.path.join(tmp_dir, "ss_components.tsv"),
+            SS_COMPONENT_FIELDS,
+            [make_ss_component_row("GENE_0005", "Flagellum", "fliC", excluded="True")],
+        )
+        predictions = _predictions_with_dlp(
+            tmp_dir,
+            {"GENE_0003", "GENE_0004", "GENE_0006"},
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components,
+            predictions,
+        )
+        assert rows == []
+
+    def test_window_at_contig_start(self, monkeypatch, tmp_dir, gene_order_tsv):
+        # Component at GENE_0000 → window ±3 stops at gene index 0 on the low side
+        ss_components = write_tsv(
+            os.path.join(tmp_dir, "ss_components.tsv"),
+            SS_COMPONENT_FIELDS,
+            [make_ss_component_row("GENE_0000", "T1SS", "tolC")],
+        )
+        # Genes 1-3 (in window) and 4 (out of window) flagged positive
+        predictions = _predictions_with_dlp(
+            tmp_dir,
+            {"GENE_0001", "GENE_0002", "GENE_0003", "GENE_0004"},
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components,
+            predictions,
+        )
+        assert {r["locus_tag"] for r in rows} == {"GENE_0001", "GENE_0002", "GENE_0003"}
+
+
+class TestDseLeakageGuard:
+    """Critical Bug Fix #2: DSE-only calls (DLP negative) require the predicted
+    SS type to exist in the genome. Otherwise we treat it as cross-genome leakage."""
+
+    def test_dse_t2ss_kept_when_genome_has_t2ss(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        predictions = _predictions_with_dse(
+            tmp_dir,
+            {"GENE_0003": "T2SS", "GENE_0007": "T2SS"},
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert {r["locus_tag"] for r in rows} == {"GENE_0003", "GENE_0007"}
+
+    def test_dse_t1ss_dropped_when_genome_lacks_t1ss(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        predictions = _predictions_with_dse(
+            tmp_dir,
+            {"GENE_0003": "T1SS", "GENE_0007": "T1SS"},
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert rows == []
+
+    def test_dse_t3ss_dropped_unconditionally(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        # T3SS is excluded outright in the is_dse predicate (Fix #4 territory)
+        predictions = _predictions_with_dse(
+            tmp_dir,
+            {"GENE_0003": "T3SS", "GENE_0007": "T3SS"},
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert rows == []
+
+    def test_dlp_positive_skips_dse_leakage_check(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        # When DLP also flags, the leakage guard is bypassed (DLP carries the call).
+        rows_pred = [
+            make_prediction_row(
+                locus,
+                dlp_ext=0.95 if locus == "GENE_0003" else 0.0,
+                dse_type="T1SS" if locus == "GENE_0003" else "Non-secreted",
+                dse_prob=0.95 if locus == "GENE_0003" else 0.0,
+            )
+            for locus in _all_loci()
+        ]
+        predictions = write_tsv(
+            os.path.join(tmp_dir, "predictions.tsv"),
+            PREDICTIONS_FIELDS,
+            rows_pred,
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert {r["locus_tag"] for r in rows} == {"GENE_0003"}
+
+
+class TestToolAttribution:
+    """The `tool` column reports DLP, DSE, or DLP+DSE depending on which fired."""
+
+    def test_dlp_only(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
+        predictions = _predictions_with_dlp(tmp_dir, {"GENE_0003"})
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert len(rows) == 1
+        assert rows[0]["tool"] == "DLP"
+
+    def test_dse_only(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
+        predictions = _predictions_with_dse(tmp_dir, {"GENE_0003": "T2SS"})
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert len(rows) == 1
+        assert rows[0]["tool"] == "DSE"
+
+    def test_both_tools_fire(
+        self,
+        monkeypatch,
+        tmp_dir,
+        gene_order_tsv,
+        ss_components_tsv,
+    ):
+        rows_pred = [
+            make_prediction_row(
+                locus,
+                dlp_ext=0.95 if locus == "GENE_0003" else 0.0,
+                dse_type="T2SS" if locus == "GENE_0003" else "Non-secreted",
+                dse_prob=0.95 if locus == "GENE_0003" else 0.0,
+            )
+            for locus in _all_loci()
+        ]
+        predictions = write_tsv(
+            os.path.join(tmp_dir, "predictions.tsv"),
+            PREDICTIONS_FIELDS,
+            rows_pred,
+        )
+        rows = _run_proximity(
+            monkeypatch,
+            tmp_dir,
+            gene_order_tsv,
+            ss_components_tsv,
+            predictions,
+        )
+        assert len(rows) == 1
+        assert rows[0]["tool"] == "DLP+DSE"
