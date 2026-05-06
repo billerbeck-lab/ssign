@@ -149,7 +149,7 @@ def parse_dbxrefs(dbxrefs_field):
         {"ec_numbers": ["3.6.5.n1"], "cog_ids": ["COG0481"], "go_terms": [...], ...}
     Missing prefixes map to empty lists.
     """
-    result = {key: [] for key in _DBXREF_OUTPUT_KEYS}
+    result: dict[str, list[str]] = {key: [] for key in _DBXREF_OUTPUT_KEYS}
     if not dbxrefs_field or not dbxrefs_field.strip():
         return result
 
@@ -241,7 +241,7 @@ def write_proteins_fasta(bakta_faa_path, entries, out_fasta):
     # Parse Bakta FASTA, keeping only CDS/sORF proteins
     seqs = {}
     current_tag = None
-    current_seq = []
+    current_seq: list[str] = []
 
     with open(bakta_faa_path) as f:
         for line in f:

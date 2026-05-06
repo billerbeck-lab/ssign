@@ -363,8 +363,8 @@ def main() -> int:
     with open(args.out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=_OUTPUT_FIELDNAMES, delimiter="\t")
         writer.writeheader()
-        for e in entries:
-            writer.writerow(e)
+        for entry in entries:
+            writer.writerow(entry)
 
     logger.info(f"Done: wrote {len(entries)} hits to {args.out}")
     return 0

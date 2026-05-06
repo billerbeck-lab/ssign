@@ -19,9 +19,9 @@ def main():
     args = parser.parse_args()
 
     # Read gene info
-    genes_by_contig = {}
+    genes_by_contig: dict[str, list[dict[str, str]]] = {}
     with open(args.gene_info) as f:
-        reader = csv.DictReader(f, delimiter='\t')
+        reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             contig = row["contig"]
             if contig not in genes_by_contig:
@@ -34,20 +34,22 @@ def main():
 
     # Write gene order
     fieldnames = ["contig", "gene_index", "locus_tag", "start", "end", "strand"]
-    with open(args.output, 'w', newline='') as out:
-        writer = csv.DictWriter(out, fieldnames=fieldnames, delimiter='\t')
+    with open(args.output, "w", newline="") as out:
+        writer = csv.DictWriter(out, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for contig in sorted(genes_by_contig.keys()):
             for idx, gene in enumerate(genes_by_contig[contig]):
-                writer.writerow({
-                    "contig": contig,
-                    "gene_index": idx,
-                    "locus_tag": gene["locus_tag"],
-                    "start": gene["start"],
-                    "end": gene["end"],
-                    "strand": gene["strand"],
-                })
+                writer.writerow(
+                    {
+                        "contig": contig,
+                        "gene_index": idx,
+                        "locus_tag": gene["locus_tag"],
+                        "start": gene["start"],
+                        "end": gene["end"],
+                        "strand": gene["strand"],
+                    }
+                )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

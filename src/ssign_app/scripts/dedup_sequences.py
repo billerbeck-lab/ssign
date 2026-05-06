@@ -19,7 +19,7 @@ import hashlib
 import logging
 import os
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 import os as _os
@@ -38,7 +38,7 @@ def deduplicate_dict(seqs):
         unique_seqs: dict of {representative_id: sequence} (one per unique seq)
         seq_groups: dict of {representative_id: [all_ids_with_same_seq]}
     """
-    hash_to_ids = {}
+    hash_to_ids: dict[str, list[str]] = {}
     hash_to_rep = {}
     hash_to_seq = {}
 
@@ -62,7 +62,7 @@ def deduplicate_dict(seqs):
     return unique_seqs, seq_groups
 
 
-def expand_results_dict(results, seq_groups, id_key='locus_tag'):
+def expand_results_dict(results, seq_groups, id_key="locus_tag"):
     """Expand results dict from unique representatives to all proteins.
 
     Args:
@@ -94,10 +94,10 @@ def deduplicate_fasta(input_fasta, output_fasta):
     """
     sequences = read_fasta(input_fasta)
 
-    # Group by sequence hash
-    hash_to_ids = {}  # seq_hash -> [list of protein IDs]
-    hash_to_rep = {}  # seq_hash -> representative ID (first seen)
-    hash_to_seq = {}  # seq_hash -> actual sequence
+    # Group by sequence hash, keeping the first ID seen as the representative.
+    hash_to_ids: dict[str, list[str]] = {}
+    hash_to_rep: dict[str, str] = {}
+    hash_to_seq: dict[str, str] = {}
 
     for pid, seq in sequences.items():
         seq_hash = hashlib.md5(seq.encode()).hexdigest()
@@ -118,7 +118,7 @@ def deduplicate_fasta(input_fasta, output_fasta):
     n_total = len(sequences)
     n_dups = n_total - n_unique
 
-    with open(output_fasta, 'w') as f:
+    with open(output_fasta, "w") as f:
         for seq_hash in hash_to_ids:
             rep = hash_to_rep[seq_hash]
             seq = hash_to_seq[seq_hash]
@@ -132,7 +132,7 @@ def deduplicate_fasta(input_fasta, output_fasta):
     return seq_groups
 
 
-def expand_results_tsv(input_tsv, output_tsv, seq_groups, id_column='locus_tag'):
+def expand_results_tsv(input_tsv, output_tsv, seq_groups, id_column="locus_tag"):
     """Expand a TSV of results from unique representatives to all proteins.
 
     For each row where the ID matches a representative, create copies
@@ -142,13 +142,16 @@ def expand_results_tsv(input_tsv, output_tsv, seq_groups, id_column='locus_tag')
         return
 
     with open(input_tsv) as f:
-        reader = csv.DictReader(f, delimiter='\t')
+        reader = csv.DictReader(f, delimiter="\t")
         fieldnames = reader.fieldnames
         rows = list(reader)
 
+    if not fieldnames:
+        return
+
     expanded = []
     for row in rows:
-        rep_id = row.get(id_column, '')
+        rep_id = row.get(id_column, "")
         if rep_id in seq_groups:
             # Add a row for each member of the group
             for member_id in seq_groups[rep_id]:
@@ -162,14 +165,14 @@ def expand_results_tsv(input_tsv, output_tsv, seq_groups, id_column='locus_tag')
     if n_added > 0:
         logger.info(f"Expanded {len(rows)} -> {len(expanded)} rows ({n_added} from dedup)")
 
-    with open(output_tsv, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
+    with open(output_tsv, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for row in expanded:
             writer.writerow(row)
 
 
-def expand_results_csv(input_csv, output_csv, seq_groups, id_column='locus_tag'):
+def expand_results_csv(input_csv, output_csv, seq_groups, id_column="locus_tag"):
     """Same as expand_results_tsv but for comma-separated files."""
     if not os.path.exists(input_csv):
         return
@@ -179,9 +182,12 @@ def expand_results_csv(input_csv, output_csv, seq_groups, id_column='locus_tag')
         fieldnames = reader.fieldnames
         rows = list(reader)
 
+    if not fieldnames:
+        return
+
     expanded = []
     for row in rows:
-        rep_id = row.get(id_column, '')
+        rep_id = row.get(id_column, "")
         if rep_id in seq_groups:
             for member_id in seq_groups[rep_id]:
                 new_row = dict(row)
@@ -190,7 +196,7 @@ def expand_results_csv(input_csv, output_csv, seq_groups, id_column='locus_tag')
         else:
             expanded.append(row)
 
-    with open(output_csv, 'w', newline='') as f:
+    with open(output_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for row in expanded:

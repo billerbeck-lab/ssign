@@ -110,7 +110,7 @@ def _split_fasta_bytes(fasta_content, batch_size):
     """Split FASTA content into batches of batch_size sequences."""
     lines = fasta_content.decode().split("\n")
     batches = []
-    current_batch = []
+    current_batch: list[str] = []
     current_count = 0
 
     for line in lines:
@@ -264,7 +264,7 @@ def run_remote_deeplocpro(input_fasta, output_dir):
     n_batches = len(batches)
 
     all_sequences = {}
-    localizations = []
+    localizations: list[str] = []
 
     for batch_num, batch_bytes in enumerate(batches, 1):
         batch_n = sum(1 for line in batch_bytes.decode().split("\n") if line.startswith(">"))
@@ -349,7 +349,7 @@ def parse_deeplocpro_output(results_path):
                         "Outer Membrane": om_prob,
                         "Cytoplasmic": cyto_prob,
                     }
-                    predicted = max(probs, key=probs.get)
+                    predicted = max(probs, key=lambda k: probs[k])
 
                     entries.append(
                         {

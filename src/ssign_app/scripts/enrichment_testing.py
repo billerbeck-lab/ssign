@@ -21,7 +21,7 @@ import logging
 import random
 from collections import Counter, defaultdict
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -37,14 +37,17 @@ def load_integrated_csv(fpath):
 def get_functional_category(row):
     """Extract a broad functional category from annotation fields."""
     # Try multiple annotation sources in priority order
-    for field in ['broad_annotation', 'blastp_hit_description',
-                  'pdb_top1_description', 'pfam_top1_description',
-                  'interpro_descriptions']:
-        val = row.get(field, '').strip()
-        if val and val != '-' and val.lower() not in ('hypothetical protein',
-                                                       'uncharacterized protein'):
+    for field in [
+        "broad_annotation",
+        "blastp_hit_description",
+        "pdb_top1_description",
+        "pfam_top1_description",
+        "interpro_descriptions",
+    ]:
+        val = row.get(field, "").strip()
+        if val and val != "-" and val.lower() not in ("hypothetical protein", "uncharacterized protein"):
             return val
-    return 'Unknown'
+    return "Unknown"
 
 
 def fishers_exact_enrichment(substrates):
@@ -59,14 +62,13 @@ def fishers_exact_enrichment(substrates):
         return []
 
     # Build contingency data
-    ss_cat_counts = defaultdict(lambda: defaultdict(int))
-    ss_totals = Counter()
-    cat_totals = Counter()
+    ss_cat_counts: defaultdict[str, defaultdict[str, int]] = defaultdict(lambda: defaultdict(int))
+    ss_totals: Counter[str] = Counter()
+    cat_totals: Counter[str] = Counter()
     total = 0
 
     for sub in substrates:
-        ss_types = [s.strip() for s in sub.get('nearby_ss_types', '').split(',')
-                    if s.strip()]
+        ss_types = [s.strip() for s in sub.get("nearby_ss_types", "").split(",") if s.strip()]
         cat = get_functional_category(sub)
         for ss in ss_types:
             ss_cat_counts[ss][cat] += 1
@@ -78,33 +80,34 @@ def fishers_exact_enrichment(substrates):
     for ss in sorted(ss_totals.keys()):
         for cat in sorted(cat_totals.keys()):
             a = ss_cat_counts[ss][cat]  # SS & category
-            b = ss_totals[ss] - a       # SS & not category
-            c = cat_totals[cat] - a     # not SS & category
-            d = total - a - b - c       # neither
+            b = ss_totals[ss] - a  # SS & not category
+            c = cat_totals[cat] - a  # not SS & category
+            d = total - a - b - c  # neither
 
             if a == 0:
                 continue
 
-            odds, pval = stats.fisher_exact([[a, b], [c, d]],
-                                            alternative='greater')
-            results.append({
-                'ss_type': ss,
-                'category': cat,
-                'observed': a,
-                'ss_total': ss_totals[ss],
-                'cat_total': cat_totals[cat],
-                'total': total,
-                'odds_ratio': round(odds, 4),
-                'pvalue': pval,
-            })
+            odds, pval = stats.fisher_exact([[a, b], [c, d]], alternative="greater")
+            results.append(
+                {
+                    "ss_type": ss,
+                    "category": cat,
+                    "observed": a,
+                    "ss_total": ss_totals[ss],
+                    "cat_total": cat_totals[cat],
+                    "total": total,
+                    "odds_ratio": round(odds, 4),
+                    "pvalue": pval,
+                }
+            )
 
     # BH FDR correction
-    results.sort(key=lambda x: x['pvalue'])
+    results.sort(key=lambda x: x["pvalue"])
     n_tests = len(results)
     for rank, r in enumerate(results, 1):
-        r['bh_rank'] = rank
-        r['bh_threshold'] = 0.05 * rank / max(n_tests, 1)
-        r['significant'] = r['pvalue'] <= r['bh_threshold']
+        r["bh_rank"] = rank
+        r["bh_threshold"] = 0.05 * rank / max(n_tests, 1)
+        r["significant"] = r["pvalue"] <= r["bh_threshold"]
 
     return results
 
@@ -127,10 +130,9 @@ def circular_permutation_test(substrates, gene_orders, n_perms=10000, seed=42):
     rng = random.Random(seed)
 
     # Count observed SS x category pairs
-    observed = defaultdict(int)
+    observed: defaultdict[tuple[str, str], int] = defaultdict(int)
     for sub in substrates:
-        ss_types = [s.strip() for s in sub.get('nearby_ss_types', '').split(',')
-                    if s.strip()]
+        ss_types = [s.strip() for s in sub.get("nearby_ss_types", "").split(",") if s.strip()]
         cat = get_functional_category(sub)
         for ss in ss_types:
             observed[(ss, cat)] += 1
@@ -139,14 +141,14 @@ def circular_permutation_test(substrates, gene_orders, n_perms=10000, seed=42):
         return []
 
     # For permutation: we need to know which locus_tags are substrates
-    substrate_loci = {sub['locus_tag'] for sub in substrates}
-    locus_to_cat = {sub['locus_tag']: get_functional_category(sub) for sub in substrates}
+    substrate_loci = {sub["locus_tag"] for sub in substrates}
+    locus_to_cat = {sub["locus_tag"]: get_functional_category(sub) for sub in substrates}
 
     # Count how many permutations yield >= observed count
-    exceed_counts = defaultdict(int)
+    exceed_counts: defaultdict[tuple[str, str], int] = defaultdict(int)
 
     for perm_i in range(n_perms):
-        perm_counts = defaultdict(int)
+        perm_counts: defaultdict[tuple[str, str], int] = defaultdict(int)
 
         for genome, gene_list in gene_orders.items():
             n_genes = len(gene_list)
@@ -169,8 +171,7 @@ def circular_permutation_test(substrates, gene_orders, n_perms=10000, seed=42):
         all_cats = [get_functional_category(sub) for sub in substrates]
         rng.shuffle(all_cats)
         for sub, shuffled_cat in zip(substrates, all_cats):
-            ss_types = [s.strip() for s in sub.get('nearby_ss_types', '').split(',')
-                        if s.strip()]
+            ss_types = [s.strip() for s in sub.get("nearby_ss_types", "").split(",") if s.strip()]
             for ss in ss_types:
                 perm_counts[(ss, shuffled_cat)] += 1
 
@@ -182,23 +183,22 @@ def circular_permutation_test(substrates, gene_orders, n_perms=10000, seed=42):
     results = []
     for (ss, cat), obs_count in sorted(observed.items()):
         pval = (exceed_counts[(ss, cat)] + 1) / (n_perms + 1)  # +1 smoothing
-        results.append({
-            'ss_type': ss,
-            'category': cat,
-            'observed': obs_count,
-            'perm_pvalue': round(pval, 6),
-            'n_permutations': n_perms,
-        })
+        results.append(
+            {
+                "ss_type": ss,
+                "category": cat,
+                "observed": obs_count,
+                "perm_pvalue": round(pval, 6),
+                "n_permutations": n_perms,
+            }
+        )
 
     return results
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Enrichment testing: Fisher's exact + circular permutation"
-    )
-    parser.add_argument("--integrated-csv", required=True,
-                        help="Integrated annotation CSV from ssign pipeline")
+    parser = argparse.ArgumentParser(description="Enrichment testing: Fisher's exact + circular permutation")
+    parser.add_argument("--integrated-csv", required=True, help="Integrated annotation CSV from ssign pipeline")
     parser.add_argument("--n-permutations", type=int, default=10000)
     parser.add_argument("--out-fisher", required=True, help="Fisher's exact test results")
     parser.add_argument("--out-permutation", required=True, help="Permutation test results")
@@ -211,52 +211,60 @@ def main():
     # Fisher's exact test
     fisher_results = fishers_exact_enrichment(substrates)
 
-    fieldnames_fisher = ['ss_type', 'category', 'observed', 'ss_total', 'cat_total',
-                         'total', 'odds_ratio', 'pvalue', 'bh_rank', 'bh_threshold',
-                         'significant']
-    with open(args.out_fisher, 'w', newline='') as f:
+    fieldnames_fisher = [
+        "ss_type",
+        "category",
+        "observed",
+        "ss_total",
+        "cat_total",
+        "total",
+        "odds_ratio",
+        "pvalue",
+        "bh_rank",
+        "bh_threshold",
+        "significant",
+    ]
+    with open(args.out_fisher, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames_fisher)
         writer.writeheader()
         for r in fisher_results:
             writer.writerow(r)
 
-    n_sig = sum(1 for r in fisher_results if r.get('significant'))
+    n_sig = sum(1 for r in fisher_results if r.get("significant"))
     logger.info(f"Fisher's exact: {n_sig}/{len(fisher_results)} significant (BH FDR < 0.05)")
 
     # Circular permutation test
-    perm_results = circular_permutation_test(
-        substrates, gene_orders={}, n_perms=args.n_permutations
-    )
+    perm_results = circular_permutation_test(substrates, gene_orders={}, n_perms=args.n_permutations)
 
-    fieldnames_perm = ['ss_type', 'category', 'observed', 'perm_pvalue', 'n_permutations']
-    with open(args.out_permutation, 'w', newline='') as f:
+    fieldnames_perm = ["ss_type", "category", "observed", "perm_pvalue", "n_permutations"]
+    with open(args.out_permutation, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames_perm)
         writer.writeheader()
         for r in perm_results:
             writer.writerow(r)
 
-    n_sig_perm = sum(1 for r in perm_results if r.get('perm_pvalue', 1) < 0.05)
+    n_sig_perm = sum(1 for r in perm_results if r.get("perm_pvalue", 1) < 0.05)
     logger.info(f"Permutation test: {n_sig_perm}/{len(perm_results)} significant (p < 0.05)")
 
     # Summary
-    with open(args.out_summary, 'w') as f:
+    with open(args.out_summary, "w") as f:
         f.write("Enrichment Analysis Summary\n")
-        f.write(f"{'='*50}\n\n")
+        f.write(f"{'=' * 50}\n\n")
         f.write(f"Total substrates: {len(substrates)}\n")
-        f.write(f"Fisher's exact tests: {len(fisher_results)} "
-                f"({n_sig} significant at BH FDR < 0.05)\n")
-        f.write(f"Permutation tests ({args.n_permutations} circular shifts): "
-                f"{len(perm_results)} ({n_sig_perm} significant at p < 0.05)\n\n")
+        f.write(f"Fisher's exact tests: {len(fisher_results)} ({n_sig} significant at BH FDR < 0.05)\n")
+        f.write(
+            f"Permutation tests ({args.n_permutations} circular shifts): "
+            f"{len(perm_results)} ({n_sig_perm} significant at p < 0.05)\n\n"
+        )
 
         if fisher_results:
             f.write("Significant enrichments (Fisher's exact, BH FDR < 0.05):\n")
             for r in fisher_results:
-                if r.get('significant'):
-                    f.write(f"  {r['ss_type']} x {r['category']}: "
-                            f"OR={r['odds_ratio']}, p={r['pvalue']:.2e}\n")
+                if r.get("significant"):
+                    f.write(f"  {r['ss_type']} x {r['category']}: OR={r['odds_ratio']}, p={r['pvalue']:.2e}\n")
 
     logger.info(f"Results written to {args.out_fisher}, {args.out_permutation}, {args.out_summary}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

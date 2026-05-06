@@ -45,7 +45,7 @@ def generate_text_report(master_csvs, enrichment_file, output_path):
 
     # SS type distribution
     if "nearby_ss_types" in df.columns:
-        ss_counts = Counter()
+        ss_counts: Counter[str] = Counter()
         for val in df["nearby_ss_types"].dropna():
             for ss in str(val).split(","):
                 ss = ss.strip()
@@ -59,19 +59,13 @@ def generate_text_report(master_csvs, enrichment_file, output_path):
 
     # Tool coverage
     tool_cols = [
-        c
-        for c in df.columns
-        if c.startswith(
-            ("blastp_", "interpro_", "pfam_", "pdb_", "ecod70_", "signalp_")
-        )
+        c for c in df.columns if c.startswith(("blastp_", "interpro_", "pfam_", "pdb_", "ecod70_", "signalp_"))
     ]
     if tool_cols:
         lines.append("Annotation tool coverage:")
         for col in sorted(tool_cols):
             n_hits = df[col].notna().sum()
-            lines.append(
-                f"  {col}: {n_hits}/{len(df)} ({100 * n_hits / max(len(df), 1):.1f}%)"
-            )
+            lines.append(f"  {col}: {n_hits}/{len(df)} ({100 * n_hits / max(len(df), 1):.1f}%)")
         lines.append("")
 
     # Enrichment summary

@@ -16,14 +16,22 @@ import json
 import logging
 import os
 import sys
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TAXDUMP_DIR = os.path.join(os.path.expanduser("~"), ".ssign", "taxdump")
 TAXDUMP_DIR = os.environ.get("SSIGN_TAXDUMP_DIR", DEFAULT_TAXDUMP_DIR)
 
-_taxdb = None
-_cache = {}
+# A {"name": ..., "taxid": ...} entry for a single rank, or None when no
+# match was found. Used for both species-level and genus-level results.
+TaxonEntry = dict[str, str] | None
+TaxonomyResult = dict[str, TaxonEntry]
+
+# Module-level taxdump handle and resolution cache. _taxdb is set on first
+# call to _load_taxdb(); annotated as Any because taxopy is ignored by mypy.
+_taxdb: Any = None
+_cache: dict[str, TaxonomyResult] = {}
 
 
 def _load_taxdb():
@@ -40,9 +48,7 @@ def _load_taxdb():
         import taxopy
     except ImportError as e:
         raise RuntimeError(
-            "taxopy not installed (required for local taxonomy resolution).\n"
-            "  How to fix:\n"
-            "    - pip install taxopy"
+            "taxopy not installed (required for local taxonomy resolution).\n  How to fix:\n    - pip install taxopy"
         ) from e
 
     nodes_dmp = os.path.join(TAXDUMP_DIR, "nodes.dmp")
@@ -60,10 +66,7 @@ def _load_taxdb():
             f"(extract nodes.dmp + names.dmp into the target dir)"
         )
 
-    logger.info(
-        f"Loading NCBI taxdump from {TAXDUMP_DIR} "
-        f"(one-time, ~15-30 s, ~2 GB resident RAM)"
-    )
+    logger.info(f"Loading NCBI taxdump from {TAXDUMP_DIR} (one-time, ~15-30 s, ~2 GB resident RAM)")
     _taxdb = taxopy.TaxDb(nodes_dmp=nodes_dmp, names_dmp=names_dmp, keep_files=True)
     return _taxdb
 
@@ -72,7 +75,7 @@ def _find_species_and_genus(taxids, taxdb):
     """Pick the best species-level match and its genus from a list of taxids."""
     import taxopy
 
-    result = {"species": None, "genus": None}
+    result: TaxonomyResult = {"species": None, "genus": None}
     if not taxids:
         return result
 

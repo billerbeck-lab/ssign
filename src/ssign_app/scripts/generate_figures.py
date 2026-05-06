@@ -41,7 +41,7 @@ def fig_ss_type_distribution(df, outdir, dpi):
     if "nearby_ss_types" not in df.columns:
         return
 
-    ss_counts = Counter()
+    ss_counts: Counter[str] = Counter()
     for val in df["nearby_ss_types"].dropna():
         for ss in str(val).split(","):
             ss = ss.strip()
@@ -296,12 +296,8 @@ def main():
     parser.add_argument("--outdir", required=True)
     parser.add_argument("--dpi", type=int, default=300)
     # Figure toggles
-    parser.add_argument(
-        "--no-category", action="store_true", help="Skip category distribution figure"
-    )
-    parser.add_argument(
-        "--no-ss-comp", action="store_true", help="Skip SS type distribution figure"
-    )
+    parser.add_argument("--no-category", action="store_true", help="Skip category distribution figure")
+    parser.add_argument("--no-ss-comp", action="store_true", help="Skip SS type distribution figure")
     parser.add_argument(
         "--no-tool-heatmap",
         action="store_true",
@@ -312,9 +308,7 @@ def main():
         action="store_true",
         help="Skip substrate count per genome figure",
     )
-    parser.add_argument(
-        "--no-func-summary", action="store_true", help="Skip functional summary figure"
-    )
+    parser.add_argument("--no-func-summary", action="store_true", help="Skip functional summary figure")
     args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)

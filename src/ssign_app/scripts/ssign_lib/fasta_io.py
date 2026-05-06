@@ -10,7 +10,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def read_fasta(fasta_path: str) -> dict[str, str]:
+def read_fasta(fasta_path: str | Path) -> dict[str, str]:
     """Read a FASTA file into an ``{id: sequence}`` dictionary.
 
     Header parsing takes the first whitespace-delimited token after ``>``.
@@ -50,9 +50,7 @@ def read_fasta(fasta_path: str) -> dict[str, str]:
     return sequences
 
 
-def write_fasta(
-    sequences: dict[str, str], output_path: str, line_width: int = 80
-) -> int:
+def write_fasta(sequences: dict[str, str], output_path: str | Path, line_width: int = 80) -> int:
     """Write a ``{id: sequence}`` dictionary to a FASTA file.
 
     Creates parent directories if they do not exist.  Skips entries with

@@ -19,31 +19,19 @@ import urllib.request
 try:
     import networkx
 except ImportError as e:
-    raise RuntimeError(
-        f"networkx not installed: {e}\n"
-        f"  How to fix:\n"
-        f"    - pip install networkx"
-    ) from e
+    raise RuntimeError(f"networkx not installed: {e}\n  How to fix:\n    - pip install networkx") from e
 
 try:
     import obonet
 except ImportError as e:
-    raise RuntimeError(
-        f"obonet not installed: {e}\n"
-        f"  How to fix:\n"
-        f"    - pip install obonet"
-    ) from e
+    raise RuntimeError(f"obonet not installed: {e}\n  How to fix:\n    - pip install obonet") from e
 
 try:
     from goatools.base import download_go_basic_obo
     from goatools.mapslim import mapslim
     from goatools.obo_parser import GODag
 except ImportError as e:
-    raise RuntimeError(
-        f"goatools not installed: {e}\n"
-        f"  How to fix:\n"
-        f"    - pip install goatools"
-    ) from e
+    raise RuntimeError(f"goatools not installed: {e}\n  How to fix:\n    - pip install goatools") from e
 
 logger = logging.getLogger(__name__)
 
@@ -55,91 +43,91 @@ logger = logging.getLogger(__name__)
 
 BROAD_CATEGORY_MAP: dict[str, str] = {
     # -- Molecular Function slim terms --
-    "GO:0003824": "Catalytic",           # catalytic activity
-    "GO:0016787": "Catalytic",           # hydrolase activity
-    "GO:0016740": "Catalytic",           # transferase activity
-    "GO:0016491": "Catalytic",           # oxidoreductase activity
-    "GO:0016829": "Catalytic",           # lyase activity
-    "GO:0016853": "Catalytic",           # isomerase activity
-    "GO:0016874": "Catalytic",           # ligase activity
-    "GO:0008233": "Catalytic",           # peptidase activity
-    "GO:0004857": "Regulation",          # enzyme inhibitor activity
-    "GO:0005215": "Transport",           # transporter activity
-    "GO:0022857": "Transport",           # transmembrane transporter activity
-    "GO:0046872": "Binding",             # metal ion binding
-    "GO:0043167": "Binding",             # ion binding
-    "GO:0005515": "Binding",             # protein binding
-    "GO:0030246": "Binding",             # carbohydrate binding
-    "GO:0003676": "Binding",             # nucleic acid binding
-    "GO:0003677": "Binding",             # DNA binding
-    "GO:0003723": "Binding",             # RNA binding
-    "GO:0000166": "Binding",             # nucleotide binding
-    "GO:0005488": "Binding",             # binding
-    "GO:0038023": "Signaling",           # signaling receptor activity
-    "GO:0004871": "Signaling",           # signal transducer activity
-    "GO:0060089": "Signaling",           # molecular transducer activity
-    "GO:0003700": "Regulation",          # DNA-binding transcription factor activity
-    "GO:0003735": "Structural",          # structural constituent of ribosome
-    "GO:0005198": "Structural",          # structural molecule activity
-    "GO:0016209": "Stress Response",     # antioxidant activity
-    "GO:0030234": "Regulation",          # enzyme regulator activity
-    "GO:0008289": "Binding",             # lipid binding
-    "GO:0019825": "Binding",             # oxygen binding
-    "GO:0140110": "Regulation",          # transcription regulator activity
+    "GO:0003824": "Catalytic",  # catalytic activity
+    "GO:0016787": "Catalytic",  # hydrolase activity
+    "GO:0016740": "Catalytic",  # transferase activity
+    "GO:0016491": "Catalytic",  # oxidoreductase activity
+    "GO:0016829": "Catalytic",  # lyase activity
+    "GO:0016853": "Catalytic",  # isomerase activity
+    "GO:0016874": "Catalytic",  # ligase activity
+    "GO:0008233": "Catalytic",  # peptidase activity
+    "GO:0004857": "Regulation",  # enzyme inhibitor activity
+    "GO:0005215": "Transport",  # transporter activity
+    "GO:0022857": "Transport",  # transmembrane transporter activity
+    "GO:0046872": "Binding",  # metal ion binding
+    "GO:0043167": "Binding",  # ion binding
+    "GO:0005515": "Binding",  # protein binding
+    "GO:0030246": "Binding",  # carbohydrate binding
+    "GO:0003676": "Binding",  # nucleic acid binding
+    "GO:0003677": "Binding",  # DNA binding
+    "GO:0003723": "Binding",  # RNA binding
+    "GO:0000166": "Binding",  # nucleotide binding
+    "GO:0005488": "Binding",  # binding
+    "GO:0038023": "Signaling",  # signaling receptor activity
+    "GO:0004871": "Signaling",  # signal transducer activity
+    "GO:0060089": "Signaling",  # molecular transducer activity
+    "GO:0003700": "Regulation",  # DNA-binding transcription factor activity
+    "GO:0003735": "Structural",  # structural constituent of ribosome
+    "GO:0005198": "Structural",  # structural molecule activity
+    "GO:0016209": "Stress Response",  # antioxidant activity
+    "GO:0030234": "Regulation",  # enzyme regulator activity
+    "GO:0008289": "Binding",  # lipid binding
+    "GO:0019825": "Binding",  # oxygen binding
+    "GO:0140110": "Regulation",  # transcription regulator activity
     # -- Biological Process slim terms --
-    "GO:0006810": "Transport",           # transport
-    "GO:0055085": "Transport",           # transmembrane transport
-    "GO:0007165": "Signaling",           # signal transduction
-    "GO:0006508": "Catalytic",           # proteolysis
-    "GO:0009403": "Virulence",           # toxin biosynthetic process
-    "GO:0009404": "Virulence",           # toxin metabolic process
-    "GO:0005975": "Metabolism",          # carbohydrate metabolic process
-    "GO:0006629": "Metabolism",          # lipid metabolic process
-    "GO:0009058": "Metabolism",          # biosynthetic process
-    "GO:0006950": "Stress Response",     # response to stress
-    "GO:0009372": "Signaling",           # quorum sensing
-    "GO:0006259": "Metabolism",          # DNA metabolic process
-    "GO:0006412": "Metabolism",          # translation
-    "GO:0006396": "Metabolism",          # RNA processing
-    "GO:0006351": "Metabolism",          # DNA-templated transcription
-    "GO:0006355": "Regulation",          # regulation of DNA-templated transcription
-    "GO:0050896": "Signaling",           # response to stimulus
-    "GO:0007154": "Signaling",           # cell communication
-    "GO:0044238": "Metabolism",          # primary metabolic process
-    "GO:0043170": "Metabolism",          # macromolecule metabolic process
-    "GO:0009056": "Metabolism",          # catabolic process
-    "GO:0008152": "Metabolism",          # metabolic process
-    "GO:0006807": "Metabolism",          # nitrogen compound metabolic process
-    "GO:0009607": "Stress Response",     # response to biotic stimulus
-    "GO:0006928": "Structural",          # movement of cell or subcellular component
-    "GO:0071554": "Structural",          # cell wall organization or biogenesis
-    "GO:0030001": "Transport",           # metal ion transport
-    "GO:0006811": "Transport",           # ion transport
-    "GO:0044419": "Virulence",           # biological process involved in interspecies interaction
-    "GO:0009405": "Virulence",           # pathogenesis
-    "GO:0051704": "Virulence",           # multi-organism process
-    "GO:0007155": "Structural",          # cell adhesion
-    "GO:0030031": "Structural",          # cell projection assembly
-    "GO:0044764": "Metabolism",          # multi-organism cellular process
-    "GO:0019835": "Metabolism",          # cytolysis
+    "GO:0006810": "Transport",  # transport
+    "GO:0055085": "Transport",  # transmembrane transport
+    "GO:0007165": "Signaling",  # signal transduction
+    "GO:0006508": "Catalytic",  # proteolysis
+    "GO:0009403": "Virulence",  # toxin biosynthetic process
+    "GO:0009404": "Virulence",  # toxin metabolic process
+    "GO:0005975": "Metabolism",  # carbohydrate metabolic process
+    "GO:0006629": "Metabolism",  # lipid metabolic process
+    "GO:0009058": "Metabolism",  # biosynthetic process
+    "GO:0006950": "Stress Response",  # response to stress
+    "GO:0009372": "Signaling",  # quorum sensing
+    "GO:0006259": "Metabolism",  # DNA metabolic process
+    "GO:0006412": "Metabolism",  # translation
+    "GO:0006396": "Metabolism",  # RNA processing
+    "GO:0006351": "Metabolism",  # DNA-templated transcription
+    "GO:0006355": "Regulation",  # regulation of DNA-templated transcription
+    "GO:0050896": "Signaling",  # response to stimulus
+    "GO:0007154": "Signaling",  # cell communication
+    "GO:0044238": "Metabolism",  # primary metabolic process
+    "GO:0043170": "Metabolism",  # macromolecule metabolic process
+    "GO:0009056": "Metabolism",  # catabolic process
+    "GO:0008152": "Metabolism",  # metabolic process
+    "GO:0006807": "Metabolism",  # nitrogen compound metabolic process
+    "GO:0009607": "Stress Response",  # response to biotic stimulus
+    "GO:0006928": "Structural",  # movement of cell or subcellular component
+    "GO:0071554": "Structural",  # cell wall organization or biogenesis
+    "GO:0030001": "Transport",  # metal ion transport
+    "GO:0006811": "Transport",  # ion transport
+    "GO:0044419": "Virulence",  # biological process involved in interspecies interaction
+    "GO:0009405": "Virulence",  # pathogenesis
+    "GO:0051704": "Virulence",  # multi-organism process
+    "GO:0007155": "Structural",  # cell adhesion
+    "GO:0030031": "Structural",  # cell projection assembly
+    "GO:0044764": "Metabolism",  # multi-organism cellular process
+    "GO:0019835": "Metabolism",  # cytolysis
     # -- Cellular Component slim terms --
-    "GO:0005576": "Extracellular",       # extracellular region
-    "GO:0019867": "Membrane-associated", # outer membrane
-    "GO:0042597": "Periplasmic",         # periplasmic space
-    "GO:0005886": "Membrane-associated", # plasma membrane
-    "GO:0016020": "Membrane-associated", # membrane
-    "GO:0005737": "Structural",          # cytoplasm
-    "GO:0005622": "Structural",          # intracellular anatomical structure
-    "GO:0005694": "Structural",          # chromosome
-    "GO:0005840": "Structural",          # ribosome
-    "GO:0009279": "Membrane-associated", # cell outer membrane
-    "GO:0030312": "Structural",          # external encapsulating structure
-    "GO:0009274": "Structural",          # peptidoglycan-based cell wall
-    "GO:0009288": "Structural",          # bacterial-type flagellum
-    "GO:0110165": "Structural",          # cellular anatomical entity
-    "GO:0043226": "Structural",          # organelle
-    "GO:0032991": "Structural",          # protein-containing complex
-    "GO:0005615": "Extracellular",       # extracellular space
+    "GO:0005576": "Extracellular",  # extracellular region
+    "GO:0019867": "Membrane-associated",  # outer membrane
+    "GO:0042597": "Periplasmic",  # periplasmic space
+    "GO:0005886": "Membrane-associated",  # plasma membrane
+    "GO:0016020": "Membrane-associated",  # membrane
+    "GO:0005737": "Structural",  # cytoplasm
+    "GO:0005622": "Structural",  # intracellular anatomical structure
+    "GO:0005694": "Structural",  # chromosome
+    "GO:0005840": "Structural",  # ribosome
+    "GO:0009279": "Membrane-associated",  # cell outer membrane
+    "GO:0030312": "Structural",  # external encapsulating structure
+    "GO:0009274": "Structural",  # peptidoglycan-based cell wall
+    "GO:0009288": "Structural",  # bacterial-type flagellum
+    "GO:0110165": "Structural",  # cellular anatomical entity
+    "GO:0043226": "Structural",  # organelle
+    "GO:0032991": "Structural",  # protein-containing complex
+    "GO:0005615": "Extracellular",  # extracellular space
 }
 
 # ---------------------------------------------------------------------------
@@ -148,28 +136,58 @@ BROAD_CATEGORY_MAP: dict[str, str] = {
 
 FALLBACK_KEYWORDS: dict[str, list[str]] = {
     "Catalytic": [
-        "protease", "peptidase", "hydrolase", "kinase", "transferase",
-        "oxidoreductase", "lyase", "ligase", "isomerase", "dehydrogenase",
-        "reductase", "synthase", "synthetase",
+        "protease",
+        "peptidase",
+        "hydrolase",
+        "kinase",
+        "transferase",
+        "oxidoreductase",
+        "lyase",
+        "ligase",
+        "isomerase",
+        "dehydrogenase",
+        "reductase",
+        "synthase",
+        "synthetase",
     ],
     "Transport": [
-        "transporter", "permease", "porin", "channel", "pump", "efflux",
-        "ABC", "TonB",
+        "transporter",
+        "permease",
+        "porin",
+        "channel",
+        "pump",
+        "efflux",
+        "ABC",
+        "TonB",
     ],
     "Binding": [
-        "binding protein", "receptor",
+        "binding protein",
+        "receptor",
     ],
     "Structural": [
-        "flagellin", "pilin", "fimbrial", "pilus",
+        "flagellin",
+        "pilin",
+        "fimbrial",
+        "pilus",
     ],
     "Signaling": [
-        "sensor", "response regulator", "histidine kinase", "GGDEF", "EAL",
+        "sensor",
+        "response regulator",
+        "histidine kinase",
+        "GGDEF",
+        "EAL",
     ],
     "Virulence": [
-        "effector", "toxin", "hemolysin", "virulence",
+        "effector",
+        "toxin",
+        "hemolysin",
+        "virulence",
     ],
     "Metabolism": [
-        "metabolic", "biosynthesis", "catabolic", "degradation",
+        "metabolic",
+        "biosynthesis",
+        "catabolic",
+        "degradation",
     ],
 }
 
@@ -208,18 +226,15 @@ def load_go_dags(data_dir: str) -> tuple[GODag, GODag]:
                 f"  Common causes:\n"
                 f"    - No internet connection or Gene Ontology server is down\n"
                 f"  How to fix:\n"
-                f"    - Download manually: wget http://purl.obolibrary.org/obo/go/go-basic.obo -O \"{obo_path}\"\n"
-                f"    - Or: curl -L -o \"{obo_path}\" http://purl.obolibrary.org/obo/go/go-basic.obo"
+                f'    - Download manually: wget http://purl.obolibrary.org/obo/go/go-basic.obo -O "{obo_path}"\n'
+                f'    - Or: curl -L -o "{obo_path}" http://purl.obolibrary.org/obo/go/go-basic.obo'
             ) from e
     else:
         logger.debug("go-basic.obo already cached at %s", obo_path)
 
     # Download goslim_metagenomics.obo if missing (HTTPS)
     if not os.path.exists(slim_path):
-        url = (
-            "https://current.geneontology.org/ontology/subsets/"
-            "goslim_metagenomics.obo"
-        )
+        url = "https://current.geneontology.org/ontology/subsets/goslim_metagenomics.obo"
         logger.info("Downloading goslim_metagenomics.obo from %s ...", url)
         # FRAGILE: OBO slim download requires internet access to Gene Ontology servers
         # If this breaks: download manually from the URL above
@@ -233,8 +248,8 @@ def load_go_dags(data_dir: str) -> tuple[GODag, GODag]:
                 f"  Common causes:\n"
                 f"    - No internet connection or Gene Ontology server is down\n"
                 f"  How to fix:\n"
-                f"    - Download manually: wget \"{url}\" -O \"{slim_path}\"\n"
-                f"    - Or: curl -L -o \"{slim_path}\" \"{url}\""
+                f'    - Download manually: wget "{url}" -O "{slim_path}"\n'
+                f'    - Or: curl -L -o "{slim_path}" "{url}"'
             ) from e
     else:
         logger.debug("goslim_metagenomics.obo already cached at %s", slim_path)
@@ -259,7 +274,7 @@ def load_go_graph(obo_path: str) -> networkx.MultiDiGraph:
     Returns:
         :class:`networkx.MultiDiGraph` with is_a edges.
     """
-    graph = obonet.read_obo(obo_path)
+    graph: networkx.MultiDiGraph = obonet.read_obo(obo_path)
     logger.info("Loaded GO graph via obonet: %d nodes", graph.number_of_nodes())
     return graph
 

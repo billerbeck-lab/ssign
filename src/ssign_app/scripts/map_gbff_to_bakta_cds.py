@@ -75,7 +75,7 @@ def _read_gene_info(path: str):
     return by_contig
 
 
-def _reciprocal_overlap(a_start, a_end, b_start, b_end) -> float:
+def _reciprocal_overlap(a_start: int, a_end: int, b_start: int, b_end: int) -> float:
     """Min of (overlap / len(a), overlap / len(b)). 0.0 if no overlap."""
     o_start = max(a_start, b_start)
     o_end = min(a_end, b_end)
@@ -110,9 +110,7 @@ def best_gbff_match(
         # there can be no more overlap
         if gbff["start"] >= bakta_cds["end"]:
             break
-        score = _reciprocal_overlap(
-            bakta_cds["start"], bakta_cds["end"], gbff["start"], gbff["end"]
-        )
+        score = _reciprocal_overlap(bakta_cds["start"], bakta_cds["end"], gbff["start"], gbff["end"])
         if score >= min_overlap and score > best_score:
             best = gbff
             best_score = score
@@ -144,10 +142,7 @@ def map_gbff_to_bakta(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description=(
-            "Map original GenBank CDS annotations onto Bakta's CDS via "
-            "reciprocal coordinate overlap."
-        )
+        description=("Map original GenBank CDS annotations onto Bakta's CDS via reciprocal coordinate overlap.")
     )
     parser.add_argument(
         "--bakta-gene-info",
@@ -197,8 +192,7 @@ def main() -> int:
 
     pct = (n_mapped / n_total * 100.0) if n_total else 0.0
     logger.info(
-        f"Mapped {n_mapped}/{n_total} Bakta CDS to GenBank annotations "
-        f"({pct:.1f}%) at min_overlap={args.min_overlap}"
+        f"Mapped {n_mapped}/{n_total} Bakta CDS to GenBank annotations ({pct:.1f}%) at min_overlap={args.min_overlap}"
     )
     return 0
 

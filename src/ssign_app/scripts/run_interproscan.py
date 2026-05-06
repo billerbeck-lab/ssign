@@ -116,7 +116,7 @@ def run_local_interproscan(
 
 def parse_interproscan_tsv(tsv_path, target_ids=None):
     """Parse InterProScan TSV output and aggregate per protein."""
-    per_protein = {}
+    per_protein: dict[str, dict[str, set[str]]] = {}
 
     with open(tsv_path) as f:
         for line in f:
