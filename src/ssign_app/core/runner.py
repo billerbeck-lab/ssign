@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -199,6 +200,13 @@ class PipelineRunner:
         # Per-API semaphores for multi-genome concurrency control.
         # Keys: 'dtu', 'ncbi', 'mpi', 'ebi'. Values: threading.Semaphore
         self.api_sem = api_semaphores or {}
+        # Guards self.results.append(...) + reads of self.files used for
+        # progress JSON snapshots. Step functions write to self.files
+        # under distinct keys (atomic under the GIL), but the result
+        # list and progress-JSON serialiser need a coarse lock so a
+        # parallel-group append doesn't race with another thread's
+        # _save_progress() iteration.
+        self._state_lock = threading.Lock()
 
     def check_dependencies(self) -> list[str]:
         """Pre-flight check for required and optional dependencies.
@@ -477,7 +485,8 @@ class PipelineRunner:
                         name, step_id, sc = futures[future]
                         try:
                             result = future.result()
-                            self.results.append(result)
+                            with self._state_lock:
+                                self.results.append(result)
                             pct = int(100 * sc / total)
                             print(
                                 f"[ssign] [{self.config.sample_id}] Finished (parallel): {name} -> "
@@ -500,7 +509,8 @@ class PipelineRunner:
                                 f"[ssign] [{self.config.sample_id}] EXCEPTION (parallel): {name} -> {e}",
                                 flush=True,
                             )
-                            self.results.append(StepResult(step_id, False, str(e)))
+                            with self._state_lock:
+                                self.results.append(StepResult(step_id, False, str(e)))
                             logger.exception(f"Step '{name}' raised exception")
                             if step_id in CORE_STEPS:
                                 core_failed = True
@@ -1667,11 +1677,16 @@ class PipelineRunner:
         try:
             outdir = Path(self.config.outdir)
             outdir.mkdir(parents=True, exist_ok=True)
+            # Snapshot self.results / self.files under the lock so a parallel
+            # step's append doesn't trip a "list changed during iteration".
+            with self._state_lock:
+                steps_snapshot = [{"name": r.name, "success": r.success, "message": r.message} for r in self.results]
+                files_snapshot = dict(self.files)
             progress = {
                 "sample_id": self.config.sample_id,
                 "work_dir": self.work_dir,
-                "steps": [{"name": r.name, "success": r.success, "message": r.message} for r in self.results],
-                "files": self.files,
+                "steps": steps_snapshot,
+                "files": files_snapshot,
                 "config": asdict(self.config),
             }
             # Per-genome progress file in hidden .ssign/ subdirectory
