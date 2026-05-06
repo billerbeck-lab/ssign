@@ -7,6 +7,7 @@ It supports incremental updates, resume-on-restart, and summary reporting.
 
 import csv
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -56,11 +57,7 @@ class Manifest:
 
     def get_successful(self) -> list[str]:
         """Return protein IDs with ``status == 'success'``."""
-        return [
-            pid
-            for pid, entry in self._entries.items()
-            if entry.get("status") == "success"
-        ]
+        return [pid for pid, entry in self._entries.items() if entry.get("status") == "success"]
 
     def get_pending(self, all_ids: list[str]) -> list[str]:
         """Return IDs from *all_ids* that are not yet successfully processed.
@@ -71,26 +68,39 @@ class Manifest:
         return [
             pid
             for pid in all_ids
-            if pid not in self._entries
-            or self._entries[pid].get("status") not in ("success", "skipped")
+            if pid not in self._entries or self._entries[pid].get("status") not in ("success", "skipped")
         ]
 
     def save(self) -> None:
-        """Write the manifest to disk as a TSV file.
+        """Write the manifest to disk as a TSV file, atomically.
+
+        Writes to ``<path>.tmp`` then ``os.replace()`` to the final path.
+        A crash mid-write leaves the previous manifest intact rather than
+        a truncated TSV that ``_load`` would silently skip past.
 
         Creates parent directories if they do not exist.
         """
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "w", newline="") as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=self.columns,
-                delimiter="\t",
-                extrasaction="ignore",
-            )
-            writer.writeheader()
-            for entry in self._entries.values():
-                writer.writerow(entry)
+        tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        try:
+            with open(tmp_path, "w", newline="") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=self.columns,
+                    delimiter="\t",
+                    extrasaction="ignore",
+                )
+                writer.writeheader()
+                for entry in self._entries.values():
+                    writer.writerow(entry)
+            os.replace(tmp_path, self.path)
+        except Exception:
+            # Best-effort cleanup of partial write before re-raising.
+            try:
+                tmp_path.unlink()
+            except FileNotFoundError:
+                pass
+            raise
         logger.debug("Saved manifest with %d entries to %s", len(self._entries), self.path)
 
     def summary(self) -> dict[str, int]:

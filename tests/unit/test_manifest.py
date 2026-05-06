@@ -17,6 +17,7 @@ Surfaces:
 - `__len__` — size after the in-memory dict.
 """
 
+import csv
 import os
 import sys
 
@@ -175,6 +176,39 @@ class TestPersistence:
     def test_load_missing_file_starts_empty(self, tmp_dir):
         m = Manifest(os.path.join(tmp_dir, "nonexistent.tsv"), columns=["status"])
         assert len(m) == 0
+
+    def test_save_is_atomic_under_write_failure(self, tmp_dir, monkeypatch):
+        # Existing manifest on disk; subsequent save() that fails mid-write
+        # MUST leave the original file intact, not a truncated half-write.
+        path = os.path.join(tmp_dir, "m.tsv")
+        m = Manifest(path, columns=["status"])
+        m.set("ORIG_001", status="success")
+        m.save()
+
+        # Sanity: original is on disk.
+        with open(path) as f:
+            original_content = f.read()
+        assert "ORIG_001" in original_content
+
+        # Now stage a save that explodes mid-way through.
+        m.set("NEW_001", status="success")
+        original_writerow = csv.DictWriter.writerow
+
+        def explode(self, row):
+            if row.get("protein_id") == "NEW_001":
+                raise OSError("simulated disk full")
+            return original_writerow(self, row)
+
+        monkeypatch.setattr(csv.DictWriter, "writerow", explode)
+
+        with pytest.raises(OSError, match="simulated disk full"):
+            m.save()
+
+        # Original file must be unchanged (atomicity guarantee).
+        with open(path) as f:
+            assert f.read() == original_content
+        # And the .tmp partial-write must have been cleaned up.
+        assert not os.path.exists(path + ".tmp")
 
 
 # ---------------------------------------------------------------------------
