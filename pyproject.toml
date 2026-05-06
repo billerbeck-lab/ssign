@@ -183,14 +183,26 @@ warn_return_any = true
 no_implicit_optional = true
 no_implicit_reexport = true
 
-# Libraries without type stubs. mypy can't see into them, so calls become
-# `Any` — silence the missing-import noise but lose type-checking on those
-# call sites. Stubs that ARE installed (pandas-stubs, types-requests,
-# types-PyYAML, types-setuptools, types-networkx) are picked up automatically.
+# Libraries without type stubs + our own sibling-import modules. Calls
+# become `Any` at the import site — silences missing-import noise but
+# loses call-site type-checking. Within-module checking still works
+# (each ssign_lib module is type-checked when mypy walks files=).
+# Stubs that ARE installed (pandas-stubs, types-requests, types-PyYAML,
+# types-setuptools, types-networkx) are picked up automatically.
+#
+# Internal sibling imports (ssign_lib.*, dedup_sequences,
+# annotation_consensus) appear here because the scripts use sys.path
+# manipulation to import them as flat top-level modules at runtime,
+# while mypy resolves them via the package path
+# (ssign_app.scripts.ssign_lib.*) — same file, two names → collision.
+# Listing them here is the pragmatic fix; per-call-site type-checking
+# loss is acceptable for this codebase.
 [[tool.mypy.overrides]]
 module = [
+    "annotation_consensus",
     "Bio.*",
     "biolib.*",
+    "dedup_sequences",
     "DeepSecE.*",
     "esm",
     "goatools.*",
@@ -202,6 +214,7 @@ module = [
     "pyrodigal",
     "scipy.*",
     "seaborn",
+    "ssign_lib.*",
     "streamlit.*",
     "taxopy",
     "torch.*",
