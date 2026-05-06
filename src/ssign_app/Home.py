@@ -223,9 +223,7 @@ def _merge_genome_outputs(outdir: str, sample_names: list[str]):
                 pass
             os.remove(raw_path)
     if raw_dfs:
-        pd.concat(raw_dfs, ignore_index=True).to_csv(
-            os.path.join(outdir, "ssign_results_raw.csv"), index=False
-        )
+        pd.concat(raw_dfs, ignore_index=True).to_csv(os.path.join(outdir, "ssign_results_raw.csv"), index=False)
 
     # ── 2. Merge summary texts ──
     summary_parts = []
@@ -244,17 +242,9 @@ def _merge_genome_outputs(outdir: str, sample_names: list[str]):
     if summary_parts:
         with open(os.path.join(outdir, "ssign_summary.txt"), "w") as f:
             # Cross-genome summary header
-            if (
-                len(sample_names) > 1
-                and "proteins" in merged
-                and not merged["proteins"].empty
-            ):
+            if len(sample_names) > 1 and "proteins" in merged and not merged["proteins"].empty:
                 df_all = merged["proteins"]
-                n_genomes = (
-                    df_all["sample_id"].nunique()
-                    if "sample_id" in df_all.columns
-                    else len(sample_names)
-                )
+                n_genomes = df_all["sample_id"].nunique() if "sample_id" in df_all.columns else len(sample_names)
                 n_total = len(df_all)
                 avg_per_genome = n_total / n_genomes if n_genomes > 0 else 0
 
@@ -345,20 +335,14 @@ with st.sidebar:
         "functional annotation tools can be run along with premade figure generators "
         "to more easily understand the data."
     )
-    st.markdown(
-        "All tools being used are accredited below and should be cited along with "
-        "this tool if used."
-    )
+    st.markdown("All tools being used are accredited below and should be cited along with this tool if used.")
 
     st.divider()
 
     st.subheader("Pipeline Overview")
 
     st.markdown("**1. Secretion System Identification**")
-    st.caption(
-        "Detects secretion systems and their components in the genome using "
-        "MacSyFinder v2 with TXSScan models."
-    )
+    st.caption("Detects secretion systems and their components in the genome using MacSyFinder v2 with TXSScan models.")
 
     st.markdown("**2. Secreted Protein Identification**")
     st.caption(
@@ -378,10 +362,7 @@ with st.sidebar:
     )
 
     st.markdown("**4. Generate Data & Figures**")
-    st.caption(
-        "Produces summary figures and result tables for the identified "
-        "secreted proteins and their annotations."
-    )
+    st.caption("Produces summary figures and result tables for the identified secreted proteins and their annotations.")
 
     st.divider()
 
@@ -447,9 +428,7 @@ with st.sidebar:
 # Tabs
 # ─────────────────────────────────────────────────────────────────────
 
-tab_upload, tab_pipeline, tab_run = st.tabs(
-    ["Upload & Configure", "Pipeline Overview", "Run & Results"]
-)
+tab_upload, tab_pipeline, tab_run = st.tabs(["Upload & Configure", "Pipeline Overview", "Run & Results"])
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -496,10 +475,7 @@ with tab_upload:
             st.session_state.sample_name = sample_names[0]
         st.session_state.sample_names = sample_names
 
-        st.success(
-            f"**{len(uploaded_files)} genome(s) loaded:** "
-            + ", ".join(f.name for f in uploaded_files)
-        )
+        st.success(f"**{len(uploaded_files)} genome(s) loaded:** " + ", ".join(f.name for f in uploaded_files))
 
         # Extract organism names from GenBank files (local parsing only, no API)
         # Taxonomy resolution (NCBI API) is deferred to when the user configures
@@ -525,9 +501,7 @@ with tab_upload:
                     if not org_name or len(org_name.split()) < 2:
                         for feat in record.features:
                             if feat.type == "source":
-                                src_org = feat.qualifiers.get("organism", [""])[
-                                    0
-                                ].strip()
+                                src_org = feat.qualifiers.get("organism", [""])[0].strip()
                                 if src_org and len(src_org.split()) >= 2:
                                     org_name = src_org
                                 break
@@ -536,12 +510,7 @@ with tab_upload:
                         for sfx in ("_genomic", "_protein", "_cds", "_rna"):
                             stem = stem.replace(sfx, "")
                         parts = stem.replace("_", " ").split()
-                        if (
-                            len(parts) >= 2
-                            and parts[0][0].isupper()
-                            and parts[1][0].islower()
-                            and parts[1].isalpha()
-                        ):
+                        if len(parts) >= 2 and parts[0][0].isupper() and parts[1][0].islower() and parts[1].isalpha():
                             org_name = f"{parts[0]} {parts[1]}"
                     if org_name:
                         per_genome_orgs[f.name] = org_name
@@ -634,9 +603,7 @@ with tab_upload:
             prog_files = sorted(_glob.glob(os.path.join(ssign_dir, "*_progress.json")))
             # Legacy: progress files in outdir root
             if not prog_files:
-                prog_files = sorted(
-                    _glob.glob(os.path.join(outdir_val, "*_progress.json"))
-                )
+                prog_files = sorted(_glob.glob(os.path.join(outdir_val, "*_progress.json")))
             if not prog_files:
                 legacy = os.path.join(outdir_val, "ssign_progress.json")
                 if os.path.exists(legacy):
@@ -656,11 +623,7 @@ with tab_upload:
                 total_steps += len(prev_steps)
                 sid = prev.get("sample_id", "unknown")
                 latest_time = prev.get("timestamp", latest_time)
-                status = (
-                    "complete"
-                    if n_done == len(prev_steps)
-                    else f"{n_done}/{len(prev_steps)} steps"
-                )
+                status = "complete" if n_done == len(prev_steps) else f"{n_done}/{len(prev_steps)} steps"
                 genome_summaries.append(f"- **{sid}**: {status}")
                 # Keep the first genome's config as representative
                 if not saved_config and prev.get("config"):
@@ -716,13 +679,9 @@ with tab_upload:
                         st.session_state[session_key] = val
                         restored.append(session_key)
                 if restored:
-                    st.caption(
-                        f"Restored settings from previous run: {', '.join(restored)}"
-                    )
+                    st.caption(f"Restored settings from previous run: {', '.join(restored)}")
             if run_mode and "Selective" in run_mode:
-                st.markdown(
-                    "**Select steps to rerun** (unchecked = keep previous result):"
-                )
+                st.markdown("**Select steps to rerun** (unchecked = keep previous result):")
                 cols = st.columns(3)
                 for i, step in enumerate(prev_steps):
                     with cols[i % 3]:
@@ -834,8 +793,7 @@ with tab_pipeline:
                     1.0,
                     0.8,
                     0.05,
-                    help="Minimum probability for a protein to be called extracellular "
-                    "by DeepLocPro.",
+                    help="Minimum probability for a protein to be called extracellular by DeepLocPro.",
                     key="conf",
                 )
             with pc3:
@@ -851,9 +809,7 @@ with tab_pipeline:
                 )
 
         # ── Whole-genome prediction option ──
-        with st.expander(
-            "Advanced: Run predictions on entire proteome", expanded=False
-        ):
+        with st.expander("Advanced: Run predictions on entire proteome", expanded=False):
             st.warning(
                 "By default, predictions run only on proteins near detected secretion "
                 "systems (typically 50-200 proteins per genome). Enabling whole-genome "
@@ -943,16 +899,14 @@ with tab_pipeline:
                 "Enable SignalP 6.0",
                 value=False,
                 key="run_signalp",
-                help="Adds signal peptide predictions as an additional layer of evidence "
-                "for secretion.",
+                help="Adds signal peptide predictions as an additional layer of evidence for secretion.",
             )
             if run_signalp:
                 sp_mode = st.radio(
                     "Running mode",
                     ["BioLib cloud (no install needed)", "Local install (DTU license)"],
                     key="sp_mode",
-                    help="BioLib cloud: free, ~2-5 min per genome. "
-                    "Local: faster, requires free DTU academic license.",
+                    help="BioLib cloud: free, ~2-5 min per genome. Local: faster, requires free DTU academic license.",
                 )
                 if "Local" in sp_mode:
                     sp_found = shutil.which("signalp6") is not None
@@ -1004,12 +958,8 @@ with tab_pipeline:
 
             deepsece_available = True
             # Check if the model checkpoint exists (~2.5 GB)
-            _dse_ckpt = os.path.join(
-                os.path.expanduser("~"), ".ssign", "models", "deepsece_checkpoint.pt"
-            )
-            deepsece_checkpoint_ok = (
-                os.path.isfile(_dse_ckpt) and os.path.getsize(_dse_ckpt) > 100_000_000
-            )
+            _dse_ckpt = os.path.join(os.path.expanduser("~"), ".ssign", "models", "deepsece_checkpoint.pt")
+            deepsece_checkpoint_ok = os.path.isfile(_dse_ckpt) and os.path.getsize(_dse_ckpt) > 100_000_000
         except ImportError:
             pass
 
@@ -1138,13 +1088,9 @@ with tab_pipeline:
 
                 if detected_organisms:
                     if len(detected_organisms) == 1:
-                        st.info(
-                            f"Detected organism: **{next(iter(detected_organisms))}**"
-                        )
+                        st.info(f"Detected organism: **{next(iter(detected_organisms))}**")
                     else:
-                        org_list = ", ".join(
-                            f"*{o}*" for o in sorted(detected_organisms)
-                        )
+                        org_list = ", ".join(f"*{o}*" for o in sorted(detected_organisms))
                         st.info(
                             f"Detected organisms: {org_list}\n\n"
                             "Taxonomy exclusion will be applied **per genome** — each "
@@ -1177,8 +1123,7 @@ with tab_pipeline:
                         "Enter NCBI taxonomy ID(s)",
                         key="blastp_taxid",
                         placeholder="e.g. 339 or 339,340,338",
-                        help="Comma-separate multiple taxonomy IDs to exclude "
-                        "several organisms.",
+                        help="Comma-separate multiple taxonomy IDs to exclude several organisms.",
                     )
                 else:
                     st.session_state.blastp_exclusion_level = "none"
@@ -1244,8 +1189,7 @@ with tab_pipeline:
                     40,
                     5,
                     key="hhpred_min_prob",
-                    help="Minimum HHpred probability to keep a hit. "
-                    "Default 40% balances sensitivity and specificity.",
+                    help="Minimum HHpred probability to keep a hit. Default 40% balances sensitivity and specificity.",
                 )
 
         # ── InterProScan ──
@@ -1289,8 +1233,7 @@ with tab_pipeline:
 
         st.markdown("**Coming in v1.0.0**")
         st.caption(
-            "The following tool will be integrated as a first-class "
-            "annotation source in v1.0.0. Disabled for now."
+            "The following tool will be integrated as a first-class annotation source in v1.0.0. Disabled for now."
         )
 
         col_check, col_info = st.columns([1.5, 3.5])
@@ -1311,8 +1254,7 @@ with tab_pipeline:
 
         st.subheader("Stage 4: Generate Data & Figures")
         st.markdown(
-            "Produces result tables and summary figures for the identified "
-            "secreted proteins and their annotations.",
+            "Produces result tables and summary figures for the identified secreted proteins and their annotations.",
             help="Figures are saved as SVG and PNG to the output directory. "
             "All results are also exported as CSV tables.",
         )
@@ -1329,9 +1271,7 @@ with tab_pipeline:
                 value=True,
                 key="fig_substrate_count",
             )
-            st.checkbox(
-                "Functional annotation summary", value=True, key="fig_func_summary"
-            )
+            st.checkbox("Functional annotation summary", value=True, key="fig_func_summary")
 
         st.markdown("---")
 
@@ -1367,8 +1307,7 @@ with tab_pipeline:
                     70,
                     5,
                     key="og_min_qcov",
-                    help="Minimum query coverage to consider a BLASTp hit "
-                    "as an ortholog relationship. Default 70%.",
+                    help="Minimum query coverage to consider a BLASTp hit as an ortholog relationship. Default 70%.",
                 )
         else:
             st.info(
@@ -1403,8 +1342,7 @@ with tab_run:
 
         if can_run:
             st.success(
-                f"Ready to run on **{len(uploaded_files)} genome(s)**: "
-                + ", ".join(uf.name for uf in uploaded_files)
+                f"Ready to run on **{len(uploaded_files)} genome(s)**: " + ", ".join(uf.name for uf in uploaded_files)
             )
         else:
             for issue in issues:
@@ -1436,11 +1374,7 @@ with tab_run:
         # Per-genome time breakdown
         base_min = 5  # MacSyFinder + local steps
         dlp_min = max(5, est_neighborhood * 6 / 60)  # ~6s per protein
-        sp_min = (
-            max(3, est_neighborhood * 3 / 60)
-            if st.session_state.get("run_signalp")
-            else 0
-        )
+        sp_min = max(3, est_neighborhood * 3 / 60) if st.session_state.get("run_signalp") else 0
         dse_min = 3 if st.session_state.get("run_deepsece") else 0
         # Prediction tools run in parallel — take the max
         prediction_min = max(dlp_min, sp_min, dse_min)
@@ -1465,9 +1399,7 @@ with tab_run:
                 ann_tools.append(f"HHpred ~{hh_min:.0f} min")
             if iprs_min:
                 ann_tools.append(f"InterProScan ~{iprs_min:.0f} min")
-            time_parts.append(
-                f"Annotations (parallel: {', '.join(ann_tools)}): ~{annotation_min:.0f} min"
-            )
+            time_parts.append(f"Annotations (parallel: {', '.join(ann_tools)}): ~{annotation_min:.0f} min")
 
         for t in time_parts:
             st.markdown(f"- {t}")
@@ -1539,9 +1471,7 @@ with tab_run:
                 key="resume_run",
                 help="Steps that completed successfully will be skipped.",
             )
-            st.caption(
-                "Previous progress detected. Configure run mode in the Upload & Configure tab for more options."
-            )
+            st.caption("Previous progress detected. Configure run mode in the Upload & Configure tab for more options.")
         elif "Resume" in run_mode:
             st.info("Resuming from previous run — completed steps will be skipped.")
             st.session_state.resume_run = True
@@ -1549,9 +1479,7 @@ with tab_run:
             st.info("Starting fresh — all steps will rerun.")
             st.session_state.resume_run = False
         elif "Selective" in run_mode:
-            st.info(
-                "Selective rerun — only checked steps from the Upload & Configure tab will rerun."
-            )
+            st.info("Selective rerun — only checked steps from the Upload & Configure tab will rerun.")
             st.session_state.resume_run = True
         else:
             st.session_state.resume_run = False
@@ -1606,8 +1534,18 @@ with tab_run:
             st.session_state.running = True
             st.session_state.results = []
 
+            # Clean up any previous run's input tmpdir before staging new files.
+            # Pattern: we create the tmpdir here and clean it after the pipeline
+            # completes (~330 lines below); on Streamlit rerun-after-crash this
+            # block clears the previous run's stash so we never leak more than
+            # one staged tmpdir at a time.
+            prev_tmpdir = st.session_state.pop("_input_tmpdir", None)
+            if prev_tmpdir and os.path.isdir(prev_tmpdir):
+                shutil.rmtree(prev_tmpdir, ignore_errors=True)
+
             # Write uploaded files to temp directory (preserve original filenames)
             tmpdir = tempfile.mkdtemp(prefix="ssign_input_")
+            st.session_state["_input_tmpdir"] = tmpdir
             input_paths = []
             original_filenames = []
             for uf in uploaded_files:
@@ -1636,11 +1574,7 @@ with tab_run:
                 else:
                     sample_id = st.session_state.get("sample_name", "sample")
 
-                orig_fname = (
-                    original_filenames[file_idx]
-                    if file_idx < len(original_filenames)
-                    else ""
-                )
+                orig_fname = original_filenames[file_idx] if file_idx < len(original_filenames) else ""
                 genome_taxid = _resolve_blastp_taxid(orig_fname)
 
                 config = PipelineConfig(
@@ -1650,25 +1584,17 @@ with tab_run:
                     outdir=st.session_state.get("outdir_input", "./results"),
                     run_bakta=st.session_state.get("use_bakta", False),
                     bakta_db=st.session_state.get("bakta_db_path", ""),
-                    use_input_annotations=st.session_state.get(
-                        "use_input_annotations", False
-                    ),
+                    use_input_annotations=st.session_state.get("use_input_annotations", False),
                     wholeness_threshold=st.session_state.get("wholeness", 0.8),
-                    excluded_systems=st.session_state.get(
-                        "excluded", ["Flagellum", "Tad", "T3SS"]
-                    ),
+                    excluded_systems=st.session_state.get("excluded", ["Flagellum", "Tad", "T3SS"]),
                     conf_threshold=st.session_state.get("conf", 0.8),
                     proximity_window=st.session_state.get("window", 3),
                     required_fraction_correct=st.session_state.get("frac", 0.8),
-                    deeplocpro_mode="local"
-                    if "Local" in st.session_state.get("dlp_mode", "")
-                    else "remote",
+                    deeplocpro_mode="local" if "Local" in st.session_state.get("dlp_mode", "") else "remote",
                     deeplocpro_path=st.session_state.get("dlp_path", ""),
                     skip_deepsece=not st.session_state.get("run_deepsece", False),
                     skip_signalp=not st.session_state.get("run_signalp", False),
-                    signalp_mode="local"
-                    if "Local" in st.session_state.get("sp_mode", "")
-                    else "remote",
+                    signalp_mode="local" if "Local" in st.session_state.get("sp_mode", "") else "remote",
                     signalp_path=st.session_state.get("sp_path", ""),
                     dlp_whole_genome=st.session_state.get("dlp_whole_genome", False),
                     dse_whole_genome=st.session_state.get("dse_whole_genome", False),
@@ -1682,9 +1608,7 @@ with tab_run:
                     skip_hhsuite=not st.session_state.get("run_hh", False),
                     hhsuite_pfam_db="",
                     hhsuite_pdb70_db="",
-                    hhpred_min_probability=float(
-                        st.session_state.get("hhpred_min_prob", 40)
-                    ),
+                    hhpred_min_probability=float(st.session_state.get("hhpred_min_prob", 40)),
                     skip_interproscan=not st.session_state.get("run_iprs", True),
                     interproscan_db="",
                     skip_plmblast=not st.session_state.get("run_plm", False),
@@ -1693,18 +1617,12 @@ with tab_run:
                     fig_category=st.session_state.get("fig_category", True),
                     fig_ss_comp=st.session_state.get("fig_ss_comp", True),
                     fig_tool_heatmap=st.session_state.get("fig_tool_heatmap", True),
-                    fig_substrate_count=st.session_state.get(
-                        "fig_substrate_count", True
-                    ),
+                    fig_substrate_count=st.session_state.get("fig_substrate_count", True),
                     fig_func_summary=st.session_state.get("fig_func_summary", True),
-                    interproscan_evalue=float(
-                        st.session_state.get("iprs_evalue", 1e-5)
-                    ),
+                    interproscan_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
                     deepsece_min_prob=float(st.session_state.get("dse_min_prob", 0.8)),
                     signalp_min_prob=float(st.session_state.get("sp_min_prob", 0.5)),
-                    ortholog_min_pident=float(
-                        st.session_state.get("og_min_pident", 40)
-                    ),
+                    ortholog_min_pident=float(st.session_state.get("og_min_pident", 40)),
                     ortholog_min_qcov=float(st.session_state.get("og_min_qcov", 70)),
                     cpu_per_genome=_cpu_per_genome,
                 )
@@ -1712,9 +1630,7 @@ with tab_run:
 
                 # Create per-genome progress UI
                 if n_genomes_to_run > 1:
-                    st.markdown(
-                        f"**Genome {file_idx + 1}/{n_genomes_to_run}: {sample_id}**"
-                    )
+                    st.markdown(f"**Genome {file_idx + 1}/{n_genomes_to_run}: {sample_id}**")
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 genome_progress.append((progress_bar, status_text))
@@ -1753,11 +1669,7 @@ with tab_run:
                 def _update_estimate():
                     """Recalculate and display time estimate based on discovered protein counts."""
                     with _counts_lock:
-                        counted = [
-                            c
-                            for c in _genome_counts.values()
-                            if c.get("secreted") is not None
-                        ]
+                        counted = [c for c in _genome_counts.values() if c.get("secreted") is not None]
                         done = sum(1 for c in _genome_counts.values() if c.get("done"))
                         remaining = n_genomes_to_run - done
 
@@ -1778,12 +1690,8 @@ with tab_run:
                     blastp_enabled = st.session_state.get("run_blastp", False)
                     iprs_enabled = st.session_state.get("run_iprs", False)
                     other_ann_min = max(
-                        total_sec_remaining * _SEC_PER_SEC_BLAST / 60 / 5
-                        if blastp_enabled
-                        else 0,
-                        total_sec_remaining * _SEC_PER_SEC_IPRS / 60 / 5
-                        if iprs_enabled
-                        else 0,
+                        total_sec_remaining * _SEC_PER_SEC_BLAST / 60 / 5 if blastp_enabled else 0,
+                        total_sec_remaining * _SEC_PER_SEC_IPRS / 60 / 5 if iprs_enabled else 0,
                     )
 
                     elapsed = (_time.monotonic() - _start_time) / 60
@@ -1823,23 +1731,17 @@ with tab_run:
                             m = _re.search(r"(\d+)\s+neighborhood proteins", msg)
                             if m:
                                 with _counts_lock:
-                                    _genome_counts.setdefault(idx, {})[
-                                        "neighborhood"
-                                    ] = int(m.group(1))
+                                    _genome_counts.setdefault(idx, {})["neighborhood"] = int(m.group(1))
 
                             m = _re.search(r"(\d+)\s+secreted proteins", msg)
                             if m:
                                 with _counts_lock:
-                                    _genome_counts.setdefault(idx, {})["secreted"] = (
-                                        int(m.group(1))
-                                    )
+                                    _genome_counts.setdefault(idx, {})["secreted"] = int(m.group(1))
                                 _update_estimate()
                         except Exception:
                             pass
 
-                    runner = PipelineRunner(
-                        cfg, progress_callback=_update, api_semaphores=_api_sem
-                    )
+                    runner = PipelineRunner(cfg, progress_callback=_update, api_semaphores=_api_sem)
                     result = runner.run(resume=resume)
 
                     with _counts_lock:
@@ -1849,10 +1751,7 @@ with tab_run:
                     return result
 
                 with ThreadPoolExecutor(max_workers=n_genomes_to_run) as executor:
-                    futures = {
-                        executor.submit(_run_one_genome, i): i
-                        for i in range(n_genomes_to_run)
-                    }
+                    futures = {executor.submit(_run_one_genome, i): i for i in range(n_genomes_to_run)}
                     for future in as_completed(futures):
                         idx = futures[future]
                         try:
@@ -1879,27 +1778,11 @@ with tab_run:
                         if m:
                             n_sec = int(m.group(1))
                             elapsed = (_time.monotonic() - _start_time) / 60
-                            hh_min = (
-                                n_sec * 260 / 60
-                                if st.session_state.get("run_hh")
-                                else 0
-                            )
-                            blast_min = (
-                                n_sec * 30 / 60
-                                if st.session_state.get("run_blastp")
-                                else 0
-                            )
-                            iprs_min = (
-                                n_sec * 15 / 60
-                                if st.session_state.get("run_iprs")
-                                else 0
-                            )
+                            hh_min = n_sec * 260 / 60 if st.session_state.get("run_hh") else 0
+                            blast_min = n_sec * 30 / 60 if st.session_state.get("run_blastp") else 0
+                            iprs_min = n_sec * 15 / 60 if st.session_state.get("run_iprs") else 0
                             ann_min = max(hh_min, blast_min, iprs_min)
-                            est_str = (
-                                f"~{ann_min:.0f} min"
-                                if ann_min < 60
-                                else f"~{ann_min / 60:.1f} hr"
-                            )
+                            est_str = f"~{ann_min:.0f} min" if ann_min < 60 else f"~{ann_min / 60:.1f} hr"
                             estimate_box.info(
                                 f"**{n_sec} secreted proteins found** | "
                                 f"Elapsed: {elapsed:.0f} min | "
@@ -1908,9 +1791,7 @@ with tab_run:
                     except Exception:
                         pass
 
-                runner = PipelineRunner(
-                    genome_configs[0], progress_callback=_update_single
-                )
+                runner = PipelineRunner(genome_configs[0], progress_callback=_update_single)
                 with st.spinner("Running ssign pipeline..."):
                     results = runner.run(resume=resume)
                 all_results.extend(results)
@@ -1923,6 +1804,12 @@ with tab_run:
             # ── Merge per-genome outputs into combined files ──
             sample_names_run = [c.sample_id for c in genome_configs]
             _merge_genome_outputs(outdir_final, sample_names_run)
+
+            # Pipeline finished (success or partial) — clean up the staged
+            # input tmpdir; the runner has copied everything it needs into
+            # outdir / work_dir.
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            st.session_state.pop("_input_tmpdir", None)
 
             # Show results summary
             n_success = sum(1 for r in all_results if r.success)
@@ -1974,17 +1861,11 @@ with tab_run:
                                 if "# Secreted Proteins" in line:
                                     in_proteins = True
                                     continue
-                                if line.startswith("#") or (
-                                    not line.strip() and in_proteins
-                                ):
+                                if line.startswith("#") or (not line.strip() and in_proteins):
                                     if in_proteins:
                                         break
                                     continue
-                                if (
-                                    in_proteins
-                                    and line.strip()
-                                    and not line.startswith("locus_tag")
-                                ):
+                                if in_proteins and line.strip() and not line.startswith("locus_tag"):
                                     count += 1
                             n_secreted = str(count) if count > 0 else "\u2014"
                         except Exception:
