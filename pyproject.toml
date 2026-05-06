@@ -163,6 +163,51 @@ omit = [
     "src/ssign_app/scripts/plm_effector/utils.py",
 ]
 
+[tool.mypy]
+# Bug-finder configuration. Type-annotation enforcement
+# (`disallow_untyped_defs` / `disallow_untyped_calls`) is deliberately OFF
+# — the v1.0.0 codebase pre-dates type hints and the goal here is to catch
+# real bugs without a multi-week annotation-writing pass. `check_untyped_defs`
+# is the key flag: mypy still inspects the bodies of untyped functions and
+# reports type errors inside them.
+python_version = "3.10"
+files = ["src/ssign_app/scripts"]
+# Vendored upstream PLM-Effector model code — same exclusion as coverage.
+exclude = "src/ssign_app/scripts/plm_effector/"
+check_untyped_defs = true
+strict_equality = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+no_implicit_reexport = true
+
+# Libraries without type stubs. mypy can't see into them, so calls become
+# `Any` — silence the missing-import noise but lose type-checking on those
+# call sites. Stubs that ARE installed (pandas-stubs, types-requests,
+# types-PyYAML, types-setuptools, types-networkx) are picked up automatically.
+[[tool.mypy.overrides]]
+module = [
+    "Bio.*",
+    "biolib.*",
+    "DeepSecE.*",
+    "esm",
+    "goatools.*",
+    "macsylib.*",
+    "macsypy.*",
+    "matplotlib.*",
+    "obonet",
+    "pyhmmer.*",
+    "pyrodigal",
+    "scipy.*",
+    "seaborn",
+    "streamlit.*",
+    "taxopy",
+    "torch.*",
+]
+ignore_missing_imports = true
+
 [tool.ruff]
 # Default 88 is too tight for the bioinformatics-style identifiers and
 # embedded f-string error messages this codebase uses; 120 is a common
