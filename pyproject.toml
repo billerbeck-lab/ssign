@@ -145,6 +145,24 @@ markers = [
     "integration: per-tool or whole-pipeline tests that require external tools to be installed. Skipped automatically when a tool or its database is missing. Run explicitly with `pytest -m integration`.",
 ]
 
+[tool.coverage.run]
+source = ["src/ssign_app/scripts"]
+omit = [
+    # Output-side modules — visual / formatting layers that are exercised
+    # by integration tests and the golden-output E2E test, not unit tests.
+    "src/ssign_app/scripts/generate_figures.py",
+    "src/ssign_app/scripts/generate_report.py",
+    # Vendored upstream PLM-Effector model code (MIT, zhengdd0422/PLM-Effector
+    # — see plan addendum C). Tested at the boundary via predict_api.py
+    # and the integration suite; we don't unit-test third-party model
+    # internals.
+    "src/ssign_app/scripts/plm_effector/ensemble.py",
+    "src/ssign_app/scripts/plm_effector/feature_extraction.py",
+    "src/ssign_app/scripts/plm_effector/inference.py",
+    "src/ssign_app/scripts/plm_effector/models.py",
+    "src/ssign_app/scripts/plm_effector/utils.py",
+]
+
 [tool.ruff]
 # Default 88 is too tight for the bioinformatics-style identifiers and
 # embedded f-string error messages this codebase uses; 120 is a common
