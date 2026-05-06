@@ -1,0 +1,8 @@
+locus_tag	predicted_localization	extracellular_prob	periplasmic_prob	outer_membrane_prob	cytoplasmic_prob	product
+BIMENO_04454	Cytoplasmic	0.0059	0.005	0.0247	0.224	
+BIMENO_04455	Cytoplasmic	0.0035	0.0406	0.0096	0.8478	
+BIMENO_04456	Cytoplasmic	0.0009	0.0002	0.0062	0.9916	
+BIMENO_04457	Extracellular	0.6014	0.0707	0.0977	0.0006	
+BIMENO_04458	Periplasmic	0.0126	0.0202	0.0106	0.0004	
+BIMENO_04459	Periplasmic	0.0215	0.0341	0.0178	0.0024	
+BIMENO_04460	Extracellular	0.0285	0.0164	0.0244	0.0031	

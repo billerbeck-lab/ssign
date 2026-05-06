@@ -1,0 +1,2 @@
+sample_id	sys_id	ss_type	locus_tag	gene_name	gene_status	wholeness	excluded
+t5ass_minimal	t5ass_minimal_proteins_T5aSS_1	T5aSS	BIMENO_04457	T5aSS_PF03797	mandatory	1.0	False

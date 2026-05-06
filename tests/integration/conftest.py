@@ -10,6 +10,7 @@ Run the integration suite explicitly with:
     pytest -m integration tests/integration/
 """
 
+import importlib.util
 import os
 import shutil
 import sys
@@ -17,25 +18,17 @@ import tempfile
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
+SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
 sys.path.insert(0, SCRIPTS_DIR)
 
 
-_FIXTURES_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "fixtures")
-)
-T1SS_FIXTURE_GBFF = os.path.join(
-    _FIXTURES_DIR, "Xanthobacter_tagetidis_ATCC_700314_contig_87.gbff"
-)
+_FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "fixtures"))
+T1SS_FIXTURE_GBFF = os.path.join(_FIXTURES_DIR, "Xanthobacter_tagetidis_ATCC_700314_contig_87.gbff")
 # Tighter ~20 kb / 9 CDS window around BIMENO_04457 (T5aSS autotransporter)
 # + flanking virulence factors. Use this for fast wrapper iteration on
 # CPU-only machines; the full 213 kb fixture takes ~6 hours just on
 # EggNOG --sensitive --iterate.
-T5ASS_MINIMAL_FIXTURE_GBFF = os.path.join(
-    _FIXTURES_DIR, "Xanthobacter_T5aSS_minimal.gbff"
-)
+T5ASS_MINIMAL_FIXTURE_GBFF = os.path.join(_FIXTURES_DIR, "Xanthobacter_T5aSS_minimal.gbff")
 
 
 @pytest.fixture
@@ -161,12 +154,9 @@ def dtu_test_proteins(tmp_dir):
 def skip_unless_biolib():
     """Skip a test unless `pybiolib` is importable. Used by DLP+SignalP
     remote-mode integration tests."""
-    import importlib.util
 
     if importlib.util.find_spec("biolib") is None:
-        pytest.skip(
-            "pybiolib not installed; install with `pip install ssign[extended]`"
-        )
+        pytest.skip("pybiolib not installed; install with `pip install ssign[extended]`")
 
 
 def skip_unless_dtu_local(env_var: str, tool_label: str) -> str:
@@ -179,14 +169,50 @@ def skip_unless_dtu_local(env_var: str, tool_label: str) -> str:
     return path
 
 
+def _local_dlp_dir_or_none() -> str | None:
+    """Return the SSIGN_DEEPLOCPRO_PATH dir if it contains a `deeplocpro`
+    binary, else None."""
+    path = os.environ.get("SSIGN_DEEPLOCPRO_PATH", "").strip()
+    if path and os.path.isfile(os.path.join(path, "deeplocpro")):
+        return path
+    return None
+
+
 def dlp_pipeline_kwargs() -> dict:
     """Return PipelineConfig kwargs for DeepLocPro: local if
     SSIGN_DEEPLOCPRO_PATH points at a dir containing the `deeplocpro`
     script, else remote BioLib."""
-    path = os.environ.get("SSIGN_DEEPLOCPRO_PATH", "").strip()
-    if path and os.path.isfile(os.path.join(path, "deeplocpro")):
+    path = _local_dlp_dir_or_none()
+    if path:
         return {"deeplocpro_mode": "local", "deeplocpro_path": path}
     return {"deeplocpro_mode": "remote"}
+
+
+def skip_unless_pipeline_prereqs_ready(*, require_dlp_local: bool = False) -> str | None:
+    """Skip the current test unless every whole-pipeline prerequisite is met.
+
+    Returns the local DLP directory if `require_dlp_local=True`, else None.
+    """
+    if os.environ.get("SSIGN_RUN_FULL_PIPELINE") != "1":
+        pytest.skip(
+            "SSIGN_RUN_FULL_PIPELINE=1 not set — whole-pipeline test is opt-in (full pipeline takes a few minutes)."
+        )
+
+    if importlib.util.find_spec("macsylib") is None and importlib.util.find_spec("macsypy") is None:
+        pytest.skip("MacSyFinder (macsylib/macsypy) not installed")
+
+    if shutil.which("macsyfinder") is None:
+        pytest.skip("macsyfinder binary not on PATH")
+
+    if require_dlp_local:
+        dlp = _local_dlp_dir_or_none()
+        if dlp is None:
+            pytest.skip(
+                "SSIGN_DEEPLOCPRO_PATH must point at a directory containing the "
+                "`deeplocpro` binary (DTU academic license required)."
+            )
+        return dlp
+    return None
 
 
 def read_tsv(path: str) -> list:

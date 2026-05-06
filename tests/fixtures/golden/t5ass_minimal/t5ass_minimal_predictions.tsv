@@ -1,0 +1,8 @@
+locus_tag	sample_id	predicted_localization	dlp_extracellular_prob	dlp_max_localization	dlp_max_probability	periplasmic_prob	outer_membrane_prob	cytoplasmic_prob	dse_ss_type	dse_max_prob	dse_T3SS_flagged	plm_effector_secreted	plm_effector_type	signalp_prediction	signalp_probability	signalp_cs_position	signalp_supports_secretion	is_secreted	n_prediction_tools_agreeing	secretion_evidence	product
+BIMENO_04454	t5ass_minimal	Cytoplasmic	0.0059	Cytoplasmic	0.0059	0.005	0.0247	0.224	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04455	t5ass_minimal	Cytoplasmic	0.0035	Cytoplasmic	0.0035	0.0406	0.0096	0.8478	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04456	t5ass_minimal	Cytoplasmic	0.0009	Cytoplasmic	0.0009	0.0002	0.0062	0.9916	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04457	t5ass_minimal	Extracellular	0.6014	Extracellular	0.6014	0.0707	0.0977	0.0006	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04458	t5ass_minimal	Periplasmic	0.0126	Periplasmic	0.0126	0.0202	0.0106	0.0004	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04459	t5ass_minimal	Periplasmic	0.0215	Periplasmic	0.0215	0.0341	0.0178	0.0024	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		
+BIMENO_04460	t5ass_minimal	Extracellular	0.0285	Extracellular	0.0285	0.0164	0.0244	0.0031	Non-secreted	0.0	False	False		OTHER	0.0		False	False	0		

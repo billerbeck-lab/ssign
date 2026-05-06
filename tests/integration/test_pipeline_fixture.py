@@ -25,9 +25,7 @@ Run explicitly with:
         tests/integration/test_pipeline_fixture.py
 """
 
-import importlib
 import os
-import shutil
 import sys
 
 import pytest
@@ -39,27 +37,7 @@ SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "s
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from conftest import dlp_pipeline_kwargs  # noqa: E402
-
-
-def _skip_unless_pipeline_prereqs_ready():
-    """Skip the current test unless every whole-pipeline prerequisite is met."""
-    if os.environ.get("SSIGN_RUN_FULL_PIPELINE") != "1":
-        pytest.skip(
-            "SSIGN_RUN_FULL_PIPELINE=1 not set — whole-pipeline test is "
-            "opt-in because it takes several minutes; by default it hits "
-            "the DTU webface for DeepLocPro, or runs DLP locally if "
-            "SSIGN_DEEPLOCPRO_PATH is set."
-        )
-
-    # MacSyFinder 2.x renamed the Python package: `macsypy` (legacy) →
-    # `macsylib` (current). Accept either to keep this test working
-    # across MacSyFinder versions ssign deps support.
-    if importlib.util.find_spec("macsylib") is None and importlib.util.find_spec("macsypy") is None:
-        pytest.skip("MacSyFinder (macsylib/macsypy) not installed")
-
-    if shutil.which("macsyfinder") is None:
-        pytest.skip("macsyfinder binary not on PATH")
+from conftest import dlp_pipeline_kwargs, skip_unless_pipeline_prereqs_ready  # noqa: E402
 
 
 def _make_t1ss_config(tmp_dir, t1ss_fixture_gbff):
@@ -69,6 +47,7 @@ def _make_t1ss_config(tmp_dir, t1ss_fixture_gbff):
     default) — keeps the test fast and self-contained.
     """
     from ssign_app.core.runner import PipelineConfig
+
     return PipelineConfig(
         input_path=t1ss_fixture_gbff,
         sample_id="t1ss_fixture",
@@ -93,7 +72,7 @@ def _make_t1ss_config(tmp_dir, t1ss_fixture_gbff):
 
 class TestPipelineOnT1SSFixture:
     def test_pipeline_runs_and_detects_t1ss(self, tmp_dir, t1ss_fixture_gbff):
-        _skip_unless_pipeline_prereqs_ready()
+        skip_unless_pipeline_prereqs_ready()
 
         from ssign_app.core.runner import PipelineRunner
 
@@ -101,9 +80,7 @@ class TestPipelineOnT1SSFixture:
         results = runner.run(resume=False)
 
         failed = [r for r in results if not r.success]
-        assert not failed, "Pipeline steps failed:\n" + "\n".join(
-            f"  - {r.name}: {r.message}" for r in failed
-        )
+        assert not failed, "Pipeline steps failed:\n" + "\n".join(f"  - {r.name}: {r.message}" for r in failed)
 
         # Output directory should be populated
         assert os.listdir(tmp_dir), "Output directory is empty after pipeline run"
@@ -115,8 +92,7 @@ class TestPipelineOnT1SSFixture:
         # via the runner's file registry, not by guessing the path.
         proteins_path = runner.files.get("proteins")
         assert proteins_path and os.path.exists(proteins_path), (
-            f"Expected protein FASTA missing from runner.files. "
-            f"runner.files keys: {list(runner.files.keys())}"
+            f"Expected protein FASTA missing from runner.files. runner.files keys: {list(runner.files.keys())}"
         )
         assert os.path.getsize(proteins_path) > 0
 
@@ -124,7 +100,7 @@ class TestPipelineOnT1SSFixture:
         """Known T1SS substrate BIMENO_04457 should appear in at least one
         ssign output file. This is the headline biological assertion — if
         it fails, the pipeline has regressed on real secretion biology."""
-        _skip_unless_pipeline_prereqs_ready()
+        skip_unless_pipeline_prereqs_ready()
 
         from ssign_app.core.runner import PipelineRunner
 

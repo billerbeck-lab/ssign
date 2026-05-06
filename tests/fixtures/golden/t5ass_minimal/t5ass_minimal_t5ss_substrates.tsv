@@ -1,0 +1,2 @@
+locus_tag	sample_id	tool	nearby_ss_types	dlp_extracellular_prob	predicted_localization	dlp_max_localization	dlp_max_probability	dse_ss_type	dse_max_prob	signalp_prediction	signalp_probability	signalp_cs_position	product
+BIMENO_04457	t5ass_minimal	T5SS-self	T5aSS	0.6014	Extracellular	Extracellular	0.6014	Non-secreted	0.0	OTHER	0.0		

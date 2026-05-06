@@ -1,0 +1,10 @@
+locus_tag	protein_id	gene	product	contig	start	end	strand
+BIMENO_04454	gnl|Bakta|BIMENO_04454		Glucose-methanol-choline oxidoreductase	Xanthobacter_T5aSS_minimal	15	1635	-
+BIMENO_04455	gnl|Bakta|BIMENO_04455		Thiamine pyrophosphate-binding protein	Xanthobacter_T5aSS_minimal	1638	3327	-
+BIMENO_04456	gnl|Bakta|BIMENO_04456	gntR	GntR family transcriptional regulator	Xanthobacter_T5aSS_minimal	3714	4449	+
+BIMENO_04457	gnl|Bakta|BIMENO_04457		Autotransporter domain-containing protein	Xanthobacter_T5aSS_minimal	4562	9122	-
+BIMENO_04458	gnl|Bakta|BIMENO_04458		Sel1 repeat family protein	Xanthobacter_T5aSS_minimal	9327	11109	-
+BIMENO_04459	gnl|Bakta|BIMENO_04459		Sel1 repeat family protein	Xanthobacter_T5aSS_minimal	11124	12939	-
+BIMENO_04460	gnl|Bakta|BIMENO_04460		Sel1 repeat family protein	Xanthobacter_T5aSS_minimal	13167	14811	-
+BIMENO_04461	gnl|Bakta|BIMENO_04461	srfC	Virulence factor SrfC	Xanthobacter_T5aSS_minimal	14821	17464	-
+BIMENO_04462	gnl|Bakta|BIMENO_04462	srfB	Virulence protein SrfB	Xanthobacter_T5aSS_minimal	17474	20576	-

@@ -1,0 +1,37 @@
+============================================================
+ssign — Secretion-system Identification for Gram Negatives
+============================================================
+
+Total genomes analyzed: 1
+Total substrate candidates: 1
+
+Substrates per secretion system type:
+  T5aSS: 1
+
+Annotation tool coverage:
+  signalp_cs_position: 0/1 (0.0%)
+  signalp_prediction: 1/1 (100.0%)
+  signalp_probability: 1/1 (100.0%)
+
+============================================================
+
+============================================================
+ENRICHMENT ANALYSIS
+============================================================
+
+Enrichment Analysis Summary
+==================================================
+
+Total substrates: 1
+Fisher's exact tests: 1 (0 significant at BH FDR < 0.05)
+Permutation tests (10000 circular shifts): 1 (0 significant at p < 0.05)
+
+Significant enrichments (Fisher's exact, BH FDR < 0.05):
+
+
+------------------------------------------------------------
+Fisher's Exact Test Results
+------------------------------------------------------------
+
+ss_type        category  observed  ss_total  cat_total  total  odds_ratio  pvalue  bh_rank  bh_threshold  significant
+  T5aSS Autotransporter         1         1          1      1         NaN     1.0        1          0.05        False
