@@ -50,6 +50,38 @@ def read_fasta(fasta_path: str | Path) -> dict[str, str]:
     return sequences
 
 
+def read_fasta_records(fasta_path: str | Path):
+    """Stream ``(full_header, sequence)`` tuples from a FASTA file.
+
+    Use when the caller needs the raw header line (e.g. tool output where
+    metadata is encoded after the first whitespace token). Plain
+    ``read_fasta`` keeps only the first token; this preserves everything
+    after the leading ``>``.
+
+    Lazy: yields one record at a time so memory usage is bounded by the
+    longest single sequence.
+    """
+    fasta_path = Path(fasta_path)
+    if not fasta_path.exists():
+        raise FileNotFoundError(f"FASTA file not found: {fasta_path}")
+
+    current_header: str | None = None
+    current_seq: list[str] = []
+    with open(fasta_path) as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith(">"):
+                if current_header is not None:
+                    yield current_header, "".join(current_seq)
+                current_header = line[1:]
+                current_seq = []
+            elif current_header is not None:
+                current_seq.append(line.strip())
+
+    if current_header is not None:
+        yield current_header, "".join(current_seq)
+
+
 def count_sequences(source: str | Path | bytes) -> int:
     """Count records in a FASTA without loading sequences into memory.
 

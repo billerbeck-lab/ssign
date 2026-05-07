@@ -18,7 +18,7 @@ import sys
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.fasta_io import write_fasta  # noqa: E402  # used in main()
+from ssign_lib.fasta_io import read_fasta_records, write_fasta  # noqa: E402  # both used in main()
 
 
 def main():
@@ -31,60 +31,45 @@ def main():
     args = parser.parse_args()
 
     entries = []
-    sequences = {}
+    cleaned: dict[str, str] = {}
 
-    # Parse Prodigal FASTA — headers have coordinates embedded
-    with open(args.proteins) as f:
-        current_id = None
-        current_seq: list[str] = []
-        for line in f:
-            line = line.strip()
-            if line.startswith(">"):
-                if current_id:
-                    sequences[current_id] = "".join(current_seq)
-                # Parse Prodigal header: >contig_N # start # end # strand # attrs
-                parts = line[1:].split(" # ")
-                raw_id = parts[0].strip()
-                start = int(parts[1]) if len(parts) > 1 else 0
-                end = int(parts[2]) if len(parts) > 2 else 0
-                strand_code = int(parts[3]) if len(parts) > 3 else 1
-                strand = "+" if strand_code == 1 else "-"
+    # Prodigal headers: ">contig_N_M # start # end # strand # attrs". The
+    # raw_id is "contig_N_M" (contig name + _gene_num); we split the suffix
+    # off to get the contig and gene_num separately.
+    for header, seq in read_fasta_records(args.proteins):
+        parts = header.split(" # ")
+        raw_id = parts[0].strip()
+        start = int(parts[1]) if len(parts) > 1 else 0
+        end = int(parts[2]) if len(parts) > 2 else 0
+        strand_code = int(parts[3]) if len(parts) > 3 else 1
+        strand = "+" if strand_code == 1 else "-"
 
-                # Extract contig from the ID (Prodigal appends _N to contig name)
-                # e.g., "contig_1_5" means contig "contig_1", gene 5
-                match = re.match(r"^(.+)_(\d+)$", raw_id)
-                if match:
-                    contig = match.group(1)
-                    gene_num = match.group(2)
-                else:
-                    contig = raw_id
-                    gene_num = "0"
+        match = re.match(r"^(.+)_(\d+)$", raw_id)
+        if match:
+            contig = match.group(1)
+            gene_num = match.group(2)
+        else:
+            contig = raw_id
+            gene_num = "0"
 
-                # Create a proper locus_tag
-                locus_tag = f"{args.sample}_{gene_num.zfill(5)}"
-                current_id = locus_tag
+        locus_tag = f"{args.sample}_{gene_num.zfill(5)}"
 
-                entries.append(
-                    {
-                        "locus_tag": locus_tag,
-                        "protein_id": "",
-                        "gene": "",
-                        "product": "hypothetical protein",
-                        "contig": contig,
-                        "start": start - 1,  # Convert to 0-based
-                        "end": end,
-                        "strand": strand,
-                    }
-                )
-                current_seq = []
-            else:
-                current_seq.append(line)
-        if current_id:
-            sequences[current_id] = "".join(current_seq)
+        entries.append(
+            {
+                "locus_tag": locus_tag,
+                "protein_id": "",
+                "gene": "",
+                "product": "hypothetical protein",
+                "contig": contig,
+                "start": start - 1,  # Convert to 0-based
+                "end": end,
+                "strand": strand,
+            }
+        )
+        # Strip Prodigal's trailing * stop-codon marker. write_fasta skips
+        # empty seqs (logs a warning per skip).
+        cleaned[locus_tag] = seq.rstrip("*")
 
-    # Write cleaned FASTA. Strip Prodigal's trailing * before write_fasta
-    # which would otherwise emit it; empty seqs are skipped by write_fasta.
-    cleaned = {e["locus_tag"]: sequences.get(str(e["locus_tag"]), "").rstrip("*") for e in entries}
     write_fasta(cleaned, args.out_proteins)
 
     # Write gene_info TSV

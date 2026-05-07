@@ -3,9 +3,10 @@
 import os
 
 import pytest
-from ssign_lib.fasta_io import (  # noqa: F401  # count_sequences used in TestCountSequences
+from ssign_lib.fasta_io import (  # noqa: F401  # all four used in dedicated test classes below
     count_sequences,
     read_fasta,
+    read_fasta_records,
     write_fasta,
 )
 
@@ -128,3 +129,49 @@ class TestCountSequences:
         # on `XYZ>ABC` mid-line.
         content = b">A\nMKT>frag\n>B\nGGG\n"
         assert count_sequences(content) == 2
+
+
+class TestReadFastaRecords:
+    """read_fasta_records yields (full_header, sequence) tuples — used by
+    prodigal_to_gene_info to parse Prodigal-style headers
+    `>contig_N_M # start # end # strand # attrs` where read_fasta's
+    first-token-only behaviour would discard the metadata."""
+
+    def test_preserves_full_header_after_gt(self, tmp_dir):
+        path = os.path.join(tmp_dir, "x.fasta")
+        with open(path, "w") as f:
+            f.write(">contig_1_5 # 100 # 250 # 1 # ID=1_5;partial=00\nMKT\n")
+        records = list(read_fasta_records(path))
+        assert records == [("contig_1_5 # 100 # 250 # 1 # ID=1_5;partial=00", "MKT")]
+
+    def test_multiple_records(self, tmp_dir):
+        path = os.path.join(tmp_dir, "x.fasta")
+        with open(path, "w") as f:
+            f.write(">A\nMKT\n>B desc\nGGG\n")
+        records = list(read_fasta_records(path))
+        assert records == [("A", "MKT"), ("B desc", "GGG")]
+
+    def test_multi_line_sequence_concatenated(self, tmp_dir):
+        path = os.path.join(tmp_dir, "x.fasta")
+        with open(path, "w") as f:
+            f.write(">A\nMKTLLL\nTLLCAFSV\n")
+        records = list(read_fasta_records(path))
+        assert records == [("A", "MKTLLLTLLCAFSV")]
+
+    def test_empty_file_yields_nothing(self, tmp_dir):
+        path = os.path.join(tmp_dir, "empty.fasta")
+        open(path, "w").close()
+        assert list(read_fasta_records(path)) == []
+
+    def test_missing_file_raises(self, tmp_dir):
+        with pytest.raises(FileNotFoundError):
+            list(read_fasta_records(os.path.join(tmp_dir, "nope.fasta")))
+
+    def test_is_lazy_generator(self, tmp_dir):
+        # Memory bounded by longest single record — confirm by checking that
+        # it returns an iterator, not a materialised list.
+        path = os.path.join(tmp_dir, "x.fasta")
+        with open(path, "w") as f:
+            f.write(">A\nMKT\n")
+        result = read_fasta_records(path)
+        assert hasattr(result, "__next__")
