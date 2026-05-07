@@ -6,10 +6,6 @@ categories the pipeline votes over, plus the agreeing-count math,
 concordance ratio, confidence tiers, and evidence-keywords output.
 """
 
-import os
-import sys
-
-
 from annotation_consensus import (  # noqa: E402, F401
     CATEGORY_PATTERNS,
     classify_description,
@@ -32,9 +28,7 @@ class TestClassifyDescription:
         assert "Adhesin" in classify_description("type IV pilin")
 
     def test_autotransporter_keyword(self):
-        assert "Autotransporter" in classify_description(
-            "Autotransporter domain-containing protein"
-        )
+        assert "Autotransporter" in classify_description("Autotransporter domain-containing protein")
 
     def test_protease_keyword(self):
         assert "Protease" in classify_description("serine protease")
@@ -48,9 +42,7 @@ class TestClassifyDescription:
         assert "Nuclease" in classify_description("DNase I family nuclease")
 
     def test_glycoside_hydrolase_keyword(self):
-        assert "Glycoside hydrolase" in classify_description(
-            "glycoside hydrolase family 18"
-        )
+        assert "Glycoside hydrolase" in classify_description("glycoside hydrolase family 18")
         assert "Glycoside hydrolase" in classify_description("lysozyme")
 
     def test_toxin_keyword(self):
@@ -62,9 +54,7 @@ class TestClassifyDescription:
         assert "Transporter" in classify_description("MFS efflux pump")
 
     def test_secretion_system_keyword(self):
-        assert "Secretion system" in classify_description(
-            "type I secretion system ABC transporter"
-        )
+        assert "Secretion system" in classify_description("type I secretion system ABC transporter")
         assert "Secretion system" in classify_description("VirB4 homologue")
 
     def test_oxidoreductase_keyword(self):
@@ -74,9 +64,7 @@ class TestClassifyDescription:
         assert "Chaperone" in classify_description("usher chaperone")
 
     def test_regulatory_keyword(self):
-        assert "Regulatory" in classify_description(
-            "LysR-family transcriptional regulator"
-        )
+        assert "Regulatory" in classify_description("LysR-family transcriptional regulator")
         assert "Regulatory" in classify_description("two-component response regulator")
 
     def test_hypothetical_keyword(self):
@@ -129,9 +117,7 @@ class TestComputeConsensusSingleTool:
 
 class TestComputeConsensusAgreement:
     def test_two_tools_agree_medium_tier(self):
-        result = compute_consensus(
-            {"BLASTp": "serine protease", "InterProScan": "peptidase domain"}
-        )
+        result = compute_consensus({"BLASTp": "serine protease", "InterProScan": "peptidase domain"})
         assert result["broad_annotation"] == "Protease"
         assert result["n_tools_agreeing"] == 2
         assert result["confidence_tier"] == "Medium"

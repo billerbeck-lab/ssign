@@ -15,11 +15,6 @@ ends up with the same annotation as its representative.
 
 import csv
 import os
-import sys
-
-from hypothesis import given
-from hypothesis import strategies as st
-
 
 from _helpers import write_tsv  # noqa: E402
 from dedup_sequences import (  # noqa: E402
@@ -29,6 +24,8 @@ from dedup_sequences import (  # noqa: E402
     expand_results_dict,
     expand_results_tsv,
 )
+from hypothesis import given
+from hypothesis import strategies as st
 
 # ---------------------------------------------------------------------------
 # deduplicate_dict
