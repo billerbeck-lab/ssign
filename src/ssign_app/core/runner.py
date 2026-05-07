@@ -30,6 +30,11 @@ _PACKAGE_SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 _DEV_BIN = Path(__file__).resolve().parents[3] / "bin"
 BIN_DIR = _PACKAGE_SCRIPTS if _PACKAGE_SCRIPTS.exists() else _DEV_BIN
 
+# Upper bound on how long we'll wait to enter the DTU rate-limit semaphore.
+# 4h matches the longest-running per-step subprocess timeout, so a single
+# stalled DTU job can't deadlock parallel-genome runs forever.
+DTU_SEMAPHORE_TIMEOUT_S = 14400
+
 
 @dataclass
 class PipelineConfig:
@@ -189,6 +194,10 @@ def run_script(script_name: str, args: list, timeout: int = 7200) -> tuple:
     except subprocess.TimeoutExpired:
         return (-1, "", f"Timeout after {timeout}s")
     except Exception as e:
+        # Log the traceback so the underlying cause (PermissionError, OSError,
+        # encoding glitches in subprocess output) is recoverable from the log
+        # even though the caller only sees the str(e) summary.
+        logger.exception("run_script(%s) raised unexpectedly", script_name)
         return (-1, "", str(e))
 
 
@@ -202,7 +211,12 @@ class PipelineRunner:
         api_semaphores: Optional[dict] = None,
     ):
         self.config = config
-        self.progress = progress_callback or (lambda step, pct, msg: None)
+        self._progress_callback = progress_callback or (lambda step, pct, msg: None)
+        # Clamp percentages to monotonically non-decreasing — parallel-group
+        # `as_completed` order is non-deterministic, so the raw `100*sc/total`
+        # of a step that finishes after a higher-ordinal sibling could regress
+        # the displayed bar. Hold the highest pct seen on this runner.
+        self._max_progress_pct = 0
         self.results: list[StepResult] = []
         self.work_dir = ""
         self.files = {}  # Track intermediate file paths
@@ -217,6 +231,14 @@ class PipelineRunner:
         # parallel-group append doesn't race with another thread's
         # _save_progress() iteration.
         self._state_lock = threading.Lock()
+
+    def progress(self, step: str, pct: int, msg: str) -> None:
+        with self._state_lock:
+            if pct < self._max_progress_pct:
+                pct = self._max_progress_pct
+            else:
+                self._max_progress_pct = pct
+        self._progress_callback(step, pct, msg)
 
     def check_dependencies(self) -> list[str]:
         """Pre-flight check for required and optional dependencies.
@@ -571,11 +593,20 @@ class PipelineRunner:
         if n_skipped:
             logger.info(f"Resumed: skipped {n_skipped} previously completed steps")
 
-        self.progress("Complete", 100, f"Pipeline finished in {self._elapsed_str()}")
-
-        # Copy final outputs to outdir
+        # Copy final outputs to outdir BEFORE reporting 100% — otherwise the
+        # progress bar hits 100 while files are still being written.
         self._copy_outputs()
         self._save_progress()
+        self.progress("Complete", 100, f"Pipeline finished in {self._elapsed_str()}")
+
+        # On clean success, drop the temp work_dir. On failure, retain it so
+        # the user can `--resume` after fixing the underlying issue.
+        if not core_failed and self.work_dir and os.path.isdir(self.work_dir):
+            try:
+                shutil.rmtree(self.work_dir)
+                logger.info(f"Cleaned up work directory: {self.work_dir}")
+            except OSError as e:
+                logger.warning(f"Could not remove work_dir {self.work_dir}: {e}")
 
         return self.results
 
@@ -995,12 +1026,19 @@ class PipelineRunner:
             args.extend(["--mode", "remote"])
 
         sem = self.api_sem.get("dtu")
+        held = False
         if sem:
-            sem.acquire()
+            held = sem.acquire(timeout=DTU_SEMAPHORE_TIMEOUT_S)
+            if not held:
+                logger.warning(
+                    "DTU semaphore acquire timed out after %ss — proceeding without "
+                    "rate-limit hold; expect possible API throttling.",
+                    DTU_SEMAPHORE_TIMEOUT_S,
+                )
         try:
             rc, stdout, stderr = run_script("run_deeplocpro.py", args, timeout=14400)
         finally:
-            if sem:
+            if held:
                 sem.release()
         if rc == 0:
             self.files["deeplocpro"] = output
@@ -1055,12 +1093,19 @@ class PipelineRunner:
             args.extend(["--mode", "remote"])
 
         sem = self.api_sem.get("dtu")
+        held = False
         if sem:
-            sem.acquire()
+            held = sem.acquire(timeout=DTU_SEMAPHORE_TIMEOUT_S)
+            if not held:
+                logger.warning(
+                    "DTU semaphore acquire timed out after %ss — proceeding without "
+                    "rate-limit hold; expect possible API throttling.",
+                    DTU_SEMAPHORE_TIMEOUT_S,
+                )
         try:
             rc, stdout, stderr = run_script("run_signalp.py", args, timeout=14400)
         finally:
-            if sem:
+            if held:
                 sem.release()
         if rc == 0:
             self.files["signalp"] = output

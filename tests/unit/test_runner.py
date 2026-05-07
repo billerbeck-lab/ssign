@@ -234,6 +234,56 @@ class TestRunnerInit:
         assert r.api_sem == {"dtu": sem}
 
 
+class TestProgressMonotonic:
+    """`progress(...)` must never go backwards. Parallel-group `as_completed`
+    is non-deterministic, so a step that finishes after a higher-ordinal
+    sibling shouldn't reset the displayed bar. Holds the highest pct seen."""
+
+    def test_lower_pct_is_clamped_to_max_seen(self, tmp_dir):
+        seen = []
+        r = PipelineRunner(PipelineConfig(outdir=tmp_dir), progress_callback=lambda s, p, m: seen.append(p))
+        r.progress("a", 30, "")
+        r.progress("b", 10, "")  # lower; should be clamped
+        r.progress("c", 50, "")
+        assert seen == [30, 30, 50]
+
+    def test_equal_pct_passes_through(self, tmp_dir):
+        seen = []
+        r = PipelineRunner(PipelineConfig(outdir=tmp_dir), progress_callback=lambda s, p, m: seen.append(p))
+        r.progress("a", 40, "")
+        r.progress("b", 40, "")
+        assert seen == [40, 40]
+
+
+class TestRunScriptExceptionLogging:
+    """`run_script()` catches generic Exception and returns (-1, "", str(e)).
+    Audit found the traceback was being thrown away — must be logged so the
+    underlying cause is recoverable from the log output."""
+
+    def test_unexpected_exception_is_logged_with_traceback(self, monkeypatch, caplog):
+        def boom(*args, **kwargs):
+            raise PermissionError("denied")
+
+        monkeypatch.setattr(runner.subprocess, "run", boom)
+        # Use any script name that resolves under BIN_DIR
+        any_script = next(iter(runner.BIN_DIR.glob("*.py")), None)
+        if any_script is None:
+            pytest.skip("BIN_DIR has no scripts")
+        with caplog.at_level("ERROR", logger="ssign_app.core.runner"):
+            rc, _, stderr = runner.run_script(any_script.name, [])
+        assert rc == -1
+        assert "denied" in stderr
+        assert any("raised unexpectedly" in rec.message for rec in caplog.records)
+
+
+class TestSemaphoreAcquireTimeout:
+    """`DTU_SEMAPHORE_TIMEOUT_S` is the upper bound on rate-limit-hold wait."""
+
+    def test_timeout_constant_is_a_positive_int(self):
+        assert isinstance(runner.DTU_SEMAPHORE_TIMEOUT_S, int)
+        assert runner.DTU_SEMAPHORE_TIMEOUT_S > 0
+
+
 class TestElapsedStr:
     def test_returns_empty_before_start(self, tmp_dir):
         r = PipelineRunner(PipelineConfig(outdir=tmp_dir))
