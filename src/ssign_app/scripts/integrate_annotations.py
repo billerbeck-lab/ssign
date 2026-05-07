@@ -53,9 +53,12 @@ def _compute_consensus(df):
         _sys.path.insert(0, _here)
     from annotation_consensus import compute_consensus
 
+    # Single pass: build tool_descs per row once, reuse for both the
+    # consensus columns and the annotation_tools list. Was previously two
+    # separate df.iterrows() loops doing the same per-row dict build.
     consensus_rows = []
+    tool_descs_per_row = []
     for _, row in df.iterrows():
-        # Collect descriptions from each tool
         tool_descs = {}
         for tool, col in TOOL_HIT_COLUMNS.items():
             if col not in df.columns:
@@ -71,34 +74,14 @@ def _compute_consensus(df):
             ):
                 continue
             tool_descs[tool] = str(val).strip()
+        tool_descs_per_row.append(tool_descs)
+        consensus_rows.append(compute_consensus(tool_descs))
 
-        consensus = compute_consensus(tool_descs)
-        consensus_rows.append(consensus)
-
-    # Add consensus columns to dataframe
     consensus_df = pd.DataFrame(consensus_rows)
     for col in consensus_df.columns:
         df[col] = consensus_df[col].values
 
-    # Also add the simple annotation_tools list
-    df["annotation_tools"] = [
-        ",".join(sorted(td.keys())) if td else ""
-        for td in [
-            {
-                t: row.get(c, "")
-                for t, c in TOOL_HIT_COLUMNS.items()
-                if c in df.columns
-                and pd.notna(row.get(c, ""))
-                and str(row.get(c, "")).strip()
-                and not (
-                    t == "GBFF"
-                    and str(row.get(c, "")).strip().lower()
-                    in ("hypothetical protein", "uncharacterized protein", "")
-                )
-            }
-            for _, row in df.iterrows()
-        ]
-    ]
+    df["annotation_tools"] = [",".join(sorted(td.keys())) if td else "" for td in tool_descs_per_row]
 
     return df
 
@@ -113,9 +96,7 @@ def main():
         default="",
         help="Gene info TSV from extract_proteins (for GBFF annotation)",
     )
-    parser.add_argument(
-        "--proteins", default="", help="Proteins FASTA (to include sequences in output)"
-    )
+    parser.add_argument("--proteins", default="", help="Proteins FASTA (to include sequences in output)")
     parser.add_argument("--sample", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
@@ -157,12 +138,8 @@ def main():
                 seqs[rec.id] = str(rec.seq)
             if seqs and "locus_tag" in df.columns:
                 df["sequence"] = df["locus_tag"].map(seqs)
-                df["aa_length"] = df["sequence"].apply(
-                    lambda s: len(s) if pd.notna(s) else 0
-                )
-                logger.info(
-                    f"Added sequences for {df['sequence'].notna().sum()} proteins"
-                )
+                df["aa_length"] = df["sequence"].apply(lambda s: len(s) if pd.notna(s) else 0)
+                logger.info(f"Added sequences for {df['sequence'].notna().sum()} proteins")
         except Exception as e:
             logger.warning(f"Failed to add sequences: {e}")
 
@@ -190,9 +167,7 @@ def main():
 
                 before = len(df)
                 df = df.merge(ann_df, on=join_col, how="left")
-                assert len(df) == before, (
-                    f"Row count changed after merging {ann_file}: {before} -> {len(df)}"
-                )
+                assert len(df) == before, f"Row count changed after merging {ann_file}: {before} -> {len(df)}"
                 logger.info(f"Merged {ann_file}: +{len(ann_df.columns) - 1} columns")
             else:
                 logger.warning(f"No join column found in {ann_file}, skipping")
