@@ -16,8 +16,8 @@ require the user to fetch it after pulling.
 | **DeepSecE checkpoint** | (vendored, MIT) | ✅ Bundled (mirrored to Zenodo) | — |
 | **PLM-Effector weights** | MIT | ✅ Bundled (mirrored to Zenodo) | — |
 | **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Bundled (mirrored to Zenodo) | — |
-| **SignalP 6.0** (binary + weights) | DTU academic | ⏳ Pending DTU response | DTU portal (manual) |
-| **DeepLocPro** (binary + weights) | DTU academic | ⏳ Pending DTU response | DTU portal (manual) |
+| **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU response 2026-05-07) | DTU portal (manual) |
+| **DeepLocPro** (binary + weights) | DTU academic (separate) | ⏳ Pending DTU response (forwarded to Ole) | DTU portal (manual) |
 | **EggNOG database** | unspecified | ⏳ Pending EMBL response | `download_eggnog_data.py` |
 | **InterProScan tarball + member DBs** | Apache 2.0 (core) + mixed (members) | ❌ Not bundled | `scripts/fetch_databases.sh` |
 | **BLAST NR / Swiss-Prot** | NCBI public | ❌ Not bundled (size) | `scripts/fetch_databases.sh` |
@@ -109,23 +109,38 @@ the Billerbeck Lab has emailed `eggnog@embl.de` to request explicit
 redistribution permission for the database files; if granted, a future
 release can bundle the DB to make the Docker image fully self-contained.
 
-## SignalP 6.0 + DeepLocPro — ⏳ Awaiting DTU response
+## SignalP 6.0 — ❌ Cannot bundle (DTU reply 2026-05-07)
 
-Both released by DTU under an academic-only license. The license issued to
-the Billerbeck Lab covers internal academic use. Whether ssign can include
-the **binary + model weights** inside its public Docker image is currently
-under discussion with DTU.
+DTU confirmed via email on 2026-05-07 that the SignalP 6.0 license does
+not permit redistribution. ssign cannot bundle the binary or weights in
+its public Docker image. Users who want a fully offline run must
+acquire SignalP separately from the [DTU HealthTech portal](https://services.healthtech.dtu.dk/).
 
-Two outcomes possible:
+The default **remote DTU webserver mode** (HTTP submission to
+`services.healthtech.dtu.dk`) requires no license on the user's part
+and is the shipping path for users who cannot install SignalP locally.
+For local-install users, `--signalp-mode local --signalp-path <dir>`
+points the wrapper at the user's own install.
 
-1. **DTU permits redistribution** — bundle inside Docker image, document
-   academic-use restriction, users get a smooth `docker pull` experience.
-2. **DTU requires per-user acquisition** — Docker image expects a bind-mount
-   pointing at the user's own DTU-licensed install at runtime. Documented in
-   `docs/how-to/install.md`.
+Documented in `docs/how-to/install.md`.
 
-Until DTU responds, the default **remote API mode** (via BioLib) requires no
-license and is the current shipping path.
+## DeepLocPro — ⏳ Pending separate DTU reply
+
+DTU's 2026-05-07 reply noted DeepLocPro is under a different license
+than SignalP and forwarded the redistribution question to Ole (the
+DeepLocPro maintainer). Awaiting reply.
+
+Two possible outcomes:
+
+1. **DTU permits redistribution** — bundle DeepLocPro inside the Docker
+   image, document any academic-use restriction. One-line Dockerfile
+   edit per plan addendum E.6.
+2. **DTU requires per-user acquisition** — keeps the SignalP shape:
+   default to remote DTU webserver, optional bind-mount for local
+   install.
+
+Conservative plan stays the default until Ole replies; if the answer
+is yes, only DeepLocPro flips to bundled.
 
 ## DTU/SignalP — Phobius and TMHMM omitted from ssign
 
@@ -142,13 +157,14 @@ relevant unless a user opts back in via `--applications`.
 External actions still in flight before v1.0.0 release (tracked under the
 license-audit task in the publication roadmap):
 
-- **DTU email** (Sonja Billerbeck → DTU) — SignalP 6.0 + DeepLocPro
-  redistribution in our Docker image. Draft in roadmap.
-- **EMBL-EggNOG email** (Sonja Billerbeck → eggnog@embl.de) — EggNOG database
-  redistribution. Draft in roadmap.
+- **DTU SignalP** — ✅ Replied 2026-05-07: cannot redistribute. Final.
+- **DTU DeepLocPro** — ⏳ Forwarded to Ole on 2026-05-07; awaiting reply.
+- **EMBL-EggNOG** (Sonja Billerbeck → eggnog@embl.de) — ⏳ Awaiting reply
+  on database redistribution.
 
-Once both replies are in, this page gets updated and either the Docker image
-gets fatter (bundling more) or the fetch-script story gets fleshed out.
+Once Ole and EMBL reply, this page gets updated and the Docker image
+either bundles more (if yes) or the fetch-script story stays the same
+(if no).
 
 ---
 
