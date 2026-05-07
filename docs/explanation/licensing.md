@@ -14,7 +14,7 @@ require the user to fetch it after pulling.
 | Component | License | In ssign Docker image? | If not bundled, fetch via |
 |---|---|---|---|
 | **DeepSecE checkpoint** | (vendored, MIT) | ✅ Bundled (mirrored to Zenodo) | — |
-| **PLM-Effector weights** | MIT | ✅ Bundled (mirrored to Zenodo) | — |
+| **PLM-Effector weights** | CC-BY 3.0 | ✅ Bundled (mirrored to Zenodo) | — |
 | **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Bundled (mirrored to Zenodo) | — |
 | **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU response 2026-05-07) | DTU portal (manual) |
 | **DeepLocPro** (binary + weights) | DTU academic (separate) | ⏳ Pending DTU response (forwarded to Ole) | DTU portal (manual) |
