@@ -66,7 +66,6 @@ def _make_t1ss_config(tmp_dir, t1ss_fixture_gbff):
         skip_interproscan=True,
         skip_plmblast=True,
         skip_protparam=False,
-        skip_structure=True,
     )
 
 

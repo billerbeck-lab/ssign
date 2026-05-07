@@ -276,7 +276,6 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
 
     g = p.add_argument_group("misc annotation")
     g.add_argument("--skip-protparam", action=argparse.BooleanOptionalAction, default=False)
-    g.add_argument("--skip-structure", action=argparse.BooleanOptionalAction, default=True)
     g.add_argument(
         "--filter-dse-type-mismatch",
         action=argparse.BooleanOptionalAction,
@@ -380,7 +379,6 @@ def _config_from_args(args: argparse.Namespace) -> "PipelineConfig":
         "plm_effector_weights_dir": args.plm_effector_weights_dir,
         "plm_effector_types": list(args.plm_effector_types),
         "skip_protparam": args.skip_protparam,
-        "skip_structure": args.skip_structure,
         "filter_dse_type_mismatch": args.filter_dse_type_mismatch,
         "deepsece_min_prob": args.deepsece_min_prob,
         "signalp_min_prob": args.signalp_min_prob,

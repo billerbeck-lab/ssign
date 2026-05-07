@@ -82,7 +82,6 @@ def _make_config(tmp_outdir: str, dlp_path: str):
         skip_interproscan=True,
         skip_plmblast=True,
         skip_protparam=True,
-        skip_structure=True,
     )
 
 

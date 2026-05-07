@@ -121,7 +121,6 @@ class PipelineConfig:
     plm_effector_types: list = field(default_factory=lambda: ["T1SE", "T2SE", "T3SE", "T4SE", "T6SE"])
 
     skip_protparam: bool = False
-    skip_structure: bool = True
 
     # DSE type-match filter: remove DSE-only substrates where predicted
     # SS type doesn't match nearby MacSyFinder system

@@ -36,7 +36,6 @@ def run_genome(genome_path, sample_id, outdir, enable_hhpred=True):
         skip_deepsece=True,
         skip_signalp=True,
         skip_plmblast=True,
-        skip_structure=True,
         # Enable annotation tools
         skip_blastp=False,
         skip_hhsuite=not enable_hhpred,
@@ -69,9 +68,7 @@ def run_genome(genome_path, sample_id, outdir, enable_hhpred=True):
 def main():
     test_dir = os.path.join(os.path.dirname(__file__), "data")
     genome1 = os.path.join(test_dir, "Xanthobacter_tagetidis_TagT2C_genomic.gbff")
-    genome2 = os.path.join(
-        test_dir, "Roseixanthobacter_finlandensis_VTT_E-85241_genomic.gbff"
-    )
+    genome2 = os.path.join(test_dir, "Roseixanthobacter_finlandensis_VTT_E-85241_genomic.gbff")
 
     for g in [genome1, genome2]:
         if not os.path.exists(g):
@@ -141,9 +138,7 @@ def main():
         csvs = [f for f in os.listdir(gdir) if f.endswith(".csv")]
         logger.info(f"  {name}: {len(csvs)} CSVs")
 
-    xg_files = [
-        f for f in os.listdir(base_outdir) if f.endswith(".csv") or f.endswith(".faa")
-    ]
+    xg_files = [f for f in os.listdir(base_outdir) if f.endswith(".csv") or f.endswith(".faa")]
     logger.info(f"  cross-genome: {xg_files}")
 
     # Check xg_ortholog_group column exists in integrated CSVs
@@ -151,9 +146,7 @@ def main():
 
     for gdir in genome_outdirs:
         name = os.path.basename(gdir)
-        int_csvs = [
-            f for f in os.listdir(gdir) if "integrated" in f and f.endswith(".csv")
-        ]
+        int_csvs = [f for f in os.listdir(gdir) if "integrated" in f and f.endswith(".csv")]
         for csv_f in int_csvs:
             df = pd.read_csv(os.path.join(gdir, csv_f))
             has_xg = "xg_ortholog_group" in df.columns

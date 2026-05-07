@@ -132,7 +132,6 @@ class TestBooleanFlags:
             ("skip_eggnog", True),
             ("skip_plm_effector", True),
             ("skip_protparam", False),
-            ("skip_structure", True),
             ("filter_dse_type_mismatch", True),
             ("use_input_annotations", False),
             ("run_bakta", False),

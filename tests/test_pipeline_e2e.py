@@ -79,7 +79,6 @@ def main() -> int:
         skip_interproscan=True,
         skip_plmblast=True,
         skip_protparam=False,  # Fast and local, always run
-        skip_structure=True,  # Foldseek was dropped in Phase 2
     )
 
     def progress_cb(step, pct, msg):
