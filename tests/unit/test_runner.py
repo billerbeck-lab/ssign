@@ -98,7 +98,7 @@ class TestPipelineConfig:
 class TestPipelineConfigHHsuiteEnvFallback:
     """SSIGN_HHSUITE_* env vars fill in empty fields; explicit paths win.
 
-    Documented in --hhsuite-*-db CLI help and docs/optional_tools.md.
+    Documented in --hhsuite-*-db CLI help and docs/how-to/install.md.
     """
 
     @pytest.mark.parametrize(

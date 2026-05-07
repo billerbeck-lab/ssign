@@ -43,7 +43,7 @@ pipeline. Command-line mode is also supported (see `ssign --help`).
 recommended for DeepSecE and (in v1.0.0) PLM-Effector.
 
 Full install instructions (WSL, optional tool extras, dependency management)
-in [`docs/optional_tools.md`](docs/optional_tools.md).
+in [`docs/how-to/install.md`](docs/how-to/install.md).
 
 ---
 
@@ -171,10 +171,10 @@ sudo apt install hhsuite
 conda install -c bioconda hhsuite
 
 # InterProScan (extended + full) — Java, manual install
-# See docs/optional_tools.md for step-by-step instructions.
+# See docs/how-to/install.md for step-by-step instructions.
 ```
 
-Full platform-specific install guide: [`docs/optional_tools.md`](docs/optional_tools.md).
+Full platform-specific install guide: [`docs/how-to/install.md`](docs/how-to/install.md).
 
 ---
 

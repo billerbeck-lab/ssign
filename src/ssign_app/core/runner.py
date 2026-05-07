@@ -152,7 +152,7 @@ class PipelineConfig:
     def __post_init__(self) -> None:
         # Env-var fallbacks for HH-suite database paths. Empty field means
         # "use the env var if set" — documented in --hhsuite-*-db help text
-        # and docs/optional_tools.md. Explicit non-empty paths always win.
+        # and docs/how-to/install.md. Explicit non-empty paths always win.
         for attr, env in (
             ("hhsuite_pfam_db", "SSIGN_HHSUITE_PFAM"),
             ("hhsuite_pdb70_db", "SSIGN_HHSUITE_PDB70"),

@@ -611,7 +611,7 @@ with tab_upload:
                 "**Bakta is not installed.** Required for GenBank re-annotation "
                 "(default) and optional for raw FASTA input.\n\n"
                 "Install (~2 GB): `pip install ssign[bakta]` then download the database.\n\n"
-                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md) "
+                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/how-to/install.md) "
                 "for detailed instructions."
             )
 
@@ -919,7 +919,7 @@ with tab_pipeline:
                     st.info(
                         "**DeepLocPro is not installed locally.** Requires DTU academic "
                         "license (~5 GB, GPU recommended). See the "
-                        "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md). "
+                        "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/how-to/install.md). "
                         "Or use **cloud mode** (no install needed)."
                     )
             else:
@@ -960,7 +960,7 @@ with tab_pipeline:
                         st.info(
                             "**SignalP 6.0 is not installed locally.** Requires DTU academic "
                             "license (~1 GB). See the "
-                            "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md). "
+                            "[installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/how-to/install.md). "
                             "Or use **cloud mode** (no install needed)."
                         )
                 else:
@@ -1059,7 +1059,7 @@ with tab_pipeline:
                 "**DeepSecE is not installed** but is recommended. It provides an "
                 "independent cross-check against DeepLocPro.\n\n"
                 "Install (~7.3 GB): `pip install ssign[deepsece]` (run inside your ssign venv)\n\n"
-                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/optional_tools.md) "
+                "See the [installation guide](https://github.com/billerbeck-lab/ssign/blob/main/docs/how-to/install.md) "
                 "for detailed instructions."
             )
 
