@@ -477,13 +477,20 @@ with tab_upload:
     )
 
     if uploaded_files:
-        # Clear resolved taxonomy if files changed
+        # Clear resolved taxonomy if files changed. Drop ALL upload-derived
+        # session state — including `per_genome_organisms`, which is otherwise
+        # cached for the whole session and would carry over the previous
+        # upload's organism mapping when the user replaces their files.
         current_names = sorted(f.name for f in uploaded_files)
         prev_names = st.session_state.get("_last_uploaded_names", [])
         if current_names != prev_names:
-            st.session_state.pop("per_genome_taxonomy", None)
-            st.session_state.pop("organism_resolved", None)
-            st.session_state.pop("detected_organism", None)
+            for k in (
+                "per_genome_taxonomy",
+                "organism_resolved",
+                "detected_organism",
+                "per_genome_organisms",
+            ):
+                st.session_state.pop(k, None)
             st.session_state["_last_uploaded_names"] = current_names
 
         st.session_state.uploaded_files_data = uploaded_files
@@ -508,6 +515,7 @@ with tab_upload:
         # BLASTp exclusion, to avoid blocking the GUI on upload.
         if "per_genome_organisms" not in st.session_state:
             per_genome_orgs = {}
+            unparseable: list[str] = []
             for f in uploaded_files:
                 ext_lower = Path(f.name).suffix.lower()
                 if ext_lower not in (".gbff", ".gbk", ".gb"):
@@ -541,8 +549,19 @@ with tab_upload:
                     if org_name:
                         per_genome_orgs[f.name] = org_name
                 except Exception:
-                    pass
+                    # Surface parse failures so the user knows why a GenBank
+                    # silently lost organism context — without it, taxonomy
+                    # resolution + BLASTp exclusion can't pre-fill.
+                    unparseable.append(f.name)
             st.session_state.per_genome_organisms = per_genome_orgs
+            if unparseable:
+                st.warning(
+                    "Could not parse GenBank header for: "
+                    + ", ".join(unparseable)
+                    + ". The pipeline will still run, but organism-driven "
+                    "features (BLASTp self-exclusion pre-fill, taxonomy "
+                    "annotation) may be unavailable for these files."
+                )
 
     st.divider()
 
@@ -1250,22 +1269,27 @@ with tab_pipeline:
             if run_pp:
                 st.caption("Local (BioPython) | No download needed | Instant")
 
-        st.divider()
-
-        st.markdown("**Coming in v1.0.0**")
-        st.caption(
-            "The following tool will be integrated as a first-class annotation source in v1.0.0. Disabled for now."
-        )
-
+        # ── pLM-BLAST (ECOD70) ──
         col_check, col_info = st.columns([1.5, 3.5])
         with col_check:
-            st.checkbox("pLM-BLAST (ECOD70)", value=False, key="run_plm", disabled=True)
-        with col_info:
-            st.caption(
-                "Protein language model-based remote homology detection against the "
-                "ECOD70 structural database (~20 GB). Included in the **extended** "
-                "and **full** install tiers."
+            run_plm = st.checkbox(
+                "pLM-BLAST (ECOD70)",
+                value=False,
+                key="run_plm",
+                help="Protein language model-based remote homology detection against the "
+                "ECOD70 structural database. Sensitive to deeply diverged folds where "
+                "BLASTp + HHpred miss hits. Requires the ECOD70 DB (~20 GB) — bundled "
+                "with `--tier extended` or `--tier full`.",
             )
+        with col_info:
+            if run_plm:
+                st.caption("Local (GPU recommended) | ~5-15 min per genome")
+                st.text_input(
+                    "ECOD70 DB path",
+                    value="",
+                    key="plm_db",
+                    help="Path to the pLM-BLAST ECOD70 database (set by `scripts/fetch_databases.sh --tier extended`).",
+                )
 
         st.divider()
 
