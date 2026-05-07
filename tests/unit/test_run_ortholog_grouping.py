@@ -1,87 +1,42 @@
 """Tests for run_ortholog_grouping.py.
 
-Three pure-Python surfaces here:
+Pure-Python surfaces here:
 
-1. `read_fasta_simple` — header-only-first-token FASTA reader (no
-   BioPython dep). Multi-line sequences must concatenate.
-2. `cluster_union_find` — single-linkage clustering via path-compressed
+1. `cluster_union_find` — single-linkage clustering via path-compressed
    union-find. Hits between known IDs unify; transitivity must hold;
    IDs not mentioned in any hit must end up as their own singleton.
-3. `compute_group_stats` — per-group `OG_NNN` IDs by descending size,
+2. `compute_group_stats` — per-group `OG_NNN` IDs by descending size,
    mean within-group %identity (bidirectional hit lookup), singleton
    default identity = 100.
+3. `_find_blast_binary` — must distinguish "not installed"
+   (BlastpUnavailableError) from "broken install" (RuntimeError) so
+   main() can soft-skip vs hard-fail correctly.
+4. `main()` end-to-end via subprocess stubs — empty / singleton /
+   blast-unavailable / blast-failure paths.
 
-The `run_local_blast` subprocess path requires NCBI BLAST+ on PATH and
-is exercised by tests/integration/.
+FASTA reading is provided by ssign_lib.fasta_io.read_fasta — covered in
+its own test module; not re-tested here.
 """
 
+import csv
 import os
+import subprocess
 import sys
+
+import pytest
 
 SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
 sys.path.insert(0, SCRIPTS_DIR)
 
+import run_ortholog_grouping  # noqa: E402
 from run_ortholog_grouping import (  # noqa: E402
+    BlastpUnavailableError,
+    _find_blast_binary,
     cluster_union_find,
     compute_group_stats,
-    read_fasta_simple,
 )
 
 from ssign_app.scripts.ssign_lib.fasta_io import write_fasta  # noqa: E402
-
-# ---------------------------------------------------------------------------
-# read_fasta_simple
-# ---------------------------------------------------------------------------
-
-
-class TestReadFastaSimple:
-    def test_single_sequence(self, tmp_dir):
-        path = os.path.join(tmp_dir, "x.fasta")
-        write_fasta({"GENE_001 some annotation": "MKTLLLTLLCAFSV"}, path)
-        assert read_fasta_simple(path) == {"GENE_001": "MKTLLLTLLCAFSV"}
-
-    def test_multi_line_sequence_concatenated(self, tmp_dir):
-        # write_fasta wraps at line_width=80; supply a 140-char seq so the
-        # output spans two lines and the parser's concatenation logic gets
-        # exercised.
-        seq = "MKTLLLTLLCAFSV" * 10
-        path = os.path.join(tmp_dir, "x.fasta")
-        write_fasta({"GENE_001": seq}, path)
-        assert read_fasta_simple(path) == {"GENE_001": seq}
-
-    def test_id_is_first_whitespace_token(self, tmp_dir):
-        path = os.path.join(tmp_dir, "x.fasta")
-        write_fasta(
-            {"GENE_001 [Escherichia coli] hypothetical protein": "MKT"},
-            path,
-        )
-        assert "GENE_001" in read_fasta_simple(path)
-
-    def test_multiple_sequences(self, tmp_dir):
-        path = os.path.join(tmp_dir, "x.fasta")
-        write_fasta({"A": "AAAA", "B": "BBBB", "C": "CCCC"}, path)
-        assert read_fasta_simple(path) == {"A": "AAAA", "B": "BBBB", "C": "CCCC"}
-
-    def test_blank_lines_ignored(self, tmp_dir):
-        # write_fasta won't emit blank lines — write raw to test the parser's
-        # blank-line handling.
-        path = os.path.join(tmp_dir, "x.fasta")
-        with open(path, "w") as f:
-            f.write(">A\n\nMKT\n\n>B\nGGG\n")
-        assert read_fasta_simple(path) == {"A": "MKT", "B": "GGG"}
-
-    def test_empty_file_returns_empty(self, tmp_dir):
-        path = os.path.join(tmp_dir, "empty.fasta")
-        open(path, "w").close()
-        assert read_fasta_simple(path) == {}
-
-    def test_orphan_lines_before_first_header_ignored(self, tmp_dir):
-        # Garbage prefix before any `>` — must be silently dropped
-        path = os.path.join(tmp_dir, "x.fasta")
-        with open(path, "w") as f:
-            f.write("garbage line\n>A\nMKT\n")
-        assert read_fasta_simple(path) == {"A": "MKT"}
-
 
 # ---------------------------------------------------------------------------
 # cluster_union_find
@@ -244,3 +199,128 @@ class TestComputeGroupStats:
             all_protein_ids={"A", "B"},
         )
         assert stats[0]["mean_pident"] == 100.0
+
+
+# ---------------------------------------------------------------------------
+# _find_blast_binary
+# ---------------------------------------------------------------------------
+
+
+class TestFindBlastBinary:
+    """Probe must distinguish 'not installed' (BlastpUnavailableError) from
+    'broken install' (RuntimeError) so main() can soft-skip vs hard-fail."""
+
+    def test_not_on_path_raises_unavailable(self, monkeypatch):
+        def _raise_fnf(*a, **k):
+            raise FileNotFoundError("blastp")
+
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _raise_fnf)
+        with pytest.raises(BlastpUnavailableError):
+            _find_blast_binary("blastp")
+
+    def test_corrupt_install_raises_runtime_error(self, monkeypatch):
+        def _raise_called_process(*a, **k):
+            raise subprocess.CalledProcessError(127, ["blastp", "-version"])
+
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _raise_called_process)
+        with pytest.raises(RuntimeError, match="corrupted or incompatible"):
+            _find_blast_binary("blastp")
+
+    def test_hung_install_raises_runtime_error(self, monkeypatch):
+        def _raise_timeout(*a, **k):
+            raise subprocess.TimeoutExpired(["blastp", "-version"], 10)
+
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _raise_timeout)
+        with pytest.raises(RuntimeError, match="hung"):
+            _find_blast_binary("blastp")
+
+    def test_returns_name_when_present(self, monkeypatch):
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", lambda *a, **k: None)
+        assert _find_blast_binary("blastp") == "blastp"
+
+
+# ---------------------------------------------------------------------------
+# main() end-to-end via subprocess stub
+# ---------------------------------------------------------------------------
+
+
+def _read_csv(path):
+    with open(path) as f:
+        return list(csv.DictReader(f))
+
+
+class TestMainEndToEnd:
+    """Black-box main() coverage: empty input, singleton, BLAST unavailable,
+    BLAST hard-fail. The happy path with hits is covered by integration."""
+
+    def test_empty_fasta_writes_header_only(self, monkeypatch, tmp_dir):
+        fasta = os.path.join(tmp_dir, "empty.fasta")
+        open(fasta, "w").close()
+        out = os.path.join(tmp_dir, "out.csv")
+
+        monkeypatch.setattr(sys, "argv", ["x", "--substrates-fasta", fasta, "--output", out])
+        assert run_ortholog_grouping.main() == 0
+
+        rows = _read_csv(out)
+        assert rows == []
+
+    def test_single_substrate_writes_OG_001(self, monkeypatch, tmp_dir):
+        fasta = os.path.join(tmp_dir, "one.fasta")
+        write_fasta({"P1": "MKT"}, fasta)
+        out = os.path.join(tmp_dir, "out.csv")
+
+        monkeypatch.setattr(sys, "argv", ["x", "--substrates-fasta", fasta, "--output", out])
+        assert run_ortholog_grouping.main() == 0
+
+        rows = _read_csv(out)
+        assert len(rows) == 1
+        assert rows[0]["locus_tag"] == "P1"
+        assert rows[0]["ortholog_group"] == "OG_001"
+
+    def test_blast_unavailable_writes_singleton_csv_and_exits_0(self, monkeypatch, tmp_dir):
+        # ≥2 substrates so we reach the BLAST branch, then the binary probe
+        # raises BlastpUnavailableError → main() must soft-skip with rc=0.
+        fasta = os.path.join(tmp_dir, "two.fasta")
+        write_fasta({"P1": "MKT", "P2": "GGG"}, fasta)
+        out = os.path.join(tmp_dir, "out.csv")
+
+        def _missing(*a, **k):
+            raise FileNotFoundError("blastp")
+
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _missing)
+        monkeypatch.setattr(sys, "argv", ["x", "--substrates-fasta", fasta, "--output", out])
+        assert run_ortholog_grouping.main() == 0
+
+        rows = _read_csv(out)
+        assert {r["locus_tag"] for r in rows} == {"P1", "P2"}
+        # Singleton output: each protein in its own group.
+        assert {r["ortholog_group"] for r in rows} == {"OG_001", "OG_002"}
+        assert all(r["og_n_members"] == "1" for r in rows)
+
+    def test_blast_hard_failure_propagates(self, monkeypatch, tmp_dir):
+        # BLAST is "installed" (probe passes) but makeblastdb returncode != 0.
+        # Must raise RuntimeError, NOT silently write empty output.
+        fasta = os.path.join(tmp_dir, "two.fasta")
+        write_fasta({"P1": "MKT", "P2": "GGG"}, fasta)
+        out = os.path.join(tmp_dir, "out.csv")
+
+        class _Result:
+            def __init__(self, rc, stderr=""):
+                self.returncode = rc
+                self.stderr = stderr
+                self.stdout = ""
+
+        call_count = {"n": 0}
+
+        def _stub_run(cmd, *a, **k):
+            call_count["n"] += 1
+            # First two calls are -version probes for blastp + makeblastdb
+            if "-version" in cmd:
+                return _Result(0)
+            # Next call is makeblastdb → fail
+            return _Result(1, stderr="bad input fasta")
+
+        monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _stub_run)
+        monkeypatch.setattr(sys, "argv", ["x", "--substrates-fasta", fasta, "--output", out])
+        with pytest.raises(RuntimeError, match="makeblastdb failed"):
+            run_ortholog_grouping.main()
