@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
+import os
 import sys
 from collections import defaultdict
 
@@ -37,12 +38,13 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-# Default minimum reciprocal overlap. For two CDS (a, b) with lengths
-# La, Lb and overlap O, reciprocal overlap is min(O/La, O/Lb).
-# 0.8 = "at least 80% of each CDS falls inside the other" — tight enough
-# to reject chance alignments, loose enough to absorb the few-bp shifts
-# common across gene callers.
-_DEFAULT_MIN_OVERLAP = 0.8
+# Default minimum reciprocal overlap. Centralised in ssign_lib.constants
+# so the rationale lives next to the other pipeline thresholds and tests
+# can monkeypatch it via a single source.
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import MAP_GBFF_BAKTA_MIN_OVERLAP as _DEFAULT_MIN_OVERLAP  # noqa: E402
 
 
 def _read_gene_info(path: str):

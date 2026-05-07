@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
+from ssign_lib.constants import (  # noqa: E402
+    TOOL_TIMEOUT_S,
+)
 from ssign_lib.fasta_io import count_sequences  # noqa: E402  # used in run_local + remote paths
 
 # ── Local mode ──
@@ -160,7 +162,7 @@ def _submit_and_poll_dtu_once(fasta_bytes, batch_num, total_batches):
         # FRAGILE: DTU web server submission can fail due to network issues or server maintenance
         # If this breaks: check https://services.healthtech.dtu.dk status, or use --mode local
         try:
-            resp = session.post(DTU_SUBMIT_URL, data=data, files=files, timeout=60)
+            resp = session.post(DTU_SUBMIT_URL, data=data, files=files, timeout=DTU_API_SUBMIT_TIMEOUT_S)
         except requests.ConnectionError as e:
             raise RuntimeError(
                 f"Cannot connect to DTU DeepLocPro server: {e}\n"
@@ -204,7 +206,10 @@ def _submit_and_poll_dtu_once(fasta_bytes, batch_num, total_batches):
         for poll_num in range(DTU_MAX_POLL):
             time.sleep(DTU_POLL_INTERVAL)
             try:
-                ajax_resp = session.get(f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}", timeout=15)
+                ajax_resp = session.get(
+                    f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}",
+                    timeout=DTU_API_STATUS_TIMEOUT_S,
+                )
                 status_data = ajax_resp.json()
                 status = status_data.get("status", "unknown")
                 runtime = status_data.get("runtime", 0)
@@ -224,7 +229,7 @@ def _submit_and_poll_dtu_once(fasta_bytes, batch_num, total_batches):
 
         # Fetch results JSON
         results_url = f"{DTU_RESULTS_BASE}/{job_id}/results.json"
-        results_resp = session.get(results_url, timeout=30)
+        results_resp = session.get(results_url, timeout=DTU_API_DOWNLOAD_TIMEOUT_S)
         if results_resp.status_code != 200:
             raise RuntimeError(f"Could not fetch results: HTTP {results_resp.status_code}")
 

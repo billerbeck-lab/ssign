@@ -50,6 +50,22 @@ HHBLITS_ITERATIONS = 3
 HHBLITS_TIMEOUT_S = 3600
 HHSEARCH_TIMEOUT_S = 1800
 
+# --- DTU API HTTP timeouts (run_deeplocpro.py + run_signalp.py) ---
+# Three tiers matching what the DTU webserver actually does at each call.
+# Submit is a multipart upload that the server queues — generous budget
+# accounts for the upload itself plus the server's `?ajax=1` redirect dance.
+# Status polls are a single JSON GET against the queue, so much shorter.
+# Result download is a tar fetch, in between.
+DTU_API_SUBMIT_TIMEOUT_S = 60
+DTU_API_STATUS_TIMEOUT_S = 15
+DTU_API_DOWNLOAD_TIMEOUT_S = 30
+
+# --- map_gbff_to_bakta_cds.py ---
+# Minimum coordinate-overlap fraction used when matching a Bakta CDS back
+# to its GenBank counterpart. 0.8 catches near-identical predictions while
+# rejecting spurious matches caused by gene-prediction tool disagreement.
+MAP_GBFF_BAKTA_MIN_OVERLAP = 0.8
+
 # --- T5aSS domain classification ---
 MIN_PASSENGER_LENGTH = 100  # aa — below this = "minimal passenger"
 LINKER_LENGTH = 30  # aa — alpha-helix linker between passenger and barrel

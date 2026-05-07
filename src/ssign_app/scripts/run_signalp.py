@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import TOOL_TIMEOUT_S  # noqa: E402
+from ssign_lib.constants import (  # noqa: E402
+    TOOL_TIMEOUT_S,
+)
 from ssign_lib.fasta_io import count_sequences  # noqa: E402
 
 DTU_SUBMIT_URL = "https://services.healthtech.dtu.dk/cgi-bin/webface2.cgi"
@@ -165,7 +167,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
         # FRAGILE: DTU web server submission can fail due to network issues or server maintenance
         # If this breaks: check https://services.healthtech.dtu.dk status, or use --mode local
         try:
-            resp = session.post(DTU_SUBMIT_URL, data=data, files=files, timeout=60)
+            resp = session.post(DTU_SUBMIT_URL, data=data, files=files, timeout=DTU_API_SUBMIT_TIMEOUT_S)
         except http_requests.ConnectionError as e:
             raise RuntimeError(
                 f"Cannot connect to DTU SignalP server: {e}\n"
@@ -211,7 +213,10 @@ def _run_remote_signalp_once(input_fasta, output_dir):
         for poll_num in range(DTU_MAX_POLL):
             time.sleep(DTU_POLL_INTERVAL)
             try:
-                ajax_resp = session.get(f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}", timeout=15)
+                ajax_resp = session.get(
+                    f"{DTU_SUBMIT_URL}?ajax=1&jobid={job_id}",
+                    timeout=DTU_API_STATUS_TIMEOUT_S,
+                )
                 status_data = ajax_resp.json()
                 status = status_data.get("status", "unknown")
                 runtime = status_data.get("runtime", 0)
@@ -232,14 +237,14 @@ def _run_remote_signalp_once(input_fasta, output_dir):
         # Try to find output files in the job directory
         # SignalP output is typically a TSV with predictions
         job_dir_url = f"{DTU_RESULTS_BASE}/{job_id}/"
-        dir_resp = session.get(job_dir_url, timeout=15)
+        dir_resp = session.get(job_dir_url, timeout=DTU_API_STATUS_TIMEOUT_S)
 
         if dir_resp.status_code == 200:
             # Parse directory listing for output files
             file_links = re.findall(r'href="([^"]+\.(?:txt|tsv|json|signalp))"', dir_resp.text)
             for fname in file_links:
                 file_url = f"{DTU_RESULTS_BASE}/{job_id}/{fname}"
-                file_resp = session.get(file_url, timeout=30)
+                file_resp = session.get(file_url, timeout=DTU_API_DOWNLOAD_TIMEOUT_S)
                 if file_resp.status_code == 200:
                     local_path = os.path.join(output_dir, fname)
                     with open(local_path, "w") as f:
@@ -249,7 +254,7 @@ def _run_remote_signalp_once(input_fasta, output_dir):
         # Also try the prediction_results.txt standard name
         for candidate in ["prediction_results.txt", "output.txt", f"{job_id}_summary.signalp5"]:
             candidate_url = f"{DTU_RESULTS_BASE}/{job_id}/{candidate}"
-            resp = session.get(candidate_url, timeout=15)
+            resp = session.get(candidate_url, timeout=DTU_API_STATUS_TIMEOUT_S)
             if resp.status_code == 200 and len(resp.text) > 10:
                 local_path = os.path.join(output_dir, candidate)
                 with open(local_path, "w") as f:
