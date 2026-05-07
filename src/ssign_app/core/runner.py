@@ -134,9 +134,6 @@ class PipelineConfig:
     fig_substrate_count: bool = True
     fig_func_summary: bool = True
 
-    # InterProScan threshold
-    interproscan_evalue: float = 1e-5
-
     # DeepSecE threshold
     deepsece_min_prob: float = 0.8
 
@@ -157,7 +154,9 @@ class PipelineConfig:
             ("hhsuite_uniclust_db", "SSIGN_HHSUITE_UNICLUST"),
         ):
             if not getattr(self, attr) and os.environ.get(env):
-                setattr(self, attr, os.environ[env])
+                value = os.environ[env]
+                setattr(self, attr, value)
+                logger.info("Using %s from env var %s: %s", attr, env, value)
 
 
 @dataclass
@@ -1627,6 +1626,10 @@ class PipelineRunner:
         return StepResult("enrichment", False, stderr[:500])
 
     def _step_report(self) -> StepResult:
+        integrated = self.files.get("integrated", "")
+        if not integrated or not os.path.exists(integrated):
+            return StepResult("report", False, "No integrated CSV — skipping report")
+
         html_out = self._wf(f"{self.config.sample_id}_report.html")
         txt_out = self._wf(f"{self.config.sample_id}_report.txt")
 
@@ -1634,7 +1637,7 @@ class PipelineRunner:
             "generate_report.py",
             [
                 "--master-csvs",
-                self.files.get("integrated", ""),
+                integrated,
                 "--out-html",
                 html_out,
                 "--out-txt",
@@ -1649,12 +1652,16 @@ class PipelineRunner:
         return StepResult("report", False, stderr[:500])
 
     def _step_figures(self) -> StepResult:
+        integrated = self.files.get("integrated", "")
+        if not integrated or not os.path.exists(integrated):
+            return StepResult("figures", False, "No integrated CSV — skipping figures")
+
         fig_dir = self._wf("figures")
         os.makedirs(fig_dir, exist_ok=True)
 
         fig_args = [
             "--master-csvs",
-            self.files.get("integrated", ""),
+            integrated,
             "--outdir",
             fig_dir,
             "--dpi",

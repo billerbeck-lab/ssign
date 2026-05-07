@@ -1640,7 +1640,7 @@ with tab_run:
                     fig_tool_heatmap=st.session_state.get("fig_tool_heatmap", True),
                     fig_substrate_count=st.session_state.get("fig_substrate_count", True),
                     fig_func_summary=st.session_state.get("fig_func_summary", True),
-                    interproscan_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
+                    interproscan_min_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
                     deepsece_min_prob=float(st.session_state.get("dse_min_prob", 0.8)),
                     signalp_min_prob=float(st.session_state.get("sp_min_prob", 0.5)),
                     ortholog_min_pident=float(st.session_state.get("og_min_pident", 40)),

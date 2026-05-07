@@ -135,6 +135,14 @@ class TestPipelineConfigHHsuiteEnvFallback:
         assert c.hhsuite_pdb70_db == ""
         assert c.hhsuite_uniclust_db == ""
 
+    def test_env_var_fallback_logs_audit_trail(self, monkeypatch, caplog):
+        # Stale env vars in a dev shell should be visible — log INFO when the
+        # fallback fires so the user can spot they're picking up a leftover.
+        monkeypatch.setenv("SSIGN_HHSUITE_PFAM", "/tmp/fake_pfam")
+        with caplog.at_level("INFO", logger="ssign_app.core.runner"):
+            PipelineConfig()
+        assert any("hhsuite_pfam_db" in rec.message and "/tmp/fake_pfam" in rec.message for rec in caplog.records)
+
 
 # ---------------------------------------------------------------------------
 # StepResult
@@ -388,6 +396,34 @@ class TestTryResume:
         r2 = PipelineRunner(c)
         completed = r2._try_resume()
         assert completed == set()
+
+
+class TestReportFiguresUpstreamGuards:
+    """`_step_report` and `_step_figures` must skip cleanly when their upstream
+    `integrated` CSV is missing — otherwise they invoke generate_report.py /
+    generate_figures.py with an empty path and produce a cryptic subprocess
+    error."""
+
+    @pytest.mark.parametrize("step_name", ["report", "figures"])
+    def test_skip_when_integrated_missing(self, tmp_dir, step_name):
+        c = PipelineConfig(outdir=tmp_dir, sample_id="x")
+        r = PipelineRunner(c)
+        r.work_dir = tmp_dir
+        r.files = {}
+        result = r._step_report() if step_name == "report" else r._step_figures()
+        assert result.success is False
+        assert result.name == step_name
+        assert "skipping" in result.message.lower()
+
+    @pytest.mark.parametrize("step_name", ["report", "figures"])
+    def test_skip_when_integrated_path_does_not_exist(self, tmp_dir, step_name):
+        c = PipelineConfig(outdir=tmp_dir, sample_id="x")
+        r = PipelineRunner(c)
+        r.work_dir = tmp_dir
+        r.files = {"integrated": os.path.join(tmp_dir, "never_written.csv")}
+        result = r._step_report() if step_name == "report" else r._step_figures()
+        assert result.success is False
+        assert "skipping" in result.message.lower()
 
     def test_resume_aborted_if_persisted_output_missing(self, tmp_dir):
         # Manifest says step succeeded with file X; X was deleted between
