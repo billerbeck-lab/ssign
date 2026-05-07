@@ -18,8 +18,6 @@ import sys
 import pytest
 
 # Production module
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 import run_deepsece as rd  # noqa: E402
 from _helpers import DSE_RAW_FIELDS, make_dse_raw_row, write_tsv  # noqa: E402

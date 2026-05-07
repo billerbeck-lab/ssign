@@ -20,8 +20,6 @@ import sys
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from run_interproscan import (  # noqa: E402
     _GO_ID_RE,

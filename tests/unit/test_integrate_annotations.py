@@ -12,8 +12,6 @@ import sys
 
 import pandas as pd
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from _helpers import run_script_main, write_tsv  # noqa: E402
 from integrate_annotations import (  # noqa: E402

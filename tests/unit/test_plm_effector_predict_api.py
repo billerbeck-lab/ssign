@@ -18,8 +18,6 @@ from types import SimpleNamespace
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 # predict_api imports torch lazily — this module-level import is fine
 # without torch installed. Tests that exercise _resolve_device or the

@@ -19,15 +19,19 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-def _skip_unless_interproscan():
+def _skip_unless_interproscan(monkeypatch):
     """Skip unless `interproscan.sh` is on PATH or
-    SSIGN_INTERPROSCAN_PATH points to a directory containing it."""
+    SSIGN_INTERPROSCAN_PATH points to a directory containing it.
+
+    Uses pytest's monkeypatch so the PATH mutation is scoped to the test
+    that requested the skip — avoids leaking the install dir into PATH
+    for every subsequent test in the same pytest invocation.
+    """
     path = shutil.which("interproscan.sh")
     if not path:
         ipr_dir = os.environ.get("SSIGN_INTERPROSCAN_PATH")
         if ipr_dir and os.path.exists(os.path.join(ipr_dir, "interproscan.sh")):
-            # Add to PATH for the duration of this process
-            os.environ["PATH"] = ipr_dir + os.pathsep + os.environ["PATH"]
+            monkeypatch.setenv("PATH", ipr_dir + os.pathsep + os.environ["PATH"])
             return ipr_dir
         pytest.skip(
             "interproscan.sh not on PATH; download from "
@@ -38,18 +42,21 @@ def _skip_unless_interproscan():
 
 
 class TestRunInterProScan:
-    def test_runs_on_fixture_proteins(
-        self, tmp_dir, t1ss_fixture_proteins
-    ):
-        _skip_unless_interproscan()
+    def test_runs_on_fixture_proteins(self, monkeypatch, tmp_dir, t1ss_fixture_proteins):
+        _skip_unless_interproscan(monkeypatch)
 
         import sys
+
         sys.path.insert(
             0,
             os.path.abspath(
                 os.path.join(
-                    os.path.dirname(__file__), "..", "..",
-                    "src", "ssign_app", "scripts",
+                    os.path.dirname(__file__),
+                    "..",
+                    "..",
+                    "src",
+                    "ssign_app",
+                    "scripts",
                 )
             ),
         )
@@ -75,7 +82,4 @@ class TestRunInterProScan:
         # First column = query (locus_tag). Fixture has BIMENO_* tags.
         queries = {r[0] for r in rows if r}
         bimeno_hits = [q for q in queries if q.startswith("BIMENO_")]
-        assert bimeno_hits, (
-            f"No BIMENO_* protein got an InterProScan hit. Got queries: "
-            f"{list(queries)[:5]}"
-        )
+        assert bimeno_hits, f"No BIMENO_* protein got an InterProScan hit. Got queries: {list(queries)[:5]}"

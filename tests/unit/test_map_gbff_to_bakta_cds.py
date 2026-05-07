@@ -8,10 +8,6 @@ for annotation-consensus voting.
 import os
 import sys
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
-sys.path.insert(0, SCRIPTS_DIR)
 
 from map_gbff_to_bakta_cds import (  # noqa: E402, F401
     _read_gene_info,

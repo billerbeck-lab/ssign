@@ -8,10 +8,6 @@ that parse Bakta's TSV output and rewrite its FAA into ssign format.
 import os
 import sys
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
-sys.path.insert(0, SCRIPTS_DIR)
 
 from run_bakta import parse_bakta_tsv, parse_dbxrefs, write_proteins_fasta  # noqa: E402, F401
 

@@ -12,10 +12,6 @@ import sys
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
-sys.path.insert(0, SCRIPTS_DIR)
 
 from cross_validate_predictions import cross_validate  # noqa: E402, F401
 

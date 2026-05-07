@@ -8,10 +8,6 @@ pure-Python helper that parses pLM-BLAST's CSV output.
 import os
 import sys
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
-sys.path.insert(0, SCRIPTS_DIR)
 
 from run_plm_blast import (  # noqa: E402, F401
     load_substrate_ids,

@@ -25,8 +25,6 @@ import sys
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 import run_ortholog_grouping  # noqa: E402
 from run_ortholog_grouping import (  # noqa: E402

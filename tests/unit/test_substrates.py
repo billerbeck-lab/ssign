@@ -13,8 +13,6 @@ Two helpers used by every annotation wrapper:
 import os
 import sys
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from _helpers import write_tsv  # noqa: E402
 from ssign_lib.fasta_io import write_fasta  # noqa: E402

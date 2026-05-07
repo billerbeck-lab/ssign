@@ -8,10 +8,6 @@ the pure-Python parser that reads the tool's TSV output.
 import os
 import sys
 
-SCRIPTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts")
-)
-sys.path.insert(0, SCRIPTS_DIR)
 
 from run_eggnog import (  # noqa: E402, F401
     _split_rich_field,

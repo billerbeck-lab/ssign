@@ -12,8 +12,6 @@ import sys
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from _helpers import read_tsv_rows, run_script_main, write_tsv  # noqa: E402
 from system_filtering import main as system_filtering_main  # noqa: E402

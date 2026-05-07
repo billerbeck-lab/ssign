@@ -12,8 +12,6 @@ import sys
 
 from ssign_app.scripts.ssign_lib.fasta_io import write_fasta
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from _helpers import run_script_main, write_tsv  # noqa: E402
 from compute_protparam import main as protparam_main  # noqa: E402

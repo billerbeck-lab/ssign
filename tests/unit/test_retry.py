@@ -15,8 +15,6 @@ import sys
 
 import pytest
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "ssign_app", "scripts"))
-sys.path.insert(0, SCRIPTS_DIR)
 
 from ssign_lib import retry as retry_with_backoff_module  # noqa: E402
 from ssign_lib.retry import retry_once, retry_with_backoff  # noqa: E402
