@@ -91,9 +91,11 @@ SS neighbourhood (Phase 4) to save compute. Three flags
 them across the entire genome instead, which is needed for cohort-wide
 enrichment analysis.
 
-DTU's free webserver is the default execution path for DLP and SignalP;
-no DTU licence required. Local installs are supported via
-`--deeplocpro-mode local` and `--signalp-mode local`.
+ssign is offline-first: the canonical execution path uses local DLP and
+SignalP installs. Users without a DTU academic licence can opt into the
+DTU webserver fallback with `--deeplocpro-mode remote` and
+`--signalp-mode remote` (no licence needed on the user's part, internet
+required).
 
 ## Phase 4: substrate identification
 

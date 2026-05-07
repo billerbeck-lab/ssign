@@ -189,26 +189,28 @@ PLM-Effector test hard-skips on systems without a GPU.
 
 ---
 
-## SignalP 6.0 local install (optional)
+## SignalP 6.0
 
-ssign uses DTU's free SignalP webserver by default. The webserver requires no
-licence on your part; it is the lowest-friction path and works out of the
-box on any machine with internet access. Most users do not need anything
-beyond the default.
+ssign is offline-first: the canonical path is a local SignalP install. **DTU
+confirmed on 2026-05-07 that SignalP 6.0 cannot be redistributed**, so each
+user acquires it from the DTU portal directly (free academic licence).
 
-A local install is faster (no upload latency, parallelisable) and works
-offline, but requires a DTU academic licence. **DTU confirmed on 2026-05-07
-that SignalP 6.0 cannot be redistributed.** Each user has to acquire it from
-the DTU portal directly.
+If you do not have a DTU licence (or just want to try ssign without one),
+opt into the DTU webserver fallback instead with `--signalp-mode remote`.
+The webserver requires no licence on your part and works on any machine
+with internet access.
+
+### When the webserver fallback is fine
+
+- Single-genome analyses or few-dozen-genome pilots
+- Quick first runs to evaluate ssign before installing DTU tools
+- Machines without a DTU licence
 
 ### When to install locally
 
 - Cohorts of >100 genomes where webserver throughput becomes the bottleneck
 - Air-gapped environments with no outbound HTTPS to DTU
-- Reproducibility-paranoid runs that want every tool fully offline
-
-For a single-genome analysis or a few-dozen-genome pilot, the default
-webserver mode is fine.
+- Reproducible / paper-ready runs that need every tool fully offline
 
 ### Install (Linux / macOS)
 
@@ -259,16 +261,17 @@ field. ssign invokes SignalP with `--organism other --mode fast --format txt`
 
 ---
 
-## DeepLocPro local install (optional)
+## DeepLocPro
 
-ssign uses DTU's free DeepLocPro webserver by default. Same shape as SignalP:
-the webserver requires no licence on your part and is the lowest-friction
-path.
-
-A local install is faster but requires a DTU academic licence (~5 GB of model
-files; GPU recommended). DTU's licence terms for redistribution are pending
+Same shape as SignalP: ssign is offline-first, so the canonical path is a
+local DeepLocPro install (free DTU academic licence, ~5 GB of model files,
+GPU recommended). DTU's licence terms for redistribution are pending
 clarification with Ole, the DeepLocPro maintainer (status as of 2026-05-08).
 For now, treat as user-acquires-it.
+
+If you do not have a DTU licence, opt into the DTU webserver fallback with
+`--deeplocpro-mode remote` (no licence needed on your part, internet
+required).
 
 ```bash
 # 1. Register at https://services.healthtech.dtu.dk/services/DeepLocPro-1.0/

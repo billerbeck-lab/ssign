@@ -74,16 +74,24 @@ including the 74-genome benchmark behind the decision, is in
 [`explanation/design_decisions.md`](../explanation/design_decisions.md) § 2.1
 and § 3.3.
 
-## Switching SignalP or DeepLocPro to local mode
+## Switching SignalP or DeepLocPro between local and webserver
 
-Both tools default to DTU's free webserver (no licence required on your
-part). For users with a DTU academic licence and a local install, switch
-modes:
+ssign is offline-first: the canonical path uses local installs of SignalP
+and DeepLocPro. Wire the local installs in:
 
 ```bash
 ssign run input.gbff --outdir results \
     --signalp-mode local --signalp-path /path/to/signalp6/bin \
     --deeplocpro-mode local --deeplocpro-path /path/to/deeplocpro
+```
+
+If you do not have a DTU licence, opt into the DTU webserver fallback
+(no licence needed on your part, internet required):
+
+```bash
+ssign run input.gbff --outdir results \
+    --signalp-mode remote \
+    --deeplocpro-mode remote
 ```
 
 See [`how-to/install.md`](install.md) for the SignalP / DeepLocPro local

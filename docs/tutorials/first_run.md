@@ -12,10 +12,12 @@ About 30 minutes, mostly waiting for DTU's webserver.
 
 - Linux or macOS
 - Python 3.11 or newer (`python3 --version`)
-- An internet connection (DeepLocPro and SignalP run on DTU's free
-  webserver by default; no DTU licence needed on your part)
+- An internet connection (this tutorial uses the DTU webserver fallback for
+  DeepLocPro and SignalP, so no DTU licence is required on your part)
 
-No GPU, no DTU licence, no system packages required.
+No GPU, no DTU licence, no system packages required. For a fully offline
+run with local DTU tools (the canonical ssign mode), see
+[`how-to/install.md`](../how-to/install.md).
 
 ## 1. Install ssign
 
@@ -50,12 +52,15 @@ The file is ~13 MB.
 
 The base tier (`pip install ssign` with no extras) covers secretion-system
 detection, secreted-protein prediction, proximity analysis, and reporting.
-For a tutorial run we skip the annotation tools that need their own
-databases (BLASTp, HH-suite, EggNOG, InterProScan, pLM-BLAST):
+For a tutorial run we opt into the DTU webserver fallback for DLP and
+SignalP (no licence needed) and skip the annotation tools that need their
+own databases (BLASTp, HH-suite, EggNOG, InterProScan, pLM-BLAST):
 
 ```bash
 ssign run ecoli_k12.gbff --outdir ecoli_results \
     --use-input-annotations \
+    --signalp-mode remote \
+    --deeplocpro-mode remote \
     --skip-blastp \
     --skip-eggnog \
     --skip-hhsuite \
@@ -69,6 +74,8 @@ What that command says, in plain English:
 - Write outputs to `./ecoli_results/`.
 - Trust the input GenBank's existing annotations rather than re-annotating
   with Bakta. (Bakta is not installed in the base tier.)
+- Use the DTU webserver fallback for SignalP and DeepLocPro, so we don't
+  need a DTU academic licence for this first run.
 - Skip the five annotation tools that need extra databases. Everything
   else (DeepLocPro, SignalP, PLM-Effector predictions, MacSyFinder
   detection, proximity analysis, ProtParam, reporting) runs as normal.

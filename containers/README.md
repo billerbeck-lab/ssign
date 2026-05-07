@@ -101,7 +101,7 @@ caveat doesn't apply there.
 | `ncbi-blast+` (`blastp` binary)              | Yes      | apt-get during build              |
 | Model weights (DeepSecE / ProtT5 / ESM / …)  | No       | `scripts/fetch_weights.sh`        |
 | Reference DBs (Bakta / EggNOG / HH-suite / …) | No       | `scripts/fetch_databases.sh`      |
-| DeepLocPro + SignalP binaries                | No       | DTU webserver by default *        |
+| DeepLocPro + SignalP binaries                | No       | User-installed locally; DTU webserver as fallback * |
 | EggNOG database                              | No       | `download_eggnog_data.py` *       |
 
 \* The DTU and EggNOG entries default to the conservative path because

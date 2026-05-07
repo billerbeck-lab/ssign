@@ -164,7 +164,8 @@ node:
 |---|---|
 | Bakta re-annotation | 10-20 min |
 | MacSyFinder | 5-10 min |
-| DeepLocPro + SignalP (DTU webserver) | 5-15 min, network-bound |
+| DeepLocPro + SignalP (local) | 2-5 min, GPU-accelerated |
+| DeepLocPro + SignalP (DTU webserver fallback) | 5-15 min, network-bound |
 | DeepSecE | 5-10 min |
 | HH-suite (Pfam + PDB70) | 10-30 min |
 | InterProScan | 5-15 min |

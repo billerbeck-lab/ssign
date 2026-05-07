@@ -116,11 +116,12 @@ not permit redistribution. ssign cannot bundle the binary or weights in
 its public Docker image. Users who want a fully offline run must
 acquire SignalP separately from the [DTU HealthTech portal](https://services.healthtech.dtu.dk/).
 
-The default **remote DTU webserver mode** (HTTP submission to
-`services.healthtech.dtu.dk`) requires no license on the user's part
-and is the shipping path for users who cannot install SignalP locally.
-For local-install users, `--signalp-mode local --signalp-path <dir>`
-points the wrapper at the user's own install.
+ssign is offline-first; the canonical SignalP path is a local install
+the user obtains from the DTU portal. For users without a DTU licence,
+the **remote DTU webserver fallback** (HTTP submission to
+`services.healthtech.dtu.dk`) requires no licence on the user's part and
+is opt-in via `--signalp-mode remote`. Local-install users wire the
+binary in via `--signalp-path <dir>`.
 
 Documented in `docs/how-to/install.md`.
 
@@ -136,8 +137,9 @@ Two possible outcomes:
    image, document any academic-use restriction. One-line Dockerfile
    edit per plan addendum E.6.
 2. **DTU requires per-user acquisition** — keeps the SignalP shape:
-   default to remote DTU webserver, optional bind-mount for local
-   install.
+   user obtains DeepLocPro from DTU and points ssign at it via
+   `--deeplocpro-path`; webserver fallback available for users without
+   a licence.
 
 Conservative plan stays the default until Ole replies; if the answer
 is yes, only DeepLocPro flips to bundled.
