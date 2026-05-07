@@ -7,23 +7,23 @@ developed by the Billerbeck Lab at Imperial College London.
 
 ## Ways to contribute
 
-- **Bug reports or unexpected behaviour** — GitHub issue.
-- **Feature requests** — GitHub issue tagged `enhancement`, before writing
+- **Bug reports or unexpected behaviour:** GitHub issue.
+- **Feature requests:** GitHub issue tagged `enhancement`, before writing
   code, so we can discuss scope.
-- **Code or documentation fixes** — fork, branch, PR.
-- **New secretion-related tool or annotation source** — open an issue with a
+- **Code or documentation fixes:** fork, branch, PR.
+- **New secretion-related tool or annotation source:** open an issue with a
   brief justification and a license check for the new dependency.
-- **Documentation improvements** — the lowest-friction way to contribute.
+- **Documentation improvements:** the lowest-friction way to contribute.
 
 ---
 
 ## Before you start
 
-1. Check open issues and PRs — someone may already be working on the same
-   thing.
+1. Check open issues and PRs first; someone may already be working on the
+   same thing.
 2. Discuss non-trivial changes first via an issue.
-3. Large structural changes should fit the publication roadmap — flag in the
-   issue if they don't.
+3. Large structural changes should fit the publication roadmap. Flag in
+   the issue if they don't.
 
 ---
 
@@ -32,14 +32,14 @@ developed by the Billerbeck Lab at Imperial College London.
 Open an issue with:
 
 - **ssign version** (`ssign --version` or commit SHA).
-- **Platform** — OS, Python version, CUDA version if relevant.
+- **Platform:** OS, Python version, CUDA version if relevant.
 - **Exact command(s) run** and **full error / log output** (code fences).
 - **Expected vs actual behaviour**.
-- A **minimal reproducer** — smallest input that triggers the issue. A small
+- A **minimal reproducer:** smallest input that triggers the issue. A small
   GenBank or FASTA attached is ideal.
 - Whether you've tried the latest `main`.
 
-Don't paste entire genome files — attach or link them.
+Don't paste entire genome files; attach or link them.
 
 ---
 
@@ -69,7 +69,7 @@ pytest tests/integration/ -v           # integration tests (some need network)
 - **Type hints** required for new public functions; `mypy --strict` should
   pass on `src/ssign_app/`.
 - **Comments** only when the _why_ is non-obvious.
-- **Critical-path code** (listed in `docs/`) has regression tests — preserve
+- **Critical-path code** (listed in `docs/`) has regression tests; preserve
   the comment block documenting why each fragile section is fragile.
 
 ---
@@ -77,7 +77,7 @@ pytest tests/integration/ -v           # integration tests (some need network)
 ## Tests
 
 - New features **must** include unit tests (Arrange-Act-Assert).
-- Keep fixtures small and real — prefer a 3-gene test genome over a mock.
+- Keep fixtures small and real (prefer a 3-gene test genome over a mock).
   See `tests/fixtures/`.
 - Integration tests that hit external services: `@pytest.mark.integration`.
 - CI must pass on your PR.
@@ -89,7 +89,7 @@ pytest tests/integration/ -v           # integration tests (some need network)
 1. Fork, branch from `main`. Naming: `feature/short-description`,
    `fix/issue-NN-short`, `docs/short-description`.
 2. One logical change per PR.
-3. Clear PR description — what, why, how tested. Link the issue.
+3. Clear PR description: what, why, how tested. Link the issue.
 4. Add a `CHANGELOG.md` entry under `## [Unreleased]` for user-facing
    changes.
 5. Rebase rather than merge `main` back in.
@@ -130,5 +130,5 @@ welcome.
 successor will be named in `SYSADMIN.md` before September 2026; until then,
 GitHub Issues are the fastest path to a technical answer.
 
-**Do not email the PI with bug reports or install trouble** — those belong
+**Do not email the PI with bug reports or install trouble.** Those belong
 on GitHub Issues where they're searchable.

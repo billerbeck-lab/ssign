@@ -1,4 +1,4 @@
-# SYSADMIN.md — Operational runbook for the ssign hosted service
+# SYSADMIN.md: operational runbook for the ssign hosted service
 
 Runbook for the lab member maintaining the ssign hosted web service after the
 original author (Teo Reid) leaves Imperial. Written for a moderately
@@ -7,7 +7,7 @@ technical lab member, not a professional sysadmin.
 > **Scope:** public web service only. The ssign pipeline (what you
 > `pip install` or `docker run`) is documented under [`docs/`](docs/).
 >
-> **Status — 2026-04-22:** skeleton. Sections marked "to be filled in" will
+> **Status (2026-04-22):** skeleton. Sections marked "to be filled in" will
 > be expanded as the hosted service is built out (post-publication,
 > separate plan).
 
@@ -15,14 +15,14 @@ technical lab member, not a professional sysadmin.
 
 ## 0. Who owns what, who to contact
 
-- **Server owner / lab contact:** Dr. Sonja Billerbeck — `s.billerbeck@imperial.ac.uk`
+- **Server owner / lab contact:** Dr. Sonja Billerbeck, `s.billerbeck@imperial.ac.uk`
 - **Named sysadmin in the lab** (designated before Teo departs): _to be
   assigned_
 - **Imperial RCS** (for network / firewall / subdomain issues):
   `https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/`
 - **Domain registrar** (if we own our own domain): _to be filled in_
 - **Cloud services we depend on** (beyond Imperial):
-  - Let's Encrypt (SSL) — free, automated
+  - Let's Encrypt (SSL); free, automated
   - GitHub (source)
   - Zenodo (model weights + database deposits)
   - Docker Hub / GHCR (container image)
@@ -37,9 +37,9 @@ Before digging in, check these in order. Most outages fall here.
 2. **Can you ping the server?** `ping ssign.<domain>`
 3. **Is the service running?** SSH in and run `systemctl status ssign`.
 4. **Is Docker up?** `docker ps` should list the ssign container.
-5. **Is the SSL cert current?** `certbot certificates` — should show > 0 days
-   remaining.
-6. **Is the disk full?** `df -h` — if /var is >95% it can break everything.
+5. **Is the SSL cert current?** `certbot certificates` (should show > 0 days
+   remaining).
+6. **Is the disk full?** `df -h`; if /var is >95% it can break everything.
 7. **Are there OOM events?** `dmesg | grep -i "killed process"`.
 8. **Is there a GitHub / Docker Hub outage?** Check their status pages before
    blaming yourself.
@@ -60,7 +60,7 @@ If none of the above, see §6 "When it really is broken."
   on a schedule. Do it intentionally, in a maintenance window, after taking a
   backup.
 - **Backups:** `/etc`, `/var/lib/ssign`, user-submitted inputs and outputs
-  under `/srv/ssign/submissions/` — target backup location to be filled in.
+  under `/srv/ssign/submissions/`. Target backup location to be filled in.
 
 _Config files + exact command list to be added when hardware is deployed._
 
@@ -72,7 +72,7 @@ _Config files + exact command list to be added when hardware is deployed._
 - **Client:** `certbot` (standard Ubuntu package).
 - **Renewal:** automatic via systemd timer, runs twice daily, renews when
   ≤30 days to expiry.
-- **Email alerts on renewal failure:** yes — `certbot register --email <addr>`.
+- **Email alerts on renewal failure:** yes, via `certbot register --email <addr>`.
   Failure emails should go to at least two lab members.
 - **Cert lifetime:** 90 days. Renewal should happen silently ~every 60 days.
 - **If renewal fails for >2 weeks:** site will show "Not Secure" warnings to
@@ -128,9 +128,9 @@ deployment time._
 3. **Roll back** if the last change was a new Docker image:
    `docker pull billerbeck-lab/ssign:<previous-tag>` and restart.
 4. **Restore from backup** if data is corrupted.
-5. **Ask for help** — contact list in §0. If Imperial RCS is involved,
+5. **Ask for help.** Contact list in §0. If Imperial RCS is involved,
    reference the original server-provisioning ticket.
-6. **Document** what broke, what you did, and what worked — append to this
+6. **Document** what broke, what you did, and what worked. Append to this
    file (or the repo's issue tracker) so the next person benefits.
 
 ---
