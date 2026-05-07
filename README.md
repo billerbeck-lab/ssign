@@ -112,7 +112,7 @@ Per-stage detail, threshold choices, and tool-selection rationale in
 | `wholeness_threshold` | `0.8`                  | Minimum MacSyFinder completeness to accept a system                         |
 
 All configurable in the GUI or via CLI flags. Full parameter reference in
-[`docs/configuration.md`](docs/configuration.md).
+[`docs/reference/cli.md`](docs/reference/cli.md).
 
 ---
 

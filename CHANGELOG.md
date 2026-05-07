@@ -52,7 +52,7 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   overhead that kept every script mirrored between `bin/` and
   `src/ssign_app/scripts/`. Migration: replace any
   `nextflow run main.nf --input X --outdir Y -profile docker` invocation
-  with `ssign run X --outdir Y`. See `docs/design_decisions.md` § 6.3.
+  with `ssign run X --outdir Y`. See `docs/explanation/design_decisions.md` § 6.3.
 
 ## [0.9.0-prerefactor] — 2026-04-22
 
