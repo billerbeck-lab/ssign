@@ -370,7 +370,10 @@ def parse_deeplocpro_output(results_path):
 
                 if entries:
                     return entries
-        except Exception:
+        except (OSError, UnicodeDecodeError, csv.Error, ValueError):
+            # OSError: missing/permission. UnicodeDecodeError: non-UTF-8.
+            # csv.Error: malformed quoting. ValueError: float() rejected a
+            # non-numeric probability column. Other types should propagate.
             continue
 
     return entries

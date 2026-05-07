@@ -457,7 +457,10 @@ def parse_deepsece_output(results_path):
                     for raw_col, std_col in _COLUMN_MAP.items():
                         entry[std_col] = row.get(raw_col, "")
                     attempt.append(entry)
-        except Exception:
+        except (OSError, UnicodeDecodeError, csv.Error):
+            # OSError covers FileNotFoundError + PermissionError; UnicodeDecodeError
+            # catches non-UTF-8 raw output; csv.Error catches malformed quoting.
+            # Other exception types (programming bugs) should propagate.
             continue
         # Accept this delimiter only if it actually produced populated rows
         if attempt and attempt[0].get("locus_tag"):
