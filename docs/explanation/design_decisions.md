@@ -434,7 +434,7 @@ For paper Methods section:
 - Teufel, F., et al. (2022). _Nature Biotechnology_, 40(7):1023–1025. doi:[10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3). — SignalP 6.0.
 - Yok, N. G., & Rosen, G. L. (2011). _BMC Bioinformatics_, 12:20. doi:[10.1186/1471-2105-12-20](https://doi.org/10.1186/1471-2105-12-20). — Combining gene prediction methods.
 - Zhang, Y., et al. (2023). _Research_, 6:0258. doi:[10.34133/research.0258](https://doi.org/10.34133/research.0258). — DeepSecE.
-- Zheng, D. (2026). _Briefings in Bioinformatics_, 27(2):bbag143. — PLM-Effector.
+- Zheng, D. (2026). _Briefings in Bioinformatics_, 27(2):bbag143. doi:[10.1093/bib/bbag143](https://doi.org/10.1093/bib/bbag143). — PLM-Effector.
 
 ---
 
