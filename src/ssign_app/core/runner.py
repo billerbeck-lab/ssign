@@ -148,6 +148,18 @@ class PipelineConfig:
     ortholog_min_pident: float = 40.0
     ortholog_min_qcov: float = 70.0
 
+    def __post_init__(self) -> None:
+        # Env-var fallbacks for HH-suite database paths. Empty field means
+        # "use the env var if set" — documented in --hhsuite-*-db help text
+        # and docs/optional_tools.md. Explicit non-empty paths always win.
+        for attr, env in (
+            ("hhsuite_pfam_db", "SSIGN_HHSUITE_PFAM"),
+            ("hhsuite_pdb70_db", "SSIGN_HHSUITE_PDB70"),
+            ("hhsuite_uniclust_db", "SSIGN_HHSUITE_UNICLUST"),
+        ):
+            if not getattr(self, attr) and os.environ.get(env):
+                setattr(self, attr, os.environ[env])
+
 
 @dataclass
 class StepResult:

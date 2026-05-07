@@ -95,6 +95,47 @@ class TestPipelineConfig:
         assert c.cpu_per_genome >= 1
 
 
+class TestPipelineConfigHHsuiteEnvFallback:
+    """SSIGN_HHSUITE_* env vars fill in empty fields; explicit paths win.
+
+    Documented in --hhsuite-*-db CLI help and docs/optional_tools.md.
+    """
+
+    @pytest.mark.parametrize(
+        "env_name, attr",
+        [
+            ("SSIGN_HHSUITE_PFAM", "hhsuite_pfam_db"),
+            ("SSIGN_HHSUITE_PDB70", "hhsuite_pdb70_db"),
+            ("SSIGN_HHSUITE_UNICLUST", "hhsuite_uniclust_db"),
+        ],
+    )
+    def test_empty_field_picks_up_env_var(self, monkeypatch, env_name, attr):
+        monkeypatch.setenv(env_name, "/tmp/fake_db")
+        c = PipelineConfig()
+        assert getattr(c, attr) == "/tmp/fake_db"
+
+    @pytest.mark.parametrize(
+        "env_name, attr",
+        [
+            ("SSIGN_HHSUITE_PFAM", "hhsuite_pfam_db"),
+            ("SSIGN_HHSUITE_PDB70", "hhsuite_pdb70_db"),
+            ("SSIGN_HHSUITE_UNICLUST", "hhsuite_uniclust_db"),
+        ],
+    )
+    def test_explicit_path_overrides_env_var(self, monkeypatch, env_name, attr):
+        monkeypatch.setenv(env_name, "/tmp/from_env")
+        c = PipelineConfig(**{attr: "/explicit/path"})
+        assert getattr(c, attr) == "/explicit/path"
+
+    def test_no_env_var_set_keeps_empty_default(self, monkeypatch):
+        for env in ("SSIGN_HHSUITE_PFAM", "SSIGN_HHSUITE_PDB70", "SSIGN_HHSUITE_UNICLUST"):
+            monkeypatch.delenv(env, raising=False)
+        c = PipelineConfig()
+        assert c.hhsuite_pfam_db == ""
+        assert c.hhsuite_pdb70_db == ""
+        assert c.hhsuite_uniclust_db == ""
+
+
 # ---------------------------------------------------------------------------
 # StepResult
 # ---------------------------------------------------------------------------
