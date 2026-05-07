@@ -27,8 +27,11 @@ single-genome interactive runs.
 | Format        | Extension               | Description                                                                |
 | ------------- | ----------------------- | -------------------------------------------------------------------------- |
 | GenBank       | `.gbff`, `.gbk`, `.gb`  | Annotated genome (recommended — contains protein sequences and gene order) |
-| GFF3 + FASTA  | `.gff3` + `.fasta`      | Pass both with `--input-gff` and `--input-fasta`                           |
 | FASTA contigs | `.fasta`, `.fna`, `.fa` | Raw contigs — Bakta (or Prodigal as fallback) predicts ORFs                |
+
+GFF3 input requires a paired FASTA and is not yet wired through the
+top-level `ssign run` interface (`extract_proteins.py` supports it
+internally; v1.x will expose a paired-input option).
 
 ## Annotation Tool Modes
 
@@ -38,11 +41,11 @@ to make runs reproducible offline.
 
 | Tool         | Database                                                   | Approx. size                |
 | ------------ | ---------------------------------------------------------- | --------------------------- |
-| BLASTp       | `--blastp-db /path` (NR or Swiss-Prot)                     | NR ~390 GB, Swiss-Prot ~2 GB |
-| HH-suite     | `--hhsuite-pfam`, `--hhsuite-pdb70`, `--hhsuite-uniref30`  | Pfam ~3 GB, PDB70 ~22 GB, UniRef30 ~25 GB |
-| InterProScan | `--interproscan-path /path/to/install`                     | ~24 GB unpacked             |
-| EggNOG       | `--eggnog-db /path`                                        | ~50 GB                      |
-| pLM-BLAST    | `--plmblast-ecod-db /path`                                 | ECOD70 ~10 GB               |
+| BLASTp       | `--blastp-db /path` (NR or Swiss-Prot)                                | NR ~390 GB, Swiss-Prot ~2 GB |
+| HH-suite     | `--hhsuite-pfam-db`, `--hhsuite-pdb70-db`, `--hhsuite-uniclust-db`     | Pfam ~3 GB, PDB70 ~22 GB, UniClust ~25 GB |
+| InterProScan | `--interproscan-db /path/to/install`                                  | ~24 GB unpacked             |
+| EggNOG       | `--eggnog-db /path`                                                   | ~50 GB                      |
+| pLM-BLAST    | `--plmblast-db /path` (ECOD70)                                        | ECOD70 ~10 GB               |
 
 See `docs/optional_tools.md` for the install-tier table (base / extended / full)
 and per-tool install instructions.
@@ -64,7 +67,7 @@ By default, Flagellum, Tad, and T3SS are excluded from substrate identification:
 
 ```bash
 ssign run input.gbff --outdir results \
-    --excluded-systems 'Flagellum,Tad,T3SS'   # default
+    --excluded-systems Flagellum Tad T3SS   # default (space-separated)
 ```
 
 **Why T3SS is excluded by default:** MacSyFinder found zero T3SS across 74 Xanthomonas
