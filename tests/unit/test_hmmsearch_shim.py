@@ -258,3 +258,51 @@ class TestShimEndToEnd:
             text = f.read()
         assert "No hits" in text
         assert "//" in text
+
+    def test_domain_coordinates_align_to_anchor_position(self, tmp_dir, anchor_hmm_path):
+        # MacSyFinder's parser reads the domain table coordinates as 1-based
+        # HMMER3. Pin: anchor seq is _ANCHOR_SEQ; target embeds it 5 residues
+        # in. ali_from must report 6 (1-based start of the anchor in the
+        # target). Off-by-one regressions land here. The shim writes whatever
+        # pyhmmer returns; this test fails if a future pyhmmer version
+        # changes its coordinate convention without us updating the shim.
+        prefix = "AAAAA"
+        target_seq = prefix + _ANCHOR_SEQ + "AAAAA"
+        fasta_path = os.path.join(tmp_dir, "embed.fasta")
+        write_fasta({"embedded": target_seq}, fasta_path)
+        out_path = os.path.join(tmp_dir, "out.txt")
+        _run_main_expect([anchor_hmm_path, fasta_path, "-o", out_path])
+
+        with open(out_path) as f:
+            text = f.read()
+        # Find the per-domain table row and parse the alifrom/ali_to columns
+        # (HMMER3 indices: 9 and 10 in whitespace-split row, after `#` and `!`).
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("1 ") and "!" in stripped:
+                parts = stripped.split()
+                # parts: ["1","!",score,bias,c-Eval,i-Eval,hmm_from,hmm_to,"..",
+                #         ali_from,ali_to,"..",env_from,env_to,"..",acc]
+                ali_from = int(parts[9])
+                # 1-based start of the anchor in the target string is len(prefix)+1
+                assert ali_from == len(prefix) + 1, (
+                    f"ali_from {ali_from} != expected 1-based {len(prefix) + 1}; "
+                    "pyhmmer may have changed coordinate convention"
+                )
+                break
+        else:
+            raise AssertionError("no `1 !` domain row found in shim text output")
+
+    def test_domtblout_warns_but_does_not_write(self, tmp_dir, anchor_hmm_path, capsys):
+        # The shim accepts --domtblout for compatibility but doesn't write
+        # the file. Surface the gap on stderr so a future caller relying on
+        # per-domain tabular output isn't silently shorted.
+        fasta_path = os.path.join(tmp_dir, "targets.fasta")
+        write_fasta({"target_1": _ANCHOR_SEQ}, fasta_path)
+        out_path = os.path.join(tmp_dir, "out.txt")
+        domtbl_path = os.path.join(tmp_dir, "domtbl.txt")
+        _run_main_expect([anchor_hmm_path, fasta_path, "-o", out_path, "--domtblout", domtbl_path])
+        assert not os.path.exists(domtbl_path)
+        err = capsys.readouterr().err
+        assert "domtblout" in err
+        assert "not implement" in err.lower() or "no file will be written" in err.lower()

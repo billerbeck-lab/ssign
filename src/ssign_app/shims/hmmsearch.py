@@ -59,22 +59,12 @@ def parse_args(argv=None):
     )
     parser.add_argument("hmmfile", help="HMM profile file (.hmm)")
     parser.add_argument("seqdb", help="Target sequence database (FASTA)")
-    parser.add_argument(
-        "-o", dest="output", required=True, help="Direct output to file"
-    )
-    parser.add_argument(
-        "--tblout", default=None, help="Save per-target tabular output"
-    )
-    parser.add_argument(
-        "--domtblout", default=None, help="Save per-domain tabular output"
-    )
+    parser.add_argument("-o", dest="output", required=True, help="Direct output to file")
+    parser.add_argument("--tblout", default=None, help="Save per-target tabular output")
+    parser.add_argument("--domtblout", default=None, help="Save per-domain tabular output")
     parser.add_argument("--cpu", type=int, default=1, help="Number of CPUs")
-    parser.add_argument(
-        "--cut_ga", action="store_true", help="Use GA gathering thresholds"
-    )
-    parser.add_argument(
-        "-E", dest="evalue", type=float, default=10.0, help="E-value threshold"
-    )
+    parser.add_argument("--cut_ga", action="store_true", help="Use GA gathering thresholds")
+    parser.add_argument("-E", dest="evalue", type=float, default=10.0, help="E-value threshold")
     # Accept and ignore other common flags for resilience
     parser.add_argument("--noali", action="store_true", help="(accepted, ignored)")
     parser.add_argument("--notextw", action="store_true", help="(accepted, ignored)")
@@ -107,20 +97,14 @@ def run_search(args):
 
         if args.cut_ga:
             try:
-                top_hits_iter = pyhmmer.hmmsearch(
-                    hmm, targets, bit_cutoffs="gathering", **search_kwargs
-                )
+                top_hits_iter = pyhmmer.hmmsearch(hmm, targets, bit_cutoffs="gathering", **search_kwargs)
                 top_hits = next(top_hits_iter)
             except ValueError:
                 # Profile lacks GA thresholds — fall back to E-value
-                top_hits_iter = pyhmmer.hmmsearch(
-                    hmm, targets, E=args.evalue, **search_kwargs
-                )
+                top_hits_iter = pyhmmer.hmmsearch(hmm, targets, E=args.evalue, **search_kwargs)
                 top_hits = next(top_hits_iter)
         else:
-            top_hits_iter = pyhmmer.hmmsearch(
-                hmm, targets, E=args.evalue, **search_kwargs
-            )
+            top_hits_iter = pyhmmer.hmmsearch(hmm, targets, E=args.evalue, **search_kwargs)
             top_hits = next(top_hits_iter)
 
         results.append((hmm, top_hits))
@@ -167,20 +151,10 @@ def write_text_output(f, results, args, n_targets, n_residues):
             continue
 
         # Per-sequence scores table
-        f.write(
-            "Scores for complete sequences (score includes all domains):\n"
-        )
-        f.write(
-            "   --- full sequence ---   --- best 1 domain ---    -#dom-\n"
-        )
-        f.write(
-            "    E-value  score  bias    E-value  score  bias    exp  N  "
-            "Sequence     Description\n"
-        )
-        f.write(
-            "    ------- ------ -----    ------- ------ -----   ---- --  "
-            "--------     -----------\n"
-        )
+        f.write("Scores for complete sequences (score includes all domains):\n")
+        f.write("   --- full sequence ---   --- best 1 domain ---    -#dom-\n")
+        f.write("    E-value  score  bias    E-value  score  bias    exp  N  Sequence     Description\n")
+        f.write("    ------- ------ -----    ------- ------ -----   ---- --  --------     -----------\n")
 
         for hit in top_hits:
             hit_name = _decode(hit.name)
@@ -261,19 +235,18 @@ def write_tblout(f, results, args):
              fullseq_bias, best1_E, best1_score, best1_bias,
              exp, reg, clu, ov, env, dom, rep, inc, description
     """
-    f.write(
-        "# --- full sequence ---- --- best 1 domain ---- --- domain "
-        "number estimation ----\n"
-    )
+    f.write("# --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----\n")
     f.write(
         "# target name        accession  query name           accession"
         "    E-value  score  bias   E-value  score  bias   exp reg clu"
         "  ov env dom rep inc description of target\n"
     )
-    f.write(f"#{'':->18s} {'':->10s} {'':->20s} {'':->10s} {'':->9s}"
-            f" {'':->6s} {'':->5s} {'':->9s} {'':->6s} {'':->5s}"
-            f" {'':->4s} {'':->3s} {'':->3s} {'':->3s} {'':->3s}"
-            f" {'':->3s} {'':->3s} {'':->3s} {'':->22s}\n")
+    f.write(
+        f"#{'':->18s} {'':->10s} {'':->20s} {'':->10s} {'':->9s}"
+        f" {'':->6s} {'':->5s} {'':->9s} {'':->6s} {'':->5s}"
+        f" {'':->4s} {'':->3s} {'':->3s} {'':->3s} {'':->3s}"
+        f" {'':->3s} {'':->3s} {'':->3s} {'':->22s}\n"
+    )
 
     for hmm, top_hits in results:
         query_name = _decode(hmm.name) or "unnamed"
@@ -284,11 +257,7 @@ def write_tblout(f, results, args):
             hit_acc = "-"
             hit_desc = _decode(hit.description)
             n_dom = len(hit.domains)
-            best_dom = (
-                min(hit.domains, key=lambda d: d.i_evalue)
-                if hit.domains
-                else None
-            )
+            best_dom = min(hit.domains, key=lambda d: d.i_evalue) if hit.domains else None
             best_e = best_dom.i_evalue if best_dom else hit.evalue
             best_s = best_dom.score if best_dom else hit.score
             best_b = best_dom.bias if best_dom else 0.0
@@ -340,6 +309,18 @@ def main(argv=None):
         except Exception as e:
             print(f"ERROR: Failed to write tblout: {e}", file=sys.stderr)
             sys.exit(1)
+
+    # MacSyFinder doesn't currently request --domtblout, so the shim only
+    # accepts the flag for compatibility — but if a future caller passes one,
+    # surface that we won't write it instead of silently producing nothing.
+    if args.domtblout:
+        print(
+            "WARNING: pyhmmer hmmsearch shim does not implement --domtblout. "
+            f"No file will be written to {args.domtblout}. "
+            "Install real HMMER (apt install hmmer / conda install hmmer) if "
+            "the calling tool requires per-domain tabular output.",
+            file=sys.stderr,
+        )
 
     sys.exit(0)
 
