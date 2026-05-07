@@ -389,6 +389,57 @@ class TestTryResume:
         completed = r2._try_resume()
         assert completed == set()
 
+    def test_resume_aborted_if_persisted_output_missing(self, tmp_dir):
+        # Manifest says step succeeded with file X; X was deleted between
+        # runs. Resume must refuse — better fresh than corrupt.
+        c = PipelineConfig(outdir=tmp_dir, sample_id="my_sample")
+        r1 = PipelineRunner(c)
+        r1.work_dir = tmp_dir
+        proteins = os.path.join(tmp_dir, "proteins.faa")
+        with open(proteins, "w") as f:
+            f.write(">x\nMKT\n")
+        r1.results = [StepResult(name="extract_proteins", success=True, message="ok")]
+        r1.files = {"proteins": proteins}
+        r1._save_progress()
+
+        os.remove(proteins)
+
+        r2 = PipelineRunner(c)
+        assert r2._try_resume() == set()
+
+    def test_resume_aborted_if_persisted_output_empty(self, tmp_dir):
+        # Zero-byte TSV looks like exists==True but breaks downstream
+        # parsers. Must not be silently accepted.
+        c = PipelineConfig(outdir=tmp_dir, sample_id="my_sample")
+        r1 = PipelineRunner(c)
+        r1.work_dir = tmp_dir
+        empty_path = os.path.join(tmp_dir, "ss_components.tsv")
+        open(empty_path, "w").close()
+        r1.results = [StepResult(name="macsyfinder", success=True, message="ok")]
+        r1.files = {"ss_components": empty_path}
+        r1._save_progress()
+
+        r2 = PipelineRunner(c)
+        assert r2._try_resume() == set()
+
+    def test_resume_ignores_intentionally_blank_paths(self, tmp_dir):
+        # Some steps record an empty-string path to mean "no output produced
+        # this run" (e.g., skipped optional tool). Validator must skip those.
+        c = PipelineConfig(outdir=tmp_dir, sample_id="my_sample")
+        r1 = PipelineRunner(c)
+        r1.work_dir = tmp_dir
+        proteins = os.path.join(tmp_dir, "proteins.faa")
+        with open(proteins, "w") as f:
+            f.write(">x\nMKT\n")
+        r1.results = [StepResult(name="extract_proteins", success=True, message="ok")]
+        r1.files = {"proteins": proteins, "blastp_results": ""}
+        r1._save_progress()
+
+        r2 = PipelineRunner(c)
+        completed = r2._try_resume()
+        assert "extract_proteins" in completed
+        assert r2.files["blastp_results"] == ""
+
 
 # ---------------------------------------------------------------------------
 # Constants integration

@@ -1744,6 +1744,11 @@ class PipelineRunner:
     def _try_resume(self) -> set:
         """Attempt to resume from previous progress. Returns set of step
         names to skip (already completed successfully with valid outputs).
+
+        Validates that every persisted output file is still present and
+        non-empty before agreeing to resume — a manifest that survives
+        but with corrupt / truncated / deleted outputs is worse than a
+        fresh run, because downstream steps would silently read garbage.
         """
         prev_results, prev_files, prev_work_dir, _saved_config = self.load_progress(
             self.config.outdir, self.config.sample_id
@@ -1751,24 +1756,40 @@ class PipelineRunner:
         if prev_results is None:
             return set()
 
-        # Validate that the previous work_dir still exists with files
         if not prev_work_dir or not os.path.isdir(prev_work_dir):
             logger.info("Previous work directory gone — starting fresh")
             return set()
 
-        # Check which steps completed successfully AND have valid output files
-        completed = set()
-        prev_succeeded = {r.name for r in prev_results if r.success}
+        # Validate every recorded output: must exist and be non-empty. A
+        # zero-byte TSV looks valid to os.path.exists but breaks downstream.
+        # If any are bad, refuse to resume — better a clean re-run than a
+        # corrupt resume that taints the report.
+        bad: list[str] = []
+        for key, path in prev_files.items():
+            if not isinstance(path, str) or not path:
+                continue
+            if not os.path.exists(path):
+                bad.append(f"{key}: missing ({path})")
+                continue
+            try:
+                if os.path.isfile(path) and os.path.getsize(path) == 0:
+                    bad.append(f"{key}: empty ({path})")
+            except OSError as e:
+                bad.append(f"{key}: stat failed ({e})")
 
-        for step_name in prev_succeeded:
-            completed.add(step_name)
+        if bad:
+            logger.warning(
+                "Resume aborted: %d previous output(s) missing or empty — starting fresh.\n  %s",
+                len(bad),
+                "\n  ".join(bad[:10]),
+            )
+            return set()
 
+        completed = {r.name for r in prev_results if r.success}
         if completed:
-            # Restore file paths and work directory from previous run
             self.work_dir = prev_work_dir
-            # Only restore files that still exist
             for key, path in prev_files.items():
-                if isinstance(path, str) and (os.path.exists(path) or not path):
+                if isinstance(path, str):
                     self.files[key] = path
             logger.info(f"Resuming: {len(completed)} steps already done: {', '.join(sorted(completed))}")
 
