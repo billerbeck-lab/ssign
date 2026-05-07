@@ -141,35 +141,30 @@ def expand_results_tsv(input_tsv, output_tsv, seq_groups, id_column="locus_tag")
     if not os.path.exists(input_tsv):
         return
 
-    with open(input_tsv) as f:
-        reader = csv.DictReader(f, delimiter="\t")
+    n_in = 0
+    n_out = 0
+    with open(input_tsv) as fin, open(output_tsv, "w", newline="") as fout:
+        reader = csv.DictReader(fin, delimiter="\t")
         fieldnames = reader.fieldnames
-        rows = list(reader)
-
-    if not fieldnames:
-        return
-
-    expanded = []
-    for row in rows:
-        rep_id = row.get(id_column, "")
-        if rep_id in seq_groups:
-            # Add a row for each member of the group
-            for member_id in seq_groups[rep_id]:
-                new_row = dict(row)
-                new_row[id_column] = member_id
-                expanded.append(new_row)
-        else:
-            expanded.append(row)
-
-    n_added = len(expanded) - len(rows)
-    if n_added > 0:
-        logger.info(f"Expanded {len(rows)} -> {len(expanded)} rows ({n_added} from dedup)")
-
-    with open(output_tsv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+        if not fieldnames:
+            return
+        writer = csv.DictWriter(fout, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
-        for row in expanded:
-            writer.writerow(row)
+        for row in reader:
+            n_in += 1
+            rep_id = row.get(id_column, "")
+            if rep_id in seq_groups:
+                for member_id in seq_groups[rep_id]:
+                    new_row = dict(row)
+                    new_row[id_column] = member_id
+                    writer.writerow(new_row)
+                    n_out += 1
+            else:
+                writer.writerow(row)
+                n_out += 1
+
+    if n_out > n_in:
+        logger.info(f"Expanded {n_in} -> {n_out} rows ({n_out - n_in} from dedup)")
 
 
 def expand_results_csv(input_csv, output_csv, seq_groups, id_column="locus_tag"):
@@ -177,27 +172,19 @@ def expand_results_csv(input_csv, output_csv, seq_groups, id_column="locus_tag")
     if not os.path.exists(input_csv):
         return
 
-    with open(input_csv) as f:
-        reader = csv.DictReader(f)
+    with open(input_csv) as fin, open(output_csv, "w", newline="") as fout:
+        reader = csv.DictReader(fin)
         fieldnames = reader.fieldnames
-        rows = list(reader)
-
-    if not fieldnames:
-        return
-
-    expanded = []
-    for row in rows:
-        rep_id = row.get(id_column, "")
-        if rep_id in seq_groups:
-            for member_id in seq_groups[rep_id]:
-                new_row = dict(row)
-                new_row[id_column] = member_id
-                expanded.append(new_row)
-        else:
-            expanded.append(row)
-
-    with open(output_csv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not fieldnames:
+            return
+        writer = csv.DictWriter(fout, fieldnames=fieldnames)
         writer.writeheader()
-        for row in expanded:
-            writer.writerow(row)
+        for row in reader:
+            rep_id = row.get(id_column, "")
+            if rep_id in seq_groups:
+                for member_id in seq_groups[rep_id]:
+                    new_row = dict(row)
+                    new_row[id_column] = member_id
+                    writer.writerow(new_row)
+            else:
+                writer.writerow(row)
