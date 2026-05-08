@@ -119,11 +119,14 @@ RUN pip install --upgrade pip setuptools wheel \
 RUN mkdir -p /home/ssign/.ssign/databases /home/ssign/.ssign/models /work \
     && chown -R ssign:ssign /home/ssign /work
 
-# Conservative DTU + EggNOG handling (plan E.4):
-# - DTU SignalP / DeepLocPro: NOT bundled. ssign defaults to the BioLib
-#   remote API (no DTU licence required). If DTU later permits binary
-#   redistribution, add a `COPY signalp6/ /opt/signalp6/` stanza here per
-#   plan E.6.
+# Conservative DTU + EggNOG handling (plan addendum E.4 + addendum 10 J.1/J.2):
+# - DTU SignalP: NOT bundled. DTU confirmed 2026-05-07 the licence does not
+#   permit redistribution (final). Users either bind-mount a local install
+#   onto /opt/signalp6/ and pass --signalp-path, or override the new
+#   offline-first default with --signalp-mode remote.
+# - DTU DeepLocPro: NOT bundled. Awaiting Ole's redistribution reply; if
+#   permitted, add `COPY deeplocpro/ /opt/deeplocpro/` here per plan E.6.
+#   Same opt-in pattern as SignalP for now.
 # - EggNOG database: NOT bundled. The user runs `download_eggnog_data.py`
 #   inside `~/.ssign/databases/eggnog/` on the host before launching the
 #   container. fetch_databases.sh --tier extended performs that step.

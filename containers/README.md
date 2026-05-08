@@ -38,19 +38,38 @@ top of `Dockerfile`.
 
 ## Run (Docker)
 
+ssign is offline-first: the DTU prediction tools default to local mode.
+The image does not bundle SignalP or DeepLocPro (DTU licence terms),
+so either bind-mount your host install and point ssign at it, or pass
+`--signalp-mode remote --deeplocpro-mode remote` to fall back to the
+DTU webserver.
+
 ```bash
+# With local SignalP and DeepLocPro on the host
+docker run --gpus all --rm \
+    -v $HOME/.ssign/databases:/home/ssign/.ssign/databases:ro \
+    -v $HOME/.ssign/models:/home/ssign/.ssign/models:ro \
+    -v $HOME/signalp6:/opt/signalp6:ro \
+    -v $HOME/deeplocpro:/opt/deeplocpro:ro \
+    -v $PWD:/work \
+    ssign:1.0.0 run /work/genome.gbff --outdir /work/output \
+        --signalp-path /opt/signalp6/bin \
+        --deeplocpro-path /opt/deeplocpro
+
+# Or: opt into the DTU webserver (no local install needed)
 docker run --gpus all --rm \
     -v $HOME/.ssign/databases:/home/ssign/.ssign/databases:ro \
     -v $HOME/.ssign/models:/home/ssign/.ssign/models:ro \
     -v $PWD:/work \
-    ssign:1.0.0 run /work/genome.gbff --outdir /work/output
+    ssign:1.0.0 run /work/genome.gbff --outdir /work/output \
+        --signalp-mode remote --deeplocpro-mode remote
 ```
 
 Notes:
 
 - `--gpus all` is required for the GPU-accelerated steps (DLP / DSE /
   SignalP / PLM-Effector / pLM-BLAST embedding).
-- The two `:ro` mounts let the container read your fetched assets without
+- The `:ro` mounts let the container read your fetched assets without
   modifying them.
 - `/work` is the convention for input + output; mount whichever host
   directory contains your genomes.
