@@ -141,9 +141,13 @@ From the longevity memo (`project_longevity_commitment.md`):
 
 - **Hardware MTBF** ~5 years for refurbished workstations. Plan hardware
   replacement in year 4–5.
-- **DTU licenses** (SignalP 6.0, DeepLocPro) for in-container redistribution:
-  policy may change. Fallback is "user installs separately," already
-  documented in the install docs.
+- **DTU licenses** (SignalP 6.0, DeepLocPro) for in-container
+  redistribution: SignalP confirmed non-redistributable (DTU reply
+  2026-05-07); DeepLocPro pending separate clarification with Ole. The
+  "user installs separately" path is documented in
+  [`docs/how-to/install.md`](docs/how-to/install.md). If DTU policy on
+  either tool changes, the Dockerfile gets a one-line bundle edit per
+  plan addendum E.6.
 - **External service changes** (Docker Hub pulls, Zenodo URLs): we mirror
   critical artifacts to institutional RDS as backup.
 - **Upstream tool updates** may invalidate frozen results. The frozen v1.0.0

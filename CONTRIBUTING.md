@@ -19,10 +19,9 @@ developed by the Billerbeck Lab at Imperial College London.
 
 ## Before you start
 
-1. Check open issues and PRs first; someone may already be working on the
-   same thing.
-2. Discuss non-trivial changes first via an issue.
-3. Large structural changes should fit the publication roadmap. Flag in
+1. Check open issues and PRs first; if there's no thread for what you want
+   to do, open one to discuss scope before writing code.
+2. Large structural changes should fit the publication roadmap. Flag in
    the issue if they don't.
 
 ---
@@ -31,15 +30,14 @@ developed by the Billerbeck Lab at Imperial College London.
 
 Open an issue with:
 
-- **ssign version** (`ssign --version` or commit SHA).
+- **ssign version** (`ssign --version` or commit SHA), and whether the
+  issue reproduces on latest `main`.
 - **Platform:** OS, Python version, CUDA version if relevant.
 - **Exact command(s) run** and **full error / log output** (code fences).
-- **Expected vs actual behaviour**.
-- A **minimal reproducer:** smallest input that triggers the issue. A small
-  GenBank or FASTA attached is ideal.
-- Whether you've tried the latest `main`.
-
-Don't paste entire genome files; attach or link them.
+- **Expected vs actual behaviour.**
+- A **minimal reproducer:** smallest input that triggers the issue. A
+  small GenBank or FASTA attached is ideal; don't paste entire genome
+  files.
 
 ---
 
@@ -119,16 +117,15 @@ welcome.
 
 ## Contact
 
-| Need                                                                       | Channel                                                                    | Who                                             |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| Bug reports, feature requests, install troubles, code questions            | [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues)            | Active maintainer                               |
-| Pull request review                                                        | GitHub PR                                                                  | Active maintainer                               |
-| Scientific collaboration, data-sharing, partnerships, authorship inquiries | Email: [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk) | Dr. Sonja Billerbeck (PI, corresponding author) |
+- **Bugs, feature requests, install troubles, code questions, PR review:**
+  [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues). Fastest
+  path to a technical answer.
+- **Scientific collaboration, data sharing, partnerships, authorship:**
+  Dr. Sonja Billerbeck (PI), [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk).
 
-**Active maintainer (as of v0.9.0):** M. Teo Reid
-([`@reidmat`](https://github.com/reidmat), `t.reid25@imperial.ac.uk`). A lab
-successor will be named in `SYSADMIN.md` before September 2026; until then,
-GitHub Issues are the fastest path to a technical answer.
+**Don't email the PI with bug reports or install trouble.** Those belong
+on GitHub Issues, where they're searchable.
 
-**Do not email the PI with bug reports or install trouble.** Those belong
-on GitHub Issues where they're searchable.
+The active maintainer as of v0.9.0 is M. Teo Reid
+([`@reidmat`](https://github.com/reidmat)). A lab successor will be named
+in `SYSADMIN.md` before September 2026.
