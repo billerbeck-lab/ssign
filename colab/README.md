@@ -7,14 +7,13 @@ anyone with a Google account test ssign without setting up their own machine.
 ## Planned contents
 
 - `ssign_demo.ipynb`: end-to-end notebook:
-  1. Clones the ssign repo into the Colab session.
-  2. `pip install -e .` in the session's Python environment.
-  3. Downloads model weights + a minimal database subset from Zenodo.
-  4. Uploads (or fetches) a user-supplied genome.
-  5. Runs the pipeline on the free T4 GPU.
-  6. Displays the resulting HTML report inline.
+  1. `pip install ssign[extended]` in the session's Python environment.
+  2. Downloads model weights + the base-tier database subset from Zenodo.
+  3. Uploads (or fetches) a user-supplied genome.
+  4. Runs the pipeline on the free T4 GPU.
+  5. Displays the resulting HTML report inline.
 
-- `README.md`: this file (scope, limitations, badge code).
+- `README.md`: this file (scope and limitations).
 
 ## Limitations
 

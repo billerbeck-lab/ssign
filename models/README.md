@@ -7,13 +7,17 @@ Git, so they are hosted externally and fetched at install time.
 
 | Model                | Size     | Used by                                   |
 | -------------------- | -------- | ----------------------------------------- |
-| DeepSecE checkpoint  | ~500 MB  | `run_deepsece.py`                         |
+| DeepSecE checkpoint  | ~2.5 GB  | `run_deepsece.py`                         |
 | ESM-1b               | ~7 GB    | DeepSecE feature extraction               |
 | ESM-2                | ~3 GB    | PLM-Effector feature extraction           |
 | ProtT5               | ~2.5 GB  | PLM-Effector feature extraction           |
-| PLM-Effector weights | ~200 MB  | `run_plm_effector.py`                     |
-| DeepLocPro weights   | ~2 GB    | `run_deeplocpro.py`                       |
-| SignalP 6.0 weights  | variable | `run_signalp.py` (subject to DTU license) |
+| ProtBert             | ~1.6 GB  | PLM-Effector feature extraction           |
+| PLM-Effector weights | ~1.7 GB  | `run_plm_effector.py`                     |
+| DeepLocPro weights   | ~2 GB    | `run_deeplocpro.py` (user-acquired, DTU)  |
+| SignalP 6.0 weights  | ~1.5 GB  | `run_signalp.py` (user-acquired, DTU)     |
+
+Total fetched by `scripts/fetch_weights.sh`: ~18 GB (everything except the
+two user-acquired DTU rows).
 
 ## Getting the weights
 

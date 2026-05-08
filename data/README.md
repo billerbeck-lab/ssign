@@ -15,10 +15,10 @@ will contain:
 | Bakta (light)                            | base            | ~2 GB   | Gene annotation (light variant)                       |
 | Bakta (full)                             | full            | ~84 GB  | Whole-genome gene annotation                          |
 | EggNOG-mapper                            | extended / full | ~50 GB  | Orthologous groups, COGs, KEGG                        |
-| HH-suite (Pfam + PDB70)                  | extended        | ~20 GB  | Pfam + PDB70 profile HMM databases                    |
+| HH-suite (Pfam + PDB70)                  | extended        | ~26 GB  | Pfam (~3 GB) + PDB70 (~23 GB) profile HMM databases   |
 | HH-suite (+ UniRef30)                    | full            | +~25 GB | Adds UniRef30 for deep remote-homology MSA generation |
 | InterProScan                             | extended / full | ~24 GB  | Domain / motif annotation                             |
-| pLM-BLAST (ECOD70)                       | extended / full | ~20 GB  | Embedding-based remote homology                       |
+| pLM-BLAST (ECOD70)                       | extended / full | ~24 GB  | Embedding-based remote homology                       |
 | BLAST NR                                 | full            | ~390 GB | Primary homology search                               |
 
 ## Getting the databases
@@ -26,8 +26,8 @@ will contain:
 ssign ships a tier-aware fetch script:
 
 ```bash
-bash scripts/fetch_databases.sh --tier base       # ~17 GB
-bash scripts/fetch_databases.sh --tier extended   # ~130 GB
+bash scripts/fetch_databases.sh --tier base       # ~3 GB
+bash scripts/fetch_databases.sh --tier extended   # ~150 GB
 bash scripts/fetch_databases.sh --tier full       # ~630 GB
 ```
 
