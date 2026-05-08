@@ -8,7 +8,7 @@ fixture (`tests/fixtures/Xanthobacter_T5aSS_minimal.gbff`, 20 kb / 9 CDS).
 ## Why this exists
 
 Unit tests catch logic bugs in individual functions. Property-based tests
-catch invariants. Neither catches **integration regressions** — a code change
+catch invariants. Neither catches **integration regressions**: a code change
 that is locally correct but quietly alters a downstream column, drops a row,
 or shifts a probability by 0.001. For a tool whose output is going into a
 publication, that class of regression is exactly what we cannot afford.
@@ -33,14 +33,14 @@ tests/fixtures/golden/
     └── master.csv         ← integrate_annotations final output
 ```
 
-(directory is empty in the v1.0.0 setup PR; populated in task 4.i)
+The `t5ass_minimal/` directory is populated; see plan task 4.i.
 
 ## Diff strategy
 
 Some columns are non-deterministic across runs (timestamps, full file paths,
 ProtParam float precision artefacts, run UUIDs). The test normalises those
 before diffing. Non-determinism beyond the normalised set is treated as a
-real regression — investigate before re-freezing.
+real regression; investigate before re-freezing.
 
 ## Updating the references
 

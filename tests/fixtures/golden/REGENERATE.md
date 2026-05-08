@@ -13,7 +13,7 @@ SSIGN_DEEPLOCPRO_PATH=/path/to/dir/containing/deeplocpro \
 pytest -m integration tests/integration/test_pipeline_e2e_golden.py -v
 ```
 
-If the diff is unexpected, **stop and investigate** — it may be a real
+If the diff is unexpected, **stop and investigate**; it may be a real
 regression. The whole point of golden outputs is to make accidental
 behaviour drift visible.
 
@@ -37,7 +37,7 @@ DeepLocPro local (offline), and every other prediction/annotation tool
 disabled. The user-facing outputs land in `$SSIGN_GOLDEN_REGEN_DIR`
 (`$RUN` below) and the intermediate TSVs land in a separate work directory
 (`$WORK`). On a diff failure the test prints both paths under
-`runner.work_dir=` and `outdir=` — copy them into shell vars and run:
+`runner.work_dir=` and `outdir=`; copy them into shell vars and run:
 
 ```bash
 DEST=tests/fixtures/golden/t5ass_minimal
@@ -72,7 +72,7 @@ The commit message must include:
 
 - **Why** the diff is intentional (link the upstream code change).
 - **What** changed (column names? row counts? probability values?).
-- **Biological sanity check** — does the new output still call the known
+- **Biological sanity check:** does the new output still call the known
   T5aSS substrate (BIMENO_04457) correctly?
 
 A diff in the golden-output reference without that justification is grounds

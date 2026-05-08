@@ -12,7 +12,7 @@ A clear description of what went wrong.
 **To reproduce**
 1. Input file type (e.g. GenBank .gbff)
 2. Number of genomes uploaded
-3. Tools enabled (e.g. BLASTp, HHpred, InterProScan)
+3. Tools enabled (e.g. BLASTp, HH-suite, InterProScan)
 4. Steps that led to the error
 
 **Error message**
