@@ -124,11 +124,15 @@ All configurable in the GUI or via CLI flags. Full parameter reference in
 ssign ships in three tiers; pick the one matching your storage budget.
 Upgrade later by re-running the database fetcher with a new `--tier`.
 
-| Tier         | Disk    | What's included                                                                                   | Install                       |
+| Tier         | DB disk | What's included                                                                                   | Install                       |
 | ------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **base**     | ~17 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
-| **extended** | ~130 GB | base + EggNOG + HH-suite (Pfam + PDB70) + InterProScan + pLM-BLAST                                | `pip install ssign[extended]` |
+| **base**     | ~3 GB   | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
+| **extended** | ~150 GB | base + EggNOG + HH-suite (Pfam + PDB70) + InterProScan + pLM-BLAST                                | `pip install ssign[extended]` |
 | **full**     | ~630 GB | extended + BLAST NR + Bakta full DB + HH-suite UniRef30                                           | `pip install ssign[full]`     |
+
+Disk sizes above cover databases pulled by `fetch_databases.sh`. Add ~18 GB
+of model weights (downloaded once by `fetch_weights.sh`, shared across
+tiers).
 
 After pip install, fetch the matching database bundle (pulled from pinned
 Zenodo DOIs for long-term reproducibility):

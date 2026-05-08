@@ -57,8 +57,8 @@ Notes:
 
 ## Run (Singularity, HPC)
 
-Imperial CX3 and most academic HPC environments use Singularity instead
-of Docker. The image converts cleanly:
+Most academic HPC environments use Singularity instead of Docker. Pull
+and run the same image:
 
 ```bash
 singularity pull docker://ghcr.io/billerbeck-lab/ssign:1.0.0
@@ -96,13 +96,17 @@ caveat doesn't apply there.
 | Component                                    | Bundled? | Fetched by                        |
 | -------------------------------------------- | -------- | --------------------------------- |
 | CUDA 12.4 runtime + cuDNN                    | Yes      | base image                        |
-| Python 3.10 + ssign[extended] deps           | Yes      | `pip install` during build (note: `extended` and `full` ship the same Python deps; only the database tier picked by `fetch_databases.sh` differs) |
+| Python 3.10 + ssign[extended] deps           | Yes      | `pip install` during build (see note below)        |
 | MacSyFinder + TXSScan profiles               | Yes      | pip install (macsyfinder package) |
 | `ncbi-blast+` (`blastp` binary)              | Yes      | apt-get during build              |
 | Model weights (DeepSecE / ProtT5 / ESM / …)  | No       | `scripts/fetch_weights.sh`        |
 | Reference DBs (Bakta / EggNOG / HH-suite / …) | No       | `scripts/fetch_databases.sh`      |
 | DeepLocPro + SignalP binaries                | No       | User-installed locally; DTU webserver as fallback * |
 | EggNOG database                              | No       | `download_eggnog_data.py` *       |
+
+The image pip-installs `ssign[extended]`. The `full` tier ships the same
+Python dependency set; only the database tier picked by
+`fetch_databases.sh` differs.
 
 \* The DTU and EggNOG entries default to the conservative path because
 their licences don't currently permit redistribution inside a public

@@ -54,4 +54,6 @@ top of the file.
 
 ## Status
 
-Directory scaffold only; content populated as paper analyses are finalised.
+Install fetchers (`fetch_weights.sh`, `fetch_databases.sh`) shipped.
+Paper-analysis scripts populated as the corresponding analyses are
+finalised before publication.

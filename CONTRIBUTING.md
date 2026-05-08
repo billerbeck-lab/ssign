@@ -62,7 +62,8 @@ pytest tests/integration/ -v           # integration tests (some need network)
 
 ## Coding conventions
 
-- **Python ≥ 3.11**. Pin versions in `pyproject.toml` when adding deps.
+- **Python ≥ 3.10** (matches `pyproject.toml`'s `requires-python`). Pin
+  versions in `pyproject.toml` when adding deps.
 - **Formatting / linting**: `ruff format` and `ruff check` are authoritative.
 - **Type hints** required for new public functions; `mypy --strict` should
   pass on `src/ssign_app/`.

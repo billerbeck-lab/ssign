@@ -11,7 +11,7 @@ About 30 minutes, mostly waiting for DTU's webserver.
 ## Prerequisites
 
 - Linux or macOS
-- Python 3.11 or newer (`python3 --version`)
+- Python 3.10 or newer (`python3 --version`)
 - An internet connection (this tutorial uses the DTU webserver fallback for
   DeepLocPro and SignalP, so no DTU licence is required on your part)
 
