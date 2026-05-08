@@ -76,13 +76,19 @@ and § 3.3.
 
 ## Switching SignalP or DeepLocPro between local and webserver
 
-ssign is offline-first: the canonical path uses local installs of SignalP
-and DeepLocPro. Wire the local installs in:
+ssign is offline-first: the canonical (default) path is a local install of
+SignalP and DeepLocPro. If the binaries are on `PATH`, no flags are needed:
+
+```bash
+ssign run input.gbff --outdir results
+```
+
+If they live outside `PATH`, point ssign at them:
 
 ```bash
 ssign run input.gbff --outdir results \
-    --signalp-mode local --signalp-path /path/to/signalp6/bin \
-    --deeplocpro-mode local --deeplocpro-path /path/to/deeplocpro
+    --signalp-path /path/to/signalp6/bin \
+    --deeplocpro-path /path/to/deeplocpro
 ```
 
 If you do not have a DTU licence, opt into the DTU webserver fallback

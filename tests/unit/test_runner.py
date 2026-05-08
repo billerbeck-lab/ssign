@@ -49,8 +49,8 @@ class TestPipelineConfig:
         assert c.conf_threshold == 0.8
         assert c.proximity_window == 3
         assert c.required_fraction_correct == 0.8
-        assert c.deeplocpro_mode == "remote"
-        assert c.signalp_mode == "remote"
+        assert c.deeplocpro_mode == "local"
+        assert c.signalp_mode == "local"
 
     def test_excluded_systems_default(self):
         c = PipelineConfig()

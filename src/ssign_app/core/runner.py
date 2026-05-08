@@ -78,10 +78,11 @@ class PipelineConfig:
     bakta_db: str = ""  # Required for any Bakta run (FASTA or GenBank re-annotation)
     bakta_threads: int = 4
 
-    # Phase 3: Tool paths (DTU licensed)
-    deeplocpro_mode: str = "remote"  # "local" or "remote"
+    # Phase 3: Tool paths (DTU licensed). ssign is offline-first: local installs
+    # are the canonical path; remote submits to the DTU webserver as a fallback.
+    deeplocpro_mode: str = "local"  # "local" or "remote"
     deeplocpro_path: str = ""
-    signalp_mode: str = "remote"
+    signalp_mode: str = "local"
     signalp_path: str = ""
     skip_signalp: bool = False
     skip_deepsece: bool = False
@@ -1020,8 +1021,10 @@ class PipelineRunner:
             output,
         ]
 
-        if self.config.deeplocpro_mode == "local" and self.config.deeplocpro_path:
-            args.extend(["--mode", "local", "--deeplocpro-path", self.config.deeplocpro_path])
+        if self.config.deeplocpro_mode == "local":
+            args.extend(["--mode", "local"])
+            if self.config.deeplocpro_path:
+                args.extend(["--deeplocpro-path", self.config.deeplocpro_path])
         else:
             args.extend(["--mode", "remote"])
 
@@ -1087,8 +1090,10 @@ class PipelineRunner:
             "--output",
             output,
         ]
-        if self.config.signalp_mode == "local" and self.config.signalp_path:
-            args.extend(["--mode", "local", "--signalp-path", self.config.signalp_path])
+        if self.config.signalp_mode == "local":
+            args.extend(["--mode", "local"])
+            if self.config.signalp_path:
+                args.extend(["--signalp-path", self.config.signalp_path])
         else:
             args.extend(["--mode", "remote"])
 

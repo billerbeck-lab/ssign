@@ -63,10 +63,10 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--deeplocpro-mode` | choice | `remote` | `remote` (DTU webserver, no licence needed) or `local` (DTU academic licence required). |
-| `--deeplocpro-path` | path | `""` | Path to local DeepLocPro install (required when `--deeplocpro-mode local`). |
-| `--signalp-mode` | choice | `remote` | `remote` (DTU webserver) or `local`. DTU does not redistribute SignalP 6.0; users obtain it from the DTU portal. |
-| `--signalp-path` | path | `""` | Path to local SignalP 6 install (required when `--signalp-mode local`). |
+| `--deeplocpro-mode` | choice | `local` | `local` (canonical, DTU academic licence required) or `remote` (DTU webserver, no licence needed). |
+| `--deeplocpro-path` | path | `""` | Path to local DeepLocPro install. Empty falls back to `deeplocpro` on `PATH`. |
+| `--signalp-mode` | choice | `local` | `local` or `remote` (DTU webserver). DTU does not redistribute SignalP 6.0; local users obtain it from the DTU portal. |
+| `--signalp-path` | path | `""` | Path to local SignalP 6 install. Empty falls back to `signalp6` on `PATH`. |
 | `--skip-signalp` | bool | `false` | Skip the SignalP step. |
 | `--skip-deepsece` | bool | `false` | Skip the DeepSecE step. |
 | `--dlp-whole-genome` | bool | `false` | Run DeepLocPro on every protein, not just the SS neighbourhood. |

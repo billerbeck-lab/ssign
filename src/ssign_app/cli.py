@@ -163,22 +163,24 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g.add_argument(
         "--deeplocpro-mode",
         choices=["local", "remote"],
-        default="remote",
-        help="DeepLocPro execution mode (default: remote = DTU web API).",
+        default="local",
+        help="DeepLocPro execution mode (default: local, DTU academic licence required). 'remote' submits to the DTU webserver.",
     )
     g.add_argument(
         "--deeplocpro-path",
         default="",
-        help="Path to local DeepLocPro install (required when --deeplocpro-mode local).",
+        help="Path to local DeepLocPro install. Empty = expect 'deeplocpro' on PATH.",
     )
     g.add_argument(
         "--signalp-mode",
         choices=["local", "remote"],
-        default="remote",
-        help="SignalP execution mode (default: remote = DTU web API).",
+        default="local",
+        help="SignalP execution mode (default: local, DTU academic licence required). 'remote' submits to the DTU webserver.",
     )
     g.add_argument(
-        "--signalp-path", default="", help="Path to local SignalP 6 install (required when --signalp-mode local)."
+        "--signalp-path",
+        default="",
+        help="Path to local SignalP 6 install. Empty = expect 'signalp6' on PATH.",
     )
     g.add_argument("--skip-signalp", action=argparse.BooleanOptionalAction, default=False, help="Skip SignalP step.")
     g.add_argument("--skip-deepsece", action=argparse.BooleanOptionalAction, default=False, help="Skip DeepSecE step.")
