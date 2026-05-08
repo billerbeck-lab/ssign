@@ -3,7 +3,7 @@
 The `Dockerfile` here builds the official **ssign** bundle image: a
 SHA-pinned CUDA + Python stack with the ssign Python package installed,
 ready to run the pipeline against user-supplied genomes. Model weights
-and reference databases are **not** baked in — they're fetched on the
+and reference databases are **not** baked in; they are fetched on the
 host and bind-mounted at run time. This keeps the image at a few GB
 instead of 600+ GB and avoids licence-redistribution friction.
 
@@ -16,7 +16,7 @@ instead of 600+ GB and avoids licence-redistribution friction.
 ## Fetch the assets first
 
 ```bash
-# Reference databases — pick a tier (~3 GB / ~150 GB / ~630 GB)
+# Reference databases (pick a tier: ~3 GB / ~150 GB / ~630 GB)
 bash scripts/fetch_databases.sh --tier extended
 
 # Model weights (~18 GB)
@@ -33,7 +33,7 @@ docker build -f containers/Dockerfile -t ssign:1.0.0 .
 ```
 
 The Dockerfile pins its CUDA base by SHA digest. The placeholder digest
-in the file is replaced at release time — see the FRAGILE comment at the
+in the file is replaced at release time; see the FRAGILE comment at the
 top of `Dockerfile`.
 
 ## Run (Docker)
@@ -70,7 +70,7 @@ singularity run --nv \
 ```
 
 Singularity uses `--nv` instead of `--gpus all`. Bind-mounts default to
-read-write — the `:ro` suffix above mirrors the safety posture of the
+read-write; the `:ro` suffix above mirrors the safety posture of the
 Docker example for the asset directories.
 
 ## uid / gid alignment
@@ -96,7 +96,7 @@ caveat doesn't apply there.
 | Component                                    | Bundled? | Fetched by                        |
 | -------------------------------------------- | -------- | --------------------------------- |
 | CUDA 12.4 runtime + cuDNN                    | Yes      | base image                        |
-| Python 3.10 + ssign[extended] deps           | Yes      | `pip install` during build (note: `extended` and `full` ship the same Python deps — only the database tier picked by `fetch_databases.sh` differs) |
+| Python 3.10 + ssign[extended] deps           | Yes      | `pip install` during build (note: `extended` and `full` ship the same Python deps; only the database tier picked by `fetch_databases.sh` differs) |
 | MacSyFinder + TXSScan profiles               | Yes      | pip install (macsyfinder package) |
 | `ncbi-blast+` (`blastp` binary)              | Yes      | apt-get during build              |
 | Model weights (DeepSecE / ProtT5 / ESM / …)  | No       | `scripts/fetch_weights.sh`        |
@@ -111,17 +111,17 @@ plan addendum E.6 and the entries flip to `Yes`.
 
 ## Troubleshooting
 
-- **`Could not select device driver "" with capabilities: [[gpu]]`** —
+- **`Could not select device driver "" with capabilities: [[gpu]]`:**
   the NVIDIA Container Toolkit isn't installed or the daemon needs a
   restart. See the toolkit install guide linked above.
-- **`CUDA error: no kernel image is available for execution on the device`** —
+- **`CUDA error: no kernel image is available for execution on the device`:**
   your driver is older than CUDA 12.4 expects. Either upgrade the driver
   or rebuild against an older CUDA base (edit the `CUDA_BASE` ARG in
   `Dockerfile`).
-- **`ssign run` exits with `database not found`** — the bind mount paths
+- **`ssign run` exits with `database not found`:** the bind mount paths
   don't match the image's expected layout. Confirm the host directories
   exist (`ls $HOME/.ssign/databases`) and that they were populated by
   `fetch_databases.sh`.
-- **First run downloads 7 GB of ESM weights** — that's expected if
+- **First run downloads 7 GB of ESM weights:** expected if
   `fetch_weights.sh` was skipped. Either let it finish (it caches into
   `~/.ssign/models` for next time) or run the fetch script first.

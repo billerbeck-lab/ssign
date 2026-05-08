@@ -1,4 +1,4 @@
-# `data/` — reference databases and raw inputs
+# `data/`: reference databases and raw inputs
 
 This directory is a **placeholder**. The reference databases used by ssign are
 too large (~1.5 TB combined) to distribute through Git, so they are hosted
@@ -23,26 +23,35 @@ will contain:
 
 ## Getting the databases
 
-At v1.0.0 release, ssign will ship a fetch script:
+ssign ships a tier-aware fetch script:
 
 ```bash
-bash scripts/fetch_databases.sh             # full ~1.5 TB bundle
-bash scripts/fetch_databases.sh --minimal   # ~20 GB subset for testing
+bash scripts/fetch_databases.sh --tier base       # ~17 GB
+bash scripts/fetch_databases.sh --tier extended   # ~130 GB
+bash scripts/fetch_databases.sh --tier full       # ~630 GB
 ```
 
-The databases are (will be) mirrored to **Zenodo** (DOI TBD at release). If a
-deposit exceeds Zenodo's per-record size limit, it will be split across
-multiple linked records, or hosted on Imperial's Research Data Store with a
-persistent URL and checksum manifest.
+The fetcher pulls each database from its canonical academic mirror (Bakta
+GitHub release, Tübingen MPI for HH-suite + ECOD70, NCBI for taxdump and
+BLAST NR, EBI for InterProScan, EMBL for EggNOG). At v1.0.0 release, a
+mirror copy of the full set is also deposited on **Zenodo** under a pinned
+DOI for long-term reproducibility; the fetch script gains a
+`--source zenodo` flag at that time.
 
-## Integrity checking
+If a deposit exceeds Zenodo's per-record size limit, it is split across
+multiple linked records, or hosted on Imperial's Research Data Store with
+a persistent URL and checksum manifest.
 
-Every file delivered via `fetch_databases.sh` has an SHA-256 checksum recorded
-alongside it. To verify after download:
+## Integrity checking (post-v1.0.0)
+
+Once the Zenodo mirror lands, every file will have an SHA-256 checksum
+recorded alongside it. To verify after download:
 
 ```bash
 cd data && sha256sum -c checksums.sha256
 ```
+
+For now, integrity relies on HTTPS + tar's own corruption detection.
 
 ## What must **not** go here
 

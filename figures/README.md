@@ -1,4 +1,4 @@
-# `figures/` — publication figures and their regeneration scripts
+# `figures/`: publication figures and their regeneration scripts
 
 This directory holds final figures used in the ssign manuscript and the scripts
 that regenerate them from primary data. Anyone should be able to clone the
@@ -11,9 +11,9 @@ paper.
   `figures/fig3_benchmark/`, etc.
 - Each subdirectory contains:
   - The final image(s): `fig1.pdf`, `fig1.png` (both formats).
-  - `regenerate.py` (or `regenerate.sh`) — self-contained script to produce
+  - `regenerate.py` (or `regenerate.sh`): self-contained script to produce
     the image from data.
-  - `README.md` — one paragraph describing what the figure shows, inputs, and
+  - `README.md`: one paragraph describing what the figure shows, inputs, and
     any non-obvious choices (colour scheme, scaling, etc.).
 
 ## Running
@@ -24,7 +24,7 @@ python regenerate.py
 ```
 
 Scripts should read inputs from `../data/` or `../results/` (or fetch from
-Zenodo) — never hard-code paths to Teo's laptop.
+Zenodo); never hard-code paths to Teo's laptop.
 
 ## Status
 

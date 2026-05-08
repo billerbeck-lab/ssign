@@ -1,12 +1,12 @@
-# `colab/` — Google Colab demo notebook
+# `colab/`: Google Colab demo notebook
 
 This directory will hold the **"try ssign in your browser"** demo notebook
-shipped alongside the paper — a zero-install, single-genome trial that lets
+shipped alongside the paper: a zero-install, single-genome trial that lets
 anyone with a Google account test ssign without setting up their own machine.
 
 ## Planned contents
 
-- `ssign_demo.ipynb` — end-to-end notebook:
+- `ssign_demo.ipynb`: end-to-end notebook:
   1. Clones the ssign repo into the Colab session.
   2. `pip install -e .` in the session's Python environment.
   3. Downloads model weights + a minimal database subset from Zenodo.
@@ -14,7 +14,7 @@ anyone with a Google account test ssign without setting up their own machine.
   5. Runs the pipeline on the free T4 GPU.
   6. Displays the resulting HTML report inline.
 
-- `README.md` — this file (scope, limitations, badge code).
+- `README.md`: this file (scope, limitations, badge code).
 
 ## Limitations
 
@@ -22,10 +22,10 @@ Colab is great for a demo, **not** a production service:
 
 - Session timeout ~12 h on the free tier; 24 h on Pro.
 - GPU is unpredictable (T4 usually; occasionally no GPU).
-- Storage is ephemeral — every session re-downloads weights + database.
-- 390 GB BLAST NR is out of scope — demo uses a small curated reference set.
+- Storage is ephemeral; every session re-downloads weights + database.
+- 390 GB BLAST NR is out of scope; demo uses a small curated reference set.
 - Single-genome only; multi-genome batches need local install.
-- Subject to Google's ToS — no sustained public web-service hosting.
+- Subject to Google's ToS; no sustained public web-service hosting.
 
 ## Why ship this at all
 

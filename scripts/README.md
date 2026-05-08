@@ -1,8 +1,10 @@
-# `scripts/` — one-off analysis scripts
+# `scripts/`: install fetchers and one-off analysis scripts
 
-Scripts here perform single-purpose analyses that produced results or figures
-in the ssign paper. They are **not** part of the ssign pipeline itself — those
-live in `src/ssign_app/` and are importable from the installed package.
+Scripts here either install ssign's external assets (databases, weights) or
+perform single-purpose analyses that produced results or figures in the
+ssign paper. They are **not** part of the ssign pipeline itself; the
+pipeline code lives in `src/ssign_app/` and is importable from the
+installed package.
 
 ## When to put a script here vs in `src/ssign_app/`
 
@@ -15,10 +17,16 @@ live in `src/ssign_app/` and are importable from the installed package.
 If a script becomes generally useful to multiple analyses, promote it into
 `src/ssign_app/` as a module.
 
-## Expected scripts (to be populated in Phase 8)
+## Already shipped
 
-- `fetch_weights.sh` — download model weights from Zenodo.
-- `fetch_databases.sh` — download reference databases from Zenodo / RDS.
+- `fetch_weights.sh`: downloads DeepSecE checkpoint, ProtT5, ESM, and
+  PLM-Effector weights from their canonical sources (Zenodo at v1.0.0
+  release; upstream mirrors as fallback).
+- `fetch_databases.sh`: tier-aware (`--tier base|extended|full`) downloader
+  for Bakta, EggNOG, HH-suite, InterProScan, BLAST NR, ECOD70, taxdump.
+
+## To be populated in Phase 8
+
 - Per-figure regeneration scripts referenced from `figures/`.
 - Validation-set curation scripts.
 - Benchmark driver scripts.

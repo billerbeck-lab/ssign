@@ -1,4 +1,4 @@
-# `models/` — trained model weights used by ssign
+# `models/`: trained model weights used by ssign
 
 This directory is a **placeholder**. Model weights are too large to version in
 Git, so they are hosted externally and fetched at install time.
@@ -17,28 +17,40 @@ Git, so they are hosted externally and fetched at install time.
 
 ## Getting the weights
 
-At v1.0.0 release, a fetch script will pull everything from our Zenodo
-deposit:
+ssign ships a fetch script that pulls every weight file from its canonical
+source:
 
 ```bash
 bash scripts/fetch_weights.sh
 ```
 
-The **DeepSecE checkpoint** is currently hosted on an unreliable SJTU server;
-mirroring to Zenodo before release is part of the longevity mitigation stack
-(see project plan).
+The **DeepSecE checkpoint** is currently hosted on an unreliable SJTU
+server; mirroring to a Zenodo deposit before v1.0.0 release is part of the
+longevity mitigation stack (see project plan). At release time the fetcher
+flips Zenodo to the primary source with the upstream as fallback.
 
 ## DTU academic-licensed models
 
-`SignalP 6.0` and `DeepLocPro` are under DTU academic licenses that may
-restrict redistribution. If the Docker bundle cannot ship them directly,
-install docs will cover DTU registration + separate install.
+DTU confirmed on 2026-05-07 that SignalP 6.0 cannot be redistributed; users
+obtain it directly from the [DTU portal](https://services.healthtech.dtu.dk/)
+(free academic licence). DeepLocPro is pending separate clarification with
+Ole, the DeepLocPro maintainer; treated as user-acquires-it for now.
 
-## Integrity checking
+ssign is offline-first, so the canonical path uses local DTU installs.
+Users without a DTU licence can opt into the DTU webserver fallback with
+`--signalp-mode remote --deeplocpro-mode remote`. See
+[`docs/how-to/install.md`](../docs/how-to/install.md).
+
+## Integrity checking (post-v1.0.0)
+
+Once the Zenodo mirror lands, every weight file will have an SHA-256
+checksum recorded alongside it:
 
 ```bash
 cd models && sha256sum -c checksums.sha256
 ```
+
+For now, integrity relies on HTTPS + each upstream's own size validation.
 
 ## What must **not** go here
 
