@@ -18,7 +18,8 @@ require the user to fetch it after pulling.
 | **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Bundled (mirrored to Zenodo) | — |
 | **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU response 2026-05-07) | DTU portal (manual) |
 | **DeepLocPro** (binary + weights) | DTU academic (separate) | ⏳ Pending DTU response (forwarded to Ole) | DTU portal (manual) |
-| **EggNOG database** | unspecified | ⏳ Pending EMBL response | `download_eggnog_data.py` |
+| **eggnog-mapper code** | AGPL-3.0 | ❌ Not bundled (biopython pin clash with bakta) | User: `conda install -c bioconda eggnog-mapper` |
+| **EggNOG database** | unspecified | ❌ Not bundled (size + ⏳ pending EMBL response) | `download_eggnog_data.py` |
 | **InterProScan tarball + member DBs** | Apache 2.0 (core) + mixed (members) | ❌ Not bundled | `scripts/fetch_databases.sh` |
 | **BLAST NR / Swiss-Prot** | NCBI public | ❌ Not bundled (size) | `scripts/fetch_databases.sh` |
 | **Bakta DB** | CC-BY 4.0 | ❌ Not bundled (size) | `bakta_db download` |
@@ -102,12 +103,19 @@ permission. Bakta, Prokka, and nf-core/funcscan all use
 `download_eggnog_data.py` as the install path; no public Docker image
 redistributes the ~50 GB database itself.
 
-**Action:** v1.0.0 Docker image bundles the eggnog-mapper *code* (AGPL is
-straightforward to comply with) but fetches the *database* via
-`download_eggnog_data.py` at first install — same UX as IPS. In parallel,
-the Billerbeck Lab has emailed `eggnog@embl.de` to request explicit
-redistribution permission for the database files; if granted, a future
-release can bundle the DB to make the Docker image fully self-contained.
+**Action:** v1.0.0 Docker image bundles **neither** the eggnog-mapper
+code nor the database. The code is technically bundleable under AGPL-3.0
+but cannot co-install via pip alongside Bakta: eggnog-mapper hard-pins
+`biopython==1.76` while Bakta needs `biopython>=1.78`. Users who want
+EggNOG annotation install it separately on the host
+(`conda install -c bioconda eggnog-mapper` is the recommended path; the
+conda channel has shipped against modern biopython for years), then run
+`download_eggnog_data.py` to fetch the database. EggNOG annotation is
+off by default (`--skip-eggnog`), so the bundled image works out of the
+box for most users. In parallel, the Billerbeck Lab has emailed
+`eggnog@embl.de` to request explicit redistribution permission for the
+database files; if granted, a future release can revisit the bundling
+question.
 
 ## SignalP 6.0 — ❌ Cannot bundle (DTU reply 2026-05-07)
 

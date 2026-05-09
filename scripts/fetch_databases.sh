@@ -17,7 +17,7 @@
 #
 # Per-tier tool dependencies (the script will tell you which to install):
 #   base | full       bakta_db                    pip install ssign[bakta]
-#   extended | full   download_eggnog_data.py     pip install ssign[extended]
+#   extended | full   download_eggnog_data.py     conda install -c bioconda eggnog-mapper
 #   full              update_blastdb.pl           OS package: ncbi-blast+
 
 set -euo pipefail
@@ -233,7 +233,7 @@ fetch_bakta() {
 
 fetch_eggnog() {
     _log "==> EggNOG database (~50 GB; eggnog-mapper 2.1.13 + EggNOG v6.0)"
-    _require_command download_eggnog_data.py "pip install ssign[extended]"
+    _require_command download_eggnog_data.py "conda install -c bioconda eggnog-mapper"
 
     local dir="$TARGET/eggnog"
     if [[ -f "$dir/eggnog.db" ]]; then

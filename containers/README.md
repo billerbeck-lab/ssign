@@ -119,18 +119,24 @@ caveat doesn't apply there.
 | MacSyFinder + TXSScan profiles               | Yes      | pip install (macsyfinder package) |
 | `ncbi-blast+` (`blastp` binary)              | Yes      | apt-get during build              |
 | Model weights (DeepSecE / ProtT5 / ESM / …)  | No       | `scripts/fetch_weights.sh`        |
-| Reference DBs (Bakta / EggNOG / HH-suite / …) | No       | `scripts/fetch_databases.sh`      |
+| Reference DBs (Bakta / HH-suite / …)         | No       | `scripts/fetch_databases.sh`      |
 | DeepLocPro + SignalP binaries                | No       | User-installed locally; DTU webserver as fallback * |
-| EggNOG database                              | No       | `download_eggnog_data.py` *       |
+| EggNOG-mapper code + database                | No       | User: conda install; DB via `fetch_databases.sh` ** |
 
 The image pip-installs `ssign[extended]`. The `full` tier ships the same
 Python dependency set; only the database tier picked by
 `fetch_databases.sh` differs.
 
-\* The DTU and EggNOG entries default to the conservative path because
-their licences don't currently permit redistribution inside a public
-image. If those terms change, the Dockerfile gets a one-line edit per
-plan addendum E.6 and the entries flip to `Yes`.
+\* The DTU entries default to the conservative path because their
+licences don't currently permit redistribution inside a public image.
+If those terms change, the Dockerfile gets a one-line edit per plan
+addendum E.6 and the entries flip to `Yes`.
+
+\*\* eggnog-mapper hard-pins `biopython==1.76` while ssign + Bakta need
+`biopython>=1.78`, so the two cannot co-install via pip. Users who want
+EggNOG annotation install eggnog-mapper separately on the host
+(`conda install -c bioconda eggnog-mapper`) and bind-mount the conda env
+into the container, or skip eggnog (off by default via `--skip-eggnog`).
 
 ## Troubleshooting
 

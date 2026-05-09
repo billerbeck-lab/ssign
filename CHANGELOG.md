@@ -40,6 +40,11 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 ### Removed
 
+- `eggnog-mapper` from the `[extended]` / `[full]` pip extras: its
+  `biopython==1.76` pin clashes with `bakta>=1.78`. Install separately
+  via `conda install -c bioconda eggnog-mapper`; full recipe in
+  `docs/how-to/install.md` § EggNOG-mapper. EggNOG is off by default
+  (`--skip-eggnog`), so most users are unaffected.
 - Remote modes for BLASTp (NCBI), HH-suite (MPI Toolkit), and InterProScan
   (EBI web service). All three now require a local install.
 - Foldseek scaffolding (never reached first-class status; dropped for v1.0.0).

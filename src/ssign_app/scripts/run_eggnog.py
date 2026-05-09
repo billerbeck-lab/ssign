@@ -134,19 +134,19 @@ def run_emapper(
     ]
 
     logger.info(f"Running EggNOG-mapper: emapper.py -i {proteins_fasta} -o {sample_id} --cpu {threads}")
-    # FRAGILE: subprocess call requires `emapper.py` on PATH
-    # If this breaks: pip install ssign[extended] (or pip install eggnog-mapper)
+    # FRAGILE: subprocess call requires `emapper.py` on PATH.
+    # Eggnog-mapper is not in the ssign[extended] extras: its hard pin
+    # biopython==1.76 conflicts with bakta>=1.78. Users install it
+    # separately. See docs/how-to/install.md § EggNOG-mapper.
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"emapper.py binary not found: {e}\n"
-            f"  Common causes:\n"
-            f"    - EggNOG-mapper is not installed or not on PATH\n"
             f"  How to fix:\n"
-            f"    - pip install ssign[extended]   # installs eggnog-mapper\n"
-            f"    - Or:  pip install eggnog-mapper\n"
-            f"    - Or:  conda install -c bioconda eggnog-mapper"
+            f"    - conda install -c bioconda eggnog-mapper   (recommended)\n"
+            f"    - Or:  pip install --no-deps eggnog-mapper\n"
+            f"  See docs/how-to/install.md § EggNOG-mapper for details."
         ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(

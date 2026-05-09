@@ -9,7 +9,7 @@ The simplest path is one of the named tiers:
 
 ```bash
 pip install ssign                 # base
-pip install ssign[extended]       # base + DeepSecE + Bakta + EggNOG + pLM-BLAST + extended-tier pins
+pip install ssign[extended]       # base + DeepSecE + Bakta + pLM-BLAST + extended-tier pins
 pip install ssign[full]           # extended deps + full database tier
 ```
 
@@ -60,6 +60,51 @@ Pass `--bakta-db ~/bakta_db` on the command line, or set
 
 The full Bakta database (~30 GB) is the `--type full` variant. The full
 tier in `fetch_databases.sh --tier full` pulls it.
+
+---
+
+## EggNOG-mapper (separate install + database)
+
+EggNOG-mapper provides ortholog-based functional annotation (COG, KEGG, GO,
+PFAM) for substrate proteins. It is invoked as a subprocess (`emapper.py`),
+not imported by ssign, and is **not** included in the `[extended]` /
+`[full]` pip extras: upstream eggnog-mapper hard-pins `biopython==1.76`
+while ssign and Bakta need `biopython>=1.78`, which makes the two
+unsatisfiable in a single pip resolution. Install it separately.
+
+The conda path is recommended; bioconda has shipped eggnog-mapper against
+modern biopython for years without breakage:
+
+```bash
+conda install -c bioconda eggnog-mapper
+```
+
+If you don't use conda, `--no-deps` skips the upstream pin and lets ssign's
+biopython (`>=1.80`) satisfy eggnog-mapper at runtime. The only API
+incompatibility (`Bio.Alphabet`, removed in biopython 1.78) is already
+guarded with `try/except` in eggnog-mapper itself, so this works in
+practice; bioconda relies on the same:
+
+```bash
+pip install --no-deps eggnog-mapper
+```
+
+After installing eggnog-mapper, fetch the database (~50 GB):
+
+```bash
+download_eggnog_data.py -y --data_dir ~/.ssign/databases/eggnog
+```
+
+`scripts/fetch_databases.sh --tier {extended,full}` runs that step for you
+once `download_eggnog_data.py` is on PATH. Tell ssign where the database
+lives:
+
+```bash
+ssign run input.gbff --outdir results --eggnog-db ~/.ssign/databases/eggnog
+```
+
+EggNOG annotation is off by default (`--skip-eggnog` defaults to `true`).
+Pass `--no-skip-eggnog` to enable it.
 
 ---
 

@@ -86,7 +86,12 @@ extended = [
     "fair-esm>=2.0",
     "torch>=2.0",
     "bakta>=1.10",
-    "eggnog-mapper",
+    # eggnog-mapper is NOT in the pip extras: its hard pin
+    # `biopython==1.76` is incompatible with `bakta>=1.10` (which
+    # requires `biopython>=1.78`). Users who enable EggNOG annotation
+    # install it separately, the same way ssign already treats
+    # InterProScan, HH-suite, BLAST+, SignalP, and DeepLocPro. See
+    # docs/how-to/install.md for the conda / pip --no-deps recipe.
     "goatools",
     "obonet",
     # transformers >=5.0 removes batch_encode_plus, breaking pLM-BLAST and
@@ -108,7 +113,7 @@ full = [
     "fair-esm>=2.0",
     "torch>=2.0",
     "bakta>=1.10",
-    "eggnog-mapper",
+    # See [extended] above for why eggnog-mapper is not pinned here.
     "goatools",
     "obonet",
     "transformers>=4.38,<5.0",

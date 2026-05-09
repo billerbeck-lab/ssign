@@ -62,8 +62,10 @@ ENV PYTHONUNBUFFERED=1 \
 # pyproject.toml. build-essential + python3-dev cover source-build fallbacks
 # for any pip dep without a manylinux wheel; revisit at build time if no
 # such fallback fires (drop ~400 MB). ncbi-blast+ provides the `blastp`
-# binary used at full tier; everything else (bakta, eggnog-mapper, …)
-# arrives via the [extended] pip extra below.
+# binary used at full tier; bakta arrives via the [extended] pip extra
+# below. eggnog-mapper is NOT bundled (biopython==1.76 pin clashes with
+# bakta>=1.78); users install it themselves on the host (conda
+# recommended). EggNOG annotation is off by default (--skip-eggnog).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.10 \
         python3.10-venv \
@@ -127,9 +129,12 @@ RUN mkdir -p /home/ssign/.ssign/databases /home/ssign/.ssign/models /work \
 # - DTU DeepLocPro: NOT bundled. Awaiting Ole's redistribution reply; if
 #   permitted, add `COPY deeplocpro/ /opt/deeplocpro/` here per plan E.6.
 #   Same opt-in pattern as SignalP for now.
-# - EggNOG database: NOT bundled. The user runs `download_eggnog_data.py`
-#   inside `~/.ssign/databases/eggnog/` on the host before launching the
-#   container. fetch_databases.sh --tier extended performs that step.
+# - EggNOG-mapper code + database: NEITHER bundled (biopython conflict
+#   noted above). Users install eggnog-mapper on the host
+#   (`conda install -c bioconda eggnog-mapper`) and run
+#   `download_eggnog_data.py` to populate `~/.ssign/databases/eggnog/`;
+#   fetch_databases.sh --tier extended performs that step once
+#   eggnog-mapper is on PATH.
 
 USER ssign
 WORKDIR /home/ssign

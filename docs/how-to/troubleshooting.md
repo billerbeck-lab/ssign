@@ -19,7 +19,7 @@ If the venv exists but `ssign --version` still fails, the install
 finished in a different env. Reinstall in the current one:
 `pip install ssign`.
 
-### `ModuleNotFoundError: No module named 'deepsece'` (or `bakta`, `eggnog_mapper`, etc.)
+### `ModuleNotFoundError: No module named 'deepsece'` (or `bakta`, `plmblast`, etc.)
 
 You are running a step whose pip extra is not installed. Either install
 the matching extra or skip the step:
@@ -30,7 +30,24 @@ pip install ssign[deepsece]            # add DeepSecE
 ssign run input.gbff --skip-deepsece   # skip it
 ```
 
-Same pattern for `bakta`, `eggnog`, `plmblast`, `plm-effector`.
+Same pattern for `bakta`, `plmblast`, `plm-effector`.
+
+### `emapper.py: command not found` (EggNOG-mapper)
+
+EggNOG-mapper is **not** in the ssign pip extras: its hard-pinned
+`biopython==1.76` clashes with `bakta>=1.78`, so the two cannot
+co-resolve. Install separately:
+
+```bash
+conda install -c bioconda eggnog-mapper      # recommended
+# or
+pip install --no-deps eggnog-mapper          # no conda available
+```
+
+Then run `bash scripts/fetch_databases.sh --tier extended` to download
+the EggNOG database, or skip the step with `--skip-eggnog`. See
+[`how-to/install.md`](install.md#eggnog-mapper-separate-install--database)
+for the full recipe.
 
 ### `transformers >=5.0` or `numpy >=2.0` import errors during pLM-BLAST or PLM-Effector
 
