@@ -338,6 +338,13 @@ mamba create -n signalp6 -c conda-forge python=3.10 pip "numpy<2" -y
 # 4. Use the env's binaries by absolute path — avoids needing `mamba init`
 #    (which would permanently modify your shell rc). Works identically
 #    on a laptop and inside an HPC JupyterHub / batch job.
+#
+#    The CPU torch wheel is deliberate. We tested swapping in
+#    `torch==1.13.1+cu117` on a CUDA 13 / A40 host: SignalP did NOT
+#    actually move inference to the GPU because the device is baked
+#    into the JIT-compiled `signalp-6-package` model at install time
+#    (no runtime `.to(cuda)`). Result: ~10% slower than the CPU wheel
+#    from CUDA-lib startup overhead, with zero speedup. Stick with cpu.
 PYBIN=~/.conda/envs/signalp6/bin     # adjust if your conda envs live elsewhere
 $PYBIN/pip install "torch<2.0" --index-url https://download.pytorch.org/whl/cpu
 $PYBIN/python -c "import torch, numpy; print(torch.__version__, numpy.__version__)"
