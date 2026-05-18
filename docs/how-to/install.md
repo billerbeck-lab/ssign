@@ -375,59 +375,61 @@ field. ssign invokes SignalP with `--organism other --mode fast --format txt`
 
 ## DeepLocPro
 
-Same shape as SignalP: ssign is offline-first, so the canonical path is a
-local DeepLocPro install (free DTU academic licence, ~5 GB of model files,
-GPU recommended). DTU's licence terms for redistribution are pending
-clarification with Ole, the DeepLocPro maintainer (status as of 2026-05-08).
-For now, treat as user-acquires-it.
+ssign is offline-first, so the canonical path is a local DeepLocPro
+install (~5 GB of model files, GPU recommended for cohort speed).
+Unlike SignalP, DeepLocPro is not distributed through DTU's download
+portal — that URL is only the web prediction service. The local install
+is from the maintainer's GitHub repository
+[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro).
 
-If you do not have a DTU licence, opt into the DTU webserver fallback
-with `--deeplocpro-mode remote` (no licence needed on your part,
-internet required). Same caveat as SignalP: this is a convenience path
-that depends on DTU keeping the service alive, so use it for trial runs
-and install locally for production / paper work.
+If you don't want to install locally, opt into the DTU webserver
+fallback with `--deeplocpro-mode remote` (no install needed on your
+part, internet required). Same caveat as SignalP: this is a convenience
+path that depends on DTU keeping the service alive, so use it for trial
+runs and install locally for production / paper work.
 
-DTU serves DeepLocPro the same way as SignalP, so the same gotchas apply:
-the download URL is an Apache directory listing rather than a direct file,
-and the install lives best in its own conda-family env to avoid clashing
-with ssign's pinned numpy / torch / transformers.
+DeepLocPro's only hard pin is Python ≥ 3.6 — much more permissive than
+SignalP 6.0's torch<2 constraint. It could technically live in the ssign
+venv, but we keep it in its own conda-family env for the same reasons
+we isolate SignalP: insulate ssign from any transformers / torch
+constraint DLP might add in a future release, and keep the "DTU tool ≠
+ssign env" convention consistent.
 
 ```bash
-# 1. Register and request a download at
-#    https://services.healthtech.dtu.dk/services/DeepLocPro-1.0/
-#    (academic email required). DTU emails / displays a one-time URL.
+# 1. Clone the upstream repo
+cd ~/build
+git clone https://github.com/Jaimomar99/deeplocpro
+cd deeplocpro
 
-# 2. Open the URL in a browser or `wget` it to see the directory listing.
-#    Note the filename DTU is shipping today (it changes between releases)
-#    and append it to the URL for the actual download. If you get a 1-2 KB
-#    HTML file instead of the tarball, your URL is missing the filename.
-mkdir -p ~/build && cd ~/build
-wget -O deeplocpro.tar.gz "https://services.healthtech.dtu.dk/download/<your-token>/<filename-from-the-listing>"
-ls -lh deeplocpro.tar.gz      # several GB
-file deeplocpro.tar.gz        # "gzip compressed data"
-
-# 3. Create a dedicated env. DeepLocPro is happier than SignalP with
-#    modern Python and torch, but isolating it keeps version surprises
-#    out of your ssign venv.
+# 2. Create a dedicated conda-family env. Any version >=3.6 works;
+#    3.11 picks up the latest stable wheels for torch / transformers.
 mamba create -n deeplocpro -c conda-forge python=3.11 pip -y
 PYBIN=~/.conda/envs/deeplocpro/bin
 
-# 4. Follow DTU's bundled install instructions inside the extracted
-#    tarball (typically a `pip install ./deeplocpro-package/` + a
-#    model-weights copy step). Use $PYBIN for pip / python so you don't
-#    need to `mamba init` your shell. Verify with:
-$PYBIN/deeplocpro --version
+# 3. Install into the env via absolute-path pip (avoids needing
+#    `mamba init`, same pattern as the SignalP install above).
+$PYBIN/pip install .
 
-# 5. Wire ssign to the install:
+# 4. Verify
+$PYBIN/deeplocpro --version
+ls $PYBIN/deeplocpro          # note this path for the --deeplocpro-path flag below
+```
+
+If the GitHub install grows extra steps over time (model-weights
+download, license click-through, etc.), follow whatever the README at
+[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro) says
+— our recipe above is the minimum that worked at the v1.0 release.
+
+### Wire ssign to the local install
+
+```bash
 ssign run input.gbff --outdir results \
     --deeplocpro-mode local \
     --deeplocpro-path ~/.conda/envs/deeplocpro/bin
 ```
 
 `--deeplocpro-path` takes the directory containing the `deeplocpro`
-console script. If the tarball ships a different binary name in a future
-release, point `--deeplocpro-path` at whichever directory makes that
-binary importable.
+console script.
 
 ---
 

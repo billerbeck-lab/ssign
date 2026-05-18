@@ -173,23 +173,28 @@ silently for DeepSecE and skips PLM-Effector entirely.
 
 ## 4a. Installing DTU tools on HPC
 
-SignalP 6.0 and DeepLocPro both come from DTU HealthTech via one-time
-download URLs that point at *Apache directory listings*, not files. Two
-HPC-specific gotchas catch users out:
+SignalP 6.0 and DeepLocPro both come from DTU's research group but
+through different channels — SignalP via DTU HealthTech's portal,
+DeepLocPro via the maintainer's GitHub
+([Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro)).
+Two HPC-specific gotchas to watch for:
 
-1. **Append the filename to the URL when you wget**, otherwise you get a
-   1-2 KB HTML index page rather than the ~1.5 GB tarball.
-2. **Don't `mamba init` your shell on HPC.** Cluster shell profiles are
-   often shared or sandboxed, and `init` writes to your rc file. Use the
-   conda env's absolute paths instead (`PYBIN=~/.conda/envs/<env>/bin`,
-   then `$PYBIN/pip ...`, `$PYBIN/python ...`). The install commands in
+1. **SignalP's portal URL is an Apache directory listing**, not a file.
+   Append the filename `signalp-6.0i.fast.tar.gz` to the URL when you
+   wget, otherwise you get a 1-2 KB HTML index page instead of the
+   ~1.5 GB tarball. DeepLocPro avoids this because it's a `git clone`.
+2. **Don't `mamba init` your shell on HPC.** Cluster shell profiles
+   are often shared or sandboxed, and `init` writes to your rc file.
+   Use the conda env's absolute paths instead
+   (`PYBIN=~/.conda/envs/<env>/bin`, then `$PYBIN/pip ...`,
+   `$PYBIN/python ...`). Both DTU-tool install recipes in
    [`install.md`](install.md) follow this pattern.
 
-Step-by-step instructions are in [`install.md`](install.md#signalp-60)
-for SignalP and [`install.md`](install.md#deeplocpro) for DeepLocPro.
-Both go into isolated conda envs and ssign points at them via
-`--signalp-path` / `--deeplocpro-path` (the directory containing the
-console script). After install:
+Step-by-step instructions: [`install.md`](install.md#signalp-60) for
+SignalP, [`install.md`](install.md#deeplocpro) for DeepLocPro. Both go
+into isolated conda envs and ssign points at them via `--signalp-path`
+/ `--deeplocpro-path` (the directory containing the console script).
+After install:
 
 ```bash
 ssign run input.gbff --outdir results \
