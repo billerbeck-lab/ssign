@@ -20,6 +20,7 @@ import pytest
 from _helpers import write_tsv
 from run_deeplocpro import (
     _split_fasta_bytes,
+    _use_cuda_for_deeplocpro,
     find_output_file,
     parse_deeplocpro_output,
 )
@@ -256,3 +257,45 @@ class TestFindOutputFile:
         open(os.path.join(tmp_dir, "log.txt"), "w").close()
         open(os.path.join(tmp_dir, "results.csv"), "w").close()
         assert find_output_file(tmp_dir).endswith(".csv")
+
+
+class TestUseCudaForDeeplocpro:
+    """Regression coverage for the GPU auto-detect that controls `-d cuda`
+    on the deeplocpro subprocess.
+
+    Pre-fix, the wrapper never passed `-d`, so DLP fell back to its CPU
+    default even on GPU nodes. These tests pin the detection contract.
+    """
+
+    def test_force_cpu_env_var_overrides_detection(self, monkeypatch):
+        monkeypatch.setenv("SSIGN_DEEPLOCPRO_FORCE_CPU", "1")
+        assert _use_cuda_for_deeplocpro() is False
+
+    def test_force_cpu_accepts_alternate_truthy_values(self, monkeypatch):
+        for v in ("true", "TRUE", "yes", "Yes"):
+            monkeypatch.setenv("SSIGN_DEEPLOCPRO_FORCE_CPU", v)
+            assert _use_cuda_for_deeplocpro() is False, f"failed for value {v!r}"
+
+    def test_force_cpu_falsy_value_does_not_override(self, monkeypatch):
+        monkeypatch.setenv("SSIGN_DEEPLOCPRO_FORCE_CPU", "0")
+        try:
+            import torch
+
+            expected = bool(torch.cuda.is_available())
+        except ImportError:
+            expected = False
+        assert _use_cuda_for_deeplocpro() is expected
+
+    def test_missing_torch_falls_back_to_cpu(self, monkeypatch):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "torch":
+                raise ImportError("torch not installed (test stub)")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.delenv("SSIGN_DEEPLOCPRO_FORCE_CPU", raising=False)
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        assert _use_cuda_for_deeplocpro() is False

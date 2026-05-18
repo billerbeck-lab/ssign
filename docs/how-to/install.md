@@ -410,8 +410,8 @@ PYBIN=~/.conda/envs/deeplocpro/bin
 #    `mamba init`, same pattern as the SignalP install above).
 $PYBIN/pip install .
 
-# 4. Verify
-$PYBIN/deeplocpro --version
+# 4. Verify (DeepLocPro has no --version; --help is the canonical check)
+$PYBIN/deeplocpro --help | head
 ls $PYBIN/deeplocpro          # note this path for the --deeplocpro-path flag below
 ```
 

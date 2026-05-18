@@ -43,6 +43,25 @@ from ssign_lib.retry import retry_with_backoff  # noqa: E402
 # ── Local mode ──
 
 
+def _use_cuda_for_deeplocpro() -> bool:
+    """Whether to pass `-d cuda` to DeepLocPro's CLI.
+
+    Auto-detects CUDA via torch, falling back to CPU if torch is missing
+    or no GPU is visible. `SSIGN_DEEPLOCPRO_FORCE_CPU=1|true|yes` overrides
+    to CPU. DLP's `-d` flag takes one of `{cpu,cuda,mps}` and defaults to
+    CPU, so without this auto-detect a GPU node silently runs DLP on CPU
+    (same class of bug as the pre-fix pLM-BLAST `--cuda` miss).
+    """
+    if os.environ.get("SSIGN_DEEPLOCPRO_FORCE_CPU", "").lower() in ("1", "true", "yes"):
+        return False
+    try:
+        import torch
+
+        return torch.cuda.is_available()
+    except ImportError:
+        return False
+
+
 def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gram-"):
     """Run DeepLocPro CLI locally and return path to results file."""
     # Handle 0-sequence input gracefully: write empty output and return
@@ -73,8 +92,14 @@ def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gra
         # Try as a command on PATH
         cmd_base = "deeplocpro"
 
-    cmd = [cmd_base, "-f", input_fasta, "-o", output_dir, "-g", "negative"]
+    use_cuda = _use_cuda_for_deeplocpro()
+    device_arg = "cuda" if use_cuda else "cpu"
+    cmd = [cmd_base, "-f", input_fasta, "-o", output_dir, "-g", "negative", "-d", device_arg]
 
+    if use_cuda:
+        logger.info("DeepLocPro: CUDA detected, passing -d cuda")
+    else:
+        logger.info("DeepLocPro: running on CPU (no GPU detected or forced via SSIGN_DEEPLOCPRO_FORCE_CPU)")
     logger.info(f"Running local DeepLocPro: {' '.join(cmd[:4])}...")
     # FRAGILE: subprocess call requires DeepLocPro binary on PATH or at deeplocpro_path
     # If this breaks: install DeepLocPro locally or switch to --mode remote
