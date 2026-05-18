@@ -21,9 +21,18 @@ Compared to a laptop install:
   `$SCRATCH` or `$WORK` (large, fast). A 50 GB EggNOG download in
   `$HOME` will likely hit your quota.
 - GPUs are requested explicitly in the job script. Forget that flag and
-  PLM-Effector silently runs on CPU (~100x slower).
+  DeepSecE, PLM-Effector, and pLM-BLAST all fall back to CPU (10-100x
+  slower).
 - Jobs have walltime limits. A bigger cohort or extended tier may need
   to be split across multiple jobs.
+
+> **Don't run from a JupyterHub or interactive session.** They look like
+> Linux shells but are typically cgroup-throttled to ~1 CPU's worth of
+> compute (even when `Cpus_allowed_list` says you can touch 4 cores).
+> `nproc` reports the true quota — if it returns 1 or 2 you are not on a
+> compute node. On a 1-CPU session DeepSecE on a single genome takes
+> ~90 min instead of seconds on GPU or ~10 min on a 16-core CPU node.
+> Always submit a proper SLURM / PBS job for the actual run.
 
 ## 1. Set up the environment (login node)
 
@@ -134,8 +143,15 @@ Submit with `qsub ssign-job.sh`.
 
 ## 4. GPU access
 
-PLM-Effector and pLM-BLAST need a GPU to run in reasonable wall time.
-Request one in your job script:
+DeepSecE, PLM-Effector, and pLM-BLAST all benefit from a GPU:
+
+- **DeepSecE:** seconds on GPU, ~10 min on a 16-core CPU node, ~90 min on
+  a 1-CPU session. Auto-detected; no flag.
+- **PLM-Effector:** seconds on GPU, ~1-2 min per protein on CPU. Default
+  is `cuda`; skipped automatically if no GPU is visible.
+- **pLM-BLAST:** ProtT5 embedding is ~100x slower on CPU than GPU.
+
+Request a GPU in your job script:
 
 ```bash
 # SLURM:
@@ -149,11 +165,11 @@ ssign launches:
 
 ```bash
 nvidia-smi    # should print one or more GPUs
+python -c "import torch; print(torch.cuda.is_available())"
 ```
 
-If `nvidia-smi` is missing or reports no GPU, ssign will skip
-PLM-Effector and pLM-BLAST automatically and continue with the rest of
-the pipeline.
+If `nvidia-smi` is missing or reports no GPU, ssign falls back to CPU
+silently for DeepSecE and skips PLM-Effector entirely.
 
 ## 5. Walltime considerations
 
@@ -166,7 +182,7 @@ node:
 | MacSyFinder | 5-10 min |
 | DeepLocPro + SignalP (local) | 2-5 min, GPU-accelerated |
 | DeepLocPro + SignalP (DTU webserver fallback) | 5-15 min, network-bound |
-| DeepSecE | 5-10 min |
+| DeepSecE (GPU / 16-core CPU / 1-core throttled) | seconds / ~10 min / ~90 min |
 | HH-suite (Pfam + PDB70) | 10-30 min |
 | InterProScan | 5-15 min |
 | BLASTp NR | 30-90 min depending on n_proteins and NR vintage |

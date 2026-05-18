@@ -23,6 +23,12 @@ a network-bound wait and is fine for a single-genome trial run.
 - ~10 GB of free disk: ~3 GB for the install (PyTorch + ESM) and ~7 GB
   downloaded on first DeepSecE run for the cached ESM-1b language model
 
+> **Running on an HPC cluster?** Don't run from a login node or a
+> JupyterHub session — both are typically throttled to ~1 CPU and DeepSecE
+> will take 60-90 min instead of seconds. Submit a proper compute job (and
+> request a GPU if you can; DeepSecE is ~100x faster on GPU). See
+> [`how-to/run_on_hpc.md`](../how-to/run_on_hpc.md) for templates.
+
 ## 1. Install ssign
 
 ```bash
