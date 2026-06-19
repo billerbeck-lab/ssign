@@ -1,1 +1,1 @@
-{"genome": "NC_000915.1", "neigh_ids": ["HP_RS04310", "HP_RS04315", "HP_RS04320", "HP_RS04325", "HP_RS04330", "HP_RS04335", "HP_RS04340"], "n_systems": 1, "n_components": 1}
+{"genome": "NC_000915.1", "neigh_ids": ["HP_RS04310", "HP_RS04315", "HP_RS04320", "HP_RS04325", "HP_RS04330", "HP_RS04335", "HP_RS04340"], "n_systems": 1, "n_components": 1, "components": [{"locus_tag": "HP_RS04325", "ss_type": "T5aSS", "sys_id": "proteins_T5aSS_1"}]}

@@ -1,1 +1,1 @@
-{"genome": "NZ_JBCGCZ010000007.1", "neigh_ids": ["AAG739_RS15920", "AAG739_RS15925", "AAG739_RS15930", "AAG739_RS15935", "AAG739_RS15940", "AAG739_RS15945", "AAG739_RS15950"], "n_systems": 1, "n_components": 1}
+{"genome": "NZ_JBCGCZ010000007.1", "neigh_ids": ["AAG739_RS15920", "AAG739_RS15925", "AAG739_RS15930", "AAG739_RS15935", "AAG739_RS15940", "AAG739_RS15945", "AAG739_RS15950"], "n_systems": 1, "n_components": 1, "components": [{"locus_tag": "AAG739_RS15935", "ss_type": "T5aSS", "sys_id": "proteins_T5aSS_1"}]}

@@ -556,3 +556,65 @@ TASK #81 ACCEPTANCE TEST RESULT: provenance 100% clean across all 240 (0 fabrica
 strict-bar corrections = 11 drops + 18 verified fixes, all applied + propagated. Re-audit COMPLETE.
 Open flags for Teo (keep, low-priority): T3011 EspA-Cr (Deng2015 system-level), T3045/T3048 NleD/E-Cr (Kelly2006
 genetic), T4025/T4026 PieE/PieF loci (lit vs UniProt annotation conflict), T5011 iga (cross-species mechanism).
+
+## 2026-06-19 — Permutation refinement of the enrichment test (task #70, commit a8bca53)
+
+Validated ssign's binomial enrichment test against a clustering-aware circular-permutation
+spatial null on the 67-genome fleet. Scripts: validation_sweeps/benchmark/analysis/fleet_67/
+03a_regen_neighborhoods.py (macsyfinder regen of per-genome +/-3 neighborhood masks, cached in
+neighborhoods/) + 03_permutation_refined.py. Figures 06/07/08.
+
+FINDING: the production binomial is anti-conservative. Of 87 systems it calls significant
+(q<0.05), the masked spatial null confirms only 19 (22%). Cause: the binomial assumes each
+neighborhood gene is independently secreted at the genome background rate, but secreted genes
+cluster (operons/islands), so dense neighborhoods are less surprising than the binomial thinks.
+Masking other systems' neighborhoods out of the null RAISED the spatial count 11->19 (vs script
+02's unmasked floor), so masking is the fair test, not a power loss. n=1000-sampled permutation
+recovers 95% of exact calls (24 vs 19, slightly liberal) — Monte-Carlo placement is fine, it's
+the independence assumption that's the problem. Per type: binomial over-call worst for T5SS
+(19->2; tiny autotransporter neighborhoods) and T6SS; T3SS-DLP (9/15) and T1SS are robust under
+both. DSE over-called less than DLP.
+
+DEFERRED DECISION (affects #69 "enrichment on by default"): the binomial over-states confidence.
+Options when whole-genome predictions exist: (a) keep binomial + caveat, (b) switch enrichment
+significance to the spatial-permutation null, (c) report both. Permutation needs whole-genome
+ordered predictions (not available in default neighborhood-mode) and has a ~1e-3 resolution
+floor when Monte-Carlo'd. Revisit when deciding #69. Trigger: before flipping enrichment to
+default-on.
+
+## 2026-06-19 — Circular-shift enrichment with fold values + correct T5SS (task #70 cont.)
+
+Teo: the sig/not-sig counts don't show HOW enriched systems are, and asked which T5SS proteins
+were measured (hitchhikers vs autotransporters). Found the Xanthobacter-era reference
+(/home/teo/Desktop/Billerbeck - SS Identification/: make_enrichment_figures.py figure4/figure5,
+t5ss_aware_analysis.py) and reproduced it on the fleet: 04_circular_shift_enrichment.py.
+
+METHOD: circular-shift null (genome-structure-preserving) — rotate each genome's predictor-
+positive positions by a random offset, count how many land within +/-3 of an SS component, sum
+across genomes, 10k shifts. fold = observed / null-mean. Exact per-genome all-rotations count via
+FFT cross-correlation (unit-tested vs brute force, c[0]==observed). Figures 09 (genome-wide null
+histogram), 10 (per-type fold), 11 (autotransporter self-detection).
+
+RESULTS (genome-structure-preserving, so lower than binomial but honest):
+- genome-wide: DLP 400 vs null 121 = 3.3x, DSE 362 vs null 95 = 3.8x, both p<1e-4.
+- per-type DLP all *** except T2SS(1.4x n.s.): T1SS 4.3x, T3SS 3.8x, T5bSS 3.4x, T6SS 3.6x, T4SS 3.0x*.
+- per-type DSE: T6SS 6.3x*** (strongest; effectors are DSE-typed), T1SS 4.4x***; T4SS 0.2x n.s.
+  (DSE misses translocated T4SS substrates), T5bSS 1.6x / T2SS 1.4x n.s. T3SS-DSE excluded by design.
+- enrichment is REAL and strong everywhere except T2SS; binomial inflated the MAGNITUDE (6-12x) not
+  the existence.
+
+T5SS FIX (the binomial/03 lumped all T5 -> meaningless for autotransporters):
+- T5aSS/T5cSS are autotransporters (protein = machinery AND substrate). Window is mostly empty
+  (binomial: only 36/206 T5a, 9/53 T5c systems had any neighbour positive). Correct test =
+  SELF-DETECTION: is the component itself OM-or-extracellular (DLP) / secreted-type (DSE)?
+  -> T5aSS 35% DLP / 11% DSE ; T5cSS 5% / 5%. DeepLocPro under-calls autotransporters at >=0.8,
+  esp. trimeric T5cSS adhesins (YadA-like). Real DLP sensitivity gap.
+- T5bSS stays a window type (TpsA hitchhikers near TpsB): DLP 3.4x*** real enrichment.
+
+DEFERRED CLEANUP (Teo: separate task once stats analysis is finalized per-run):
+- BUG in fleet results_raw: dlp_max_probability always == dlp_extracellular_prob even when
+  dlp_max_localization == Outer Membrane (e.g. NMB1969 max_loc=OM, max_prob=0.294=extra, OM=0.55).
+  Cosmetic: is_dlp_positive uses dlp_extracellular_prob directly, so calls are unaffected. Fix in
+  the DLP-output writer when cleaning up the enrichment/stats code.
+- The per-run enrichment stat to SHIP (#69) should be this circular-shift fold + null, not the
+  binomial, with T5a/T5c on self-detection and T5b/others on windows.

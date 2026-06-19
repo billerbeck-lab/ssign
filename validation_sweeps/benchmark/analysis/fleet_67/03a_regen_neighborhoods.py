@@ -144,8 +144,13 @@ def regen_one(genome: str) -> dict:
     n_systems = (
         sum(1 for _ in csv.DictReader(open(valid_systems), delimiter="\t")) if os.path.exists(valid_systems) else 0
     )
-    n_components = sum(1 for _ in csv.DictReader(open(ss_components), delimiter="\t"))
-    return {"genome": genome, "neigh_ids": ids, "n_systems": n_systems, "n_components": n_components}
+    # per-component (locus_tag, ss_type, sys_id) — lets downstream split window
+    # types from autotransporters (T5aSS/T5cSS) and build per-type +/-W masks.
+    comps = []
+    with open(ss_components) as fh:
+        for row in csv.DictReader(fh, delimiter="\t"):
+            comps.append({"locus_tag": row["locus_tag"], "ss_type": row["ss_type"], "sys_id": row.get("sys_id", "")})
+    return {"genome": genome, "neigh_ids": ids, "n_systems": n_systems, "n_components": len(comps), "components": comps}
 
 
 def main():
@@ -154,9 +159,9 @@ def main():
     done = skipped = 0
     for g in only:
         cache_path = os.path.join(CACHE, f"{g}.json")
-        if os.path.exists(cache_path):
+        if os.path.exists(cache_path) and "components" in json.load(open(cache_path)):
             skipped += 1
-            continue
+            continue  # re-run caches that predate the components field
         res = regen_one(g)
         with open(cache_path, "w") as fh:
             json.dump(res, fh)
