@@ -138,6 +138,24 @@ class TestSliceStagesBySegment:
         assert segments["B"] == []
         assert len(segments["C"]) == 1
 
+    def test_every_real_build_stage_has_a_segment(self, tmp_path):
+        """Every step a real _build_stages() can emit must be in _SEGMENT_BY_STEP,
+        or the multi-genome slicer KeyErrors at runtime. Regression: the
+        enrichment_figure step (added with --enrichment-stats) was missing,
+        crashing every batched run. Build with all opt-in steps on so the full
+        DAG is exercised."""
+        from ssign_app.core.multi_runner import _SEGMENT_BY_STEP, _step_id
+        from ssign_app.core.runner import PipelineConfig, PipelineRunner
+
+        cfg = PipelineConfig(outdir=str(tmp_path), sample_id="g", enrichment_stats=True, skip_plm_effector=False)
+        stages = PipelineRunner(cfg)._build_stages()
+        missing = set()
+        for stage in stages:
+            for _label, func in stage if isinstance(stage, list) else [stage]:
+                if _step_id(func) not in _SEGMENT_BY_STEP:
+                    missing.add(_step_id(func))
+        assert not missing, f"steps missing from _SEGMENT_BY_STEP: {missing}"
+
 
 # ---------------------------------------------------------------------------
 # Constructor validation

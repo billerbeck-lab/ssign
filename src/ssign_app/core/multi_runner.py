@@ -63,6 +63,7 @@ _SEGMENT_BY_STEP = {
     "enrichment": "E",
     "report": "E",
     "figures": "E",
+    "enrichment_figure": "E",
 }
 
 # Output keys (in PipelineRunner.files) for each pooled segment's tools.
