@@ -33,12 +33,23 @@ test -f "$PBS_SCRIPT" || { echo "FATAL: $PBS_SCRIPT not found"; exit 1; }
 GPU="RTX6000"
 WALLTIME="8:00:00"
 USE_TUTORIAL_ALL="0"
+NCPUS="64"
+MEM="120gb"
+DRY="0"
+EXTRA="${SSIGN_EXTRA_ARGS:-}"
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --gpu) GPU="$2"; shift 2 ;;
         --walltime) WALLTIME="$2"; shift 2 ;;
         --tutorial-all) USE_TUTORIAL_ALL="1"; shift ;;
+        # 32c/64gb places more easily than the 64c/120gb default when the big
+        # nodes are busy; enough for the extended tier on one genome at a time.
+        --small) NCPUS="32"; MEM="64gb"; shift ;;
+        # Turn on the circular-shift enrichment test (+ per-type/pooled figures).
+        --enrichment-stats) EXTRA="${EXTRA:+$EXTRA }--enrichment-stats"; shift ;;
+        # Print the qsub command instead of submitting (verify before you fire).
+        --dry-run|--print) DRY="1"; shift ;;
         -h|--help) sed -n '2,25p' "$0" | sed 's/^# \?//'; exit 0 ;;
         --) shift; break ;;
         -*) echo "Unknown flag: $1"; exit 1 ;;
@@ -80,15 +91,29 @@ echo "  ${#GENOMES[@]} genomes:"
 for g in "${GENOMES[@]}"; do echo "    $g"; done
 echo
 
-jid=$(qsub \
-    -l "select=1:ncpus=64:mem=120gb:ngpus=1:gpu_type=$GPU" \
-    -l "walltime=$WALLTIME" \
-    -N "ssign_batched_${#GENOMES[@]}genomes" \
-    -v "INPUT_GBFFS=${GBFFS},GPU_TYPE=${GPU},SSIGN_EXTRA_ARGS=${SSIGN_EXTRA_ARGS:-}" \
-    "$PBS_SCRIPT")
+# gpu_type is MANDATORY on v1_gpu72 — omitting it queues the job forever
+# ("Placement set is too small"). Building the whole command in an array keeps
+# the long -v string in one token so a terminal can't mangle it on paste, and
+# lets --dry-run print exactly what would be submitted.
+QSUB_ARGS=(
+    -l "select=1:ncpus=${NCPUS}:mem=${MEM}:ngpus=1:gpu_type=$GPU"
+    -l "walltime=$WALLTIME"
+    -N "ssign_batched_${#GENOMES[@]}genomes"
+    -v "INPUT_GBFFS=${GBFFS},GPU_TYPE=${GPU},SSIGN_EXTRA_ARGS=${EXTRA}"
+    "$PBS_SCRIPT"
+)
+echo "  ncpus=$NCPUS mem=$MEM  extra-args: ${EXTRA:-(none)}"
+echo
+if [ "$DRY" = "1" ]; then
+    printf 'DRY RUN — would submit:\n  qsub'
+    printf ' %q' "${QSUB_ARGS[@]}"
+    printf '\n'
+    exit 0
+fi
+jid=$(qsub "${QSUB_ARGS[@]}")
 echo "Submitted: $jid"
 echo
 echo "Watch with:"
-echo "  qstat -T -u \$USER"
-echo "Output dir (after start):"
-echo "  \$HOME/runs/batched_${GPU}_<timestamp>/"
+echo "  qstat -u \$USER"
+echo "Live log (after it starts):"
+echo "  tail -f \"\$(ls -td \$HOME/runs/batched_* | head -1)/ssign.run.log\""
