@@ -681,3 +681,12 @@ rows now have >=1 known descriptor (was family 11/51 only). 17/51 effectors have
 NO uniprot accession in the panel (recorded "-") so can't be looked up; their known
 side stays gene+quote. Sheet already surfaces real misses (e.g. Q7N8R3/Q84F70 known
 serralysins: ssign eggnog mis-calls "Serine 3-dehydrogenase"; interpro correct).
+
+## 2026-06-22 — pooled cross-genome enrichment figure (#69 follow-up)
+
+Multi-genome runs now also get a COMBINED figure (the pooled view Teo originally
+liked from the Xanthobacter fleet). pool_enrichment_stats gained nulls_output=,
+dumping the pooled Monte-Carlo null arrays; Home.py renders
+figures/pooled_enrichment_null_distributions.png from the pooled TSV+npz via
+run_enrichment_figure.py. Per-genome figures unchanged. Tests: unit (npz keys/shape)
++ integration (pooled figure renders). Part of openspec enrichment-circular-shift-per-run.

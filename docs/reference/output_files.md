@@ -121,6 +121,10 @@ With `--enrichment-stats` the run also writes
 and `figures/<sample-id>/<sample-id>_enrichment_null_distributions.png` (one
 null-distribution panel per SS type × predictor).
 
+For a multi-genome run, the genomes' results are additionally pooled into
+`pooled_enrichment_stats.tsv` (+ `pooled_enrichment_nulls.npz`) and a combined
+`figures/pooled_enrichment_null_distributions.png` in the same per-type style.
+
 ## `figures/<sample-id>/*.png`
 
 Summary figures rendered at `--dpi` (default 300). Toggle individual figures

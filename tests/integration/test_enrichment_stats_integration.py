@@ -130,8 +130,12 @@ class TestStatsEndToEnd:
         from ssign_app.core.runner import pool_enrichment_stats
 
         pooled_path = tmp_path / "pooled_enrichment_stats.tsv"
-        n_pooled = pool_enrichment_stats([str(p) for p in per_genome_tsvs], str(pooled_path))
+        pooled_nulls = tmp_path / "pooled_enrichment_nulls.npz"
+        n_pooled = pool_enrichment_stats(
+            [str(p) for p in per_genome_tsvs], str(pooled_path), nulls_output=str(pooled_nulls)
+        )
         assert n_pooled == 2  # (T2SS, DLP) and (T2SS, DSE)
+        assert pooled_nulls.exists()
 
         pooled = list(csv.DictReader(open(pooled_path), delimiter="\t"))
         assert {r["ss_type"] for r in pooled} == {"T2SS"}
@@ -139,3 +143,12 @@ class TestStatsEndToEnd:
             assert int(r["observed"]) == 4  # 2 + 2 across the two genomes
             assert r["mode"] == "window"
             assert float(r["fold"]) > 1.0  # both genomes planted enrichment
+
+        # ── combined pooled figure renders from the pooled TSV + nulls ──
+        pooled_png = tmp_path / "pooled_enrichment_null_distributions.png"
+        r = _run_script(
+            "run_enrichment_figure.py",
+            ["--stats", str(pooled_path), "--nulls", str(pooled_nulls), "--out", str(pooled_png)],
+        )
+        assert r.returncode == 0, r.stderr
+        assert pooled_png.exists() and pooled_png.stat().st_size > 0

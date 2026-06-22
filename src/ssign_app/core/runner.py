@@ -3481,7 +3481,7 @@ def run_cross_genome_orthologs(
     return result
 
 
-def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
+def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_output: str = "") -> int:
     """Pool per-genome circular-shift enrichment outputs into one cross-genome view.
 
     Each genome's per-(type, tool) test carries an exact rotation null (dumped
@@ -3494,8 +3494,10 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
     (type x tool) tests.
 
     A genome contributes to a (type, tool) cell only when its npz carries that
-    cell's null array; genomes missing the npz are skipped for pooling. Returns the
-    number of pooled rows written.
+    cell's null array; genomes missing the npz are skipped for pooling. When
+    ``nulls_output`` is given, the pooled null arrays are dumped there (same
+    ``enrich_null_key`` scheme) so the figure script can render a combined
+    cross-genome figure. Returns the number of pooled rows written.
     """
     import csv
     import re as _re
@@ -3537,6 +3539,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
 
     rng = np.random.default_rng(ENRICH_POOL_SEED)
     pooled = []
+    pooled_nulls: dict[str, np.ndarray] = {}
     for (ss_type, tool), s in accum.items():
         null_pool = np.zeros(ENRICH_POOL_REPS, dtype=np.int64)
         for arr in s["nulls"]:
@@ -3559,6 +3562,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
                 "n_rotations": ENRICH_POOL_REPS,
             }
         )
+        pooled_nulls[enrich_null_key(ss_type, tool)] = null_pool
 
     bh_fdr(pooled, pvalue_key="p_perm")
 
@@ -3567,5 +3571,8 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
         writer.writeheader()
         for r in pooled:
             writer.writerow({**r, "sample_id": "POOLED"})
+
+    if nulls_output:
+        np.savez_compressed(nulls_output, **pooled_nulls)
 
     return len(pooled)

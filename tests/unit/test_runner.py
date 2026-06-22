@@ -1258,6 +1258,22 @@ class TestPoolEnrichmentStats:
         assert abs(float(r["null_mean"]) - 2.0) < 1e-9
         assert abs(float(r["fold"]) - 3.0) < 1e-9  # 6 / 2
 
+    def test_writes_pooled_nulls_npz_for_figure(self, tmp_path):
+        import numpy as np
+
+        from ssign_app.core.runner import pool_enrichment_stats
+        from ssign_app.scripts.ssign_lib.constants import ENRICH_POOL_REPS
+
+        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP": np.ones(50, dtype=int)})
+        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP": np.ones(50, dtype=int)})
+        out = tmp_path / "pooled.tsv"
+        npz_out = tmp_path / "pooled_nulls.npz"
+        pool_enrichment_stats([str(a), str(b)], str(out), nulls_output=str(npz_out))
+        assert npz_out.exists()
+        with np.load(npz_out) as npz:
+            assert "T6SS__DLP" in npz.files  # enrich_null_key scheme, shared with the figure
+            assert npz["T6SS__DLP"].shape == (ENRICH_POOL_REPS,)
+
     def test_separate_types_pool_separately(self, tmp_path):
         import csv as _csv
 

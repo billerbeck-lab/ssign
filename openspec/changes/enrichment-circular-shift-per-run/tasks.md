@@ -39,3 +39,10 @@
 - [x] 6.1 Update CLAUDE.md Key Parameters (enrichment now circular-shift; `--enrichment-stats` forces whole-genome DLP/DSE + runtime note; n_null_proteins retired for this path).
 - [x] 6.2 Update README enrichment section + `docs/design_decisions.md` (why circular-shift over binomial; autotransporter self-detection).
 - [x] 6.3 NOTES.md: mark the #69 circular-shift decision shipped; carry the PAO1-duplicate dedup reminder for any validation re-run.
+
+## 7. Combined cross-genome (pooled) figure
+
+- [x] 7.1 `pool_enrichment_stats` takes `nulls_output` and dumps the pooled Monte-Carlo null arrays (same `enrich_null_key` scheme) alongside the pooled stats TSV.
+- [x] 7.2 Multi-genome call site (Home.py) renders `pooled_enrichment_null_distributions.png` from the pooled TSV + nulls via `run_enrichment_figure.py`.
+- [x] 7.3 Tests: unit (pooled nulls npz written with correct keys/shape) + integration (pooled figure renders end-to-end).
+- [x] 7.4 Docs: output_files.md notes the pooled TSV/npz/figure.

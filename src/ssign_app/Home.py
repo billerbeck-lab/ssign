@@ -1887,9 +1887,21 @@ with tab_run:
                 per_genome_tsvs = [p for p in per_genome_tsvs if os.path.exists(p)]
                 if len(per_genome_tsvs) >= 2:
                     pooled_path = os.path.join(outdir_final, "pooled_enrichment_stats.tsv")
+                    pooled_nulls = os.path.join(outdir_final, "pooled_enrichment_nulls.npz")
                     try:
-                        n_pooled = pool_enrichment_stats(per_genome_tsvs, pooled_path)
+                        n_pooled = pool_enrichment_stats(per_genome_tsvs, pooled_path, nulls_output=pooled_nulls)
                         print(f"[ssign] Wrote {n_pooled} pooled enrichment rows to {pooled_path}", flush=True)
+                        # Combined cross-genome figure (same per-type null-histogram style)
+                        if n_pooled and os.path.exists(pooled_nulls):
+                            from ssign_app.core.runner import run_script
+
+                            fig_dir = os.path.join(outdir_final, "figures")
+                            os.makedirs(fig_dir, exist_ok=True)
+                            pooled_png = os.path.join(fig_dir, "pooled_enrichment_null_distributions.png")
+                            run_script(
+                                "run_enrichment_figure.py",
+                                ["--stats", pooled_path, "--nulls", pooled_nulls, "--out", pooled_png],
+                            )
                     except Exception as e:
                         st.warning(f"Could not pool enrichment stats across genomes: {e}")
 
