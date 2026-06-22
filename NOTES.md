@@ -2,6 +2,19 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## CX3 validation runs PENDING (set 2026-06-22) — figure-revamp + t3ss-on-by-default
+
+Branch `enrichment-circular-shift-per-run` @ b6805bf carries BOTH changes (figure-revamp
+COMPLETE+archived-pending; t3ss-on-by-default groups 1-4 done, group 5 = these runs).
+Three CX3 runs to validate (all `--small --enrichment-stats`, T3SS now on by default):
+- **1 genome**: `$HOME/ssign-tutorial/salmonella_typhimurium_lt2.gbff` (T3SS) — satisfies t3ss task 5.1.
+- **4 genome**: `--tutorial-all` (k12/pao1/salmonella/vibrio).
+- **20 genome**: T3SS-rich benchmark set, tarball at `/tmp/ssign_benchmark_20.tgz` (56MB, NOT on CX3 yet — scp up to `$HOME/ssign-benchmark-20/`). Accessions: NC_003197.2 NC_004337.2 NC_003131.1 NC_008791.1 NC_004578.1 NC_011601.1 NC_013716.1 NC_000117.1 NC_003295.1 NC_003902.1 NC_002516.2 NC_002505.1 NC_004603.1 NC_008570.1 NC_002942.5 NC_003063.2 BX470248 NC_006351.1 NC_014500.1 AE002098. Use `--walltime 24:00:00`.
+WHAT TO VERIFY: (a) new figures 01-07 + pooled P01-P03 render; (b) T3SS substrate count is SANE
+(not 1,808-flagellar-blowup); (c) enrichment stats have a `T3SS / DLP / window` row and NO
+`T3SS / DSE` row; (d) pooled cross-genome figures at 20-genome scale. On success: record in
+this file, mark t3ss tasks 5.1/5.2 + task #68 done, /opsx:apply remaining + /opsx:archive both changes.
+
 ## DeepLocPro crashes on mega-proteins — FIXED 2026-06-18 (openspec deeplocpro-mega-protein-guard)
 
 SHIPPED: DeepLocPro wrapper now withholds sequences > DEEPLOCPRO_MAX_AA (5000, env-overridable)
