@@ -56,6 +56,28 @@ export PATH="$PATH:$HOME/.conda/envs/bakta-deps/bin"
 export SSIGN_PLMBLAST_SCRIPT="$HOME/tools/pLM-BLAST/scripts/plmblast.py"
 test -f "$SSIGN_PLMBLAST_SCRIPT" || { echo "FATAL: SSIGN_PLMBLAST_SCRIPT not found at $SSIGN_PLMBLAST_SCRIPT"; exit 1; }
 
+# --- CX3 databases + local predictors --------------------------------------
+# Databases live on $EPHEMERAL, which RCS PURGES after ~30 days of no access. If
+# a job dies on a "requires --bakta-db / DB not found" error, re-fetch with the
+# helper:  bash scripts/fetch_databases.sh --tier extended --target $EPHEMERAL/ssign-databases
+# ssign reads these env vars directly (Config.__post_init__), so no CLI flags are
+# needed; each is set only when its target exists. A present SSIGN_*_PATH makes
+# that predictor run LOCALLY — REQUIRED on CX3 because compute nodes can't reach
+# the remote DTU webserver.
+DBROOT="$EPHEMERAL/ssign-databases"
+[ -d "$DBROOT/bakta" ]                  && export BAKTA_DB="$DBROOT/bakta"
+[ -d "$DBROOT/eggnog" ]                 && export EGGNOG_DATA_DIR="$DBROOT/eggnog"
+[ -d "$DBROOT/plm_effector_weights" ]   && export SSIGN_PLM_EFFECTOR_WEIGHTS="$DBROOT/plm_effector_weights"
+[ -d "$DBROOT/plm_blast/ECOD70" ]       && export SSIGN_ECOD_DB="$DBROOT/plm_blast/ECOD70"
+[ -d "$DBROOT/hhsuite/pfam" ]           && export SSIGN_HHSUITE_PFAM="$DBROOT/hhsuite/pfam"
+[ -d "$DBROOT/hhsuite/pdb70" ]          && export SSIGN_HHSUITE_PDB70="$DBROOT/hhsuite/pdb70"
+_IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1)
+[ -n "$_IPS" ]                          && export SSIGN_INTERPROSCAN_PATH="$_IPS"
+[ -d "$HOME/.conda/envs/deeplocpro/bin" ] && export SSIGN_DEEPLOCPRO_PATH="$HOME/.conda/envs/deeplocpro/bin"
+[ -d "$HOME/.conda/envs/signalp6/bin" ]   && export SSIGN_SIGNALP_PATH="$HOME/.conda/envs/signalp6/bin"
+echo "  BAKTA_DB=${BAKTA_DB:-<unset: Bakta will fail unless --use-input-annotations>}"
+echo "  local predictors: DLP=${SSIGN_DEEPLOCPRO_PATH:-remote} SignalP=${SSIGN_SIGNALP_PATH:-remote}"
+
 echo "===== ssign run START $(date -Is) ====="
 # SSIGN_EXTRA_ARGS appends additional ssign flags. Word-splits on
 # whitespace, so multiple flags work. Pass via
