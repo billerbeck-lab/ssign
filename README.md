@@ -98,10 +98,15 @@ Per genome, ssign writes to your `--outdir`:
   associated systems, then other systems).
 - `<sample-id>_results_raw.csv`: every column with no filtering.
 - `<sample-id>_summary.txt`: plain-text report and enrichment summary.
-- `figures/<sample-id>/*.png`: five summary figures.
+- `figures/<sample-id>/*.png`: the curated summary set, numbered `01`–`07`
+  (secreted proteins per SS type, secretion-call support, localization
+  confidence, SignalP-positive fraction by type, annotation-tool coverage,
+  protein length, functional categories), plus the enrichment null-distribution
+  figure when `--enrichment-stats` is on.
 
 In multi-genome batches the GUI also writes combined `ssign_results.csv`,
-`ssign_results_raw.csv`, and `ssign_summary.txt` at the outdir root.
+`ssign_results_raw.csv`, and `ssign_summary.txt` at the outdir root, plus pooled
+cross-genome figures `figures/P01`–`P03`.
 
 Full column reference: [`docs/reference/output_files.md`](docs/reference/output_files.md).
 

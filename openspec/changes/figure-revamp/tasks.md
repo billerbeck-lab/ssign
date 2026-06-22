@@ -30,13 +30,13 @@
 
 ## 6. Docs
 
-- [ ] 6.1 CLAUDE.md: update the figures description (curated set, numbered filenames, pooled multi-genome figures, physicochemical off by default).
-- [ ] 6.2 README / any tutorial: update figure references and example filenames.
+- [x] 6.1 CLAUDE.md: added a figures Key-Params bullet (curated `01`-`07`, shared `plot_style`, pooled `P01`-`P03`, physicochemical opt-in, fig 02 reads `tool` not `confidence_tier`).
+- [x] 6.2 README: replaced "five summary figures" with the curated set + pooled `P01`-`P03`.
 
 ## 7. Tests and validation
 
-- [ ] 7.1 Unit tests for `generate_figures.py`: on a small fixture integrated CSV, assert the expected numbered filenames exist, are non-empty, and that a missing column skips only its figure (run headless via `Agg`).
-- [ ] 7.2 Unit test for pooled mode: on a 2-genome fixture, assert `P0*` files appear; on a 1-genome input, assert none.
-- [ ] 7.3 Update any golden/fixture or test asserting old `figN_` filenames.
-- [ ] 7.4 Run the full unit suite (`pytest tests/unit/ -q`); all green.
-- [ ] 7.5 Validation: run a small single-genome fixture and a 2-genome run end-to-end; view every emitted PNG against the house-rule checklist (no overlap/clipping, theme colours, populated panels).
+- [x] 7.1 `tests/unit/test_generate_figures.py`: numbered set emitted + non-empty + no `figN_`; missing column skips only its figure; toggle skips a named figure. Headless `Agg`.
+- [x] 7.2 Pooled-mode test: 2-genome fixture emits `P01`-`P03`; 1-genome input emits none.
+- [x] 7.3 Updated the golden e2e `_EXPECTED_FIGURES` to the seven new numbered names (all seven render on the golden integrated CSV).
+- [x] 7.4 Full unit suite green: 1376 passed (was 1362; +7 plot_style, +6 generate_figures, +1 net).
+- [x] 7.5 Validated the figure step on the golden integrated CSV (all seven emit) and realistic synthetic single/2-genome CSVs (seed-pinned); viewed every per-genome (01-07), pooled (P01-P03), and the restyled enrichment PNG against the house-rule checklist. A full MacSyFinder->prediction e2e is the opt-in golden integration test (filenames now updated).

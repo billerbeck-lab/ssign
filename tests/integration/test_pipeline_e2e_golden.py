@@ -45,11 +45,13 @@ from conftest import (  # noqa: E402
 _GOLDEN_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "fixtures", "golden", "t5ass_minimal"))
 
 _EXPECTED_FIGURES = [
-    "fig1_ss_type_distribution.png",
-    "fig2_tool_coverage.png",
-    "fig3_protein_lengths.png",
-    "fig5_category_distribution.png",
-    "fig7_functional_summary.png",
+    "01_substrates_per_type.png",
+    "02_secretion_evidence.png",
+    "03_localization_confidence.png",
+    "04_signalp_by_type.png",
+    "05_tool_coverage.png",
+    "06_protein_length.png",
+    "07_functional_categories.png",
 ]
 
 
