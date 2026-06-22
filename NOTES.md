@@ -658,16 +658,15 @@ an auto per-type null-distribution figure. Binomial retired as the significance 
 - tests: test_enrichment_testing.py + test_runner pooling + integration rewritten; all
   1373 unit tests pass; integration passes.
 
-DEFERRED CLEANUP (now-unwired null-background machinery, candidate for a focused removal):
-- sample_null_proteins.py SCRIPT still exists + is unit-tested but nothing in the pipeline
-  calls it now (the rotation null replaced the sampled background).
-- _resolve_step_input_fasta's `include_null_concat` branch + multi_runner.py dlp_dse_input
-  pooling (lines ~331-337) are dead (nothing sets `dlp_dse_input`); both degrade to no-ops.
-- n_null_proteins / null_seed config fields + --n-null-proteins CLI arg are accepted but
-  unused by the enrichment path. Trigger: a tidy-up pass once the circular-shift test has
-  been validated on a real multi-genome run.
+DEFERRED CLEANUP (now-unwired null-background machinery) — DONE 2026-06-22:
+- Retired `sample_null_proteins.py` + its test, the `n_null_proteins`/`null_seed` config
+  fields + `--n-null-proteins`/`--null-seed` CLI args, the `include_null_concat` param +
+  branch in `_resolve_step_input_fasta`, and the dead `dlp_dse_input` pooling block in
+  multi_runner `_pool_segment_b_inputs`. The rotation null is the exact background, so none
+  of it was reachable. 1362 unit tests pass; CLAUDE.md key-params line updated.
 - VERIFY on a real multi-genome run with --enrichment-stats: that forcing whole-genome
   DLP/DSE composes correctly with multi_runner's neighborhood-pooling/segment logic.
+  (IN PROGRESS — the 4-genome CX3 enrichment job is the validation run.)
 - PAO1 duplicate in /tmp/ssign_fleet_67 (AE004091 == NC_002516.2): dedup to 66 genomes
   if the fleet is re-run for pooled-enrichment validation.
 

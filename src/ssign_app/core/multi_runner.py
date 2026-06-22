@@ -342,14 +342,6 @@ class MultiGenomeRunner:
         pool_runner.files["neighborhood_proteins"] = str(pooled)
         pool_runner.files["proteins"] = str(pooled)
 
-        dlp_sources = [
-            (sid, Path(r.files["dlp_dse_input"])) for sid, r in runners.items() if "dlp_dse_input" in r.files
-        ]
-        if dlp_sources:
-            pooled_dlp = pool_outdir / "pooled_dlp_dse_input.faa"
-            pool_fastas(dlp_sources, pooled_dlp)
-            pool_runner.files["dlp_dse_input"] = str(pooled_dlp)
-
     def _split_pooled_outputs(
         self,
         runners: dict[str, PipelineRunner],

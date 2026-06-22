@@ -115,9 +115,6 @@ class TestPipelineConfig:
         c = PipelineConfig(tier="extended", skip_plm_effector=False)
         assert c.skip_plm_effector is False
 
-    def test_n_null_proteins_default_is_1000(self):
-        assert PipelineConfig().n_null_proteins == 1000
-
     def test_enrichment_stats_forces_whole_genome_predictors(self):
         # The circular-shift null needs every gene's positivity in gene order,
         # so --enrichment-stats couples whole-genome DLP + DSE.
@@ -1005,29 +1002,17 @@ class TestResolveStepInputFasta:
         return r
 
     def test_whole_genome_forces_full_proteome(self, tmp_dir):
-        r = self._runner(tmp_dir, {"proteins": "/p", "neighborhood_proteins": "/n", "dlp_dse_input": "/c"})
+        r = self._runner(tmp_dir, {"proteins": "/p", "neighborhood_proteins": "/n"})
         assert r._resolve_step_input_fasta(whole_genome=True) == "/p"
-        assert r._resolve_step_input_fasta(whole_genome=True, include_null_concat=True) == "/p"
 
     def test_default_returns_neighborhood(self, tmp_dir):
         r = self._runner(tmp_dir, {"proteins": "/p", "neighborhood_proteins": "/n"})
         assert r._resolve_step_input_fasta(whole_genome=False) == "/n"
 
-    def test_null_concat_preferred_for_dlp_dse(self, tmp_dir):
-        r = self._runner(tmp_dir, {"proteins": "/p", "neighborhood_proteins": "/n", "dlp_dse_input": "/c"})
-        assert r._resolve_step_input_fasta(whole_genome=False, include_null_concat=True) == "/c"
-
-    def test_null_concat_ignored_for_signalp_plme(self, tmp_dir):
-        # PLM-E and SignalP pass include_null_concat=False because their
-        # models are too expensive to run on the null pool.
-        r = self._runner(tmp_dir, {"proteins": "/p", "neighborhood_proteins": "/n", "dlp_dse_input": "/c"})
-        assert r._resolve_step_input_fasta(whole_genome=False, include_null_concat=False) == "/n"
-
     def test_falls_back_to_full_proteome_when_no_neighborhood(self, tmp_dir):
         # MacSyFinder found no systems → no neighborhood FASTA staged.
         r = self._runner(tmp_dir, {"proteins": "/p"})
         assert r._resolve_step_input_fasta(whole_genome=False) == "/p"
-        assert r._resolve_step_input_fasta(whole_genome=False, include_null_concat=True) == "/p"
 
     def test_raises_when_nothing_staged(self, tmp_dir):
         # No silent --input "" — surface "input-processing never ran"
@@ -1141,29 +1126,6 @@ class TestStepPlmEffectorInput:
         result = r._step_plm_effector()
         assert result.success, result.message
         assert self._input_arg(captured) == str(proteins)
-
-    def test_ignores_dlp_dse_input_concat(self, tmp_path, monkeypatch):
-        # The enrichment-stats dual-fasta (neighborhood + null sample) is
-        # for DLP/DSE only. PLM-E must NOT pick it up — running ensembles
-        # over the null pool is too expensive for the marginal info gained.
-        neigh = tmp_path / "neighborhood.faa"
-        neigh.write_text(">a\nMKT\n")
-        concat = tmp_path / "dlp_dse_input.faa"
-        concat.write_text(">a\nMKT\n>null1\nMKQ\n")
-        r = self._make_runner(
-            tmp_path,
-            plme_whole_genome=False,
-            files={
-                "proteins": str(tmp_path / "proteins.faa"),
-                "neighborhood_proteins": str(neigh),
-                "dlp_dse_input": str(concat),
-            },
-        )
-        captured = []
-        monkeypatch.setattr(runner, "run_script", self._stub_run_script(captured))
-        result = r._step_plm_effector()
-        assert result.success, result.message
-        assert self._input_arg(captured) == str(neigh)
 
 
 class TestCheckRequiredExecutables:

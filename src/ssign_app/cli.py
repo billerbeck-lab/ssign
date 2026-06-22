@@ -224,18 +224,6 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
             "Off by default."
         ),
     )
-    g.add_argument(
-        "--n-null-proteins",
-        type=int,
-        default=200,
-        help="Random non-neighborhood proteins to sample per genome (default: 200).",
-    )
-    g.add_argument(
-        "--null-seed",
-        type=int,
-        default=42,
-        help="RNG seed for null-protein sampling, for reproducibility (default: 42).",
-    )
 
     # ── Phase 1: ORF prediction / annotation ────────────────────────────
     g = p.add_argument_group("ORF prediction + annotation")
@@ -582,8 +570,6 @@ def _config_from_args(
         "monitor_resources": args.monitor_resources,
         "monitor_interval_s": args.monitor_interval_s,
         "enrichment_stats": args.enrichment_stats,
-        "n_null_proteins": args.n_null_proteins,
-        "null_seed": args.null_seed,
         "skip_blastp": args.skip_blastp,
         "blastp_db": args.blastp_db,
         "blastp_exclude_taxid": args.blastp_exclude_taxid,

@@ -257,11 +257,6 @@ class PipelineConfig:
     # __post_init__) because the rotation null needs every gene's positivity in gene
     # order. openspec: enrichment-circular-shift-per-run.
     enrichment_stats: bool = False
-    # Retained but UNUSED by the circular-shift test (the rotation null is the
-    # background, so no protein sampling happens). Kept only so the --n-null-proteins
-    # CLI arg still parses; candidate for removal in the null-machinery cleanup (NOTES).
-    n_null_proteins: int = 1000
-    null_seed: int = 42
 
     # Phase 5: Annotation tools
     skip_blastp: Optional[bool] = None
@@ -1656,14 +1651,10 @@ class PipelineRunner:
 
     # ── Phase 3: Prediction ──
 
-    def _resolve_step_input_fasta(self, whole_genome: bool, *, include_null_concat: bool = False) -> str:
+    def _resolve_step_input_fasta(self, whole_genome: bool) -> str:
         """Pick the input FASTA path for a prediction step.
 
         - whole_genome=True forces the full proteome.
-        - include_null_concat=True tells the helper to consume the null
-          pool concat (neighborhood + null sample) when --enrichment-stats
-          is on. Set this for steps cheap enough to score the null pool
-          (DLP, DSE); leave False for expensive ones (SignalP, PLM-E).
 
         Falls back to full proteome only when no neighborhood file is
         staged (e.g. MacSyFinder found no systems). Raises RuntimeError
@@ -1676,10 +1667,7 @@ class PipelineRunner:
             if not proteins:
                 raise RuntimeError("No proteins FASTA staged; input-processing step must run first")
             return proteins
-        if include_null_concat:
-            chosen = self.files.get("dlp_dse_input") or self.files.get("neighborhood_proteins") or proteins
-        else:
-            chosen = self.files.get("neighborhood_proteins") or proteins
+        chosen = self.files.get("neighborhood_proteins") or proteins
         if not chosen:
             raise RuntimeError("No neighborhood or proteins FASTA staged; input-processing step must run first")
         return chosen
@@ -1687,7 +1675,7 @@ class PipelineRunner:
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")
 
-        input_proteins = self._resolve_step_input_fasta(self.config.dlp_whole_genome, include_null_concat=True)
+        input_proteins = self._resolve_step_input_fasta(self.config.dlp_whole_genome)
 
         args = [
             "--input",
@@ -1730,7 +1718,7 @@ class PipelineRunner:
     def _step_deepsece(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deepsece.tsv")
 
-        input_proteins = self._resolve_step_input_fasta(self.config.dse_whole_genome, include_null_concat=True)
+        input_proteins = self._resolve_step_input_fasta(self.config.dse_whole_genome)
 
         rc, stdout, stderr = run_script(
             "run_deepsece.py",
