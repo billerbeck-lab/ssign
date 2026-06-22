@@ -238,6 +238,20 @@ class MultiGenomeRunner:
         if self.write_combined_summary:
             self._write_combined_summary(runners, top_outdir)
 
+        # Combined cross-genome enrichment view (pooled table + figure) when the
+        # enrichment test ran. Each genome's _enrichment_stats.tsv + sibling .npz
+        # come straight from its runner.files.
+        if any(c.enrichment_stats for c in self.configs):
+            from ssign_app.core.runner import pool_and_plot_enrichment
+
+            tsvs = [r.files.get("enrichment_stats", "") for r in runners.values()]
+            try:
+                n = pool_and_plot_enrichment(tsvs, str(top_outdir))
+                if n:
+                    logger.info("pooled enrichment: %d cross-genome rows + figure -> %s", n, top_outdir)
+            except Exception as e:
+                logger.warning("pooled enrichment failed: %s", str(e)[:160])
+
         self.results = {sid: r.results for sid, r in runners.items()}
         return self.results
 

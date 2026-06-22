@@ -2939,6 +2939,13 @@ class PipelineRunner:
                 if fig_file.is_file():
                     shutil.copy2(fig_file, dest / fig_file.name)
 
+        # 5. Enrichment stats + null dump (when --enrichment-stats ran): a standalone
+        # table for the user, and the inputs cross-genome pooling reads back.
+        for key in ("enrichment_stats", "enrichment_nulls"):
+            src = self.files.get(key, "")
+            if src and os.path.exists(src):
+                shutil.copy2(src, outdir / Path(src).name)
+
     def _load_systems(self):
         """Load and combine system/component DataFrames, filtered by excluded."""
         import pandas as pd
@@ -3576,3 +3583,26 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
         np.savez_compressed(nulls_output, **pooled_nulls)
 
     return len(pooled)
+
+
+def pool_and_plot_enrichment(per_genome_tsvs: list[str], out_dir: str) -> int:
+    """Pool >=2 genomes' enrichment stats and render the combined figure.
+
+    Shared by the CLI multi-genome path (MultiGenomeRunner) and the GUI so both
+    emit the same cross-genome view. Writes pooled_enrichment_stats.tsv +
+    pooled_enrichment_nulls.npz to out_dir and
+    figures/pooled_enrichment_null_distributions.png. No-op (returns 0) when fewer
+    than two genomes carry enrichment output. Each per-genome TSV must have its
+    sibling *_enrichment_nulls.npz (pool_enrichment_stats finds it by name)."""
+    tsvs = [p for p in per_genome_tsvs if p and os.path.exists(p)]
+    if len(tsvs) < 2:
+        return 0
+    pooled_tsv = os.path.join(out_dir, "pooled_enrichment_stats.tsv")
+    pooled_nulls = os.path.join(out_dir, "pooled_enrichment_nulls.npz")
+    n = pool_enrichment_stats(tsvs, pooled_tsv, nulls_output=pooled_nulls)
+    if n and os.path.exists(pooled_nulls):
+        fig_dir = os.path.join(out_dir, "figures")
+        os.makedirs(fig_dir, exist_ok=True)
+        out_png = os.path.join(fig_dir, "pooled_enrichment_null_distributions.png")
+        run_script("run_enrichment_figure.py", ["--stats", pooled_tsv, "--nulls", pooled_nulls, "--out", out_png])
+    return n

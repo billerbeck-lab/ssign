@@ -1258,6 +1258,16 @@ class TestPoolEnrichmentStats:
         assert abs(float(r["null_mean"]) - 2.0) < 1e-9
         assert abs(float(r["fold"]) - 3.0) < 1e-9  # 6 / 2
 
+    def test_pool_and_plot_under_two_genomes_noop(self, tmp_path):
+        import numpy as np
+
+        from ssign_app.core.runner import pool_and_plot_enrichment
+
+        # One genome only -> nothing to pool, no files written.
+        a = self._write_genome(tmp_path, "a", [self._row()], {"T6SS__DLP": np.ones(20, dtype=int)})
+        assert pool_and_plot_enrichment([str(a)], str(tmp_path)) == 0
+        assert not (tmp_path / "pooled_enrichment_stats.tsv").exists()
+
     def test_writes_pooled_nulls_npz_for_figure(self, tmp_path):
         import numpy as np
 

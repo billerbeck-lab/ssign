@@ -1874,36 +1874,22 @@ with tab_run:
             sample_names_run = [c.sample_id for c in genome_configs]
             _merge_genome_outputs(outdir_final, sample_names_run)
 
-            # ── Pool enrichment stats across genomes ──
-            # When --enrichment-stats is on and N_genomes > 1, gather every
-            # per-genome _enrichment_stats.tsv and emit a pooled view.
-            # Per-genome stats still live alongside it; pool is additive.
+            # ── Pool enrichment stats + figure across genomes ──
+            # When --enrichment-stats is on and N_genomes > 1, pool every
+            # per-genome _enrichment_stats.tsv into a combined view + figure
+            # (shared helper, same as the CLI multi-genome path).
             if len(sample_names_run) > 1 and any(c.enrichment_stats for c in genome_configs):
-                from ssign_app.core.runner import pool_enrichment_stats
+                from ssign_app.core.runner import pool_and_plot_enrichment
 
                 per_genome_tsvs = [
                     os.path.join(outdir_final, f"{sid}_enrichment_stats.tsv") for sid in sample_names_run
                 ]
-                per_genome_tsvs = [p for p in per_genome_tsvs if os.path.exists(p)]
-                if len(per_genome_tsvs) >= 2:
-                    pooled_path = os.path.join(outdir_final, "pooled_enrichment_stats.tsv")
-                    pooled_nulls = os.path.join(outdir_final, "pooled_enrichment_nulls.npz")
-                    try:
-                        n_pooled = pool_enrichment_stats(per_genome_tsvs, pooled_path, nulls_output=pooled_nulls)
-                        print(f"[ssign] Wrote {n_pooled} pooled enrichment rows to {pooled_path}", flush=True)
-                        # Combined cross-genome figure (same per-type null-histogram style)
-                        if n_pooled and os.path.exists(pooled_nulls):
-                            from ssign_app.core.runner import run_script
-
-                            fig_dir = os.path.join(outdir_final, "figures")
-                            os.makedirs(fig_dir, exist_ok=True)
-                            pooled_png = os.path.join(fig_dir, "pooled_enrichment_null_distributions.png")
-                            run_script(
-                                "run_enrichment_figure.py",
-                                ["--stats", pooled_path, "--nulls", pooled_nulls, "--out", pooled_png],
-                            )
-                    except Exception as e:
-                        st.warning(f"Could not pool enrichment stats across genomes: {e}")
+                try:
+                    n_pooled = pool_and_plot_enrichment(per_genome_tsvs, outdir_final)
+                    if n_pooled:
+                        print(f"[ssign] Wrote {n_pooled} pooled enrichment rows + figure to {outdir_final}", flush=True)
+                except Exception as e:
+                    st.warning(f"Could not pool enrichment stats across genomes: {e}")
 
             # Pipeline finished (success or partial) — clean up the staged
             # input tmpdir; the runner has copied everything it needs into

@@ -152,3 +152,21 @@ class TestStatsEndToEnd:
         )
         assert r.returncode == 0, r.stderr
         assert pooled_png.exists() and pooled_png.stat().st_size > 0
+
+        # ── shared helper (used by the CLI multi-genome path + GUI) does pool+figure ──
+        from ssign_app.core.runner import pool_and_plot_enrichment
+
+        helper_dir = tmp_path / "helper_out"
+        helper_dir.mkdir()
+        # per-genome stats+npz must be co-located for the helper; reuse the genome files
+        import shutil as _shutil
+
+        for prefix in ("A", "B"):
+            _shutil.copy(tmp_path / f"{prefix}_enrichment_stats.tsv", helper_dir)
+            _shutil.copy(tmp_path / f"{prefix}_enrichment_nulls.npz", helper_dir)
+        n = pool_and_plot_enrichment(
+            [str(helper_dir / f"{p}_enrichment_stats.tsv") for p in ("A", "B")], str(helper_dir)
+        )
+        assert n == 2
+        assert (helper_dir / "pooled_enrichment_stats.tsv").exists()
+        assert (helper_dir / "figures" / "pooled_enrichment_null_distributions.png").exists()
