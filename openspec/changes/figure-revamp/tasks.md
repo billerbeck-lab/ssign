@@ -1,14 +1,14 @@
 ## 1. Shared style module
 
-- [ ] 1.1 Add `src/ssign_app/scripts/ssign_lib/plot_style.py`: `THEME` (semantic keys), `apply_house_style()` (sets `rcParams` once), palette selectors (`ss_type_palette(types)` returning a stable type->colour dict, `SEQUENTIAL_CMAP`, `DIVERGING_CMAP`), and figure helpers (`numbered_path(outdir, n, name)`, `clear_unnumbered(outdir)`, `print_figure_index(entries)`). Follow `~/.claude/skills/publication-plots/` house rules.
-- [ ] 1.2 Unit-test `plot_style`: `ss_type_palette` is stable/deterministic for a given type list; `numbered_path` zero-pads; `clear_unnumbered` removes only non-numbered `*.png`.
+- [x] 1.1 Add `src/ssign_app/scripts/ssign_lib/plot_style.py`: `THEME` (semantic keys), `apply_house_style()` (sets `rcParams` once), palette selectors (`ss_type_palette(types)` returning a stable type->colour dict, `SEQUENTIAL_CMAP`, `DIVERGING_CMAP`), and figure helpers (`numbered_path`/`pooled_path`, `clear_figure_set(outdir)` removing only owned `fig*_`/`0N_`/`P0N_` PNGs so the enrichment figure survives, `print_figure_index(entries)`). Follow `~/.claude/skills/publication-plots/` house rules.
+- [x] 1.2 Unit-test `plot_style`: `ss_type_palette` stable/deterministic + variant inheritance; `numbered_path`/`pooled_path` zero-pad; `clear_figure_set` removes owned figs, keeps the enrichment PNG. (7 tests pass)
 
 ## 2. Enrichment figure onto the shared style
 
-- [ ] 2.1 `run_enrichment_figure.py`: delete the inline `THEME`/`rcParams`, import from `plot_style`; keep tool colours via the shared theme.
-- [ ] 2.2 Replace the 40-bin histogram with integer-aligned bins (`np.arange(nmin, nmax+2) - 0.5`) so each achievable count is one bar; keep observed/null-mean lines and the fold/p/q annotations.
-- [ ] 2.3 Visually mute panels with `q >= 0.05` (muted title + observed line) while still showing their statistics.
-- [ ] 2.4 Re-render against the CX3 reference stats (`validation_sweeps/cx3_enrichment/...enrichment_stats.tsv` + `..._nulls.npz`); view the PNG and confirm discrete bars + n.s. muting read correctly.
+- [x] 2.1 `run_enrichment_figure.py`: delete the inline `THEME`/`rcParams`, import from `plot_style`; keep tool colours via the shared theme.
+- [x] 2.2 Replace the 40-bin histogram with integer-aligned bins (`np.arange(nmin, nmax+2) - 0.5`) so each achievable count is one bar; keep observed/null-mean lines and the fold/p/q annotations.
+- [x] 2.3 Visually mute panels with `q >= 0.05` (muted hist + observed line + box) while still showing their statistics; split legend (top-left) from fold box (top-right) to stop the pre-existing collision.
+- [x] 2.4 Re-rendered against the CX3 PAO1 reference stats (nulls `.npz` not in the tar, so synthesized Poisson nulls from the reported `null_mean`, seed=0); viewed the PNG: discrete bars + n.s. muting + no legend/box overlap confirmed.
 
 ## 3. Curate + restyle the regular per-run figures
 

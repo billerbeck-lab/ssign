@@ -8,6 +8,10 @@ proteins near the system"; autotransporters (T5aSS/T5cSS) show "self-detection
 of the component". Consumes the stats TSV + null-array dump from
 enrichment_testing.py.
 
+Null counts are small integers, so each panel uses integer-aligned bins (one bar
+per achievable count). Non-significant panels (q >= 0.05) are visually muted so
+the eye lands on the significant cells; their statistics are still shown.
+
     run_enrichment_figure.py --stats <sid>_enrichment_stats.tsv \
         --nulls <sid>_enrichment_nulls.npz --out <sid>_enrichment_null_distributions.png
 """
@@ -27,27 +31,12 @@ _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 from ssign_lib.constants import ENRICH_TOOLS, enrich_null_key  # noqa: E402
+from ssign_lib.plot_style import THEME, apply_house_style  # noqa: E402
 
 TOOL_LABEL = {"DLP": "DeepLocPro (extracellular)", "DSE": "DeepSecE (secreted type)"}
-THEME = {
-    "DLP": "#3F8E8C",
-    "DSE": "#E0884B",
-    "observed": "#C0392B",
-    "null_mean": "#333333",
-}
-plt.rcParams.update(
-    {
-        "savefig.bbox": "tight",
-        "font.size": 9,
-        "axes.titlesize": 10,
-        "axes.titleweight": "bold",
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.edgecolor": "#444444",
-        "xtick.color": "#444444",
-        "ytick.color": "#444444",
-    }
-)
+_MUTED_RED = "#D9A6A0"  # observed line on a non-significant panel
+
+apply_house_style()
 
 
 def sig_stars(q: float) -> str:
@@ -66,6 +55,15 @@ def _fnum(v, default=float("nan")):
         return default
 
 
+def _integer_bins(null):
+    """Bin edges placing one bar per achievable integer count."""
+    lo = int(np.floor(null.min()))
+    hi = int(np.ceil(null.max()))
+    if hi <= lo:
+        hi = lo + 1
+    return np.arange(lo, hi + 2) - 0.5
+
+
 def draw_panel(ax, row, null, tool):
     """One null-histogram panel; `row` may be None / skipped (renders an n/a note)."""
     if row is None or row.get("observed", "").strip() == "" or null is None or null.size == 0:
@@ -77,21 +75,33 @@ def draw_panel(ax, row, null, tool):
     null_mean = _fnum(row.get("null_mean"))
     fold = _fnum(row.get("fold"))
     q = _fnum(row.get("qvalue"), 1.0)
-    col = THEME[tool]
-    ax.hist(null, bins=40, color=col, alpha=0.6, edgecolor="white", linewidth=0.4)
-    ax.axvline(observed, color=THEME["observed"], lw=2.2, label=f"observed = {observed}")
+    sig = q < 0.05
+
+    hist_col = THEME[tool] if sig else THEME["muted"]
+    obs_col = THEME["observed"] if sig else _MUTED_RED
+    box_edge = THEME["observed"] if sig else THEME["muted"]
+    box_txt = THEME["observed"] if sig else "#8A8A8A"
+
+    ax.hist(
+        null, bins=_integer_bins(null), color=hist_col, alpha=0.65 if sig else 0.45, edgecolor="white", linewidth=0.4
+    )
+    ax.axvline(observed, color=obs_col, lw=2.2, label=f"observed = {observed}")
     ax.axvline(null_mean, color=THEME["null_mean"], lw=1.3, ls="--", label=f"null mean = {null_mean:.1f}")
-    top = ax.get_ylim()[1]
-    ax.annotate(
+    # Legend top-left, fold/significance box top-right: the observed line sits at
+    # the right (enrichment), so keeping the two corners apart avoids collisions.
+    ax.text(
+        0.97,
+        0.93,
         f"{fold:.1f}x  {sig_stars(q)}",
-        xy=(observed, top * 0.82),
-        ha="center",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
         fontsize=9,
         fontweight="bold",
-        color=THEME["observed"],
-        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor=THEME["observed"], alpha=0.9),
+        color=box_txt,
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor=box_edge, alpha=0.9),
     )
-    ax.legend(frameon=False, fontsize=7, loc="upper right")
+    ax.legend(frameon=False, fontsize=7, loc="upper left")
 
 
 def main():
