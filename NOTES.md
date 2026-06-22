@@ -690,3 +690,15 @@ dumping the pooled Monte-Carlo null arrays; Home.py renders
 figures/pooled_enrichment_null_distributions.png from the pooled TSV+npz via
 run_enrichment_figure.py. Per-genome figures unchanged. Tests: unit (npz keys/shape)
 + integration (pooled figure renders). Part of openspec enrichment-circular-shift-per-run.
+
+## 2026-06-22 — CX3 validation of enrichment runs (handoff to Teo)
+
+Branch enrichment-circular-shift-per-run pushed (4 commits). CX3 test is Teo-driven:
+I can't SSH (Imperial login refuses publickey; needs password + MS 2FA). Plan: git
+pull the branch on ~/blastp_t5a/ssign, qsub run_batched_multi.pbs with
+SSIGN_EXTRA_ARGS="--enrichment-stats" for (a) 1 genome -> per-genome figure, (b) 4
+genomes -> per-genome + pooled figure + pooled_enrichment_stats.tsv. Verify:
+<run>/<sid>/figures/<sid>/<sid>_enrichment_null_distributions.png (single),
+<run>/pooled_enrichment_null_distributions.png + pooled_enrichment_stats.tsv (multi).
+KEY THING TO WATCH: whether forcing whole-genome DLP/DSE composes correctly with
+MultiGenomeRunner's segment-B prediction pooling (the one unverified interaction).
