@@ -134,9 +134,37 @@ def pick_genome(candidates: dict[str, dict], refseq_genome: str) -> str:
     return names[0]
 
 
+def match_corpus(e: dict, pos: list[dict]) -> dict:
+    """Find this panel effector's corpus row (its known experimental annotation).
+
+    The panel is built on GenBank assemblies, so its locus tags live in a
+    different namespace than the corpus's RefSeq placement — we can't join on
+    locus. Match on UniProt accession when the effector has one (unique), else
+    on gene name. (The old code keyed a dict by uniprot, which collapsed all
+    117 accession-less corpus rows onto a single entry and broadcast one wrong
+    annotation across every UniProt-less effector.) Disambiguate multi-gene
+    hits by ss_type, then by genome.
+    """
+    u = e.get("uniprot", "").strip()
+    cands: list[dict] = []
+    if u and u != "-":
+        cands = [r for r in pos if r.get("uniprot", "").strip() == u]
+    if not cands:
+        g = e.get("gene", "").strip().lower()
+        if g:
+            cands = [r for r in pos if r.get("gene", "").strip().lower() == g]
+    if not cands:
+        return {}
+    same_ss = [r for r in cands if r.get("ss_type", "") == e.get("ss_type", "")]
+    pool = same_ss or cands
+    gb = accession_base(e.get("unit_id", ""))
+    same_genome = [r for r in pool if gb and accession_base(r.get("refseq_genome", "")) == gb]
+    return (same_genome or pool)[0]
+
+
 def main():
     panel = [r for r in load_tsv(PANEL) if r["ssign_call"] == "emitted_secreted"]
-    pos = {r["uniprot"]: r for r in load_tsv(POS)}
+    pos = load_tsv(POS)
     loci = {r["ssign_locus"] for r in panel if r["ssign_locus"]}
     idx = build_locus_index(loci)
     uniprot = fetch_uniprot_functions({e["uniprot"] for e in panel})
@@ -144,7 +172,7 @@ def main():
     out_rows = []
     for e in panel:
         u = e["uniprot"]
-        p = pos.get(u, {})
+        p = match_corpus(e, pos)
         up = uniprot.get(u, {})
         locus = e["ssign_locus"]
         cand = idx.get(locus, {})
@@ -153,7 +181,7 @@ def main():
 
         row = {
             "uniprot": u,
-            "gene": p.get("gene") or e.get("gene", ""),
+            "gene": e.get("gene", "") or p.get("gene", ""),
             "organism": p.get("organism", ""),
             "ss_type": e.get("ss_type", ""),
             "known_uniprot_name": up.get("name", ""),
