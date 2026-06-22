@@ -670,3 +670,14 @@ DEFERRED CLEANUP (now-unwired null-background machinery, candidate for a focused
   DLP/DSE composes correctly with multi_runner's neighborhood-pooling/segment logic.
 - PAO1 duplicate in /tmp/ssign_fleet_67 (AE004091 == NC_002516.2): dedup to 66 genomes
   if the fleet is re-run for pooled-enrichment validation.
+
+## 2026-06-22 — annotation sheet: UniProt known-annotation column (#71)
+
+annotation_accuracy_sheet.py now fetches UniProt protein_name/families/function
+(cached in annotation_uniprot_cache.json, offline after first run) as the richer
+"known" column. Coverage: uniprot_name 30/51, function 14/51 (many effectors are
+unreviewed TrEMBL w/o a function comment), + existing corpus quote 42/51 -> 50/51
+rows now have >=1 known descriptor (was family 11/51 only). 17/51 effectors have
+NO uniprot accession in the panel (recorded "-") so can't be looked up; their known
+side stays gene+quote. Sheet already surfaces real misses (e.g. Q7N8R3/Q84F70 known
+serralysins: ssign eggnog mis-calls "Serine 3-dehydrogenase"; interpro correct).
