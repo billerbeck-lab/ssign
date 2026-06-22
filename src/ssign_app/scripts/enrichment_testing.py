@@ -51,6 +51,7 @@ from ssign_lib.constants import (  # noqa: E402
     ENRICH_TOOLS,
     ENRICH_WINDOW_TYPES,
     PROXIMITY_WINDOW,
+    display_type,
     enrich_null_key,
 )
 from ssign_lib.tsv_io import load_tsv_by_key  # noqa: E402
@@ -75,15 +76,6 @@ OUT_FIELDS = [
     "significant",
     "n_rotations",
 ]
-
-
-def display_type(ss_type: str) -> str:
-    """Per-type label: keep T5 subtypes distinct (they behave differently), but
-    collapse T6SSi/T6SSii -> T6SS and pT4SSt -> T4SS. T1SS stays T1SS."""
-    if ss_type.startswith("T5"):
-        return ss_type
-    m = re.match(r"p?(T\d+)[a-z]*SS", ss_type)
-    return f"{m.group(1)}SS" if m else ss_type
 
 
 def broad_type(ss_type: str) -> str:

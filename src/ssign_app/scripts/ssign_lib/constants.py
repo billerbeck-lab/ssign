@@ -6,6 +6,7 @@ override them at invocation time via CLI arguments.
 """
 
 import os
+import re  # used by display_type()
 
 # --- DeepLocPro ---
 CONF_THRESHOLD = 0.8  # Minimum extracellular probability
@@ -47,6 +48,23 @@ ENRICH_AUTOTRANSPORTER_TYPES = frozenset({"T5aSS", "T5cSS"})
 # DSE cannot call T3SS (DeepSecE T3SS unreliable, CLAUDE.md bug #4; mirrors DSE_NEGATIVE
 # in enrichment_testing.py), so T3SS gets no DSE test.
 ENRICH_DSE_NO_WINDOW = frozenset({"T3SS"})
+
+# Canonical display-type order (after subtype collapse). The single source of truth
+# for "which SS types exist" used by the enrichment test and the figures; must equal
+# the union of the window + autotransporter sets above.
+SS_TYPE_DISPLAY_ORDER = ("T1SS", "T2SS", "T3SS", "T4SS", "T5aSS", "T5bSS", "T5cSS", "T6SS")
+assert set(SS_TYPE_DISPLAY_ORDER) == (ENRICH_WINDOW_TYPES | ENRICH_AUTOTRANSPORTER_TYPES)
+
+
+def display_type(ss_type: str) -> str:
+    """Per-type label: keep T5 subtypes distinct (they behave differently), but
+    collapse T6SSi/T6SSii/T6SSiii -> T6SS and pT4SSt -> T4SS. T1SS stays T1SS."""
+    if ss_type.startswith("T5"):
+        return ss_type
+    m = re.match(r"p?(T\d+)[a-z]*SS", ss_type)
+    return f"{m.group(1)}SS" if m else ss_type
+
+
 # Cross-genome pooling (multi-genome runs) can't enumerate the exact product of
 # every genome's rotations, so it Monte-Carlos: draw one random rotation per
 # genome per replicate and sum. Single-genome runs stay exact (no sampling).

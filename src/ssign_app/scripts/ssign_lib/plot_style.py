@@ -17,28 +17,27 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from .constants import SS_TYPE_DISPLAY_ORDER, display_type  # noqa: E402
+
 # Semantic theme keys. Figure scripts read colours from here, never inline.
 THEME = {
     "DLP": "#3F8E8C",  # DeepLocPro (teal)
     "DSE": "#E0884B",  # DeepSecE (amber)
     "observed": "#C0392B",  # observed-value line
     "null_mean": "#333333",  # null-mean reference line
-    "highlight": "#A93232",  # focus subset, same red everywhere
-    "background": "#D7D7D9",  # unhighlighted population
     "neutral_bar": "#6C8EAD",  # single-hue bars (no categorical meaning)
-    "positive": "#3F8E8C",  # SignalP-positive / yes
-    "negative": "#C9C9CC",  # SignalP-negative / no
     "ref_line": "#444444",  # cutoff / zero reference lines
     "muted": "#B5B5B8",  # de-emphasised (non-significant) elements
+    "caption": "#666666",  # sub-axis caption / annotation text
 }
 
 SEQUENTIAL_CMAP = "viridis"  # counts, intensities
-DIVERGING_CMAP = "vlag"  # fold change / log ratio, centred at 0
 
-# Canonical SS-type order -> stable colours. A type keeps its colour across every
-# figure and every run, whichever subset is present. Variant labels (pT4SSt,
-# T6SSi/T6SSii) inherit their parent family's colour.
-SS_TYPE_ORDER = ["T1SS", "T2SS", "T3SS", "T4SS", "T5aSS", "T5bSS", "T5cSS", "T6SS"]
+# Canonical SS-type order comes from constants (single source of truth). A type
+# keeps its colour across every figure and every run, whichever subset is present;
+# variant labels (pT4SSt, T6SSi/T6SSii/...) inherit their parent family's colour
+# via display_type().
+SS_TYPE_ORDER = SS_TYPE_DISPLAY_ORDER
 _SS_TYPE_COLORS = {
     "T1SS": "#4E79A7",
     "T2SS": "#59A14F",
@@ -49,7 +48,6 @@ _SS_TYPE_COLORS = {
     "T5cSS": "#FF9DA7",
     "T6SS": "#76B7B2",
 }
-_SS_VARIANT_PARENT = {"pT4SSt": "T4SS", "T6SSi": "T6SS", "T6SSii": "T6SS"}
 _FALLBACK_CYCLE = ["#9C755F", "#BAB0AC", "#86BCB6", "#D37295", "#A0CBE8"]
 
 # Regular-figure PNGs this pipeline owns: legacy fig<N>_ plus current 0N_ / P0N_.
@@ -89,7 +87,7 @@ def ss_type_palette(types) -> dict:
     palette: dict[str, str] = {}
     unknown: list[str] = []
     for t in types:
-        base = _SS_VARIANT_PARENT.get(t, t)
+        base = display_type(t)  # collapse pT4SSt/T6SSi.. -> parent; keep T5 subtypes
         if base in _SS_TYPE_COLORS:
             palette[t] = _SS_TYPE_COLORS[base]
         elif t not in palette:
@@ -100,7 +98,7 @@ def ss_type_palette(types) -> dict:
 
 
 def numbered_path(outdir: str, n: int, name: str) -> str:
-    """Zero-padded numbered figure path: ``<outdir>/0N_<name>.png``."""
+    """Zero-padded numbered figure path, e.g. n=1 -> ``<outdir>/01_<name>.png``."""
     return os.path.join(outdir, f"{n:02d}_{name}.png")
 
 

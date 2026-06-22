@@ -70,15 +70,14 @@ def _ordered_types(types):
 
 def _explode_ss_types(df, cols):
     """Long frame with one row per (substrate, SS type) carrying `cols`."""
-    rows = []
     keep = [c for c in cols if c in df.columns]
-    for _, row in df.iterrows():
-        vals = {c: row.get(c) for c in keep}
-        for ss in str(row.get("nearby_ss_types", "")).split(","):
-            ss = ss.strip()
-            if ss:
-                rows.append({"ss_type": ss, **vals})
-    return pd.DataFrame(rows)
+    if "nearby_ss_types" not in df.columns:
+        return pd.DataFrame(columns=["ss_type", *keep])
+    long = df[keep].copy()
+    long["ss_type"] = df["nearby_ss_types"].fillna("").astype(str).str.split(",")
+    long = long.explode("ss_type")
+    long["ss_type"] = long["ss_type"].str.strip()
+    return long[long["ss_type"] != ""].reset_index(drop=True)
 
 
 def _signalp_positive(v) -> bool:
@@ -94,6 +93,18 @@ def _bar_counts(ax, labels, counts, colors, annotate=True):
         for b, c in zip(bars, counts):
             ax.text(b.get_x() + b.get_width() / 2, b.get_height(), str(int(c)), ha="center", va="bottom", fontsize=8)
     return bars
+
+
+def _hbar_counts(ax, counts, xlabel, title):
+    """Horizontal count bars (counts = a value_counts Series), most-frequent on top."""
+    ax.barh(range(len(counts)), counts.values, color=THEME["neutral_bar"])
+    ax.set_yticks(range(len(counts)))
+    ax.set_yticklabels(counts.index, fontsize=9)
+    ax.invert_yaxis()
+    for i, c in enumerate(counts.values):
+        ax.text(c, i, f" {int(c)}", va="center", fontsize=8)
+    ax.set_xlabel(xlabel)
+    ax.set_title(title)
 
 
 # --- per-genome figures --------------------------------------------------------
@@ -132,14 +143,7 @@ def fig02_secretion_evidence(df, outdir, dpi):
         return None
     counts = df["tool"].fillna("(none)").value_counts()
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.barh(range(len(counts)), counts.values, color=THEME["neutral_bar"])
-    ax.set_yticks(range(len(counts)))
-    ax.set_yticklabels(counts.index, fontsize=9)
-    ax.invert_yaxis()
-    for i, c in enumerate(counts.values):
-        ax.text(c, i, f" {int(c)}", va="center", fontsize=8)
-    ax.set_xlabel("Secreted proteins")
-    ax.set_title("Secretion-call support (predictor / combination per protein)")
+    _hbar_counts(ax, counts, "Secreted proteins", "Secretion-call support (predictor / combination per protein)")
     fig.tight_layout()
     out = numbered_path(outdir, 2, "secretion_evidence")
     fig.savefig(out, dpi=dpi)
@@ -220,7 +224,7 @@ def fig04_signalp_by_type(df, outdir, dpi):
         ha="center",
         va="top",
         fontsize=7.5,
-        color="#666666",
+        color=THEME["caption"],
     )
     fig.tight_layout()
     out = numbered_path(outdir, 4, "signalp_by_type")
@@ -415,14 +419,7 @@ def pooled03_evidence_basis(df, outdir, dpi):
         return None
     counts = df["tool"].fillna("(none)").value_counts()
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.barh(range(len(counts)), counts.values, color=THEME["neutral_bar"])
-    ax.set_yticks(range(len(counts)))
-    ax.set_yticklabels(counts.index, fontsize=9)
-    ax.invert_yaxis()
-    for i, c in enumerate(counts.values):
-        ax.text(c, i, f" {int(c)}", va="center", fontsize=8)
-    ax.set_xlabel("Secreted proteins (all genomes)")
-    ax.set_title("Secretion-call support, pooled across genomes")
+    _hbar_counts(ax, counts, "Secreted proteins (all genomes)", "Secretion-call support, pooled across genomes")
     fig.tight_layout()
     out = pooled_path(outdir, 3, "evidence_basis")
     fig.savefig(out, dpi=dpi)
@@ -482,17 +479,9 @@ def main():
                 entries.append(e)
     else:
         logger.info("Generating per-genome figures for %d secreted proteins...", len(df))
-        skip = {
-            "ss_comp": args.no_ss_comp,
-            "evidence": args.no_evidence,
-            "localization": args.no_localization,
-            "signalp": args.no_signalp,
-            "tool_heatmap": args.no_tool_heatmap,
-            "length": args.no_length,
-            "func_summary": args.no_func_summary,
-        }
+        # Each PER_GENOME_FIGS key has a matching --no-<key> flag (dest no_<key>).
         for key, fn in PER_GENOME_FIGS:
-            if skip.get(key):
+            if getattr(args, f"no_{key}", False):
                 continue
             e = fn(df, args.outdir, args.dpi)
             if e:
