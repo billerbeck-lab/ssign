@@ -326,13 +326,16 @@ class PipelineConfig:
     # SS type doesn't match nearby MacSyFinder system
     filter_dse_type_mismatch: bool = True
 
-    # Figures
+    # Figures (per-genome curated set; pooled cross-genome figures are emitted
+    # automatically by the multi-genome runner)
     dpi: int = 300
-    fig_category: bool = True
-    fig_ss_comp: bool = True
-    fig_tool_heatmap: bool = True
-    fig_substrate_count: bool = True
-    fig_func_summary: bool = True
+    fig_ss_comp: bool = True  # 01 substrates per SS type
+    fig_evidence: bool = True  # 02 secretion-call support
+    fig_localization: bool = True  # 03 DLP extracellular probability by type
+    fig_signalp: bool = True  # 04 SignalP-positive fraction by type
+    fig_tool_heatmap: bool = True  # 05 annotation-tool coverage
+    fig_length: bool = True  # 06 protein length by type
+    fig_func_summary: bool = True  # 07 functional categories by type
 
     # DeepSecE threshold
     deepsece_min_prob: float = 0.8
@@ -2763,17 +2766,19 @@ class PipelineRunner:
             "--dpi",
             str(self.config.dpi),
         ]
-        # Pass figure toggles
-        if not self.config.fig_category:
-            fig_args.append("--no-category")
-        if not self.config.fig_ss_comp:
-            fig_args.append("--no-ss-comp")
-        if not self.config.fig_tool_heatmap:
-            fig_args.append("--no-tool-heatmap")
-        if not self.config.fig_substrate_count:
-            fig_args.append("--no-substrate-count")
-        if not self.config.fig_func_summary:
-            fig_args.append("--no-func-summary")
+        # Pass figure toggles (config field -> generate_figures --no-* flag)
+        toggles = {
+            "fig_ss_comp": "--no-ss-comp",
+            "fig_evidence": "--no-evidence",
+            "fig_localization": "--no-localization",
+            "fig_signalp": "--no-signalp",
+            "fig_tool_heatmap": "--no-tool-heatmap",
+            "fig_length": "--no-length",
+            "fig_func_summary": "--no-func-summary",
+        }
+        for field, flag in toggles.items():
+            if not getattr(self.config, field):
+                fig_args.append(flag)
 
         rc, stdout, stderr = run_script("generate_figures.py", fig_args)
 

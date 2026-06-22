@@ -253,6 +253,34 @@ class MultiGenomeRunner:
             except Exception as e:
                 logger.warning("pooled enrichment failed: %s", str(e)[:160])
 
+        # Pooled cross-genome regular figures (P01-P03) from every genome's
+        # integrated CSV. generate_figures.py's pooled mode no-ops for <2 genomes;
+        # gate here too to skip a needless subprocess.
+        integrated_csvs = [r.files.get("integrated", "") for r in runners.values()]
+        integrated_csvs = [p for p in integrated_csvs if p and os.path.exists(p)]
+        if len(integrated_csvs) >= 2:
+            from ssign_app.core.runner import run_script
+
+            pooled_fig_dir = os.path.join(str(top_outdir), "figures")
+            os.makedirs(pooled_fig_dir, exist_ok=True)
+            rc, _out, err = run_script(
+                "generate_figures.py",
+                [
+                    "--master-csvs",
+                    *integrated_csvs,
+                    "--outdir",
+                    pooled_fig_dir,
+                    "--mode",
+                    "pooled",
+                    "--dpi",
+                    str(self.configs[0].dpi),
+                ],
+            )
+            if rc == 0:
+                logger.info("pooled figures -> %s", pooled_fig_dir)
+            else:
+                logger.warning("pooled figures failed: %s", err[:160])
+
         self.results = {sid: r.results for sid, r in runners.items()}
         return self.results
 

@@ -498,28 +498,37 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g = p.add_argument_group("figures")
     g.add_argument("--dpi", type=int, default=300, help="Figure DPI (default: 300).")
     g.add_argument(
-        "--fig-category", action=argparse.BooleanOptionalAction, default=True, help="Render functional-category figure."
+        "--fig-ss-comp", action=argparse.BooleanOptionalAction, default=True, help="01 secreted proteins per SS type."
     )
     g.add_argument(
-        "--fig-ss-comp",
+        "--fig-evidence",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Render SS-component composition figure.",
+        help="02 secretion-call support per protein.",
     )
     g.add_argument(
-        "--fig-tool-heatmap", action=argparse.BooleanOptionalAction, default=True, help="Render tool-coverage heatmap."
-    )
-    g.add_argument(
-        "--fig-substrate-count",
+        "--fig-localization",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Render per-SS substrate count figure.",
+        help="03 DeepLocPro extracellular probability by SS type.",
+    )
+    g.add_argument(
+        "--fig-signalp",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="04 SignalP-positive fraction by SS type.",
+    )
+    g.add_argument(
+        "--fig-tool-heatmap", action=argparse.BooleanOptionalAction, default=True, help="05 annotation-tool coverage."
+    )
+    g.add_argument(
+        "--fig-length", action=argparse.BooleanOptionalAction, default=True, help="06 protein length by SS type."
     )
     g.add_argument(
         "--fig-func-summary",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Render functional-summary figure.",
+        help="07 functional categories by SS type.",
     )
 
 
@@ -601,10 +610,12 @@ def _config_from_args(
         "ortholog_min_pident": args.ortholog_min_pident,
         "ortholog_min_qcov": args.ortholog_min_qcov,
         "dpi": args.dpi,
-        "fig_category": args.fig_category,
         "fig_ss_comp": args.fig_ss_comp,
+        "fig_evidence": args.fig_evidence,
+        "fig_localization": args.fig_localization,
+        "fig_signalp": args.fig_signalp,
         "fig_tool_heatmap": args.fig_tool_heatmap,
-        "fig_substrate_count": args.fig_substrate_count,
+        "fig_length": args.fig_length,
         "fig_func_summary": args.fig_func_summary,
     }
     # hhsuite_min_prob is the only field with a non-trivial default

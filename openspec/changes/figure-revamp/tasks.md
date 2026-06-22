@@ -20,13 +20,13 @@
 ## 4. Pooled cross-genome figures (multi-genome)
 
 - [x] 4.1 `generate_figures.py`: added `--mode {per_genome,pooled}` (default `per_genome`). Pooled emits `P01_substrates_per_genome`, `P02_sstype_by_genome` (viridis heatmap), `P03_evidence_basis`; no-ops for <2 genomes (verified). Per-genome + pooled render clean on synthetic fixtures.
-- [ ] 4.2 `core/multi_runner.py`: after the per-genome pass, when >=2 genomes, call `generate_figures.py --mode pooled` with every genome's integrated CSV, writing into the top-level figures dir (mirror `pool_and_plot_enrichment`).
+- [x] 4.2 `core/multi_runner.py`: after the per-genome pass, when >=2 integrated CSVs exist, call `generate_figures.py --mode pooled` with every genome's CSV, writing into the top-level `figures/` dir (mirrors `pool_and_plot_enrichment`).
 
 ## 5. Config, CLI, and runner wiring
 
-- [ ] 5.1 Update `PipelineConfig.fig_*` fields to the curated set (add `fig_evidence`, `fig_localization`, `fig_signalp`; drop fields with no remaining figure; default physicochemical off).
-- [ ] 5.2 Update `generate_figures.py` `--no-*` flags and `runner._step_figures` arg-wiring in lockstep; grep the old flag names to confirm no stragglers (cross-file-drift guard).
-- [ ] 5.3 Confirm `generate_report.py` does not embed figure paths by the old `figN_` names; if it does, update the references.
+- [x] 5.1 `PipelineConfig.fig_*` now the curated 7: `fig_ss_comp/fig_evidence/fig_localization/fig_signalp/fig_tool_heatmap/fig_length/fig_func_summary`; dropped `fig_category`/`fig_substrate_count`; physicochemical opt-in only.
+- [x] 5.2 `generate_figures.py` `--no-*` flags + `runner._step_figures` toggle map + `cli.py` flags/dict + `Home.py` checkboxes/kwargs all updated in lockstep. Grep confirms no `fig_category`/`fig_substrate_count` stragglers in `src/`; imports + `--help` parse.
+- [x] 5.3 Confirmed `generate_report.py` embeds no `figN_` filenames (no change needed).
 
 ## 6. Docs
 

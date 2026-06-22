@@ -1322,16 +1322,14 @@ with tab_pipeline:
         st.markdown("**Figures:**")
         fc1, fc2 = st.columns(2)
         with fc1:
-            st.checkbox("Category distribution", value=True, key="fig_category")
-            st.checkbox("SS composition", value=True, key="fig_ss_comp")
-            st.checkbox("Tool coverage heatmap", value=True, key="fig_tool_heatmap")
+            st.checkbox("Secreted proteins per SS type", value=True, key="fig_ss_comp")
+            st.checkbox("Secretion-call support", value=True, key="fig_evidence")
+            st.checkbox("Localization confidence", value=True, key="fig_localization")
+            st.checkbox("SignalP positive by type", value=True, key="fig_signalp")
         with fc2:
-            st.checkbox(
-                "Secreted protein count per genome",
-                value=True,
-                key="fig_substrate_count",
-            )
-            st.checkbox("Functional annotation summary", value=True, key="fig_func_summary")
+            st.checkbox("Tool coverage heatmap", value=True, key="fig_tool_heatmap")
+            st.checkbox("Protein length by type", value=True, key="fig_length")
+            st.checkbox("Functional categories", value=True, key="fig_func_summary")
 
         st.markdown("---")
 
@@ -1683,10 +1681,12 @@ with tab_run:
                     skip_plmblast=not st.session_state.get("run_plm", False),
                     plmblast_db=st.session_state.get("plm_db", ""),
                     skip_protparam=not st.session_state.get("run_pp", True),
-                    fig_category=st.session_state.get("fig_category", True),
                     fig_ss_comp=st.session_state.get("fig_ss_comp", True),
+                    fig_evidence=st.session_state.get("fig_evidence", True),
+                    fig_localization=st.session_state.get("fig_localization", True),
+                    fig_signalp=st.session_state.get("fig_signalp", True),
                     fig_tool_heatmap=st.session_state.get("fig_tool_heatmap", True),
-                    fig_substrate_count=st.session_state.get("fig_substrate_count", True),
+                    fig_length=st.session_state.get("fig_length", True),
                     fig_func_summary=st.session_state.get("fig_func_summary", True),
                     interproscan_min_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
                     deepsece_min_prob=float(st.session_state.get("dse_min_prob", 0.8)),
