@@ -68,7 +68,7 @@ DBROOT="$EPHEMERAL/ssign-databases"
 [ -d "$DBROOT/bakta" ]                  && export BAKTA_DB="$DBROOT/bakta"
 [ -d "$DBROOT/eggnog" ]                 && export EGGNOG_DATA_DIR="$DBROOT/eggnog"
 [ -d "$DBROOT/plm_effector_weights" ]   && export SSIGN_PLM_EFFECTOR_WEIGHTS="$DBROOT/plm_effector_weights"
-[ -d "$DBROOT/plm_blast/ECOD70" ]       && export SSIGN_ECOD_DB="$DBROOT/plm_blast/ECOD70"
+_ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1); [ -n "$_ECOD" ] && export SSIGN_ECOD_DB="$_ECOD"
 [ -d "$DBROOT/hhsuite/pfam" ]           && export SSIGN_HHSUITE_PFAM="$DBROOT/hhsuite/pfam"
 [ -d "$DBROOT/hhsuite/pdb70" ]          && export SSIGN_HHSUITE_PDB70="$DBROOT/hhsuite/pdb70"
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1)
