@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
-"""Per-system + per-broad-type binomial enrichment test.
+"""Per-SS-type circular-shift enrichment test.
 
-For each MacSyFinder secretion system in a genome, compares the fraction
-of DLP-positive (and DSE-positive) proteins in the system's +/-W
-neighborhood against the genome-specific background rates ``p_DLP`` /
-``p_DSE``, estimated from a random sample of non-neighborhood proteins
-written by ``sample_null_proteins.py``. One-sided binomial test
-(alternative is "enriched"); BH FDR across all (scope x tool) tests.
+For each secretion-system type in a genome, asks whether secreted-predicted
+proteins cluster around that type's components more than a genome-structure-
+preserving null. The null is the exact set of circular rotations of the
+predictor's gene-ordered positivity vector: rotate the positives by 1, 2, ...,
+n-1 genes and recount how many land in the type's windows. Offset 0 is the
+observed value. The full all-rotations count is the circular cross-correlation
+of the positivity vector and the window mask, computed in one FFT pass.
 
-This replaces the earlier Fisher's-exact + circular-permutation path,
-which had two bugs documented in NOTES.md: the permutation branch's
-inner loop body was ``pass`` (dead code, never iterated), and the
-Fisher contingency ``total`` counted ``(locus, ss_type)`` pairs rather
-than unique substrates.
+Two type classes:
+  - window types (T1SS, T2SS, T3SS, T4SS, pT4SSt, T5bSS, T6SSi, T6SSii): the
+    window mask marks genes within +/-W of any component of that type (minus
+    the component positions themselves), and the positivity vector is the
+    standard secreted call (DLP extracellular, DSE secreted-type).
+  - autotransporter types (T5aSS, T5cSS): the component IS the substrate, so
+    the mask marks the component positions themselves and the positivity vector
+    is self-detection (DLP outer-membrane-or-extracellular; DSE secreted-type).
+    "Observed = how many of this type's components are self-secreted."
 
-Positivity rules mirror proximity_analysis.py:162 minus its cross-genome
-leakage guard (applying that guard asymmetrically to neighborhood vs
-null would distort the background rate).
+Per type x tool emits fold = observed / null-mean and an exact permutation
+p-value; BH-corrects across the real (non-skipped) tests. DSE is not tested for
+T3SS. PLM-Effector is deliberately not an enrichment predictor (it over-predicts
+at genome scale). Replaces the earlier binomial test.
+
+Approximation: multi-contig genomes are ordered contig-then-start and rotated as
+one circular replicon (a rotation can wrap across a contig junction).
 """
 
 import argparse
@@ -27,47 +36,81 @@ import re
 import sys as _sys
 from collections import defaultdict
 
+import numpy as np
+
 _scripts_dir = _os.path.dirname(_os.path.abspath(__file__))
 if _scripts_dir not in _sys.path:
     _sys.path.insert(0, _scripts_dir)
 
-from extract_neighborhood import (  # noqa: E402
-    get_neighborhood_proteins,
-    load_gene_order,
+from extract_neighborhood import load_gene_order  # noqa: E402
+from ssign_lib.constants import (  # noqa: E402
+    CONF_THRESHOLD,
+    ENRICH_AUTOTRANSPORTER_TYPES,
+    ENRICH_DSE_NO_WINDOW,
+    ENRICH_MAX_NULL,
+    ENRICH_TOOLS,
+    ENRICH_WINDOW_TYPES,
+    PROXIMITY_WINDOW,
+    enrich_null_key,
 )
 from ssign_lib.tsv_io import load_tsv_by_key  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+# Mirrors ENRICH_DSE_NO_WINDOW: DeepSecE can't reliably call T3SS (CLAUDE.md bug #4).
 DSE_NEGATIVE = {"Non-secreted", "T3SS", ""}
 
 OUT_FIELDS = [
     "sample_id",
-    "scope_kind",
-    "scope_id",
     "ss_type",
     "tool",
-    "M",
-    "k",
-    "p_bg",
-    "fold_enrich",
-    "pvalue",
+    "mode",
+    "observed",
+    "n_mask",
+    "null_mean",
+    "fold",
+    "p_perm",
     "qvalue",
     "significant",
-    "n_null",
+    "n_rotations",
 ]
 
 
-def broad_type(ss_type: str) -> str:
-    """Collapse subtype labels to TxSS for per-broad-type aggregation.
+def display_type(ss_type: str) -> str:
+    """Per-type label: keep T5 subtypes distinct (they behave differently), but
+    collapse T6SSi/T6SSii -> T6SS and pT4SSt -> T4SS. T1SS stays T1SS."""
+    if ss_type.startswith("T5"):
+        return ss_type
+    m = re.match(r"p?(T\d+)[a-z]*SS", ss_type)
+    return f"{m.group(1)}SS" if m else ss_type
 
-    T5aSS/T5bSS/T5cSS -> T5SS; T6SSi/T6SSii -> T6SS; pT4SSt -> T4SS;
-    T1SS stays T1SS. Non-matching labels (Flagellum, Tad, ...) pass
-    through unchanged.
+
+def broad_type(ss_type: str) -> str:
+    """Collapse all subtype labels to TxSS (incl. T5a/T5b/T5c -> T5SS).
+
+    Retained only for the validation/comparison scripts (e.g.
+    fleet_67/03_permutation_refined.py); the shipped pipeline (per-run test and
+    cross-genome pooling) uses ``display_type``, which keeps T5 subtypes distinct
+    because autotransporters are tested differently.
     """
     m = re.match(r"p?(T\d+)[a-z]*SS", ss_type)
     return f"{m.group(1)}SS" if m else ss_type
+
+
+def binom_pvalue(k: int, n: int, p: float) -> float:
+    """One-sided binomial test ``P(X >= k | n, p)``.
+
+    Retained as a utility for the validation/comparison scripts that contrast
+    the binomial against the circular-shift null. The shipped enrichment test no
+    longer uses it (the binomial under-states significance by ignoring secreted-
+    gene clustering). Returns 1.0 for degenerate inputs.
+    """
+    if n <= 0 or p <= 0 or p >= 1:
+        return 1.0
+    from scipy.stats import binomtest
+
+    return float(binomtest(k, n, p, alternative="greater").pvalue)
 
 
 def is_dlp_positive(row: dict, conf: float) -> bool:
@@ -87,13 +130,23 @@ def is_dse_positive(row: dict, conf: float) -> bool:
         return False
 
 
-def load_predictions_keyed(path: str) -> dict:
-    """Read a tool-output TSV indexed by locus_tag.
+def is_dlp_self_positive(row: dict, conf: float) -> bool:
+    """Autotransporter self-detection: outer-membrane OR extracellular >= conf.
 
-    Thin wrapper around ``load_tsv_by_key`` keyed strictly on
-    ``locus_tag``; this script's inputs always come from the runner's
-    prediction-tool wrappers and have the canonical column name.
+    A T5aSS/T5cSS autotransporter threads its own passenger through an integral
+    outer-membrane beta-barrel, so DeepLocPro should call it OM or extracellular;
+    either counts as the component detecting itself.
     """
+    try:
+        om = float(row.get("outer_membrane_prob") or 0)
+        extra = float(row.get("dlp_extracellular_prob", row.get("extracellular_prob", 0)) or 0)
+    except (ValueError, TypeError):
+        return False
+    return om >= conf or extra >= conf
+
+
+def load_predictions_keyed(path: str) -> dict:
+    """Read a tool-output TSV indexed by locus_tag."""
     return load_tsv_by_key(path, key_columns=("locus_tag",))
 
 
@@ -117,26 +170,13 @@ def load_systems(ss_components_path: str):
     return dict(systems), ss_type_of_sys
 
 
-def binom_pvalue(k: int, n: int, p: float) -> float:
-    """One-sided binomial test ``P(X >= k | n, p)``.
-
-    Returns 1.0 for degenerate inputs (n<=0, p<=0, p>=1) so the
-    downstream BH step still ranks them.
-    """
-    if n <= 0 or p <= 0 or p >= 1:
-        return 1.0
-    from scipy.stats import binomtest
-
-    return float(binomtest(k, n, p, alternative="greater").pvalue)
-
-
 def bh_fdr(
     rows: list, pvalue_key: str = "pvalue", q_key: str = "qvalue", sig_key: str = "significant", alpha: float = 0.05
 ) -> None:
     """In-place BH FDR. Adds ``qvalue`` (monotone non-decreasing) and ``significant`` (q < alpha)."""
     if not rows:
         return
-    indexed = sorted(enumerate(rows), key=lambda kv: (kv[1][pvalue_key], kv[1].get("scope_id", "")))
+    indexed = sorted(enumerate(rows), key=lambda kv: (kv[1][pvalue_key], kv[1].get("ss_type", "")))
     n = len(indexed)
     q_raw = [r[pvalue_key] * n / (rank0 + 1) for rank0, (_, r) in enumerate(indexed)]
     # Enforce monotone non-decreasing q across ascending-p order: walk
@@ -151,110 +191,192 @@ def bh_fdr(
         rows[orig_idx][sig_key] = q_adj[rank0] < alpha
 
 
-def score_scope(scope_id, ss_type, scope_kind, neigh_loci, dlp, dse, p_dlp, p_dse, conf):
-    """Build one row per tool (DLP, DSE) for a given scope (system or broad_type).
+# ── circular-shift core ──
 
-    PLM-Effector is deliberately NOT an enrichment predictor: at genome scale it
-    calls a large fraction of the proteome positive (~25% on PAO1, recall-tuned +
-    OR-of-5-ensembles), so its background swamps any neighborhood signal and it
-    showed no reliable per-system enrichment. See the openspec change
-    enrichment-background-and-plme-default-off.
+
+def gene_order_flat(gene_order_path: str) -> list:
+    """Flat list of locus_tags in circular gene order (contig-then-position)."""
+    contigs = load_gene_order(gene_order_path)  # {contig: [(pos, locus), ...]} pre-sorted
+    order = []
+    for contig in sorted(contigs):
+        order.extend(locus for _pos, locus in contigs[contig])
+    return order
+
+
+def positivity_vectors(order: list, dlp: dict, dse: dict, conf: float):
+    """Per-protein positivity arrays over the whole genome in gene order.
+
+    Returns (idx, dlp_vec, dse_vec, dlp_self_vec) where idx maps locus_tag ->
+    ordinal. A locus absent from a prediction TSV scores 0 (treated negative);
+    whole-genome DLP/DSE (forced when enrichment is on) means that is rare.
     """
-    if not neigh_loci:
-        return []
-    M = len(neigh_loci)
-    tools = [
-        ("DLP", sum(1 for L in neigh_loci if is_dlp_positive(dlp.get(L, {}), conf)), p_dlp),
-        ("DSE", sum(1 for L in neigh_loci if is_dse_positive(dse.get(L, {}), conf)), p_dse),
-    ]
-    out = []
-    for tool, k, p_bg in tools:
-        fold = round((k / M) / p_bg, 4) if p_bg > 0 else ""
-        out.append(
-            {
-                "scope_kind": scope_kind,
-                "scope_id": scope_id,
-                "ss_type": ss_type,
-                "tool": tool,
-                "M": M,
-                "k": k,
-                "p_bg": round(p_bg, 6),
-                "fold_enrich": fold,
-                "pvalue": round(binom_pvalue(k, M, p_bg), 6),
-            }
-        )
-    return out
+    idx = {lt: i for i, lt in enumerate(order)}
+    dlp_vec = np.array([is_dlp_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float)
+    dse_vec = np.array([is_dse_positive(dse.get(lt, {}), conf) for lt in order], dtype=float)
+    dlp_self = np.array([is_dlp_self_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float)
+    return idx, dlp_vec, dse_vec, dlp_self
 
 
-def write_rows(path: str, sample_id: str, rows: list, n_null: int) -> None:
+def window_mask(comp_idx, n: int, w: int, exclude=()) -> np.ndarray:
+    """Length-n mask: 1 within +/-w of any component (circular), then 0 at every
+    position in `exclude` (the components themselves, matching the production
+    neighborhood which is scored minus its components)."""
+    mask = np.zeros(n, dtype=float)
+    for p in comp_idx:
+        for d in range(-w, w + 1):
+            mask[(p + d) % n] = 1.0
+    for p in exclude:
+        mask[p] = 0.0
+    return mask
+
+
+def self_mask(comp_idx, n: int) -> np.ndarray:
+    """Length-n mask marking the component positions themselves (autotransporters)."""
+    mask = np.zeros(n, dtype=float)
+    for p in comp_idx:
+        mask[p] = 1.0
+    return mask
+
+
+def rotation_counts(pos_vec: np.ndarray, win_mask: np.ndarray) -> np.ndarray:
+    """All-rotations count array c[k] = # positives landing in the window after a
+    circular shift of k. Circular cross-correlation via FFT; c[0] == observed."""
+    n = len(pos_vec)
+    c = np.fft.irfft(np.fft.rfft(win_mask) * np.conj(np.fft.rfft(pos_vec)), n)
+    return np.rint(c).astype(int)
+
+
+def single_test(pos_vec: np.ndarray, win_mask: np.ndarray, rng=None):
+    """Observed + exact circular-shift null for one (positivity, mask) pair.
+
+    Returns a dict with observed (c[0]), the null array (c[1:], optionally
+    subsampled for storage when the genome is huge), null_mean, fold, exact
+    permutation p = (#{null >= observed} + 1)/(len(null)+1), and n_rotations."""
+    c = rotation_counts(pos_vec, win_mask)
+    n = len(c)
+    observed = int(c[0])
+    null = c[1:]  # the n-1 non-identity rotations = the exact permutation null
+    null_mean = float(null.mean()) if null.size else 0.0
+    fold = observed / null_mean if null_mean > 0 else (float("inf") if observed > 0 else 0.0)
+    p = (int(np.sum(null >= observed)) + 1) / (null.size + 1)
+    stored = null
+    if null.size > ENRICH_MAX_NULL:  # thin only the stored histogram; p/fold stay exact
+        rng = rng or np.random.default_rng(0)
+        stored = null[rng.integers(0, null.size, size=ENRICH_MAX_NULL)]
+    return {
+        "observed": observed,
+        "n_mask": int(win_mask.sum()),
+        "null": stored,
+        "null_mean": round(null_mean, 4),
+        "fold": round(fold, 4) if fold != float("inf") else fold,
+        "p_perm": round(float(p), 6),
+        "n_rotations": n,
+    }
+
+
+def components_by_display_type(systems: dict, ss_type_of_sys: dict):
+    """{display_type: set(locus_tag)} pooling a genome's systems of each type, plus
+    the full set of component loci (for window exclusion)."""
+    by_type: dict[str, set] = defaultdict(set)
+    all_components: set = set()
+    for sys_id, loci in systems.items():
+        dt = display_type(ss_type_of_sys.get(sys_id, ""))
+        by_type[dt].update(loci)
+        all_components.update(loci)
+    return by_type, all_components
+
+
+def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
+    """Build one row per (display type, tool); returns the rows list (pre-BH)."""
+    n = len(order)
+    rows = []
+    for dt in sorted(by_type):
+        is_auto = dt in ENRICH_AUTOTRANSPORTER_TYPES
+        if not is_auto and dt not in ENRICH_WINDOW_TYPES:
+            continue  # not an enrichment target (e.g. Flagellum, Tad slipping through)
+        comp_idx = [idx[lt] for lt in by_type[dt] if lt in idx]
+        if not comp_idx:
+            continue
+        mode = "self" if is_auto else "window"
+        mask = self_mask(comp_idx, n) if is_auto else window_mask(comp_idx, n, window, exclude=all_comp_idx)
+        for tool in ENRICH_TOOLS:
+            if tool == "DSE" and dt in ENRICH_DSE_NO_WINDOW:
+                rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": True})
+                continue
+            dlp_vec = vecs["dlp_self"] if is_auto else vecs["dlp"]
+            pos_vec = dlp_vec if tool == "DLP" else vecs["dse"]
+            r = single_test(pos_vec, mask)
+            rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": False, **r})
+    return rows
+
+
+def write_rows(path: str, sample_id: str, rows: list) -> None:
     with open(path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t", extrasaction="ignore")
         writer.writeheader()
         for r in rows:
-            r_out = dict(r)
-            r_out["sample_id"] = sample_id
-            r_out["n_null"] = n_null
-            writer.writerow(r_out)
+            writer.writerow({**r, "sample_id": sample_id})
+
+
+def write_nulls(path: str, rows: list) -> None:
+    """Dump the per-(type,tool) null arrays for the figure step, keyed by
+    ``enrich_null_key`` (shared with the pooling + figure readers)."""
+    arrays = {
+        enrich_null_key(r["ss_type"], r["tool"]): r["null"] for r in rows if not r["skip"] and r.get("null") is not None
+    }
+    np.savez_compressed(path, **arrays)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Per-system binomial enrichment test")
+    parser = argparse.ArgumentParser(description="Per-SS-type circular-shift enrichment test")
     parser.add_argument("--ss-components", required=True)
     parser.add_argument("--gene-order", required=True)
-    parser.add_argument("--dlp", required=True, help="DeepLocPro output TSV")
-    parser.add_argument("--dse", required=True, help="DeepSecE output TSV")
-    parser.add_argument("--null-ids", required=True, help="One locus_tag per line: the null sample")
-    parser.add_argument("--window", type=int, default=3)
-    parser.add_argument("--conf-threshold", type=float, default=0.8)
+    parser.add_argument("--dlp", required=True, help="DeepLocPro output TSV (whole-genome)")
+    parser.add_argument("--dse", required=True, help="DeepSecE output TSV (whole-genome)")
+    parser.add_argument("--window", type=int, default=PROXIMITY_WINDOW)
+    parser.add_argument("--conf-threshold", type=float, default=CONF_THRESHOLD)
     parser.add_argument("--sample", required=True, help="Sample / genome ID")
-    parser.add_argument("--out", required=True, help="Output TSV path")
+    parser.add_argument("--out", required=True, help="Output stats TSV path")
+    parser.add_argument("--nulls-out", default="", help="Optional .npz dump of per-type null arrays (for the figure)")
     args = parser.parse_args()
 
-    null_ids = {line.strip() for line in open(args.null_ids) if line.strip()}
     dlp = load_predictions_keyed(args.dlp)
     dse = load_predictions_keyed(args.dse)
-
-    n_null = len(null_ids)
-    p_dlp = (
-        sum(1 for nid in null_ids if is_dlp_positive(dlp.get(nid, {}), args.conf_threshold)) / n_null if n_null else 0.0
-    )
-    p_dse = (
-        sum(1 for nid in null_ids if is_dse_positive(dse.get(nid, {}), args.conf_threshold)) / n_null if n_null else 0.0
-    )
-    logger.info("Null sample: %d proteins; p_DLP=%.4f, p_DSE=%.4f", n_null, p_dlp, p_dse)
 
     systems, ss_type_of_sys = load_systems(args.ss_components)
     if not systems:
         logger.warning("No SS components found; writing header-only output")
-        write_rows(args.out, args.sample, [], n_null)
+        write_rows(args.out, args.sample, [])
+        if args.nulls_out:
+            write_nulls(args.nulls_out, [])
         return
 
-    gene_order = load_gene_order(args.gene_order)
-    all_components = set().union(*systems.values())
+    order = gene_order_flat(args.gene_order)
+    idx, dlp_vec, dse_vec, dlp_self = positivity_vectors(order, dlp, dse, args.conf_threshold)
+    vecs = {"dlp": dlp_vec, "dse": dse_vec, "dlp_self": dlp_self}
 
-    rows = []
-    # Per-system tests
-    for sys_id, components in systems.items():
-        ss_type = ss_type_of_sys.get(sys_id, "")
-        neigh = get_neighborhood_proteins(gene_order, components, args.window) - all_components
-        rows.extend(score_scope(sys_id, ss_type, "system", neigh, dlp, dse, p_dlp, p_dse, args.conf_threshold))
+    by_type, all_components = components_by_display_type(systems, ss_type_of_sys)
+    all_comp_idx = [idx[lt] for lt in all_components if lt in idx]
 
-    # Per-broad-type aggregates (only when there are multiple systems of
-    # that broad type; otherwise the aggregate equals the single system).
-    type_to_sys_ids: dict[str, list] = defaultdict(list)
-    for sys_id, ss_type in ss_type_of_sys.items():
-        type_to_sys_ids[broad_type(ss_type)].append(sys_id)
-    for bt, sys_ids in type_to_sys_ids.items():
-        if len(sys_ids) <= 1:
-            continue
-        combined = set().union(*(systems[sid] for sid in sys_ids))
-        neigh = get_neighborhood_proteins(gene_order, combined, args.window) - all_components
-        rows.extend(score_scope(bt, bt, "broad_type", neigh, dlp, dse, p_dlp, p_dse, args.conf_threshold))
+    rows = run_enrichment(order, idx, vecs, by_type, all_comp_idx, args.window)
 
-    bh_fdr(rows)
-    write_rows(args.out, args.sample, rows, n_null)
-    n_sig = sum(1 for r in rows if r.get("significant"))
-    logger.info("Wrote %d (scope x tool) tests; %d significant at q < 0.05", len(rows), n_sig)
+    # BH only over the real tests; skipped (T3SS-DSE) rows must not pad the denominator
+    real = [r for r in rows if not r["skip"]]
+    bh_fdr(real, pvalue_key="p_perm")
+    for r in rows:
+        if r["skip"]:
+            r["qvalue"], r["significant"] = 1.0, False
+
+    write_rows(args.out, args.sample, rows)
+    if args.nulls_out:
+        write_nulls(args.nulls_out, rows)
+    n_sig = sum(1 for r in real if r.get("significant"))
+    logger.info(
+        "Wrote %d (type x tool) circular-shift tests across %d proteins; %d significant at q < 0.05",
+        len(real),
+        len(order),
+        n_sig,
+    )
 
 
 if __name__ == "__main__":

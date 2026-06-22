@@ -217,10 +217,11 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         action=argparse.BooleanOptionalAction,
         default=False,
         help=(
-            "Sample random non-SS-neighborhood proteins, run DLP + DSE on them, "
-            "and use the resulting background rates for per-system binomial "
-            "enrichment tests (BH FDR). Replaces the legacy Fisher's-exact + "
-            "permutation analysis. Off by default."
+            "Per-SS-type circular-shift enrichment test: emits fold (enrichment) + "
+            "permutation p + BH q per system type, plus a per-type null-distribution "
+            "figure. Forces whole-genome DeepLocPro + DeepSecE (the rotation null needs "
+            "every gene's positivity in gene order), which adds ~13 min/genome. "
+            "Off by default."
         ),
     )
     g.add_argument(

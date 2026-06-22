@@ -110,9 +110,16 @@ Plain text concatenation of:
 
 1. The HTML report's text version (substrate counts, per-SS breakdowns, tool
    contribution summary).
-2. The enrichment-analysis summary (which functional categories are
-   over-represented near each SS type).
-3. The Fisher's-exact-test results table.
+2. The enrichment-analysis table (only with `--enrichment-stats`): one row per
+   (SS type, predictor) with `mode` (window/self), `observed`, `n_mask`,
+   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`. This is the
+   circular-shift permutation test (see `explanation/design_decisions.md`).
+
+With `--enrichment-stats` the run also writes
+`<sample-id>_enrichment_stats.tsv` (the table above),
+`<sample-id>_enrichment_nulls.npz` (per-type rotation nulls, used by the figure),
+and `figures/<sample-id>/<sample-id>_enrichment_null_distributions.png` (one
+null-distribution panel per SS type × predictor).
 
 ## `figures/<sample-id>/*.png`
 

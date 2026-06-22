@@ -251,20 +251,15 @@ class PipelineConfig:
     monitor_interval_s: float = 5.0
 
     # --- Enrichment stats (opt-in) ------------------------------------------
-    # When True, sample a small random pool of non-SS-neighborhood proteins
-    # per genome and pipe them through DLP + DSE alongside the neighborhood.
-    # The null sample sets the genome-specific background rates `p_DLP` and
-    # `p_DSE`; per-system binomial tests against those rates replace the
-    # broken Fisher's-exact + dead permutation path in enrichment_testing.py.
-    # SignalP and PLM-Effector are deliberately not run on the null sample
-    # (too expensive for the marginal information gained — they're auxiliary
-    # evidence, not the test statistic).
+    # When True, run the per-SS-type circular-shift permutation enrichment test
+    # (enrichment_testing.py): fold + permutation p + BH q per system type, plus a
+    # per-type null-distribution figure. This forces whole-genome DLP/DSE (see
+    # __post_init__) because the rotation null needs every gene's positivity in gene
+    # order. openspec: enrichment-circular-shift-per-run.
     enrichment_stats: bool = False
-    # Default 1000: a 200-protein null undersamples the ~1.5% genome positive rate and
-    # inflates significance (validated on PAO1; a null-size sweep showed 200 over-calls
-    # while 1000 matches the exact whole-genome background). When predictors ran
-    # whole-genome the background uses ALL non-neighborhood proteins instead (see
-    # _step_sample_null_proteins). openspec: enrichment-background-and-plme-default-off.
+    # Retained but UNUSED by the circular-shift test (the rotation null is the
+    # background, so no protein sampling happens). Kept only so the --n-null-proteins
+    # CLI arg still parses; candidate for removal in the null-machinery cleanup (NOTES).
     n_null_proteins: int = 1000
     null_seed: int = 42
 
@@ -378,6 +373,18 @@ class PipelineConfig:
         # bakta_threads=0 sentinel → take the full per-genome budget.
         if self.bakta_threads == 0:
             self.bakta_threads = self.cpu_per_genome
+
+        # Circular-shift enrichment needs every gene's positivity in gene order, so
+        # turning on --enrichment-stats forces whole-genome DLP/DSE. That is the
+        # runtime cost the flag warns about (~13 min/genome on a ~5k-gene proteome).
+        # openspec: enrichment-circular-shift-per-run.
+        if self.enrichment_stats and not (self.dlp_whole_genome and self.dse_whole_genome):
+            self.dlp_whole_genome = True
+            self.dse_whole_genome = True
+            logger.info(
+                "Enrichment stats on: running DeepLocPro + DeepSecE on the whole genome "
+                "(needed for the circular-shift null; adds ~13 min/genome)."
+            )
 
         # Step A — env-var verbatim. Trust whatever path the user (or HPC
         # session script) exported, even if the layout doesn't match
@@ -935,12 +942,9 @@ class PipelineRunner:
             ("Validating secretion systems", self._step_validate_systems),
             ("Extracting SS neighborhood", self._step_extract_neighborhood),
         ]
-        # Null sample for the enrichment binomial test (opt-in). Must run
-        # before the prediction group so its output FASTA flows into DLP +
-        # DSE in the same invocation. SignalP and PLM-Effector still read
-        # neighborhood_proteins (the null sample isn't routed to them).
-        if self.config.enrichment_stats:
-            stages.append(("Sampling null proteins for enrichment stats", self._step_sample_null_proteins))
+        # The circular-shift enrichment test needs no null sample: enrichment_stats
+        # forces whole-genome DLP/DSE (see Config.__post_init__), so every gene
+        # already has a prediction and the rotation null is the background.
         stages.append(prediction_steps)
         if not self.config.skip_plm_effector:
             stages.append(("Predicting effectors (PLM-Effector, 5 types)", self._step_plm_effector))
@@ -960,6 +964,8 @@ class PipelineRunner:
                 ("Generating figures", self._step_figures),
             ]
         )
+        if self.config.enrichment_stats:
+            stages.append(("Generating enrichment figure", self._step_enrichment_figure))
         self._cached_stages = stages
         return stages
 
@@ -1647,75 +1653,6 @@ class PipelineRunner:
             n_neigh = sum(1 for line in open(neighborhood_fasta) if line.startswith(">"))
             return StepResult("extract_neighborhood", True, f"{n_neigh} neighborhood proteins")
         return StepResult("extract_neighborhood", False, stderr[:500])
-
-    def _step_sample_null_proteins(self) -> StepResult:
-        """Sample non-SS-neighborhood proteins for enrichment-stats background.
-
-        Inserted between extract_neighborhood and the prediction parallel
-        group when --enrichment-stats is on. Produces three artefacts:
-          - null_proteins.faa: N random non-neighborhood proteins
-          - null_protein_ids.tsv: their locus_tags (consumed by enrichment_testing)
-          - dlp_dse_input.faa: neighborhood + null concat, fed to DLP and DSE only
-        SignalP and PLM-Effector continue reading neighborhood_proteins, so the
-        null sample doesn't pay their per-protein cost.
-        """
-        proteins = self.files.get("proteins", "")
-        gene_order = self.files.get("gene_order", "")
-        ss_components = self.files.get("ss_components", "")
-        neighborhood_fasta = self.files.get("neighborhood_proteins", "")
-        if not (proteins and gene_order and ss_components and neighborhood_fasta):
-            return StepResult("sample_null_proteins", False, "Missing upstream files for null sampling")
-
-        null_fasta = self._wf(f"{self.config.sample_id}_null_proteins.faa")
-        null_ids = self._wf(f"{self.config.sample_id}_null_protein_ids.tsv")
-
-        # When DLP and DSE both ran whole-genome, every protein already has a
-        # prediction, so the background can use the EXACT all-non-neighborhood pool
-        # (n=-1) for free instead of a 1000-protein subsample. (The null FASTA/concat
-        # this still writes is unused in whole-genome mode — _resolve_step_input_fasta
-        # returns the full proteome — but harmless.)
-        whole_genome_bg = self.config.dlp_whole_genome and self.config.dse_whole_genome
-        n_req = -1 if whole_genome_bg else self.config.n_null_proteins
-
-        rc, _stdout, stderr = run_script(
-            "sample_null_proteins.py",
-            [
-                "--proteins",
-                proteins,
-                "--gene-order",
-                gene_order,
-                "--ss-components",
-                ss_components,
-                "--window",
-                str(self.config.proximity_window),
-                "--n",
-                str(n_req),
-                "--seed",
-                str(self.config.null_seed),
-                "--out-fasta",
-                null_fasta,
-                "--out-ids",
-                null_ids,
-            ],
-        )
-        if rc != 0:
-            return StepResult("sample_null_proteins", False, stderr[:500])
-
-        # Concat neighborhood + null for DLP/DSE input. Each source already
-        # ends each record with a newline so a plain byte-level concat is safe.
-        concat = self._wf(f"{self.config.sample_id}_dlp_dse_input.faa")
-        with open(concat, "wb") as out:
-            for src in (neighborhood_fasta, null_fasta):
-                if os.path.exists(src) and os.path.getsize(src) > 0:
-                    with open(src, "rb") as f:
-                        out.write(f.read())
-
-        self.files["null_proteins_fasta"] = null_fasta
-        self.files["null_proteins_ids"] = null_ids
-        self.files["dlp_dse_input"] = concat
-
-        n_null = sum(1 for line in open(null_ids) if line.strip())
-        return StepResult("sample_null_proteins", True, f"Sampled {n_null} null proteins")
 
     # ── Phase 3: Prediction ──
 
@@ -2718,11 +2655,13 @@ class PipelineRunner:
         return StepResult("orthologs", False, stderr[:500])
 
     def _step_enrichment(self) -> StepResult:
-        """Per-system + per-broad-type binomial enrichment test.
+        """Per-SS-type circular-shift enrichment test.
 
-        Opt-in: only runs when --enrichment-stats is on (the null sample
-        produced by _step_sample_null_proteins is required to estimate
-        the genome's background DLP/DSE positive rates).
+        Opt-in: only runs when --enrichment-stats is on. That flag forces
+        whole-genome DLP/DSE (Config.__post_init__), so every gene has a
+        prediction and the rotation null is the background — no null sample
+        needed. PLM-Effector is deliberately not an enrichment predictor (it
+        over-predicts at genome scale; openspec enrichment-background-and-plme-default-off).
         """
         if not self.config.enrichment_stats:
             return StepResult("enrichment", True, "Skipped (--enrichment-stats not set)")
@@ -2731,18 +2670,17 @@ class PipelineRunner:
         gene_order = self.files.get("gene_order", "")
         dlp = self.files.get("deeplocpro", "")
         dse = self.files.get("deepsece", "")
-        null_ids = self.files.get("null_proteins_ids", "")
         for name, path in (
             ("ss_components", ss_components),
             ("gene_order", gene_order),
             ("dlp", dlp),
             ("dse", dse),
-            ("null_ids", null_ids),
         ):
             if not path or not os.path.exists(path):
                 return StepResult("enrichment", False, f"Missing upstream file for enrichment: {name}")
 
         out = self._wf(f"{self.config.sample_id}_enrichment_stats.tsv")
+        nulls_out = self._wf(f"{self.config.sample_id}_enrichment_nulls.npz")
         enr_args = [
             "--ss-components",
             ss_components,
@@ -2752,8 +2690,6 @@ class PipelineRunner:
             dlp,
             "--dse",
             dse,
-            "--null-ids",
-            null_ids,
             "--window",
             str(self.config.proximity_window),
             "--conf-threshold",
@@ -2762,17 +2698,40 @@ class PipelineRunner:
             self.config.sample_id,
             "--out",
             out,
+            "--nulls-out",
+            nulls_out,
         ]
-        # PLM-Effector is deliberately excluded from the enrichment test: at genome scale it
-        # over-predicts (~25% of the proteome) and showed no reliable per-system enrichment, so
-        # its background would swamp the DLP/DSE signal. See the openspec change
-        # enrichment-background-and-plme-default-off.
         rc, _stdout, stderr = run_script("enrichment_testing.py", enr_args)
 
         if rc == 0:
             self.files["enrichment_stats"] = out
+            self.files["enrichment_nulls"] = nulls_out
             return StepResult("enrichment", True, "Enrichment analysis complete")
         return StepResult("enrichment", False, stderr[:500])
+
+    def _step_enrichment_figure(self) -> StepResult:
+        """Render the per-SS-type circular-shift null-distribution figure.
+
+        Optional step (gated on --enrichment-stats). Reads the enrichment stats
+        TSV + the null-array dump from _step_enrichment.
+        """
+        stats = self.files.get("enrichment_stats", "")
+        nulls = self.files.get("enrichment_nulls", "")
+        if not stats or not os.path.exists(stats) or not nulls or not os.path.exists(nulls):
+            return StepResult("enrichment_figure", True, "Skipped (no enrichment output)")
+
+        fig_dir = self._wf("figures")
+        os.makedirs(fig_dir, exist_ok=True)
+        out_png = os.path.join(fig_dir, f"{self.config.sample_id}_enrichment_null_distributions.png")
+        rc, _stdout, stderr = run_script(
+            "run_enrichment_figure.py",
+            ["--stats", stats, "--nulls", nulls, "--out", out_png, "--dpi", str(self.config.dpi)],
+        )
+        if rc == 0:
+            self.files["enrichment_figure"] = out_png
+            return StepResult("enrichment_figure", True, "Enrichment figure generated")
+        # Non-core: a plotting failure shouldn't fail the genome
+        return StepResult("enrichment_figure", True, f"Enrichment figure skipped: {stderr[:200]}")
 
     def _step_report(self) -> StepResult:
         integrated = self.files.get("integrated", "")
@@ -3523,92 +3482,90 @@ def run_cross_genome_orthologs(
 
 
 def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str) -> int:
-    """Pool per-genome enrichment_stats.tsv outputs into one cross-genome view.
+    """Pool per-genome circular-shift enrichment outputs into one cross-genome view.
 
-    Aggregation policy:
-    - Per (broad_type, tool), sum M and k across genomes.
-    - Background ``p_bg`` is weighted-averaged by ``n_null`` across genomes.
-    - Re-run the binomial test on the pooled (k, M, p_bg); BH FDR across
-      all pooled (broad_type x tool) tests.
+    Each genome's per-(type, tool) test carries an exact rotation null (dumped
+    next to the stats TSV as ``*_enrichment_nulls.npz``). The single-genome nulls
+    can't be enumerated as an exact product across genomes, so pooling Monte-Carlos
+    it (the validated fleet approach): per (display type, tool), sum the observed
+    counts across genomes and, for each of ``ENRICH_POOL_REPS`` replicates, add one
+    randomly-drawn rotation from every contributing genome. fold = pooled-observed /
+    pooled-null-mean; p = (#{null >= observed} + 1)/(reps + 1); BH across the pooled
+    (type x tool) tests.
 
-    Per-system rows are genome-local (sys_ids don't recur across genomes)
-    so cross-genome pooling only happens at the broad-type aggregate
-    layer. When a genome has only one system of a given broad type, the
-    per-genome enrichment script skips emitting the duplicate broad_type
-    row -- pool falls back to that genome's single per-system row.
-
-    Returns the number of pooled rows written.
+    A genome contributes to a (type, tool) cell only when its npz carries that
+    cell's null array; genomes missing the npz are skipped for pooling. Returns the
+    number of pooled rows written.
     """
     import csv
+    import re as _re
     import sys as _sys
+
+    import numpy as np
 
     _scripts = os.path.join(os.path.dirname(__file__), "..", "scripts")
     if _scripts not in _sys.path:
         _sys.path.insert(0, _scripts)
-    from enrichment_testing import OUT_FIELDS, bh_fdr, binom_pvalue
-    from enrichment_testing import broad_type as _bt
+    from enrichment_testing import OUT_FIELDS, bh_fdr
 
-    # (broad_type, tool) -> {M, k, n_null, p_bg_x_n}
+    from ssign_app.scripts.ssign_lib.constants import ENRICH_POOL_REPS, ENRICH_POOL_SEED, enrich_null_key
+
+    # (ss_type, tool) -> {observed, n_mask, mode, nulls: [array, ...]}
     accum: dict[tuple[str, str], dict] = {}
     for tsv in per_genome_tsvs:
         if not tsv or not os.path.exists(tsv):
             continue
-        # First pass through the genome's rows: pick one (broad_type, tool)
-        # contribution per genome -- prefer the broad_type aggregate when
-        # present, else fall back to the per-system row.
-        per_type_pref: dict[tuple[str, str], dict] = {}
+        npz_path = _re.sub(r"_enrichment_stats\.tsv$", "_enrichment_nulls.npz", tsv)
+        if os.path.exists(npz_path):
+            with np.load(npz_path) as npz:  # materialise + close the handle (don't leak fds across genomes)
+                nulls = {k: npz[k] for k in npz.files}
+        else:
+            nulls = {}
         with open(tsv) as f:
             for row in csv.DictReader(f, delimiter="\t"):
-                tool = row.get("tool", "")
-                kind = row.get("scope_kind", "")
-                if kind == "broad_type":
-                    per_type_pref[(row.get("scope_id", ""), tool)] = row
-                elif kind == "system":
-                    key = (_bt(row.get("ss_type", "")), tool)
-                    per_type_pref.setdefault(key, row)
-        for (bt, tool), row in per_type_pref.items():
-            try:
-                M = int(row["M"])
-                k = int(row["k"])
-                p_bg = float(row["p_bg"])
-                n_null = int(row["n_null"])
-            except (KeyError, ValueError):
-                continue
-            slot = accum.setdefault((bt, tool), {"M": 0, "k": 0, "n_null": 0, "p_bg_x_n": 0.0})
-            slot["M"] += M
-            slot["k"] += k
-            slot["n_null"] += n_null
-            slot["p_bg_x_n"] += p_bg * n_null
+                ss_type, tool = row.get("ss_type", ""), row.get("tool", "")
+                key_npz = enrich_null_key(ss_type, tool)
+                if not row.get("observed", "").strip() or key_npz not in nulls:
+                    continue  # skipped row (e.g. DSE-T3SS) or no null to pool
+                slot = accum.setdefault(
+                    (ss_type, tool),
+                    {"observed": 0, "n_mask": 0, "mode": row.get("mode", ""), "nulls": []},
+                )
+                slot["observed"] += int(row["observed"])
+                slot["n_mask"] += int(row.get("n_mask") or 0)
+                slot["nulls"].append(nulls[key_npz])
 
+    rng = np.random.default_rng(ENRICH_POOL_SEED)
     pooled = []
-    for (bt, tool), s in accum.items():
-        if s["n_null"] <= 0 or s["M"] <= 0:
-            continue
-        p_bg_pool = s["p_bg_x_n"] / s["n_null"]
-        fold = round((s["k"] / s["M"]) / p_bg_pool, 4) if p_bg_pool > 0 else ""
+    for (ss_type, tool), s in accum.items():
+        null_pool = np.zeros(ENRICH_POOL_REPS, dtype=np.int64)
+        for arr in s["nulls"]:
+            if arr.size:
+                null_pool += arr[rng.integers(0, arr.size, size=ENRICH_POOL_REPS)]
+        null_mean = float(null_pool.mean())
+        obs = s["observed"]
+        fold = round(obs / null_mean, 4) if null_mean > 0 else (float("inf") if obs > 0 else 0.0)
+        p = (int(np.sum(null_pool >= obs)) + 1) / (ENRICH_POOL_REPS + 1)
         pooled.append(
             {
-                "scope_kind": "broad_type_pool",
-                "scope_id": bt,
-                "ss_type": bt,
+                "ss_type": ss_type,
                 "tool": tool,
-                "M": s["M"],
-                "k": s["k"],
-                "p_bg": round(p_bg_pool, 6),
-                "fold_enrich": fold,
-                "pvalue": round(binom_pvalue(s["k"], s["M"], p_bg_pool), 6),
-                "n_null": s["n_null"],
+                "mode": s["mode"],
+                "observed": obs,
+                "n_mask": s["n_mask"],
+                "null_mean": round(null_mean, 4),
+                "fold": fold,
+                "p_perm": round(p, 6),
+                "n_rotations": ENRICH_POOL_REPS,
             }
         )
 
-    bh_fdr(pooled)
+    bh_fdr(pooled, pvalue_key="p_perm")
 
     with open(output_tsv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t", extrasaction="ignore")
         writer.writeheader()
         for r in pooled:
-            r_out = dict(r)
-            r_out["sample_id"] = "POOLED"
-            writer.writerow(r_out)
+            writer.writerow({**r, "sample_id": "POOLED"})
 
     return len(pooled)

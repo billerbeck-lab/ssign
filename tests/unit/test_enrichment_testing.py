@@ -1,366 +1,285 @@
-"""Tests for enrichment_testing.py (A+ rewrite).
+"""Tests for enrichment_testing.py (circular-shift permutation test).
 
-Replaces the old Fisher's-exact + dead-permutation tests. The new
-module exposes pure functions for: broad-type collapse, DLP/DSE
-positivity, BH FDR with monotone non-decreasing q, scope-level scoring,
-and a CLI driver that wires everything together against the
-neighborhood / null-sample TSVs.
+Covers the pure functions (type labels, positivity rules incl. autotransporter
+self-detection, the FFT rotation_counts against brute force, window/self masks,
+single_test, per-type aggregation with the DSE-T3SS skip) and the CLI driver
+end-to-end against synthetic whole-genome prediction TSVs.
 """
 
+import csv
 import os
 
+import numpy as np
 import pytest
 from _helpers import run_script_main, write_tsv
 from enrichment_testing import (
     bh_fdr,
     binom_pvalue,
     broad_type,
+    components_by_display_type,
+    display_type,
     is_dlp_positive,
+    is_dlp_self_positive,
     is_dse_positive,
-    score_scope,
+    load_systems,
+    positivity_vectors,
+    rotation_counts,
+    run_enrichment,
+    self_mask,
+    single_test,
+    window_mask,
 )
 from enrichment_testing import (
     main as enrichment_main,
 )
 
-# ---------------------------------------------------------------------------
-# broad_type
-# ---------------------------------------------------------------------------
 
+class TestTypeLabels:
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [("T1SS", "T1SS"), ("pT4SSt", "T4SS"), ("T6SSi", "T6SS"), ("T6SSii", "T6SS"), ("Flagellum", "Flagellum")],
+    )
+    def test_broad_type(self, raw, expected):
+        assert broad_type(raw) == expected
 
-class TestBroadType:
     @pytest.mark.parametrize(
         "raw,expected",
         [
-            ("T1SS", "T1SS"),
-            ("T2SS", "T2SS"),
-            ("T3SS", "T3SS"),
-            ("T4SS", "T4SS"),
+            ("T5aSS", "T5aSS"),  # subtypes kept distinct (autotransporters tested differently)
+            ("T5bSS", "T5bSS"),
+            ("T5cSS", "T5cSS"),
+            ("T6SSi", "T6SS"),  # but T6/T4 subtypes still collapse
             ("pT4SSt", "T4SS"),
-            ("T5aSS", "T5SS"),
-            ("T5bSS", "T5SS"),
-            ("T5cSS", "T5SS"),
-            ("T6SSi", "T6SS"),
-            ("T6SSii", "T6SS"),
-            ("T6SSiii", "T6SS"),
-            ("Flagellum", "Flagellum"),
-            ("Tad", "Tad"),
-            ("", ""),
+            ("T1SS", "T1SS"),
         ],
     )
-    def test_collapse(self, raw, expected):
-        assert broad_type(raw) == expected
+    def test_display_type(self, raw, expected):
+        assert display_type(raw) == expected
 
 
-# ---------------------------------------------------------------------------
-# Positivity rules
-# ---------------------------------------------------------------------------
+class TestPositivity:
+    def test_dlp_at_threshold_positive(self):
+        assert is_dlp_positive({"dlp_extracellular_prob": "0.8"}, 0.8)
+
+    def test_dlp_legacy_column(self):
+        assert is_dlp_positive({"extracellular_prob": "0.9"}, 0.8)
+
+    def test_dlp_malformed_negative(self):
+        assert not is_dlp_positive({"dlp_extracellular_prob": "n/a"}, 0.8)
+
+    def test_dse_t3ss_excluded(self):
+        assert not is_dse_positive({"dse_ss_type": "T3SS", "dse_max_prob": "0.99"}, 0.8)
+
+    def test_dse_secreted_positive(self):
+        assert is_dse_positive({"dse_ss_type": "T2SS", "dse_max_prob": "0.9"}, 0.8)
+
+    def test_self_positive_via_outer_membrane(self):
+        # autotransporter: OM-positive even when extracellular is low
+        assert is_dlp_self_positive({"outer_membrane_prob": "0.9", "dlp_extracellular_prob": "0.1"}, 0.8)
+
+    def test_self_positive_via_extracellular(self):
+        assert is_dlp_self_positive({"outer_membrane_prob": "0.1", "dlp_extracellular_prob": "0.9"}, 0.8)
+
+    def test_self_negative_when_both_low(self):
+        assert not is_dlp_self_positive({"outer_membrane_prob": "0.3", "dlp_extracellular_prob": "0.3"}, 0.8)
 
 
-class TestDlpPositive:
-    def test_above_threshold_is_positive(self):
-        assert is_dlp_positive({"dlp_extracellular_prob": "0.9"}, conf=0.8)
+class TestRotationCounts:
+    def test_matches_brute_force(self):
+        rng = np.random.default_rng(0)
+        for _ in range(200):
+            n = int(rng.integers(8, 40))
+            pos = (rng.random(n) < 0.3).astype(float)
+            mask = (rng.random(n) < 0.3).astype(float)
+            c = rotation_counts(pos, mask)
+            brute = np.array([int(np.sum(np.roll(pos, k) * mask)) for k in range(n)])
+            assert np.array_equal(c, brute)
 
-    def test_at_threshold_is_positive(self):
-        # >= threshold per proximity_analysis.py:153
-        assert is_dlp_positive({"dlp_extracellular_prob": "0.8"}, conf=0.8)
-
-    def test_below_threshold_is_negative(self):
-        assert not is_dlp_positive({"dlp_extracellular_prob": "0.79"}, conf=0.8)
-
-    def test_legacy_column_name(self):
-        # cross_validate emits dlp_extracellular_prob, but the predictions
-        # TSV may also have the legacy `extracellular_prob` field.
-        assert is_dlp_positive({"extracellular_prob": "0.9"}, conf=0.8)
-
-    def test_missing_column_is_negative(self):
-        assert not is_dlp_positive({}, conf=0.8)
-
-    def test_malformed_value_is_negative(self):
-        assert not is_dlp_positive({"dlp_extracellular_prob": "n/a"}, conf=0.8)
+    def test_offset_zero_is_observed(self):
+        pos = np.array([1, 0, 1, 0, 0, 1], dtype=float)
+        mask = np.array([1, 1, 0, 0, 1, 0], dtype=float)
+        assert int(rotation_counts(pos, mask)[0]) == int(np.sum(pos * mask))
 
 
-class TestDsePositive:
-    def test_secreted_above_threshold(self):
-        assert is_dse_positive({"dse_ss_type": "T2SS", "dse_max_prob": "0.9"}, conf=0.8)
+class TestMasks:
+    def test_window_excludes_components(self):
+        # component at index 5, window 2 -> {3,4,5,6,7}; exclude the component (5)
+        m = window_mask([5], n=20, w=2, exclude=[5])
+        on = set(np.flatnonzero(m).tolist())
+        assert on == {3, 4, 6, 7}
 
-    def test_non_secreted_label_is_negative(self):
-        assert not is_dse_positive({"dse_ss_type": "Non-secreted", "dse_max_prob": "0.99"}, conf=0.8)
+    def test_window_wraps_circularly(self):
+        m = window_mask([0], n=10, w=2, exclude=[0])
+        assert set(np.flatnonzero(m).tolist()) == {8, 9, 1, 2}
 
-    def test_t3ss_excluded(self):
-        # DSE is unreliable on T3SS (per CLAUDE.md and proximity_analysis:162)
-        assert not is_dse_positive({"dse_ss_type": "T3SS", "dse_max_prob": "0.99"}, conf=0.8)
-
-    def test_empty_label_is_negative(self):
-        assert not is_dse_positive({"dse_ss_type": "", "dse_max_prob": "0.99"}, conf=0.8)
-
-    def test_below_threshold_is_negative(self):
-        assert not is_dse_positive({"dse_ss_type": "T2SS", "dse_max_prob": "0.5"}, conf=0.8)
+    def test_self_mask_marks_components_only(self):
+        m = self_mask([2, 7], n=10)
+        assert set(np.flatnonzero(m).tolist()) == {2, 7}
 
 
-# ---------------------------------------------------------------------------
-# Binomial test math
-# ---------------------------------------------------------------------------
+class TestSingleTest:
+    def test_planted_enrichment_high_fold(self):
+        n = 200
+        pos = np.zeros(n)
+        comp = [20, 50, 120]  # spaced so flanking positives don't fall on another component
+        for p in comp:
+            pos[(p + 1) % n] = 1
+            pos[(p - 1) % n] = 1
+        mask = window_mask(comp, n, 3, exclude=comp)
+        r = single_test(pos, mask)
+        assert r["observed"] == 6
+        assert r["fold"] > 5
+        assert r["n_rotations"] == n
+        assert r["null"].size == n - 1  # exact all-rotations except identity
 
-
-class TestBinomPvalue:
-    def test_obvious_enrichment_gives_low_pvalue(self):
-        # k=8 of M=10 with p=0.1 background → very low p-value
-        p = binom_pvalue(8, 10, 0.1)
-        assert p < 1e-4
-
-    def test_at_expected_rate_gives_high_pvalue(self):
-        # k=1 of M=10 with p=0.1 background → unsurprising
-        p = binom_pvalue(1, 10, 0.1)
-        assert p > 0.5
-
-    def test_zero_n_returns_one(self):
-        assert binom_pvalue(0, 0, 0.5) == 1.0
-
-    def test_zero_p_returns_one(self):
-        # Degenerate background — can't reject; surfaced as p=1.0
-        assert binom_pvalue(5, 10, 0.0) == 1.0
-
-    def test_p_one_returns_one(self):
-        assert binom_pvalue(5, 10, 1.0) == 1.0
-
-
-# ---------------------------------------------------------------------------
-# BH FDR
-# ---------------------------------------------------------------------------
+    def test_no_positives_fold_zero(self):
+        n = 50
+        r = single_test(np.zeros(n), self_mask([10], n))
+        assert r["observed"] == 0
+        assert r["fold"] == 0.0
 
 
 class TestBhFdr:
-    def test_assigns_qvalues_and_significant_flag(self):
-        # 4 hypotheses, BH at alpha=0.05.
-        # Sorted ascending: p = 0.001, 0.01, 0.04, 0.20
-        # Raw q = 0.001*4/1, 0.01*4/2, 0.04*4/3, 0.20*4/4
-        #       = 0.004,     0.02,     ~0.053,    0.20
-        # Monotone fix from the back: q_4=0.2, q_3=0.053, q_2=0.02, q_1=0.004
-        # Significant at alpha=0.05: rows with q < 0.05 → first two.
-        rows = [
-            {"scope_id": "a", "pvalue": 0.001},
-            {"scope_id": "b", "pvalue": 0.20},
-            {"scope_id": "c", "pvalue": 0.01},
-            {"scope_id": "d", "pvalue": 0.04},
-        ]
-        bh_fdr(rows)
-        by_id = {r["scope_id"]: r for r in rows}
-        assert by_id["a"]["significant"] is True
-        assert by_id["c"]["significant"] is True
-        assert by_id["d"]["significant"] is False
-        assert by_id["b"]["significant"] is False
-        # Monotone non-decreasing q in ascending-p order
-        ordered = sorted(rows, key=lambda r: r["pvalue"])
-        qs = [r["qvalue"] for r in ordered]
+    def test_significance_and_monotone(self):
+        rows = [{"ss_type": s, "p_perm": p} for s, p in [("a", 0.001), ("b", 0.20), ("c", 0.01), ("d", 0.04)]]
+        bh_fdr(rows, pvalue_key="p_perm")
+        by = {r["ss_type"]: r for r in rows}
+        assert by["a"]["significant"] and by["c"]["significant"]
+        assert not by["d"]["significant"] and not by["b"]["significant"]
+        qs = [r["qvalue"] for r in sorted(rows, key=lambda r: r["p_perm"])]
         assert qs == sorted(qs)
 
-    def test_qvalues_are_capped_at_one(self):
-        rows = [{"scope_id": s, "pvalue": 0.9} for s in "abcd"]
-        bh_fdr(rows)
-        assert all(r["qvalue"] <= 1.0 for r in rows)
 
-    def test_empty_input_no_op(self):
-        rows = []
-        bh_fdr(rows)
-        assert rows == []
+class TestBinomRetained:
+    # binom_pvalue is retained for the validation/comparison scripts, not the test
+    def test_obvious_enrichment_low_p(self):
+        assert binom_pvalue(8, 10, 0.1) < 1e-4
 
-
-# ---------------------------------------------------------------------------
-# score_scope
-# ---------------------------------------------------------------------------
+    def test_degenerate_returns_one(self):
+        assert binom_pvalue(0, 0, 0.5) == 1.0
 
 
-class TestScoreScope:
-    def test_two_rows_one_per_tool(self):
-        neigh = {"P1", "P2", "P3", "P4", "P5"}
-        dlp = {p: {"dlp_extracellular_prob": "0.95"} for p in neigh}
-        dse = {p: {"dse_ss_type": "T2SS", "dse_max_prob": "0.95"} for p in neigh}
-        out = score_scope("sys_1", "T2SS", "system", neigh, dlp, dse, p_dlp=0.1, p_dse=0.1, conf=0.8)
-        assert {r["tool"] for r in out} == {"DLP", "DSE"}
-        assert all(r["M"] == 5 for r in out)
-        assert all(r["k"] == 5 for r in out)
-
-    def test_plme_never_emitted(self):
-        # PLM-Effector is excluded from the enrichment test entirely: only DLP/DSE rows.
-        neigh = {"P1", "P2", "P3", "P4"}
-        dlp = {p: {"dlp_extracellular_prob": "0.95"} for p in neigh}
-        dse = {p: {"dse_ss_type": "T2SS", "dse_max_prob": "0.95"} for p in neigh}
-        out = score_scope("sys_1", "T2SS", "system", neigh, dlp, dse, p_dlp=0.1, p_dse=0.1, conf=0.8)
-        assert {r["tool"] for r in out} == {"DLP", "DSE"}
-        assert all(r["tool"] != "PLME" for r in out)
-
-    def test_fold_enrich_empty_when_p_bg_zero(self):
-        neigh = {"P1"}
-        out = score_scope(
-            "sys_1",
-            "T2SS",
-            "system",
-            neigh,
-            dlp={"P1": {"dlp_extracellular_prob": "0.95"}},
-            dse={"P1": {"dse_ss_type": "T2SS", "dse_max_prob": "0.95"}},
-            p_dlp=0.0,
-            p_dse=0.0,
-            conf=0.8,
-        )
-        assert all(r["fold_enrich"] == "" for r in out)
-
-    def test_empty_neighborhood_returns_no_rows(self):
-        out = score_scope("sys_1", "T2SS", "system", set(), {}, {}, p_dlp=0.1, p_dse=0.1, conf=0.8)
-        assert out == []
-
-
-# ---------------------------------------------------------------------------
-# CLI driver — end-to-end with synthetic fixtures
-# ---------------------------------------------------------------------------
-
-
-def _write_pred_tsv(path, fieldnames, rows):
-    return write_tsv(path, fieldnames, rows, delimiter="\t")
-
-
-@pytest.fixture
-def stats_fixture(tmp_dir, gene_order_tsv):
-    """Two T2SS components on contig_A (GENE_0005, GENE_0006), +/-3 window.
-
-    Neighborhood (excluding components): GENE_0002, GENE_0003, GENE_0004,
-    GENE_0007, GENE_0008, GENE_0009 — six neighbors. Two of them (GENE_0003,
-    GENE_0004) are heavily-positive in both tools so the binomial test
-    should be significant against a p_bg of ~2/9 ≈ 0.22.
-    """
+def _build_genome(tmp_dir, n=120):
+    """Synthetic whole-genome fixture: one T6SSi system, one T5aSS autotransporter,
+    one T3SS system, with planted positives. Returns the four input paths."""
+    gene_order = os.path.join(tmp_dir, "gene_order.tsv")
+    write_tsv(
+        gene_order,
+        ["contig", "locus_tag", "position"],
+        [{"contig": "c1", "locus_tag": f"g{i:04d}", "position": i} for i in range(n)],
+        delimiter="\t",
+    )
     ss = os.path.join(tmp_dir, "ss_components.tsv")
-    with open(ss, "w") as f:
-        f.write("locus_tag\tss_type\tsys_id\texcluded\n")
-        f.write("GENE_0005\tT2SS\tcontig_A_T2SS_1\tFalse\n")
-        f.write("GENE_0006\tT2SS\tcontig_A_T2SS_1\tFalse\n")
-
-    # Null sample: 9 proteins from contig_A_0..1 + all 5 contig_B + GENE_0009
-    # (Actually contig_A_0/1 + GENEB_0..4 = 7. Plus we said 9 — drop the
-    # constraint; what matters is the rate p_bg.)
-    null_ids = os.path.join(tmp_dir, "null_ids.tsv")
-    null_set = ["GENE_0000", "GENE_0001"] + [f"GENEB_{i:04d}" for i in range(5)]
-    with open(null_ids, "w") as f:
-        for nid in null_set:
-            f.write(nid + "\n")
-
-    # DLP / DSE predictions for the full set (neighborhood + null + components).
-    # Make GENE_0003, GENE_0004 positive in the neighborhood; 1 of the 7
-    # null proteins positive.
-    dlp_rows = []
-    dse_rows = []
-    positives_neigh = {"GENE_0003", "GENE_0004"}
-    positives_null = {"GENEB_0000"}  # 1/7 ≈ 0.14 background
-    for i in range(10):
-        L = f"GENE_{i:04d}"
-        if L in positives_neigh:
-            dlp_rows.append({"locus_tag": L, "dlp_extracellular_prob": "0.95"})
-            dse_rows.append({"locus_tag": L, "dse_ss_type": "T2SS", "dse_max_prob": "0.95"})
-        else:
-            dlp_rows.append({"locus_tag": L, "dlp_extracellular_prob": "0.10"})
-            dse_rows.append({"locus_tag": L, "dse_ss_type": "Non-secreted", "dse_max_prob": "0.10"})
-    for i in range(5):
-        L = f"GENEB_{i:04d}"
-        if L in positives_null:
-            dlp_rows.append({"locus_tag": L, "dlp_extracellular_prob": "0.95"})
-            dse_rows.append({"locus_tag": L, "dse_ss_type": "T2SS", "dse_max_prob": "0.95"})
-        else:
-            dlp_rows.append({"locus_tag": L, "dlp_extracellular_prob": "0.10"})
-            dse_rows.append({"locus_tag": L, "dse_ss_type": "Non-secreted", "dse_max_prob": "0.10"})
-
-    dlp = _write_pred_tsv(
+    write_tsv(
+        ss,
+        ["locus_tag", "ss_type", "sys_id", "excluded"],
+        [
+            {"locus_tag": "g0020", "ss_type": "T6SSi", "sys_id": "sA", "excluded": "False"},
+            {"locus_tag": "g0021", "ss_type": "T6SSi", "sys_id": "sA", "excluded": "False"},
+            {"locus_tag": "g0060", "ss_type": "T5aSS", "sys_id": "sB", "excluded": "False"},
+            {"locus_tag": "g0090", "ss_type": "T3SS", "sys_id": "sC", "excluded": "False"},
+            {"locus_tag": "g0091", "ss_type": "T3SS", "sys_id": "sC", "excluded": "False"},
+        ],
+        delimiter="\t",
+    )
+    dlp_pos = {"g0019", "g0022"}  # flank the T6SS components
+    dse_pos = {"g0019": "T6SS", "g0089": "T3SS"}  # one near T6SS; one is the T3SS comp (DSE excluded)
+    dlp_rows, dse_rows = [], []
+    for i in range(n):
+        lt = f"g{i:04d}"
+        dlp_rows.append(
+            {
+                "locus_tag": lt,
+                "dlp_extracellular_prob": "0.95" if lt in dlp_pos else "0.05",
+                "outer_membrane_prob": "0.95" if lt == "g0060" else "0.05",  # autotransporter self
+            }
+        )
+        ty = dse_pos.get(lt, "Non-secreted")
+        dse_rows.append({"locus_tag": lt, "dse_ss_type": ty, "dse_max_prob": "0.95" if lt in dse_pos else "0.1"})
+    dlp = write_tsv(
         os.path.join(tmp_dir, "dlp.tsv"),
-        ["locus_tag", "dlp_extracellular_prob"],
+        ["locus_tag", "dlp_extracellular_prob", "outer_membrane_prob"],
         dlp_rows,
+        delimiter="\t",
     )
-    dse = _write_pred_tsv(
-        os.path.join(tmp_dir, "dse.tsv"),
-        ["locus_tag", "dse_ss_type", "dse_max_prob"],
-        dse_rows,
+    dse = write_tsv(
+        os.path.join(tmp_dir, "dse.tsv"), ["locus_tag", "dse_ss_type", "dse_max_prob"], dse_rows, delimiter="\t"
     )
-    return {"ss": ss, "null_ids": null_ids, "dlp": dlp, "dse": dse, "gene_order": gene_order_tsv}
+    return {"ss": ss, "gene_order": gene_order, "dlp": dlp, "dse": dse}
+
+
+class TestRunEnrichmentAggregation:
+    def test_per_type_self_and_window(self, tmp_dir):
+        fx = _build_genome(tmp_dir)
+        dlp = {r["locus_tag"]: r for r in csv.DictReader(open(fx["dlp"]), delimiter="\t")}
+        dse = {r["locus_tag"]: r for r in csv.DictReader(open(fx["dse"]), delimiter="\t")}
+        systems, ss_type_of_sys = load_systems(fx["ss"])
+        # order
+        from enrichment_testing import gene_order_flat
+
+        order = gene_order_flat(fx["gene_order"])
+        idx, dlp_vec, dse_vec, dlp_self = positivity_vectors(order, dlp, dse, 0.8)
+        vecs = {"dlp": dlp_vec, "dse": dse_vec, "dlp_self": dlp_self}
+        by_type, all_components = components_by_display_type(systems, ss_type_of_sys)
+        all_comp_idx = [idx[lt] for lt in all_components if lt in idx]
+        rows = run_enrichment(order, idx, vecs, by_type, all_comp_idx, window=3)
+
+        by = {(r["ss_type"], r["tool"]): r for r in rows}
+        # T6SS window: two flanking positives counted (components excluded)
+        assert by[("T6SS", "DLP")]["mode"] == "window"
+        assert by[("T6SS", "DLP")]["observed"] == 2
+        # T5aSS self-detection: the component itself is OM-positive
+        assert by[("T5aSS", "DLP")]["mode"] == "self"
+        assert by[("T5aSS", "DLP")]["observed"] == 1
+        # DSE on T3SS is skipped (DSE can't call T3SS)
+        assert by[("T3SS", "DSE")]["skip"] is True
+        assert by[("T3SS", "DLP")]["skip"] is False  # DLP T3SS window still tested
 
 
 class TestCliDriver:
-    def _run(self, monkeypatch, tmp_dir, fx):
+    def test_end_to_end_schema_and_npz(self, monkeypatch, tmp_dir):
+        fx = _build_genome(tmp_dir)
+        out = os.path.join(tmp_dir, "stats.tsv")
+        nulls = os.path.join(tmp_dir, "nulls.npz")
+        argv = [
+            "enrichment_testing.py",
+            "--ss-components", fx["ss"],
+            "--gene-order", fx["gene_order"],
+            "--dlp", fx["dlp"],
+            "--dse", fx["dse"],
+            "--window", "3",
+            "--conf-threshold", "0.8",
+            "--sample", "test",
+            "--out", out,
+            "--nulls-out", nulls,
+        ]  # fmt: skip
+        run_script_main(monkeypatch, enrichment_main, argv)
+        rows = list(csv.DictReader(open(out), delimiter="\t"))
+        cols = set(rows[0].keys())
+        assert {"ss_type", "tool", "mode", "observed", "fold", "p_perm", "qvalue", "significant"} <= cols
+        assert "M" not in cols and "p_bg" not in cols  # old binomial schema gone
+        # T3SS-DSE row present but blank/insignificant
+        t3_dse = next(r for r in rows if r["ss_type"] == "T3SS" and r["tool"] == "DSE")
+        assert t3_dse["observed"] == "" and t3_dse["significant"] == "False"
+        # npz dumped with a key per real (type, tool)
+        assert os.path.exists(nulls)
+        with np.load(nulls) as npz:
+            assert "T6SS__DLP" in npz.files
+
+    def test_no_components_header_only(self, monkeypatch, tmp_dir):
+        fx = _build_genome(tmp_dir)
+        empty = os.path.join(tmp_dir, "empty_ss.tsv")
+        with open(empty, "w") as f:
+            f.write("locus_tag\tss_type\tsys_id\texcluded\n")
         out = os.path.join(tmp_dir, "stats.tsv")
         argv = [
             "enrichment_testing.py",
-            "--ss-components",
-            fx["ss"],
-            "--gene-order",
-            fx["gene_order"],
-            "--dlp",
-            fx["dlp"],
-            "--dse",
-            fx["dse"],
-            "--null-ids",
-            fx["null_ids"],
-            "--window",
-            "3",
-            "--conf-threshold",
-            "0.8",
-            "--sample",
-            "test",
-            "--out",
-            out,
-        ]
+            "--ss-components", empty,
+            "--gene-order", fx["gene_order"],
+            "--dlp", fx["dlp"],
+            "--dse", fx["dse"],
+            "--sample", "test",
+            "--out", out,
+        ]  # fmt: skip
         run_script_main(monkeypatch, enrichment_main, argv)
-        return out
-
-    def test_per_system_rows_emitted(self, monkeypatch, tmp_dir, stats_fixture):
-        out = self._run(monkeypatch, tmp_dir, stats_fixture)
-        import csv
-
-        rows = list(csv.DictReader(open(out), delimiter="\t"))
-        # One T2SS system × 2 tools = 2 rows (no broad-type aggregate since
-        # there's only one system of this broad type)
-        assert len(rows) == 2
-        assert {r["tool"] for r in rows} == {"DLP", "DSE"}
-        # Neighborhood excludes the two components themselves → M = 6
-        assert all(r["M"] == "6" for r in rows)
-        # GENE_0003 + GENE_0004 are positive → k = 2
-        assert all(r["k"] == "2" for r in rows)
-        # p_bg = 1/7 ≈ 0.142857
-        for r in rows:
-            assert abs(float(r["p_bg"]) - 1 / 7) < 1e-5
-
-    def test_components_excluded_from_neighborhood(self, monkeypatch, tmp_dir, stats_fixture):
-        out = self._run(monkeypatch, tmp_dir, stats_fixture)
-        import csv
-
-        rows = list(csv.DictReader(open(out), delimiter="\t"))
-        # M=6 confirms components GENE_0005, GENE_0006 are excluded (without
-        # exclusion M would be 8: indices 2..9 inclusive).
-        assert all(r["M"] == "6" for r in rows)
-
-    def test_no_components_writes_header_only(self, monkeypatch, tmp_dir, stats_fixture):
-        # Empty ss_components.tsv (just header)
-        empty_ss = os.path.join(tmp_dir, "empty_ss.tsv")
-        with open(empty_ss, "w") as f:
-            f.write("locus_tag\tss_type\tsys_id\texcluded\n")
-        argv = [
-            "enrichment_testing.py",
-            "--ss-components",
-            empty_ss,
-            "--gene-order",
-            stats_fixture["gene_order"],
-            "--dlp",
-            stats_fixture["dlp"],
-            "--dse",
-            stats_fixture["dse"],
-            "--null-ids",
-            stats_fixture["null_ids"],
-            "--window",
-            "3",
-            "--conf-threshold",
-            "0.8",
-            "--sample",
-            "test",
-            "--out",
-            os.path.join(tmp_dir, "stats.tsv"),
-        ]
-        run_script_main(monkeypatch, enrichment_main, argv)
-        import csv
-
-        rows = list(csv.DictReader(open(os.path.join(tmp_dir, "stats.tsv")), delimiter="\t"))
-        assert rows == []
+        assert list(csv.DictReader(open(out), delimiter="\t")) == []

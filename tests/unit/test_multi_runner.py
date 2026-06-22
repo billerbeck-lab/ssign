@@ -113,19 +113,18 @@ class TestSliceStagesBySegment:
         # E is the 5 trailing tuples
         assert len(segments["E"]) == 5
 
-    def test_enrichment_stats_routes_to_A(self):
-        # sample_null_proteins is opt-in in segment A.
+    def test_pre_prediction_steps_route_to_A(self):
+        # Every pre-prediction step (before the first parallel group) lands in A.
         stages = [
             ("Detecting input format", _stub_step("detect_format")),
-            ("Sample null proteins", _stub_step("sample_null_proteins")),
+            ("Extracting SS neighborhood", _stub_step("extract_neighborhood")),
             [("DLP", _stub_step("deeplocpro"))],
             ("Cross-validating", _stub_step("cross_validate")),
             [("EggNOG", _stub_step("eggnog"))],
             ("Integrate", _stub_step("integrate")),
         ]
         segments = slice_stages_by_segment(stages)
-        # Both sample_null_proteins and detect_format end up in A
-        assert len(segments["A"]) == 2
+        assert len(segments["A"]) == 2  # detect_format + extract_neighborhood
 
     def test_empty_parallel_group_skipped(self):
         # All predictions skipped → empty prediction parallel list.

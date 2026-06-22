@@ -118,6 +118,16 @@ class TestPipelineConfig:
     def test_n_null_proteins_default_is_1000(self):
         assert PipelineConfig().n_null_proteins == 1000
 
+    def test_enrichment_stats_forces_whole_genome_predictors(self):
+        # The circular-shift null needs every gene's positivity in gene order,
+        # so --enrichment-stats couples whole-genome DLP + DSE.
+        c = PipelineConfig(enrichment_stats=True)
+        assert c.dlp_whole_genome is True and c.dse_whole_genome is True
+
+    def test_no_enrichment_leaves_predictor_scope_default(self):
+        c = PipelineConfig(enrichment_stats=False)
+        assert c.dlp_whole_genome is False and c.dse_whole_genome is False
+
     def test_skip_flags_extended_tier_enables_annotation_tools(self):
         # At tier='extended', EggNOG / IPS / pLM-BLAST come on because
         # the extended DB bundle ships them. HH-suite stays off — its
@@ -909,89 +919,6 @@ class TestBuildRawCsv:
         assert df.iloc[0]["blastp__product"] == "blastp_product_value"
 
 
-class TestStepSampleNullProteins:
-    """The null-sampling step runs `sample_null_proteins.py` and concatenates
-    its output FASTA with the neighborhood FASTA so DLP/DSE pick up both in
-    a single tool invocation. SignalP and PLM-Effector continue to read
-    `neighborhood_proteins`."""
-
-    def _setup(self, tmp_path):
-        # 15-protein two-contig fixture, mirrors conftest's two_contig_genes.
-        from ssign_app.scripts.ssign_lib.fasta_io import write_fasta
-
-        proteins = tmp_path / "proteins.faa"
-        seqs = {f"GENE_{i:04d}": "M" + ("A" * 30) for i in range(10)}
-        seqs.update({f"GENEB_{i:04d}": "M" + ("L" * 30) for i in range(5)})
-        write_fasta(seqs, proteins)
-
-        # 5 SS neighborhood proteins (a subset of the proteome -- the upstream
-        # extract_neighborhood step would write exactly these).
-        neighborhood = tmp_path / "neighborhood.faa"
-        write_fasta({f"GENE_{i:04d}": seqs[f"GENE_{i:04d}"] for i in range(2, 7)}, neighborhood)
-
-        gene_order = tmp_path / "gene_order.tsv"
-        with open(gene_order, "w") as f:
-            f.write("contig\tgene_index\tlocus_tag\n")
-            for i in range(10):
-                f.write(f"contig_A\t{i}\tGENE_{i:04d}\n")
-            for i in range(5):
-                f.write(f"contig_B\t{i}\tGENEB_{i:04d}\n")
-
-        ss_components = tmp_path / "ss_components.tsv"
-        with open(ss_components, "w") as f:
-            f.write("locus_tag\tss_type\n")
-            f.write("GENE_0004\tT2SS\n")
-            f.write("GENE_0005\tT2SS\n")
-
-        return proteins, neighborhood, gene_order, ss_components
-
-    def test_writes_three_files_and_concat_contains_both(self, tmp_path):
-        proteins, neighborhood, gene_order, ss_components = self._setup(tmp_path)
-
-        config = PipelineConfig(
-            outdir=str(tmp_path),
-            sample_id="t",
-            enrichment_stats=True,
-            n_null_proteins=3,
-            null_seed=42,
-            proximity_window=1,  # tight window to leave a large null pool
-        )
-        r = PipelineRunner(config)
-        r.work_dir = str(tmp_path)
-        r.files = {
-            "proteins": str(proteins),
-            "gene_order": str(gene_order),
-            "ss_components": str(ss_components),
-            "neighborhood_proteins": str(neighborhood),
-        }
-
-        result = r._step_sample_null_proteins()
-        assert result.success, result.message
-        assert "null_proteins_fasta" in r.files
-        assert "null_proteins_ids" in r.files
-        assert "dlp_dse_input" in r.files
-
-        # Concat must contain every neighborhood ID + every null ID, no duplicates
-        from ssign_app.scripts.ssign_lib.fasta_io import read_fasta as _rf
-
-        concat_ids = set(_rf(r.files["dlp_dse_input"]).keys())
-        neigh_ids = set(_rf(str(neighborhood)).keys())
-        null_ids = {line.strip() for line in open(r.files["null_proteins_ids"]) if line.strip()}
-        assert neigh_ids.issubset(concat_ids)
-        assert null_ids.issubset(concat_ids)
-        assert null_ids.isdisjoint(neigh_ids)
-        assert len(concat_ids) == len(neigh_ids) + len(null_ids)
-
-    def test_missing_upstream_files_returns_failure(self, tmp_path):
-        config = PipelineConfig(outdir=str(tmp_path), sample_id="t", enrichment_stats=True)
-        r = PipelineRunner(config)
-        r.work_dir = str(tmp_path)
-        r.files = {}  # nothing upstream
-        result = r._step_sample_null_proteins()
-        assert not result.success
-        assert "missing" in result.message.lower()
-
-
 class TestWriteStepTimings:
     """`_write_step_timings` produces outdir/runtime_data/step_timings.csv
     after every run. Companion to runtime_data/resource_samples.csv
@@ -1284,119 +1211,101 @@ class TestCheckRequiredExecutables:
 
 
 class TestPoolEnrichmentStats:
-    """Cross-genome pooling: sum M and k across genomes per (broad_type, tool),
-    weighted-average p_bg by n_null, re-run binomial test, BH FDR on pooled."""
+    """Cross-genome pooling: sum observed across genomes per (display type, tool)
+    and Monte-Carlo the pooled circular-shift null from the per-genome rotation
+    arrays (dumped next to each stats TSV as *_enrichment_nulls.npz)."""
 
-    def _write_per_genome_tsv(self, path, rows):
+    def _write_genome(self, tmp_path, stem, rows, nulls):
+        """rows: new-schema dicts; nulls: {f'{ss}__{tool}': np.array}."""
+        import csv as _csv
+
+        import numpy as np
+
         from ssign_app.scripts.enrichment_testing import OUT_FIELDS
 
-        with open(path, "w", newline="") as f:
-            import csv as _csv
-
-            writer = _csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t")
-            writer.writeheader()
+        tsv = tmp_path / f"{stem}_enrichment_stats.tsv"
+        with open(tsv, "w", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t", extrasaction="ignore")
+            w.writeheader()
             for r in rows:
-                writer.writerow(r)
+                w.writerow({"sample_id": stem, **r})
+        np.savez(tmp_path / f"{stem}_enrichment_nulls.npz", **nulls)
+        return tsv
 
-    def _row(self, **kwargs):
-        # Defaults match the OUT_FIELDS schema so the per-genome TSV is valid.
-        base = {
-            "sample_id": "g",
-            "scope_kind": "system",
-            "scope_id": "sys_1",
-            "ss_type": "T2SS",
-            "tool": "DLP",
-            "M": 5,
-            "k": 2,
-            "p_bg": 0.1,
-            "fold_enrich": 4.0,
-            "pvalue": 0.01,
-            "qvalue": 0.01,
-            "significant": True,
-            "n_null": 100,
-        }
-        base.update(kwargs)
-        return base
+    def _row(self, ss_type="T6SS", tool="DLP", observed=4, mode="window", n_mask=6):
+        return {"ss_type": ss_type, "tool": tool, "mode": mode, "observed": observed, "n_mask": n_mask,
+                "null_mean": 1.0, "fold": float(observed), "p_perm": 0.01, "qvalue": 0.01,
+                "significant": True, "n_rotations": 100}  # fmt: skip
 
-    def test_sums_M_and_k_across_genomes(self, tmp_path):
+    def test_pools_observed_and_null_across_genomes(self, tmp_path):
+        import csv as _csv
+
+        import numpy as np
+
         from ssign_app.core.runner import pool_enrichment_stats
 
-        a = tmp_path / "a_enrichment_stats.tsv"
-        b = tmp_path / "b_enrichment_stats.tsv"
-        # Each genome: 1 T2SS system, single tool DLP row.
-        self._write_per_genome_tsv(a, [self._row(scope_kind="system", ss_type="T2SS", M=5, k=2, p_bg=0.1, n_null=100)])
-        self._write_per_genome_tsv(b, [self._row(scope_kind="system", ss_type="T2SS", M=10, k=4, p_bg=0.2, n_null=100)])
+        # Two genomes, same (T6SS, DLP) cell. Constant null arrays (all ones) make
+        # the pooled null deterministic: every replicate sums to 1 + 1 = 2.
+        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP": np.ones(50, dtype=int)})
+        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP": np.ones(50, dtype=int)})
 
         out = tmp_path / "pooled.tsv"
         n = pool_enrichment_stats([str(a), str(b)], str(out))
-        assert n == 1  # one (broad_type, tool) row
+        assert n == 1
+        r = list(_csv.DictReader(open(out), delimiter="\t"))[0]
+        assert r["ss_type"] == "T6SS" and r["tool"] == "DLP" and r["mode"] == "window"
+        assert int(r["observed"]) == 6  # 4 + 2 pooled
+        assert abs(float(r["null_mean"]) - 2.0) < 1e-9
+        assert abs(float(r["fold"]) - 3.0) < 1e-9  # 6 / 2
 
+    def test_separate_types_pool_separately(self, tmp_path):
         import csv as _csv
 
-        rows = list(_csv.DictReader(open(out), delimiter="\t"))
-        assert len(rows) == 1
-        r = rows[0]
-        assert r["scope_kind"] == "broad_type_pool"
-        assert r["scope_id"] == "T2SS"
-        assert int(r["M"]) == 15
-        assert int(r["k"]) == 6
-        # Weighted p_bg: (100*0.1 + 100*0.2) / 200 = 0.15
-        assert abs(float(r["p_bg"]) - 0.15) < 1e-9
+        import numpy as np
 
-    def test_prefers_broad_type_row_over_per_system(self, tmp_path):
         from ssign_app.core.runner import pool_enrichment_stats
 
-        # Genome has 2 T2SS systems → per-genome script emitted both per-system
-        # rows AND the broad_type aggregate. Pool should use the aggregate.
-        tsv = tmp_path / "g_enrichment_stats.tsv"
-        rows_in = [
-            self._row(scope_kind="system", scope_id="s1", ss_type="T2SS", M=4, k=1, p_bg=0.1, n_null=100),
-            self._row(scope_kind="system", scope_id="s2", ss_type="T2SS", M=4, k=1, p_bg=0.1, n_null=100),
-            self._row(scope_kind="broad_type", scope_id="T2SS", ss_type="T2SS", M=7, k=2, p_bg=0.1, n_null=100),
-        ]
-        self._write_per_genome_tsv(tsv, rows_in)
-
+        a = self._write_genome(
+            tmp_path,
+            "a",
+            [self._row(ss_type="T6SS"), self._row(ss_type="T1SS")],
+            {"T6SS__DLP": np.ones(40, dtype=int), "T1SS__DLP": np.ones(40, dtype=int)},
+        )
         out = tmp_path / "pooled.tsv"
-        pool_enrichment_stats([str(tsv)], str(out))
+        n = pool_enrichment_stats([str(a)], str(out))
+        assert n == 2
+        types = {r["ss_type"] for r in _csv.DictReader(open(out), delimiter="\t")}
+        assert types == {"T6SS", "T1SS"}
 
+    def test_skip_rows_and_missing_npz_ignored(self, tmp_path):
         import csv as _csv
 
-        pooled = list(_csv.DictReader(open(out), delimiter="\t"))
-        # Only one pooled row (T2SS, DLP); M comes from the broad_type aggregate
-        # (which dedupes overlapping neighborhoods), not the sum of per-system.
-        assert len(pooled) == 1
-        assert int(pooled[0]["M"]) == 7
-        assert int(pooled[0]["k"]) == 2
+        import numpy as np
 
-    def test_collapses_subtypes_to_broad_type(self, tmp_path):
         from ssign_app.core.runner import pool_enrichment_stats
 
-        # T5aSS + T5bSS rows pool under T5SS.
-        a = tmp_path / "a_enrichment_stats.tsv"
-        b = tmp_path / "b_enrichment_stats.tsv"
-        self._write_per_genome_tsv(a, [self._row(scope_kind="system", ss_type="T5aSS", M=3, k=1, p_bg=0.1, n_null=100)])
-        self._write_per_genome_tsv(b, [self._row(scope_kind="system", ss_type="T5bSS", M=4, k=2, p_bg=0.1, n_null=100)])
+        # Genome A: a real T6SS row (with null) + a skipped DSE-T3SS row (blank observed).
+        skip = {"ss_type": "T3SS", "tool": "DSE", "mode": "window", "observed": "",
+                "qvalue": 1.0, "significant": False}  # fmt: skip
+        a = self._write_genome(tmp_path, "a", [self._row(), skip], {"T6SS__DLP": np.ones(30, dtype=int)})
+        # Genome B has a row but NO npz key for it -> contributes nothing.
+        b = self._write_genome(tmp_path, "b", [self._row(ss_type="T2SS")], {})
 
         out = tmp_path / "pooled.tsv"
-        pool_enrichment_stats([str(a), str(b)], str(out))
-
-        import csv as _csv
-
+        n = pool_enrichment_stats([str(a), str(b)], str(out))
+        assert n == 1  # only the T6SS cell with a real null pools
         rows = list(_csv.DictReader(open(out), delimiter="\t"))
-        assert len(rows) == 1
-        assert rows[0]["scope_id"] == "T5SS"
-        assert int(rows[0]["M"]) == 7
-        assert int(rows[0]["k"]) == 3
+        assert rows[0]["ss_type"] == "T6SS"
 
     def test_missing_input_file_skipped(self, tmp_path):
+        import numpy as np
+
         from ssign_app.core.runner import pool_enrichment_stats
 
-        present = tmp_path / "present.tsv"
-        self._write_per_genome_tsv(present, [self._row()])
-        missing = tmp_path / "does_not_exist.tsv"
+        present = self._write_genome(tmp_path, "present", [self._row()], {"T6SS__DLP": np.ones(30, dtype=int)})
         out = tmp_path / "pooled.tsv"
-        n = pool_enrichment_stats([str(present), str(missing)], str(out))
-        assert n == 1  # missing file is silently skipped, present one still pools
+        n = pool_enrichment_stats([str(present), str(tmp_path / "nope_enrichment_stats.tsv")], str(out))
+        assert n == 1
 
     def test_empty_inputs_writes_header_only(self, tmp_path):
         from ssign_app.core.runner import pool_enrichment_stats
@@ -1404,7 +1313,6 @@ class TestPoolEnrichmentStats:
         out = tmp_path / "pooled.tsv"
         n = pool_enrichment_stats([], str(out))
         assert n == 0
-        # File exists with just the header row
         assert os.path.exists(out)
         with open(out) as f:
             assert len(f.readlines()) == 1

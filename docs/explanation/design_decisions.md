@@ -226,6 +226,22 @@ Entries are organised by pipeline stage. Each has three parts:
   classifier-training feature. See openspec change
   `enrichment-background-and-plme-default-off`.
 
+- **Revision (2026-06-19): enrichment test is a circular-shift permutation, not a
+  binomial.** The opt-in enrichment test asks, per SS type, whether secreted-predicted
+  proteins cluster around that type's components more than chance. The old binomial
+  assumed each neighborhood protein is independently secreted at the genome background
+  rate; secreted genes actually cluster (operons, islands), so that null is too narrow
+  and over-states significance (fleet validation: real null SD 14.6 vs 10.7 under
+  independence; the binomial gives the same fold but an anti-conservative p). The test
+  now rotates each predictor's gene-ordered positivity vector through every circular
+  offset (the exact permutation null, computed in one FFT pass; offset 0 is the
+  observed) and reports fold + permutation p + BH q. Because it needs every gene's
+  positivity in gene order, `--enrichment-stats` forces whole-genome DLP/DSE
+  (~13 min/genome). Autotransporters (T5aSS/T5cSS) are tested by self-detection (the
+  component is both machinery and substrate), other types by a ±3-gene window. A
+  per-type null-distribution figure is emitted. See openspec change
+  `enrichment-circular-shift-per-run`.
+
 ### 3.2 SignalP is evidence-only, not a trigger
 
 - **Decision (Phase 3.2.b):** SignalP is recorded as a separate

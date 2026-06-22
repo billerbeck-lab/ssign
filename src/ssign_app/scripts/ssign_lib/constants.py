@@ -26,6 +26,43 @@ REQUIRED_FRACTION_CORRECT = 0.8  # Fraction of SS components correctly localized
 # --- Proximity ---
 PROXIMITY_WINDOW = 3  # +/- N genes per SS component
 
+# --- Enrichment (circular-shift permutation) ---
+# The per-run enrichment test (opt-in via --enrichment-stats) asks, per SS type,
+# whether secreted-predicted proteins cluster around that type's components more
+# than a genome-structure-preserving null. The null is the exact set of circular
+# rotations of the predictor's gene-ordered positivity vector (offset 0 = observed),
+# so no Monte-Carlo sampling is needed for a single genome. Window size and the
+# positivity threshold reuse PROXIMITY_WINDOW / CONF_THRESHOLD (single source of truth).
+ENRICH_TOOLS = ("DLP", "DSE")  # the two enrichment predictors (PLM-Effector excluded)
+# Above this genome length, subsample rotation offsets for the stored null (the
+# fold + p stay exact; only the histogram dump is thinned). Bacterial genomes
+# (~5k genes) never hit this, so in practice the full exact null is always used.
+ENRICH_MAX_NULL = 200_000
+# SS types (display form, after subtype collapse) tested with a +/-W window around
+# each component. Autotransporters are the complement: the component IS the substrate
+# (self-secreting), so they're tested by self-detection. A display type in neither set
+# (e.g. Flagellum, Tad) is not an enrichment target and is skipped.
+ENRICH_WINDOW_TYPES = frozenset({"T1SS", "T2SS", "T3SS", "T4SS", "T5bSS", "T6SS"})
+ENRICH_AUTOTRANSPORTER_TYPES = frozenset({"T5aSS", "T5cSS"})
+# DSE cannot call T3SS (DeepSecE T3SS unreliable, CLAUDE.md bug #4; mirrors DSE_NEGATIVE
+# in enrichment_testing.py), so T3SS gets no DSE test.
+ENRICH_DSE_NO_WINDOW = frozenset({"T3SS"})
+# Cross-genome pooling (multi-genome runs) can't enumerate the exact product of
+# every genome's rotations, so it Monte-Carlos: draw one random rotation per
+# genome per replicate and sum. Single-genome runs stay exact (no sampling).
+ENRICH_POOL_REPS = 10_000
+ENRICH_POOL_SEED = 42
+
+
+def enrich_null_key(ss_type: str, tool: str) -> str:
+    """Key for a (SS type, predictor) rotation-null array in *_enrichment_nulls.npz.
+
+    Shared by the writer (enrichment_testing) and the readers (cross-genome pooling +
+    the figure) so the format can't drift across files. Must stay a valid identifier
+    because np.savez takes it as a kwarg name."""
+    return f"{ss_type}__{tool}"
+
+
 # --- Structure quality ---
 PLDDT_THRESHOLD = 70  # Minimum mean pLDDT for structure acceptance
 

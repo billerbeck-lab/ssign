@@ -42,7 +42,6 @@ _SEGMENT_BY_STEP = {
     "macsyfinder": "A",
     "validate_systems": "A",
     "extract_neighborhood": "A",
-    "sample_null_proteins": "A",
     "deeplocpro": "B",
     "deepsece": "B",
     "signalp": "B",

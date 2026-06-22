@@ -618,3 +618,55 @@ DEFERRED CLEANUP (Teo: separate task once stats analysis is finalized per-run):
   the DLP-output writer when cleaning up the enrichment/stats code.
 - The per-run enrichment stat to SHIP (#69) should be this circular-shift fold + null, not the
   binomial, with T5a/T5c on self-detection and T5b/others on windows.
+
+## 2026-06-19 — annotation-accuracy sheet (#71) + fleet PAO1 duplicate
+
+ANNOTATION SHEET (recall-gated): known experimental annotation vs ssign's predicted
+annotation, manual-eyeball TSV (no LLM/keyword scoring, per Teo).
+- script: validation_sweeps/benchmark/analysis/annotation_accuracy_sheet.py
+- out:    validation_sweeps/benchmark/analysis/annotation_accuracy_sheet.tsv
+- universe = 51 emitted_secreted corpus effectors (only proteins ssign annotates).
+- ground truth from positives_all: known_family 11/51, known_quote 42/51 (quote is the
+  main signal; family sparse). Genome via ssign_locus -> results_raw scan.
+- ssign yield: interpro 39/51 (76%), eggnog 43/51 (84%), pLM-BLAST/ECOD 44/51 (86%),
+  Pfam 38/51 (75%); >=1 tool 44/51 (86%); 7 got nothing from any tool (genuine misses,
+  not join failures; several are uniprot-less corpus rows with thin ground truth too).
+- spot-check: serralysin effectors -> interpro "Metallopeptidase catalytic domain" +
+  eggnog "peptidase M10A matrixin"; RsaA -> "RTX Ca-binding / COG2931 RTX toxins". Tools
+  land on the right family. Teo to eyeball the full sheet for correctness.
+
+FLEET PAO1 DUPLICATE (deferred check for the enrichment fleet, NOT this sheet):
+- /tmp/ssign_fleet_67 contains PAO1 TWICE: AE004091 (INSDC) and NC_002516.2 (RefSeq),
+  same genome (~5571 proteins each), identical annotations. So the "67-genome" pooled
+  circular-shift enrichment slightly double-counts PAO1. Trigger: when finalizing the
+  per-run stat (#69) / re-running pooled enrichment, dedup to 66 distinct genomes.
+
+## 2026-06-19 — circular-shift enrichment shipped per-run (#69)
+
+SHIPPED openspec `enrichment-circular-shift-per-run`: the opt-in `--enrichment-stats`
+test is now a per-SS-type circular-shift permutation (fold + permutation p + BH q) +
+an auto per-type null-distribution figure. Binomial retired as the significance source.
+- enrichment_testing.py rewritten (rotation_counts FFT, window/self masks, per-type
+  run_enrichment, new OUT_FIELDS: ss_type/tool/mode/observed/n_mask/null_mean/fold/
+  p_perm/qvalue/significant/n_rotations); is_dlp_self_positive added; binom_pvalue +
+  broad_type retained only for the validation scripts.
+- runner.py: __post_init__ forces dlp/dse_whole_genome when enrichment_stats on (+note);
+  _step_sample_null_proteins removed from DAG AND deleted; _step_enrichment rewired
+  (no --null-ids, adds --nulls-out npz); new _step_enrichment_figure; pool_enrichment_stats
+  rewritten to Monte-Carlo pool the per-genome rotation nulls (ENRICH_POOL_REPS=10000).
+- new scripts/run_enrichment_figure.py; constants ENRICH_* added.
+- tests: test_enrichment_testing.py + test_runner pooling + integration rewritten; all
+  1373 unit tests pass; integration passes.
+
+DEFERRED CLEANUP (now-unwired null-background machinery, candidate for a focused removal):
+- sample_null_proteins.py SCRIPT still exists + is unit-tested but nothing in the pipeline
+  calls it now (the rotation null replaced the sampled background).
+- _resolve_step_input_fasta's `include_null_concat` branch + multi_runner.py dlp_dse_input
+  pooling (lines ~331-337) are dead (nothing sets `dlp_dse_input`); both degrade to no-ops.
+- n_null_proteins / null_seed config fields + --n-null-proteins CLI arg are accepted but
+  unused by the enrichment path. Trigger: a tidy-up pass once the circular-shift test has
+  been validated on a real multi-genome run.
+- VERIFY on a real multi-genome run with --enrichment-stats: that forcing whole-genome
+  DLP/DSE composes correctly with multi_runner's neighborhood-pooling/segment logic.
+- PAO1 duplicate in /tmp/ssign_fleet_67 (AE004091 == NC_002516.2): dedup to 66 genomes
+  if the fleet is re-run for pooled-enrichment validation.
