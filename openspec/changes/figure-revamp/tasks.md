@@ -12,14 +12,14 @@
 
 ## 3. Curate + restyle the regular per-run figures
 
-- [ ] 3.1 `generate_figures.py`: import `plot_style`, call `apply_house_style()`, route all colours through `THEME`/`ss_type_palette`; add `clear_unnumbered` at start and `print_figure_index` at end.
-- [ ] 3.2 Restyle and renumber the kept figures: `01_substrates_per_ss_type` (was fig1), `05_tool_coverage` (was fig2), `06_protein_length_by_type` (was fig3); merge old fig5+fig7 into `07_functional_categories_by_type`.
-- [ ] 3.3 Add `02_evidence_strength` (`confidence_tier` x `n_tools_agreeing`), `03_localization_confidence` (`dlp_extracellular_prob` by SS type), `04_signalp_positive_by_type` (`signalp_prediction` fraction per SS type); each column-guarded and skipped-with-note if absent. Title `04` to state it is the predictor's SignalP call (Family-B SignalP-negative is expected).
-- [ ] 3.4 Move physicochemical to an opt-in, column-guarded figure that is off by default; remove it from the default emit path.
+- [x] 3.1 `generate_figures.py`: import `plot_style`, call `apply_house_style()`, route all colours through `THEME`/`ss_type_palette`; `clear_figure_set` at start and `print_figure_index` at end.
+- [x] 3.2 Restyle and renumber the kept figures: `01_substrates_per_type` (was fig1), `05_tool_coverage` (was fig2), `06_protein_length` (was fig3); merge old fig5+fig7 into `07_functional_categories`.
+- [x] 3.3 Add `02_secretion_evidence` (from the `tool` column, the secretion predictors that flagged each protein, NOT `confidence_tier` which is annotation-tool agreement), `03_localization_confidence` (`dlp_extracellular_prob` by SS type, with the call-threshold line), `04_signalp_by_type` (`signalp_prediction` positive-fraction per SS type, captioned as the predictor call with Family-B negative expected); each column-guarded.
+- [x] 3.4 Physicochemical is now opt-in (`--physicochemical`), column-guarded, off the default emit path.
 
 ## 4. Pooled cross-genome figures (multi-genome)
 
-- [ ] 4.1 `generate_figures.py`: add `--mode {per_genome,pooled}` (default `per_genome`). In `pooled` mode emit `P01_substrates_per_genome`, `P02_sstype_by_genome_heatmap` (sequential cmap), `P03_pooled_evidence` into the given `--outdir`; no-op when fewer than 2 genomes are present in the combined CSVs.
+- [x] 4.1 `generate_figures.py`: added `--mode {per_genome,pooled}` (default `per_genome`). Pooled emits `P01_substrates_per_genome`, `P02_sstype_by_genome` (viridis heatmap), `P03_evidence_basis`; no-ops for <2 genomes (verified). Per-genome + pooled render clean on synthetic fixtures.
 - [ ] 4.2 `core/multi_runner.py`: after the per-genome pass, when >=2 genomes, call `generate_figures.py --mode pooled` with every genome's integrated CSV, writing into the top-level figures dir (mirror `pool_and_plot_enrichment`).
 
 ## 5. Config, CLI, and runner wiring
