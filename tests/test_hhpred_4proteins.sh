@@ -44,7 +44,6 @@ python src/ssign_app/scripts/run_deeplocpro.py \
 
 python src/ssign_app/scripts/cross_validate_predictions.py \
   --deeplocpro "$OUTDIR/deeplocpro.tsv" \
-  --valid-systems "$OUTDIR/valid_systems.tsv" \
   --sample test --conf-threshold 0.8 --output "$OUTDIR/predictions.tsv"
 
 python src/ssign_app/scripts/proximity_analysis.py \

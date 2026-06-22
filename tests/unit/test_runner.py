@@ -57,8 +57,18 @@ class TestPipelineConfig:
         assert c.signalp_mode in ("local", "remote")
 
     def test_excluded_systems_default(self):
+        # T3SS is detected by default now (DeepSecE excluded for T3SS instead).
         c = PipelineConfig()
-        assert c.excluded_systems == ["Flagellum", "Tad", "T3SS"]
+        assert c.excluded_systems == ["Flagellum", "Tad"]
+        assert "T3SS" not in c.excluded_systems
+
+    def test_excluded_systems_default_matches_constant(self):
+        # Cross-file-drift guard: PipelineConfig and the shared constant agree,
+        # and neither lists T3SS (it is detected by default now).
+        from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS
+
+        assert DEFAULT_EXCLUDED_SYSTEMS == ["Flagellum", "Tad"]
+        assert PipelineConfig().excluded_systems == DEFAULT_EXCLUDED_SYSTEMS
 
     def test_excluded_systems_isolated_per_instance(self):
         # Mutable defaults via field(default_factory=...) — each instance

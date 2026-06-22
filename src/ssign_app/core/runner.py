@@ -173,7 +173,9 @@ class PipelineConfig:
 
     # Phase 2: SS detection
     wholeness_threshold: float = 0.8
-    excluded_systems: list = field(default_factory=lambda: ["Flagellum", "Tad", "T3SS"])
+    # T3SS detected by default; DeepSecE is excluded from T3SS calls in
+    # cross_validate_predictions (DSE unreliable on T3SS), so flagellar FPs stay out.
+    excluded_systems: list = field(default_factory=lambda: ["Flagellum", "Tad"])
     # MacSyFinder --db-type: "ordered_replicon" preserves gene-order signal
     # (more sensitive — recommended default). Switch to "unordered" for
     # highly fragmented assemblies where contig boundaries would otherwise
@@ -1792,6 +1794,8 @@ class PipelineRunner:
         plm_e = self.files.get("plm_effector", "")
         sp = self.files.get("signalp", "")
 
+        # cross_validate itself no longer needs valid_systems (DSE-T3SS is flagged
+        # unconditionally), but its presence still gates that the SS-detection step ran.
         valid_sys = self.files.get("valid_systems", "")
         if not valid_sys or not os.path.exists(valid_sys):
             return StepResult("cross_validate", False, "No valid_systems file from previous step")
@@ -1799,8 +1803,6 @@ class PipelineRunner:
         args = [
             "--deeplocpro",
             dlp,
-            "--valid-systems",
-            valid_sys,
             "--sample",
             self.config.sample_id,
             "--conf-threshold",

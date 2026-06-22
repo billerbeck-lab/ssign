@@ -10,7 +10,6 @@ Inputs (one row per protein each):
                      merges the five per-type PLM-Effector outputs before
                      calling cross_validate)
     --signalp        SignalP signal-peptide predictions (optional)
-    --valid-systems  MacSyFinder-validated secretion systems for this genome
     --ss-components  Per-protein SS component table (locus_tag → ss_type).
                      Used to apply T5SS-specific localisation rule.
 
@@ -41,11 +40,14 @@ The (ss_type, gene_name) → probability-columns map lives in
 `ssign_lib.constants.T5SS_COMPONENT_RULES`. Unmapped components fall
 back to the standard extracellular-only rule.
 
-DSE T3SS reliability guard (preserved from earlier logic): DeepSecE
-flags far more T3SS candidates than MacSyFinder validates
-(~1800 vs 0 across a 74-genome benchmark). If the genome has no
-MacSyFinder-validated T3SS, DSE T3SS calls are flagged
-(`dse_T3SS_flagged=True`) and excluded from the DSE trigger count.
+DSE T3SS reliability guard: DeepSecE flags far more T3SS candidates than
+MacSyFinder validates (~1800 vs 0 across a 74-genome benchmark) and cannot
+distinguish injectisome from flagellar T3SS. Every DeepSecE T3SS call is
+therefore flagged (`dse_T3SS_flagged=True`) and excluded from the DSE trigger
+count UNCONDITIONALLY, whether or not the genome has a validated T3SS. (With
+T3SS now detected by default, a genome-content condition would re-admit the
+flagellar false positives.) T3SS substrate calls rely on MacSyFinder detection
++ DeepLocPro + proximity, not DeepSecE.
 """
 
 import argparse
@@ -84,17 +86,6 @@ def _float_or_zero(value) -> float:
         return float(value)
     except (ValueError, TypeError):
         return 0.0
-
-
-def _genome_has_t3ss(valid_systems_path: str) -> bool:
-    """True if any non-excluded valid system in the genome is a T3SS variant."""
-    with open(valid_systems_path) as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            if row.get("excluded", "False").lower() == "true":
-                continue
-            if "T3SS" in row.get("ss_type", ""):
-                return True
-    return False
 
 
 def _load_ss_component_info(path: str) -> dict:
@@ -143,16 +134,19 @@ def _dlp_flag(
     return ext_prob >= conf_threshold, ext_prob
 
 
-def _dse_flag(dse_row: dict, has_t3ss: bool) -> tuple:
+def _dse_flag(dse_row: dict) -> tuple:
     """(is_secreted_by_dse, dse_ss_type, dse_max_prob, t3ss_flagged).
 
-    T3SS flagging: if DeepSecE predicts T3SS but MacSyFinder did not
-    validate a T3SS in this genome, mark the prediction as flagged
-    (unreliable) and exclude it from the trigger count.
+    T3SS flagging is UNCONDITIONAL: DeepSecE cannot distinguish injectisome
+    from flagellar T3SS (across a 74-genome fleet MacSyFinder validated 0 T3SS
+    while DeepSecE predicted 1,808, mostly flagellar), so every DeepSecE T3SS
+    call is flagged unreliable and excluded from the trigger count regardless of
+    whether the genome has a validated T3SS. With T3SS now detected by default,
+    a genome-content condition would re-admit those flagellar false positives.
     """
     dse_type = dse_row.get("dse_ss_type", "Non-secreted") if dse_row else "Non-secreted"
     dse_max = _float_or_zero(dse_row.get("dse_max_prob", 0)) if dse_row else 0.0
-    t3ss_flagged = dse_type == "T3SS" and not has_t3ss
+    t3ss_flagged = dse_type == "T3SS"
     is_secreted = dse_type not in _DSE_NEGATIVE and not t3ss_flagged and dse_max > 0
     return is_secreted, dse_type, dse_max, t3ss_flagged
 
@@ -234,7 +228,6 @@ def cross_validate(
     sp_data: dict,
     sample_id: str,
     conf_threshold: float,
-    has_t3ss: bool,
     ss_component_info: dict | None = None,
 ):
     """Yield one output dict per protein across the union of inputs.
@@ -259,7 +252,7 @@ def cross_validate(
 
         ss_type, gene_name = ss_component_info.get(locus, ("", ""))
         dlp_secreted, ext_prob = _dlp_flag(dlp, conf_threshold, ss_type, gene_name)
-        dse_secreted, dse_type, dse_max, t3ss_flagged = _dse_flag(dse, has_t3ss)
+        dse_secreted, dse_type, dse_max, t3ss_flagged = _dse_flag(dse)
         plm_e_secreted = _plm_effector_flag(plm_e, conf_threshold)
         sp_supports, sp_pred, sp_prob = _signalp_supports(sp)
 
@@ -321,7 +314,6 @@ def main():
         help="PLM-Effector combined-type TSV (optional). Missing file == no PLM-E trigger.",
     )
     parser.add_argument("--signalp", default="")
-    parser.add_argument("--valid-systems", required=True)
     parser.add_argument(
         "--ss-components",
         default="",
@@ -336,8 +328,6 @@ def main():
     parser.add_argument("--conf-threshold", type=float, default=0.8)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
-
-    has_t3ss = _genome_has_t3ss(args.valid_systems)
 
     dlp_data = _load_tsv_by_locus(args.deeplocpro)
     dse_data = _load_tsv_by_locus(args.deepsece)
@@ -365,7 +355,6 @@ def main():
             sp_data=sp_data,
             sample_id=args.sample,
             conf_threshold=args.conf_threshold,
-            has_t3ss=has_t3ss,
             ss_component_info=ss_component_info,
         ):
             if row["dse_T3SS_flagged"]:

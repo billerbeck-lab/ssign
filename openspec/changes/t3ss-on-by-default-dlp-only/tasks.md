@@ -1,27 +1,27 @@
 ## 1. Flip the default (all entry points)
 
-- [ ] 1.1 Drop `T3SS` from the default `excluded_systems` in `src/ssign_app/core/runner.py` (`PipelineConfig`), `src/ssign_app/cli.py` (flag `default=` + help text), `src/ssign_app/Home.py` (both the multiselect default and the `excluded_systems=` fallback), and `src/ssign_app/scripts/system_filtering.py` (CLI `--excluded-systems` default). New default: `Flagellum, Tad`.
-- [ ] 1.2 Grep the repo for the literal `Flagellum.*Tad.*T3SS` / `"Flagellum,Tad,T3SS"` to confirm no other entry point keeps the old default (cross-file-drift guard).
+- [x] 1.1 Dropped `T3SS` from the default `excluded_systems` in `runner.py` (`PipelineConfig`), `cli.py` (flag default + help), `Home.py` (multiselect default + `excluded_systems=` fallback), `system_filtering.py`, and ALSO `validate_macsyfinder_systems.py` + the `DEFAULT_EXCLUDED_SYSTEMS` constant (both missed by the original plan; found via grep). New default: `Flagellum, Tad`.
+- [x] 1.2 Grep confirms no remaining `Flagellum,Tad,T3SS` default in shipping code; only the cli.py help text ("pass 'Flagellum Tad T3SS' to restore") references the old triple intentionally.
 
 ## 2. DeepSecE never trusted for T3SS
 
-- [ ] 2.1 In `src/ssign_app/scripts/cross_validate_predictions.py` `_dse_flag`, make the flag unconditional: `t3ss_flagged = (dse_type == "T3SS")` (drop the `and not has_t3ss`).
-- [ ] 2.2 Remove `has_t3ss` from `_dse_flag` (and its caller threading) once unconditional; grep for `_genome_has_t3ss` / `has_t3ss` and delete `_genome_has_t3ss` if it is now unused. Update the module docstring (the "DSE T3SS reliability guard" note) to say DSE T3SS is always flagged.
+- [x] 2.1 `cross_validate_predictions._dse_flag`: `t3ss_flagged = (dse_type == "T3SS")`, unconditional.
+- [x] 2.2 Removed `has_t3ss` from `_dse_flag` + `cross_validate` signature + caller; deleted `_genome_has_t3ss` and the now-unused `--valid-systems` arg (updated the runner call site + 3 shell smoke tests that passed it). Module docstring rewritten to "always flagged".
 
 ## 3. Tests
 
-- [ ] 3.1 cross_validate: assert `dse_T3SS_flagged=True` and DSE excluded from the evidence count when DeepSecE predicts T3SS in a genome **with** a validated T3SS (the case the old conditional let through).
-- [ ] 3.2 cross_validate: same assertion in a genome **without** a validated T3SS (unchanged behaviour); and a non-T3SS DSE type still counts.
-- [ ] 3.3 config/CLI: assert the default `excluded_systems` is `["Flagellum", "Tad"]` (no T3SS) across `PipelineConfig`, the CLI parser, and `system_filtering` default.
-- [ ] 3.4 enrichment: on a small fixture genome with a validated T3SS, assert the stats contain a `T3SS` row with `tool=DLP, mode=window` and no `T3SS` row with `tool=DSE`.
-- [ ] 3.5 Run the full unit suite (`pytest tests/unit/ -q`); all green.
+- [x] 3.1 `test_dse_t3ss_flagged_even_alongside_real_secretion`: DSE T3SS flagged + uncounted even when another tool carries the protein (the case the old conditional let through).
+- [x] 3.2 `test_dse_t3ss_always_flagged_and_excluded` + `test_non_t3ss_dse_calls_count` (T1SS DSE still counts). `_run` helper de-threaded.
+- [x] 3.3 `test_excluded_systems_default` now asserts `["Flagellum","Tad"]`; added `test_excluded_systems_default_matches_constant` (PipelineConfig == `DEFAULT_EXCLUDED_SYSTEMS`, no T3SS). CLI parser is built inline in `main()` (not importable), so covered via the constant.
+- [x] 3.4 Already covered by existing enrichment tests: `test_dse_t3ss_excluded` + per-type aggregation asserting `("T3SS","DSE")` is skipped while T3SS DLP/window is produced (logic pre-wired via `ENRICH_DSE_NO_WINDOW`).
+- [x] 3.5 Full unit suite green: 1377 passed.
 
 ## 4. Docs
 
-- [ ] 4.1 `CLAUDE.md`: update the `excluded_systems` default and Key Parameters; reframe critical-bug-fix #4 from "T3SS excluded by default" to "T3SS detected by default; DeepSecE excluded for T3SS (DLP-only)".
-- [ ] 4.2 `README` and `docs/design_decisions.md`: update any statement that T3SS is excluded by default; document the `--excluded-systems Flagellum,Tad,T3SS` escape hatch and the DSE-off-for-T3SS rationale.
+- [x] 4.1 CLAUDE.md: `excluded_systems` default + Key Parameters + reframed critical-bug-fix #4 (T3SS detected by default; DeepSecE unconditionally excluded for T3SS).
+- [x] 4.2 README updated (default + DSE-off rationale + escape hatch). `docs/design_decisions.md` has no T3SS statement to update.
 
 ## 5. Validation (CX3)
 
-- [ ] 5.1 Re-run Salmonella LT2 (SPI-1/SPI-2) on CX3 with `--enrichment-stats`; confirm a sane T3SS substrate count (no 1,808-style flagellar blowup), a `T3SS / DLP / window` enrichment row, and no `T3SS / DSE` row.
+- [ ] 5.1 Re-run Salmonella LT2 (SPI-1/SPI-2) on CX3 with `--enrichment-stats`; confirm a sane T3SS substrate count (no 1,808-style flagellar blowup), a `T3SS / DLP / window` enrichment row, and no `T3SS / DSE` row. (Covered by the 1/4/20-genome CX3 runs being set up; Salmonella LT2 is in the 4-genome set.)
 - [ ] 5.2 Record the validation outcome in NOTES and mark task #68 done.

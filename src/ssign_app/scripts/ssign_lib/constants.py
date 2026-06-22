@@ -183,7 +183,9 @@ T5_QUALITY_FLAG_RANK = {
 VALID_SEC_SIGNAL_TYPES = ("SP", "LIPO")
 
 # --- System filtering ---
-DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad", "T3SS"]
+# T3SS is detected by default; DeepSecE is excluded from T3SS calls (see
+# cross_validate_predictions), so it is NOT in the default exclusion list.
+DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad"]
 
 # --- T5SS per-component DLP rules ---
 # Per-component biology rationale lives in cross_validate_predictions.py's

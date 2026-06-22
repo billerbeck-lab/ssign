@@ -127,9 +127,7 @@ def main():
     parser.add_argument("--gene-info", required=True, help="Gene info TSV")
     parser.add_argument("--sample", required=True, help="Sample identifier")
     parser.add_argument("--wholeness-threshold", type=float, default=0.8)
-    parser.add_argument(
-        "--excluded-systems", default="Flagellum,Tad,T3SS", help="Comma-separated system types to exclude"
-    )
+    parser.add_argument("--excluded-systems", default="Flagellum,Tad", help="Comma-separated system types to exclude")
     parser.add_argument("--out-components", required=True)
     parser.add_argument("--out-systems", required=True)
     args = parser.parse_args()

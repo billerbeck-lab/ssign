@@ -133,7 +133,7 @@ def main():
     parser.add_argument("--ss-components", default="", help="ss_components TSV for the localization gate")
     parser.add_argument("--predictions", required=True)
     parser.add_argument("--sample", required=True)
-    parser.add_argument("--excluded-systems", default="Flagellum,Tad,T3SS")
+    parser.add_argument("--excluded-systems", default="Flagellum,Tad")
     parser.add_argument("--required-fraction-correct", type=float, default=0.8)
     parser.add_argument(
         "--dlp-confidence-threshold",

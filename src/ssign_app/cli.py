@@ -155,8 +155,10 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g.add_argument(
         "--excluded-systems",
         nargs="+",
-        default=["Flagellum", "Tad", "T3SS"],
-        help="Secretion-system models to exclude (default: Flagellum Tad T3SS).",
+        default=["Flagellum", "Tad"],
+        help="Secretion-system models to exclude (default: Flagellum Tad). "
+        "T3SS is detected by default; DeepSecE is never trusted for T3SS calls. "
+        "Pass 'Flagellum Tad T3SS' to restore the old T3SS-excluded behaviour.",
     )
     g.add_argument(
         "--macsyfinder-db-type",

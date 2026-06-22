@@ -84,7 +84,6 @@ for IDX in 1 2; do
     echo "--- Cross-validate ---"
     python src/ssign_app/scripts/cross_validate_predictions.py \
       --deeplocpro "$OUTDIR/deeplocpro.tsv" \
-      --valid-systems "$OUTDIR/valid_systems.tsv" \
       --sample "$SAMPLE" --conf-threshold 0.8 \
       --output "$OUTDIR/predictions.tsv"
 

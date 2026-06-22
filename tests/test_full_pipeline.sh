@@ -99,7 +99,6 @@ echo ""
 echo "--- Step 7: Cross-validate ---"
 python src/ssign_app/scripts/cross_validate_predictions.py \
   --deeplocpro "$OUTDIR/deeplocpro.tsv" \
-  --valid-systems "$OUTDIR/valid_systems.tsv" \
   --sample test \
   --conf-threshold 0.8 \
   --output "$OUTDIR/predictions.tsv"

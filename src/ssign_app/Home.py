@@ -794,11 +794,13 @@ with tab_pipeline:
             st.multiselect(
                 "Exclude these system types",
                 all_system_types,
-                default=["Flagellum", "Tad", "T3SS"],
+                default=["Flagellum", "Tad"],
                 key="excluded",
                 help="Flagellum and Tad are excluded because they are not true secretion "
-                "systems. T3SS is excluded by default because DeepSecE T3SS "
-                "predictions are unreliable (mostly flagellar misclassification).",
+                "systems. T3SS is detected by default; DeepSecE is never trusted for "
+                "T3SS calls (its T3SS predictions are mostly flagellar misclassification), "
+                "so T3SS relies on MacSyFinder detection + DeepLocPro + proximity. "
+                "Add T3SS here to exclude it entirely.",
             )
 
         st.divider()
@@ -1649,7 +1651,7 @@ with tab_run:
                     bakta_db=st.session_state.get("bakta_db_path", ""),
                     use_input_annotations=st.session_state.get("use_input_annotations", False),
                     wholeness_threshold=st.session_state.get("wholeness", 0.8),
-                    excluded_systems=st.session_state.get("excluded", ["Flagellum", "Tad", "T3SS"]),
+                    excluded_systems=st.session_state.get("excluded", ["Flagellum", "Tad"]),
                     conf_threshold=st.session_state.get("conf", 0.8),
                     proximity_window=st.session_state.get("window", 3),
                     required_fraction_correct=st.session_state.get("frac", 0.8),

@@ -55,7 +55,6 @@ def _run(
     dse=None,
     plm_e=None,
     sp=None,
-    has_t3ss=False,
     conf_threshold=0.8,
     ss_component_info=None,
 ):
@@ -67,7 +66,6 @@ def _run(
             sp_data=sp or {},
             sample_id="sample1",
             conf_threshold=conf_threshold,
-            has_t3ss=has_t3ss,
             ss_component_info=ss_component_info,
         )
     )
@@ -190,26 +188,37 @@ class TestSignalPEvidenceOnly:
 
 
 class TestDseT3ssGuard:
-    """DSE T3SS calls are flagged and excluded when MacSyFinder found
-    no T3SS in the genome."""
+    """DSE T3SS calls are ALWAYS flagged and excluded. DeepSecE cannot
+    distinguish injectisome from flagellar T3SS, so it is never trusted for
+    T3SS regardless of genome content (now that T3SS is detected by default,
+    a genome-content escape hatch would re-admit the flagellar false positives)."""
 
-    def test_dse_t3ss_flagged_without_macsy_t3ss(self):
-        rows = _run(dse={"G1": _dse_row("G1", "T3SS")}, has_t3ss=False)
+    def test_dse_t3ss_always_flagged_and_excluded(self):
+        rows = _run(dse={"G1": _dse_row("G1", "T3SS")})
         r = rows[0]
         assert r["dse_T3SS_flagged"] is True
         assert r["is_secreted"] is False
         assert r["n_prediction_tools_agreeing"] == 0
 
-    def test_dse_t3ss_accepted_with_macsy_t3ss(self):
-        rows = _run(dse={"G1": _dse_row("G1", "T3SS")}, has_t3ss=True)
+    def test_dse_t3ss_flagged_even_alongside_real_secretion(self):
+        # A genuine DLP signal still carries the protein; only the DSE T3SS call
+        # is discounted. This is the case the old genome-content condition let
+        # through (a T3SS-bearing genome) — now it is flagged unconditionally.
+        rows = _run(
+            dlp={"G1": _dlp_row("G1", 0.95)},
+            dse={"G1": _dse_row("G1", "T3SS")},
+        )
+        r = rows[0]
+        assert r["dse_T3SS_flagged"] is True
+        assert r["is_secreted"] is True  # DLP carries it
+        assert r["n_prediction_tools_agreeing"] == 1  # DSE T3SS not counted
+
+    def test_non_t3ss_dse_calls_count(self):
+        rows = _run(dse={"G1": _dse_row("G1", "T1SS")})
         r = rows[0]
         assert r["dse_T3SS_flagged"] is False
         assert r["is_secreted"] is True
         assert r["n_prediction_tools_agreeing"] == 1
-
-    def test_non_t3ss_dse_calls_never_flagged(self):
-        rows = _run(dse={"G1": _dse_row("G1", "T1SS")}, has_t3ss=False)
-        assert rows[0]["dse_T3SS_flagged"] is False
 
 
 class TestT5SSLocalisationRule:
