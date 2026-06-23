@@ -22,7 +22,19 @@ window` rows present with strong enrichment. New figures 01-07 + P01-P03 + enric
 fig 04 SignalP-by-type reproduces Family A/B biology on real Salmonella (T1/T3/T6 = 0% SP+, T5a 7/8,
 T5c 1/1). t3ss tasks 5.1/5.2 + #68 satisfied.
 
-### BUG FOUND (multi-genome enrichment background) — to fix, NOT yet addressed:
+### BUG FIXED 2026-06-23 (multi-genome enrichment background):
+Root cause: `multi_runner._pool_segment_b_inputs` pooled `neighborhood_proteins` UNCONDITIONALLY and
+staged it as both `neighborhood_proteins` AND `proteins`, so the pool runner's DLP/DSE (which read
+`proteins` via `_resolve_step_input_fasta(whole_genome=True)`) ran on neighborhood-only even though
+`--enrichment-stats` forces `dlp_whole_genome`. Fix: when `dlp_whole_genome`/`dse_whole_genome`, also
+pool each genome's whole proteome (`proteins`) into `pooled_whole_genome.faa` and stage THAT as
+`proteins`; SignalP/PLM-E keep the neighborhood pool. Now batched DLP/DSE see the full proteome, the
+background is genome-wide, and per-genome enrichment matches single-genome. Regression tests:
+test_multi_runner.py::TestSegmentBWholeGenomePooling (2). 1379 unit tests pass. TRIGGER TO CONFIRM ON
+REAL DATA: re-run the 4-genome CX3 batch with --enrichment-stats; Salmonella T3SS null_mean should now
+be ~0.55 (matching the single-genome run), not 0.08. Original report below.
+
+### BUG (original report, now FIXED above):
 For the SAME genome (Salmonella), single-genome vs 4-genome runs give IDENTICAL observed + n_mask
 (T3SS 4/22, T6SS 2/18) but null_mean differs ~7x (T3SS 0.551 vs 0.08; T6SS 0.451 vs 0.066). Implied
 genome-wide DLP positive rate: single ~0.025/pos (~113 positives, biologically plausible ~2.5%),

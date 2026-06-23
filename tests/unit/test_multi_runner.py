@@ -50,6 +50,10 @@ class _StubConfig:
     skip_protparam: bool = False
     enrichment_stats: bool = False
     t5ass_annotate_whole: bool = False
+    # Whole-genome prediction flags (enrichment forces dlp/dse on in PipelineConfig);
+    # segment-B input pooling reads these to decide neighborhood vs whole-genome.
+    dlp_whole_genome: bool = False
+    dse_whole_genome: bool = False
 
 
 def _stub_step(step_id: str):
@@ -561,3 +565,58 @@ class TestT5assWholePoolPass:
             # skip can be an empty set or None — either way, t5ass_whole shouldn't be in it.
             if skip:
                 assert "t5ass_whole_annotations" not in skip
+
+
+class TestSegmentBWholeGenomePooling:
+    """Segment B must pool the WHOLE proteome for DLP/DSE when enrichment forces
+    whole-genome predictions, else the circular-shift null background is computed
+    from neighborhood-only positivity (null ~7x too low, fold/p inflated)."""
+
+    def _fixture(self, whole_genome: bool):
+        from types import SimpleNamespace
+
+        runners = {
+            "g1": SimpleNamespace(files={"neighborhood_proteins": "/tmp/g1_nb.faa", "proteins": "/tmp/g1_p.faa"}),
+            "g2": SimpleNamespace(files={"neighborhood_proteins": "/tmp/g2_nb.faa", "proteins": "/tmp/g2_p.faa"}),
+        }
+        pool_runner = SimpleNamespace(files={})
+        cfg = SimpleNamespace(dlp_whole_genome=whole_genome, dse_whole_genome=whole_genome)
+        fake_self = SimpleNamespace(configs=[cfg])
+        return fake_self, runners, pool_runner
+
+    def test_enrichment_pools_whole_genome_for_dlp_dse(self, tmp_path):
+        fake_self, runners, pool_runner = self._fixture(whole_genome=True)
+        captured = []
+
+        def spy(sources, dest):
+            captured.append((dest.name, [str(s[1]) for s in sources]))
+            return len(sources)
+
+        with patch("ssign_app.core.multi_runner.pool_fastas", side_effect=spy):
+            MultiGenomeRunner._pool_segment_b_inputs(fake_self, runners, pool_runner, tmp_path)
+
+        names = [c[0] for c in captured]
+        assert "pooled_neighborhood.faa" in names
+        assert "pooled_whole_genome.faa" in names
+        # DLP/DSE read `proteins` (whole_genome=True) -> must be the whole-genome pool
+        assert pool_runner.files["proteins"].endswith("pooled_whole_genome.faa")
+        # SignalP/PLM-E read `neighborhood_proteins` -> stays the neighborhood pool
+        assert pool_runner.files["neighborhood_proteins"].endswith("pooled_neighborhood.faa")
+        # the whole-genome pool drew from each genome's full proteome, not neighborhood
+        wg = next(c for c in captured if c[0] == "pooled_whole_genome.faa")
+        assert wg[1] == ["/tmp/g1_p.faa", "/tmp/g2_p.faa"]
+
+    def test_no_enrichment_keeps_neighborhood_only(self, tmp_path):
+        fake_self, runners, pool_runner = self._fixture(whole_genome=False)
+        captured = []
+
+        def spy(sources, dest):
+            captured.append(dest.name)
+            return len(sources)
+
+        with patch("ssign_app.core.multi_runner.pool_fastas", side_effect=spy):
+            MultiGenomeRunner._pool_segment_b_inputs(fake_self, runners, pool_runner, tmp_path)
+
+        assert captured == ["pooled_neighborhood.faa"]  # no whole-genome pool when enrichment off
+        assert pool_runner.files["proteins"].endswith("pooled_neighborhood.faa")
+        assert pool_runner.files["neighborhood_proteins"].endswith("pooled_neighborhood.faa")

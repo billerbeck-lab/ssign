@@ -368,7 +368,29 @@ class MultiGenomeRunner:
             pooled,
         )
         pool_runner.files["neighborhood_proteins"] = str(pooled)
+        # Default `proteins` to the neighborhood pool; the whole-genome block below
+        # overrides it for DLP/DSE when enrichment needs the full proteome.
         pool_runner.files["proteins"] = str(pooled)
+
+        # --enrichment-stats forces whole-genome DLP/DSE (Config.__post_init__) so
+        # the circular-shift null's background is genome-wide. In batched mode the
+        # pooled DLP/DSE run must therefore see the FULL proteome, not just the
+        # neighborhood: _resolve_step_input_fasta(whole_genome=True) returns
+        # `proteins`, so we pool the whole proteomes and stage them under that key.
+        # SignalP/PLM-E keep `neighborhood_proteins` (whole_genome=False), matching
+        # single-genome scope. Without this the background is computed from
+        # neighborhood-only positivity and the null is ~7x too low (fold/p inflated).
+        if self.configs[0].dlp_whole_genome or self.configs[0].dse_whole_genome:
+            wg_sources = [(sid, Path(r.files["proteins"])) for sid, r in runners.items() if "proteins" in r.files]
+            if wg_sources:
+                pooled_wg = pool_outdir / "pooled_whole_genome.faa"
+                n_wg = pool_fastas(wg_sources, pooled_wg)
+                pool_runner.files["proteins"] = str(pooled_wg)
+                logger.info(
+                    "Segment B: pooled %d whole-genome proteins for DLP/DSE (enrichment) -> %s",
+                    n_wg,
+                    pooled_wg,
+                )
 
     def _split_pooled_outputs(
         self,
