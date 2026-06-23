@@ -28,7 +28,7 @@ import seaborn as sns  # noqa: E402
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import CONF_THRESHOLD  # noqa: E402
+from ssign_lib.constants import CONF_THRESHOLD, display_type  # noqa: E402  # display_type: collapse SS subtypes
 from ssign_lib.plot_style import (  # noqa: E402
     SEQUENTIAL_CMAP,
     SS_TYPE_ORDER,
@@ -76,7 +76,9 @@ def _explode_ss_types(df, cols):
     long = df[keep].copy()
     long["ss_type"] = df["nearby_ss_types"].fillna("").astype(str).str.split(",")
     long = long.explode("ss_type")
-    long["ss_type"] = long["ss_type"].str.strip()
+    # Collapse subtype labels to canonical display types (T6SSi/ii -> T6SS,
+    # pT4SSt -> T4SS; T5 subtypes kept distinct) so figures match the enrichment.
+    long["ss_type"] = long["ss_type"].str.strip().map(lambda s: display_type(s) if s else s)
     return long[long["ss_type"] != ""].reset_index(drop=True)
 
 
@@ -119,7 +121,7 @@ def fig01_substrates_per_type(df, outdir, dpi):
         for ss in str(val).split(","):
             ss = ss.strip()
             if ss:
-                counts[ss] += 1
+                counts[display_type(ss)] += 1  # collapse subtypes to canonical labels
     if not counts:
         return None
     types = _ordered_types(counts)
@@ -297,10 +299,10 @@ def fig06_protein_length(df, outdir, dpi):
     ax.set_title("Secreted-protein length by SS type")
     plt.xticks(rotation=45, ha="right")
     fig.tight_layout()
-    out = numbered_path(outdir, 6, "protein_length")
+    out = numbered_path(outdir, 4, "protein_length")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("06", os.path.basename(out), "protein length by SS type")
+    return ("04", os.path.basename(out), "protein length by SS type")
 
 
 def _category_column(df):
@@ -333,10 +335,10 @@ def fig07_functional_categories(df, outdir, dpi, top_n=8):
     ax.legend(title="Category", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
     plt.xticks(rotation=45, ha="right")
     fig.tight_layout()
-    out = numbered_path(outdir, 7, "functional_categories")
+    out = numbered_path(outdir, 5, "functional_categories")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("07", os.path.basename(out), "functional categories per SS type")
+    return ("05", os.path.basename(out), "functional categories per SS type")
 
 
 def fig_physicochemical(df, outdir, dpi):
@@ -427,12 +429,12 @@ def pooled03_evidence_basis(df, outdir, dpi):
     return ("P03", os.path.basename(out), "pooled predictor support")
 
 
+# fig04 SignalP-by-type and fig05 tool-coverage intentionally dropped (Teo, 2026-06-23).
+# Functions kept below for reference but not registered, so they don't generate.
 PER_GENOME_FIGS = [
     ("ss_comp", fig01_substrates_per_type),
     ("evidence", fig02_secretion_evidence),
     ("localization", fig03_localization_confidence),
-    ("signalp", fig04_signalp_by_type),
-    ("tool_heatmap", fig05_tool_coverage),
     ("length", fig06_protein_length),
     ("func_summary", fig07_functional_categories),
 ]

@@ -12,10 +12,8 @@ _PER_GENOME = [
     "01_substrates_per_type.png",
     "02_secretion_evidence.png",
     "03_localization_confidence.png",
-    "04_signalp_by_type.png",
-    "05_tool_coverage.png",
-    "06_protein_length.png",
-    "07_functional_categories.png",
+    "04_protein_length.png",
+    "05_functional_categories.png",
 ]
 
 
@@ -60,7 +58,7 @@ def test_per_genome_emits_numbered_set(monkeypatch, tmp_path):
 
 
 def test_missing_column_skips_only_its_figure(monkeypatch, tmp_path):
-    df = _make_df().drop(columns=["signalp_prediction"])  # only fig 04 depends on it
+    df = _make_df().drop(columns=["aa_length"])  # only fig 04 (length) depends on it
     csv = tmp_path / "integrated.csv"
     df.to_csv(csv, index=False)
     out = tmp_path / "figs"
@@ -69,13 +67,12 @@ def test_missing_column_skips_only_its_figure(monkeypatch, tmp_path):
     )
 
     produced = _pngs(out)
-    assert "04_signalp_by_type.png" not in produced
-    # The others still render (05 has blastp coverage independent of signalp).
+    assert "04_protein_length.png" not in produced
     for f in [
         "01_substrates_per_type.png",
         "02_secretion_evidence.png",
-        "05_tool_coverage.png",
-        "07_functional_categories.png",
+        "03_localization_confidence.png",
+        "05_functional_categories.png",
     ]:
         assert f in produced
 
@@ -144,10 +141,10 @@ def test_toggle_skips_named_figure(monkeypatch, tmp_path):
             "--dpi",
             "80",
             "--no-length",
-            "--no-signalp",
+            "--no-func-summary",
         ],
     )
     produced = _pngs(out)
-    assert "06_protein_length.png" not in produced
-    assert "04_signalp_by_type.png" not in produced
+    assert "04_protein_length.png" not in produced
+    assert "05_functional_categories.png" not in produced
     assert "01_substrates_per_type.png" in produced
