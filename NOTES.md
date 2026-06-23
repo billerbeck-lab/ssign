@@ -12,8 +12,29 @@ Three CX3 runs to validate (all `--small --enrichment-stats`, T3SS now on by def
 - **20 genome**: T3SS-rich benchmark set, tarball at `/tmp/ssign_benchmark_20.tgz` (56MB, NOT on CX3 yet — scp up to `$HOME/ssign-benchmark-20/`). Accessions: NC_003197.2 NC_004337.2 NC_003131.1 NC_008791.1 NC_004578.1 NC_011601.1 NC_013716.1 NC_000117.1 NC_003295.1 NC_003902.1 NC_002516.2 NC_002505.1 NC_004603.1 NC_008570.1 NC_002942.5 NC_003063.2 BX470248 NC_006351.1 NC_014500.1 AE002098. Use `--walltime 24:00:00`.
 WHAT TO VERIFY: (a) new figures 01-07 + pooled P01-P03 render; (b) T3SS substrate count is SANE
 (not 1,808-flagellar-blowup); (c) enrichment stats have a `T3SS / DLP / window` row and NO
-`T3SS / DSE` row; (d) pooled cross-genome figures at 20-genome scale. On success: record in
-this file, mark t3ss tasks 5.1/5.2 + task #68 done, /opsx:apply remaining + /opsx:archive both changes.
+`T3SS / DSE` row; (d) pooled cross-genome figures at 20-genome scale.
+
+### RESULT 2026-06-23 (runs retrieved to validation_sweeps/cx3_t3ss/, untracked):
+PASS on the headline. All 3 runs completed (1-genome Salmonella 24/24; 4-genome all 17/17 + pooled;
+20-genome all 20 x 17/17 + pooled). T3SS now DETECTED with SANE counts (0-12/genome, 61 pooled over
+20 — NOT the 1,808 blowup). Every `T3SS / DSE` row is empty/n.a. (DSE correctly excluded); `T3SS / DLP /
+window` rows present with strong enrichment. New figures 01-07 + P01-P03 + enrichment grids all render;
+fig 04 SignalP-by-type reproduces Family A/B biology on real Salmonella (T1/T3/T6 = 0% SP+, T5a 7/8,
+T5c 1/1). t3ss tasks 5.1/5.2 + #68 satisfied.
+
+### BUG FOUND (multi-genome enrichment background) — to fix, NOT yet addressed:
+For the SAME genome (Salmonella), single-genome vs 4-genome runs give IDENTICAL observed + n_mask
+(T3SS 4/22, T6SS 2/18) but null_mean differs ~7x (T3SS 0.551 vs 0.08; T6SS 0.451 vs 0.066). Implied
+genome-wide DLP positive rate: single ~0.025/pos (~113 positives, biologically plausible ~2.5%),
+multi ~0.0036/pos (~16, implausibly low). So MultiGenomeRunner's enrichment background is computed
+over too few whole-genome positives, INFLATING fold + significance in batched runs (T3SS fold 7.3x->50x,
+n.s.->***). Substrate CALLS are correct; only the enrichment null baseline is wrong. This is the
+"segment-B prediction pooling x forced-whole-genome-DLP" interaction flagged at submit time. Trigger to
+revisit: before trusting any multi-genome enrichment p/q. Likely in core/multi_runner.py segment-B pooling
+or enrichment_testing background construction; needs the full run dir (raw deeplocpro.tsv per genome) on
+CX3 to confirm the positive-count gap. Single-genome enrichment is correct and unaffected.
+COSMETIC: figures label SS variants raw (T6SSi, a T4aP column) while enrichment collapses via
+display_type (T6SS) — consider routing figure ss_type labels through display_type too.
 
 ## DeepLocPro crashes on mega-proteins — FIXED 2026-06-18 (openspec deeplocpro-mega-protein-guard)
 

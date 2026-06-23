@@ -23,5 +23,5 @@
 
 ## 5. Validation (CX3)
 
-- [ ] 5.1 Re-run Salmonella LT2 (SPI-1/SPI-2) on CX3 with `--enrichment-stats`; confirm a sane T3SS substrate count (no 1,808-style flagellar blowup), a `T3SS / DLP / window` enrichment row, and no `T3SS / DSE` row. (Covered by the 1/4/20-genome CX3 runs being set up; Salmonella LT2 is in the 4-genome set.)
-- [ ] 5.2 Record the validation outcome in NOTES and mark task #68 done.
+- [x] 5.1 CX3 runs (1/4/20 genome, 2026-06-23) confirm it: Salmonella T3SS = 4 substrates (sane, not a flagellar blowup), `T3SS / DLP / window` row present, `T3SS / DSE` empty/n.a. across all genomes. Fleet T3SS counts 0-12/genome, 61 pooled over 20. All steps succeeded.
+- [x] 5.2 Validation recorded in NOTES.md (CX3 RESULT 2026-06-23). Independent multi-genome enrichment-background bug found (null_mean ~7x low in batched runs) — logged separately in NOTES; does NOT affect T3SS detection/DSE-exclusion, single-genome enrichment, or substrate calls.
