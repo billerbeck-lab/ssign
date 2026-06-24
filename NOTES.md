@@ -10,8 +10,15 @@ Tracks items skipped during tasks. One bullet per item: what, why, trigger to re
   directive assumed only 5), and every genuinely-missing T5SS genome is already in `refseq_cache`.
 - **Trigger to revisit:** before `/opsx:archive` of this change, sync the 66→59 / 16→15 numbers into
   `proposal.md` + `specs/tier2-benchmark-rerun/spec.md` so the contract matches `rerun_panel_manifest.tsv`.
-- **Also deferred:** task 2.2b (stage the 7 cache-not-staged T5SS genomes into `inputs_gb/`) before the
-  CX3 submit dry-run (2.3).
+- **Also deferred:** task 2.2b (stage the 7 cache-not-staged T5SS genomes into `inputs_gb/` + collapse the
+  2 same-assembly merges) before the CX3 submit dry-run (2.3).
+- **57 distinct genomes** (not 59): PAO1 (`AE004091`+`NC_002516.2`) and A. fabrum C58 (`NC_003063.2`
+  +`NC_003065.3`) are each one assembly split across units; run each as ONE whole-assembly input.
+- **Corpus organism mislabels** found + corrected in the manifest via NCBI: `NC_006351`=B. pseudomallei
+  K96243 (corpus said B. thailandensis), `NC_013716`=Citrobacter rodentium (said EPEC), `NC_007508`=
+  Xanthomonas euvesicatoria (said P. aeruginosa). Worth a corpus-level fix during Phase A re-verification.
+- **inputs_gb -> CX3:** don't git-track the 537 MB dir; only ~9 new/merged `.gbff` are needed on CX3
+  (7 staged + PAO1 + C58), tar just those and scp.
 
 ## RESUME HERE (2026-06-24): apply OpenSpec change `figures-v2`
 Teo stepped away to revamp poster figures; resume the figure overhaul after.

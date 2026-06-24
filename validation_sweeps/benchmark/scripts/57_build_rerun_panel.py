@@ -53,6 +53,9 @@ MANIFEST = P2 / "panel_manifest.tsv"
 T5SS = BENCH / "data" / "dataset" / "t5ss_effectors.tsv"
 CACHE = BENCH / "data" / "refseq_cache"
 ACC_CACHE = P2 / "_t5_acc_cache.json"
+META_CACHE = P2 / "_unit_meta_cache.json"
+EFF_MAP = P2 / "effector_unit_map.tsv"
+POS = BENCH / "data" / "dataset" / "positives_all.tsv"
 OUT = P2 / "rerun_panel_manifest.tsv"
 PROX = {"T1SS", "T2SS", "T3SS", "T4SS", "T6SS"}
 
@@ -135,6 +138,100 @@ def genome_bases(acc: str, cache: dict) -> list[str]:
     return cache[acc]
 
 
+def unit_meta(acc: str, cache: dict) -> dict:
+    """accession -> {biosample, organism} from NCBI (authoritative; the corpus organism column has join
+    errors, e.g. it labels Xanthomonas unit NC_007508.1 as P. aeruginosa). biosample is the genome-identity
+    key: two staged units sharing a biosample are replicons of ONE assembly (e.g. a 2-chromosome genome)."""
+    if acc in cache:
+        return cache[acc]
+    meta = {"biosample": "", "organism": ""}
+    try:
+        if acc.upper().startswith("GCF_"):
+            d = _http_json(f"https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/{acc}/dataset_report")
+            rep = (d.get("reports") or [{}])[0]
+            meta["organism"] = rep.get("organism", {}).get("organism_name", "")
+            meta["biosample"] = rep.get("assembly_info", {}).get("biosample", {}).get("accession", "")
+        else:
+            d = _http_json(
+                f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=nuccore&id={acc}&retmode=json"
+            )
+            doc = d["result"][d["result"]["uids"][0]]
+            meta["biosample"] = doc.get("biosample", "")
+            meta["organism"] = doc.get("organism", "") or doc.get("title", "").split(",")[0]
+    except Exception as e:  # noqa: BLE001
+        print(f"  WARN could not resolve meta for {acc}: {e}")
+        return meta  # not cached -> retried next run
+    cache[acc] = meta
+    return meta
+
+
+def genome_groups(units: list, meta_cache: dict, acc_cache: dict) -> dict:
+    """unit accession -> genome_group id. Unions units that are the same assembly: shared (non-empty)
+    biosample, OR accession-alias overlap (RefSeq NC_ vs INSDC, e.g. PAO1 = AE004091 = NC_002516.2)."""
+    parent: dict[str, str] = {u: u for u in units}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        parent[find(a)] = find(b)
+
+    by_biosample: dict[str, str] = {}
+    by_base: dict[str, str] = {}
+    for u in units:
+        for b in genome_bases(u, acc_cache):  # link RefSeq/INSDC spellings of one replicon
+            if b in by_base:
+                union(u, by_base[b])
+            else:
+                by_base[b] = u
+        bs = unit_meta(u, meta_cache).get("biosample", "")
+        if bs:
+            if bs in by_biosample:
+                union(u, by_biosample[bs])
+            else:
+                by_biosample[bs] = u
+    return {u: find(u) for u in units}
+
+
+def enrich(t5_status: dict) -> tuple[dict, set]:
+    """genome-key -> {organism, eff:[(gene, ss_type, role, testable, found)]}, keyed by unit_id (staged)
+    or T5SS accession (to-add). Aggregates the answer-key secreted proteins each genome carries, joining
+    proximity effectors (effector_unit_map), T5SS effectors (t5ss_effectors), organism (positives_all /
+    t5ss_effectors), and ssign's found set (emitted_secreted in the actual tables)."""
+    pos = read_tsv(POS)
+    org_by_uni = {r["uniprot"]: r["organism"] for r in pos if r.get("uniprot", "").strip() and r["uniprot"] != "-"}
+    org_by_gss = {(r["gene"].lower(), r["ss_type"]): r["organism"] for r in pos if r.get("gene")}
+
+    found = set()
+    for tag in ("panel_genbank_default", "panel_genbank_t3ss"):
+        for r in clean_dataset.load_clean_actual(P2 / f"actual_per_effector.{tag}.tsv"):
+            if r["ssign_call"] == "emitted_secreted":
+                found.add((r.get("unit_id", ""), r.get("uniprot", "")))
+                found.add((r.get("unit_id", ""), r.get("effector_locus", "")))
+
+    agg: dict[str, dict] = defaultdict(lambda: {"organism": "", "eff": []})
+    for r in read_tsv(EFF_MAP):  # proximity effectors, already keyed to staged unit_id
+        u = r["unit_id"]
+        if not u:
+            continue
+        fnd = (u, r["uniprot"]) in found or (u, r.get("effector_locus", "")) in found
+        agg[u]["eff"].append((r["gene"], r["ss_type"], "proximity", r.get("testable", ""), fnd))
+        if not agg[u]["organism"]:
+            agg[u]["organism"] = org_by_uni.get(r["uniprot"], "") or org_by_gss.get(
+                (r["gene"].lower(), r["ss_type"]), ""
+            )
+    for r in read_tsv(T5SS):  # T5SS effectors, keyed to their staged unit or the to-add accession
+        g = r["refseq_genome"].strip()
+        st, unit = t5_status.get(g, ("", ""))
+        key = unit if st == "staged" and unit else g
+        agg[key]["eff"].append((r["gene"], "T5SS", "T5SS-self", r.get("verified", ""), None))
+        agg[key]["organism"] = agg[key]["organism"] or r.get("organism", "")
+    return agg, found
+
+
 def main() -> int:
     # staged replicon base -> unit_id, from the existing panel manifest (authoritative "is staged")
     rep2unit: dict[str, str] = {}
@@ -168,21 +265,68 @@ def main() -> int:
     drop_units = staged_units - panel_units  # staged but neither proximity-testable nor T5SS-bearing
     t5_to_add = {g: s for g, (s, u) in t5_status.items() if s != "staged"}  # cached or needs-fetch
 
-    # write manifest
+    # enriched per-genome detail (organism, systems, secreted proteins, found-by-ssign)
+    agg, _ = enrich(t5_status)
+
+    # NCBI-authoritative organism + genome identity for every genome in the manifest
+    meta_cache = json.loads(META_CACHE.read_text()) if META_CACHE.exists() else {}
+    all_genomes = sorted(panel_units | set(t5_to_add) | drop_units)
+    groups = genome_groups(all_genomes, meta_cache, acc_cache)
+    ACC_CACHE.write_text(json.dumps(acc_cache, indent=0))
+    META_CACHE.write_text(json.dumps(meta_cache, indent=0))
+    run_groups = {groups[u] for u in panel_units}  # distinct assemblies among the staged-to-run units
+
+    def row(key, role, staged_status, action, unit_id, note=""):
+        d = agg.get(key, {"organism": "", "eff": []})
+        eff = d["eff"]
+        systems = ",".join(sorted({ss for _g, ss, _src, _t, _f in eff}))
+        sp = "; ".join(f"{g}({ss}){'*' if f else ''}" for g, ss, _src, _t, f in eff)  # * = emitted by ssign
+        n_found = sum(1 for _g, _ss, _src, _t, f in eff if f)
+        org = unit_meta(key, meta_cache).get("organism") or d["organism"]
+        return [
+            key,
+            org,
+            groups.get(key, key),
+            role,
+            systems,
+            len(eff),
+            n_found,
+            sp,
+            staged_status,
+            action,
+            unit_id,
+            note,
+        ]
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT, "w", newline="") as fh:
         w = csv.writer(fh, delimiter="\t")
-        w.writerow(["genome", "role", "staged_status", "action", "unit_id"])
+        w.writerow(
+            [
+                "genome",
+                "organism",
+                "genome_group",
+                "role",
+                "systems",
+                "n_secreted_proteins",
+                "n_found_by_ssign",
+                "secreted_proteins",
+                "staged_status",
+                "action",
+                "unit_id",
+                "note",
+            ]
+        )
         for u in sorted(keep):
             role = "proximity+T5SS" if u in t5_staged_units else "proximity"
-            w.writerow([u, role, "staged", "run", u])
+            w.writerow(row(u, role, "staged", "run", u))
         for u in sorted(t5_staged_units - keep):
-            w.writerow([u, "T5SS", "staged", "run", u])
+            w.writerow(row(u, "T5SS", "staged", "run", u, "rescued: bears a T5SS effector"))
         for g in sorted(t5_to_add):
             act = "stage-from-cache" if t5_to_add[g] == "cache-not-staged" else "fetch+stage"
-            w.writerow([g, "T5SS", t5_to_add[g], act, ""])
+            w.writerow(row(g, "T5SS", t5_to_add[g], act, "", "missing from fleet"))
         for u in sorted(drop_units):
-            w.writerow([u, "none", "staged", "DROP (no testable answer-key system)", u])
+            w.writerow(row(u, "none", "staged", "DROP", u, "no testable answer-key system (effectors non-testable)"))
 
     # summary
     n_panel = len(panel_units) + len(t5_to_add)
@@ -195,9 +339,20 @@ def main() -> int:
     print(f"  needs-fetch                   : {sum(1 for s in t5_to_add.values() if s == 'needs-fetch')}")
     print(f"staged units DROPPED            : {len(drop_units)}")
     print(
-        f"FINAL PANEL                     : {n_panel} genomes "
+        f"FINAL PANEL                     : {n_panel} run-units "
         f"({len(panel_units)} already staged + {len(t5_to_add)} to add)"
     )
+    # collapse multi-replicon / dual-accession units to distinct assemblies (biosample + alias union)
+    n_distinct = len(run_groups) + len(t5_to_add)
+    multi = {gid: [u for u in panel_units if groups[u] == gid] for gid in run_groups}
+    multi = {g: us for g, us in multi.items() if len(us) > 1}
+    print(f"  distinct assemblies (deduped) : {n_distinct} ({len(run_groups)} staged + {len(t5_to_add)} to add)")
+    if multi:
+        print(
+            f"  {sum(len(us) - 1 for us in multi.values())} run-units are extra replicons/aliases of {len(multi)} assemblies:"
+        )
+        for us in sorted(multi.values()):
+            print(f"    same genome: {', '.join(sorted(us))}")
     print(f"\nwrote {OUT.relative_to(BENCH)}")
     print("\nT5SS to ADD:")
     for g in sorted(t5_to_add):
