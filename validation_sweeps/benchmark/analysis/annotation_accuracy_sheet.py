@@ -30,6 +30,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import clean_dataset  # noqa: E402
 from bench_index import accession_base, load_tsv  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -162,8 +163,54 @@ def match_corpus(e: dict, pos: list[dict]) -> dict:
     return (same_genome or pool)[0]
 
 
+# SecReT6 external-DB entries that leaked into the emitted set and are NOT backed by the audited
+# corpus. Two are gene-name collisions with the corpus's T3SS Bop effectors (a different
+# B. thailandensis T6SS-locus protein matched the corpus BopA/BopE by gene name); two have no
+# primary reference (Tle3 paralogs). Graded ground truth must come from the audited corpus, so
+# these are dropped. (EFF00142, a duplicate of TseA, is removed separately by dedup_by_locus.)
+EXCLUDE_EXTERNAL = {
+    ("BopA", "BTH_RS04545"),
+    ("BopE", "BTH_RS04535"),
+    ("EFF00136", "BTH_RS00455"),
+    ("EFF00150", "BTH_RS28610"),
+    # Broken ground truth: Q3BPB1 is a deleted UniProt entry and the corpus 'Serralysin' family
+    # conflicts with the unanimous S8-subtilisin tool calls, so it cannot be graded.
+    ("prtA", "IS_RS19530"),
+}
+
+
+def dedup_by_locus(rows: list[dict]) -> list[dict]:
+    """One emitted protein is graded once. Two corpus/external entries can point at the same
+    ssign_locus (e.g. SecReT6 'EFF00142' and corpus 'TseA_T6SS1' are both BTH_RS25940); keep the
+    one with a UniProt accession / non-EFF gene name so the named ground truth wins."""
+
+    def rank(r):
+        has_uni = bool((r.get("uniprot") or "").strip() and r["uniprot"] != "-")
+        return (has_uni, not (r.get("gene") or "").startswith("EFF"))
+
+    best, order = {}, []
+    for r in rows:
+        k = (r.get("ssign_locus") or r.get("effector_locus") or "").strip() or f"_{len(order)}"
+        if k not in best:
+            best[k] = r
+            order.append(k)
+        elif rank(r) > rank(best[k]):
+            best[k] = r
+    return [best[k] for k in order]
+
+
 def main():
-    panel = [r for r in load_tsv(PANEL) if r["ssign_call"] == "emitted_secreted"]
+    panel = dedup_by_locus([r for r in load_tsv(PANEL) if r["ssign_call"] == "emitted_secreted"])
+    panel = [r for r in panel if (r.get("gene", ""), r.get("ssign_locus", "")) not in EXCLUDE_EXTERNAL]
+    # Drop effectors quarantined by the answer-key audit (e.g. redundant strain-duplicates cya Q57506,
+    # lktA Q9ETX2) so the annotation grade reflects the same verified set as the recall figures.
+    dropped = clean_dataset.dropped_id()
+    panel = [
+        r
+        for r in panel
+        if (r.get("gene", ""), r.get("uniprot", "")) not in dropped
+        and (r.get("gene", ""), r.get("effector_locus", "")) not in dropped
+    ]
     pos = load_tsv(POS)
     loci = {r["ssign_locus"] for r in panel if r["ssign_locus"]}
     idx = build_locus_index(loci)

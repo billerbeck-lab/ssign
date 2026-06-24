@@ -117,11 +117,12 @@ def main():
     ax.text(
         0.02,
         0.96,
-        "T1SS: 0 misses after the full-assembly staging fix. The RTX toxins\n"
-        "(HlyA, ApxIA, LtxA, LktA) were missed only because each was staged on a\n"
-        "plasmid/contig lacking the chromosomal TolC; staging the whole assembly\n"
-        "lets the loner-OMF rule find TolC and the T1SS is called. Remaining\n"
-        "misses are mostly genuine detection failures (T3SS/T4SS).",
+        "T1SS: 4 RTX toxins (HlyA, ApxIA, LtxA, LktA) missed as detection\n"
+        "failures because each draft assembly fragments the locus away from the\n"
+        "chromosomal TolC, so MacSyFinder calls no T1SS. Full-assembly MacSyFinder\n"
+        "(script 50) finds a complete T1SS for all four, so the whole-genome CX3\n"
+        "rerun is expected to recover them. Other misses are genuine detection\n"
+        "failures (T3SS/T4SS).",
         transform=ax.transAxes,
         fontsize=8,
         color="#555",

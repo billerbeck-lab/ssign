@@ -1,0 +1,329 @@
+{
+"(gene:YspE) AND (organism_name:\"Yersinia enterocolitica\")": [],
+"(YE_RS17825) AND (organism_name:\"Yersinia enterocolitica\")": [],
+"(gene:YspE) AND (reviewed:true)": [],
+"(gene:EspZ) AND (organism_name:\"Escherichia coli\")": [
+{
+"Entry": "O52302",
+"Reviewed": "unreviewed",
+"Protein names": "SepZ (T3SS effector EspZ) (Type III secretion system protein SepZ)",
+"Gene Names": "sepZ espZ B6R15_003114 NCTC8622_07612",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM3",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM4",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM5",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM7",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM9",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM1",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM2",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM6",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q45FM8",
+"Reviewed": "unreviewed",
+"Protein names": "EspZ",
+"Gene Names": "espZ",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "O52301",
+"Reviewed": "unreviewed",
+"Protein names": "SepZ (T3SS effector EspZ) (Type III secretion system protein SepZ)",
+"Gene Names": "sepZ espZ ABE91_000860 NCTC8960_02094",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+},
+{
+"Entry": "Q7DB68",
+"Reviewed": "unreviewed",
+"Protein names": "T3SS secreted effector EspZ",
+"Gene Names": "espZ ECs_4571",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli O157:H7"
+},
+{
+"Entry": "B7UMA9",
+"Reviewed": "unreviewed",
+"Protein names": "LEE-encoded effector EspZ",
+"Gene Names": "espZ E2348C_3951",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
+}
+],
+"(gene:NleB) AND (organism_name:\"Citrobacter rodentium\")": [
+{
+"Entry": "A0A482PDI9",
+"Reviewed": "reviewed",
+"Protein names": "Protein-arginine N-acetylglucosaminyltransferase NleB (Arginine GlcNAcyltransferase NleB) (NleBc) (EC 2.4.1.-) (Non-LEE-encoded type III effector B)",
+"Gene Names": "nleB E2R62_01920",
+"Protein families": "Glycosyltransferase NleB family",
+"Function [CC]": "FUNCTION: Protein-arginine N-acetylglucosaminyltransferase effector that disrupts TNF signaling in infected cells, including NF-kappa-B signaling, apoptosis and necroptosis (PubMed:16552063, PubMed:23955153, PubMed:24025841, PubMed:28522607). Acts by catalyzing the transfer of a single N-acetylglucosamine (GlcNAc) to a conserved arginine residue in the death domain of host proteins FADD, TNFRSF1A and RIPK1: arginine GlcNAcylation prevents homotypic/heterotypic death domain interactions and assembly of the oligomeric TNF receptor complex, thereby disrupting TNF signaling (PubMed:23955153, PubMed:28522607, PubMed:28860194). Has preference for host FADD as substrate compared to TNFRSF1A and RIPK1 (PubMed:28860194). Also acts on host proteins without a death domain: catalyzes GlcNAcylation of host GAPDH protein, thereby preventing GAPDH interaction with TRAF2 and TRAF3, leading to inhibit NF-kappa-B signaling and type I interferon production, respectively (PubMed:23332158, PubMed:27387501, PubMed:28522607). Also displays intra-bacterial activity by mediating GlcNAcylation of glutathione synthetase GshB (PubMed:31974499). Catalyzes auto-GlcNAcylation, which is required for activity toward death domain-containing host target proteins (By similarity). {ECO:0000250|UniProtKB:B7UI21, ECO:0000269|PubMed:16552063, ECO:0000269|PubMed:23332158, ECO:0000269|PubMed:23955153, ECO:0000269|PubMed:24025841, ECO:0000269|PubMed:27387501, ECO:0000269|PubMed:28522607, ECO:0000269|PubMed:28860194, ECO:0000269|PubMed:31974499}.",
+"Organism": "Citrobacter rodentium"
+}
+],
+"(gene:CopN) AND (organism_name:\"Chlamydia trachomatis\")": [],
+"(CT_089) AND (organism_name:\"Chlamydia trachomatis\")": [
+{
+"Entry": "O84091",
+"Reviewed": "unreviewed",
+"Protein names": "Low Calcium Response E",
+"Gene Names": "lcrE CT_089",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Chlamydia trachomatis serovar D (strain ATCC VR-885 / DSM 19411 / UW-3/Cx)"
+}
+],
+"(gene:ChlaDub1) AND (reviewed:true)": [],
+"(gene:BopA) AND (organism_name:\"Burkholderia thailandensis\")": [
+{
+"Entry": "Q2T703",
+"Reviewed": "reviewed",
+"Protein names": "Effector protein BopA",
+"Gene Names": "bopA BTH_II0849",
+"Protein families": "BopA/IcsB family",
+"Function [CC]": "FUNCTION: Plays a role in mediating bacterial evasion from the host autophagic pathway. {ECO:0000250}.",
+"Organism": "Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)"
+}
+],
+"(gene:Tae4_Stm) AND (organism_name:\"Salmonella enterica\")": [],
+"(gene:Tae4) AND (organism_name:\"Salmonella enterica\")": [],
+"(gene:Stm) AND (organism_name:\"Salmonella enterica\")": [],
+"(STM14_RS02020) AND (organism_name:\"Salmonella enterica\")": [],
+"(gene:Tae4_Stm) AND (reviewed:true)": [],
+"(gene:Tae4) AND (reviewed:true)": [
+{
+"Entry": "O14464",
+"Reviewed": "reviewed",
+"Protein names": "Large ribosomal subunit protein bL36m (54S ribosomal protein RTC6, mitochondrial) (Restriction of telomere capping protein 6) (Translation associated element 4)",
+"Gene Names": "RTC6 TAE4 YPL183W-A YPL183BW",
+"Protein families": "Bacterial ribosomal protein bL36 family",
+"Function [CC]": "FUNCTION: Component of the mitochondrial ribosome (mitoribosome), a dedicated translation machinery responsible for the synthesis of mitochondrial genome-encoded proteins, including at least some of the essential transmembrane subunits of the mitochondrial respiratory chain. The mitoribosomes are attached to the mitochondrial inner membrane and translation products are cotranslationally integrated into the membrane (PubMed:24675956, PubMed:25609543). bL36m may be involved in a process influencing telomere capping (PubMed:18845848, PubMed:20691087). {ECO:0000269|PubMed:18845848, ECO:0000269|PubMed:20691087, ECO:0000305|PubMed:24675956, ECO:0000305|PubMed:25609543}.",
+"Organism": "Saccharomyces cerevisiae (strain ATCC 204508 / S288c) (Baker's yeast)"
+}
+],
+"(gene:Tlde1A) AND (organism_name:\"Salmonella enterica\")": [],
+"(STM14_RS02030) AND (organism_name:\"Salmonella enterica\")": [],
+"(gene:Tlde1A) AND (reviewed:true)": [],
+"(gene:Tae_Atu4347) AND (organism_name:\"Agrobacterium tumefaciens\")": [],
+"(gene:Tae) AND (organism_name:\"Agrobacterium tumefaciens\")": [
+{
+"Entry": "A0A7S9FTT9",
+"Reviewed": "unreviewed",
+"Protein names": "TaeMX",
+"Gene Names": "tae",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Agrobacterium fabrum (strain C58 / ATCC 33970) (Agrobacterium tumefaciens (strain C58))"
+}
+],
+"(gene:Tde1) AND (organism_name:\"Agrobacterium tumefaciens\")": [],
+"(ATU_RS20375) AND (organism_name:\"Agrobacterium tumefaciens\")": [],
+"(gene:Tde1) AND (reviewed:true)": [
+{
+"Entry": "Q13530",
+"Reviewed": "reviewed",
+"Protein names": "Serine incorporator 3 (Tumor differentially expressed protein 1)",
+"Gene Names": "SERINC3 DIFF33 TDE1 SBBI99",
+"Protein families": "TDE1 family",
+"Function [CC]": "FUNCTION: Restriction factor required to restrict infectivity of lentiviruses, such as HIV-1: acts by inhibiting an early step of viral infection. Impairs the penetration of the viral particle into the cytoplasm (PubMed:26416733, PubMed:26416734). Non-ATP-dependent, non-specific lipid transporter for phosphatidylserine, phosphatidylcholine, and phosphatidylethanolamine. Functions as a scramblase that flips lipids in both directions across the membrane. Phospholipid scrambling results in HIV-1 surface exposure of phosphatidylserine and loss of membrane asymmetry, which leads to changes in HIV-1 Env conformation and loss of infectivity (PubMed:37474505). {ECO:0000269|PubMed:26416733, ECO:0000269|PubMed:26416734, ECO:0000269|PubMed:37474505}.",
+"Organism": "Homo sapiens (Human)"
+},
+{
+"Entry": "Q9QZI9",
+"Reviewed": "reviewed",
+"Protein names": "Serine incorporator 3 (Axotomy-induced glyco/Golgi protein 1) (AIGP-1) (Axotomy-induced glycoprotein 1) (Membrane protein TMS-1) (Tumor differentially expressed protein 1)",
+"Gene Names": "Serinc3 Aigp1 Diff33 Tde1 Tms1",
+"Protein families": "TDE1 family",
+"Function [CC]": "FUNCTION: Restriction factor required to restrict infectivity of gammaretroviruses: acts by inhibiting an early step of viral infection. Impairs the penetration of the viral particle into the cytoplasm. Non-ATP-dependent, non-specific lipid transporter for phosphatidylserine, phosphatidylcholine, and phosphatidylethanolamine. Functions as a scramblase that flips lipids in both directions across the membrane. Phospholipid scrambling results in gammaretroviral surface exposure of phosphatidylserine and loss of membrane asymmetry, which leads to loss of infectivity. {ECO:0000250|UniProtKB:Q13530}.",
+"Organism": "Mus musculus (Mouse)"
+}
+],
+"(gene:Tle1_Sci1) AND (organism_name:\"Escherichia coli\")": [],
+"(gene:Tle1) AND (organism_name:\"Escherichia coli\")": [
+{
+"Entry": "A0A377LA80",
+"Reviewed": "unreviewed",
+"Protein names": "Putative type VI secretion protein (T6SS effector phospholipase Tle1-EAEC)",
+"Gene Names": "tle1 NCTC9044_02520 Q2V20_01835",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+}
+],
+"(gene:EFF00136) AND (reviewed:true)": [],
+"(gene:Tle1) AND (reviewed:true)": [
+{
+"Entry": "Q04724",
+"Reviewed": "reviewed",
+"Protein names": "Transducin-like enhancer protein 1 (E(Sp1) homolog) (Enhancer of split groucho-like protein 1) (ESG1)",
+"Gene Names": "TLE1",
+"Protein families": "WD repeat Groucho/TLE family",
+"Function [CC]": "FUNCTION: Transcriptional corepressor that binds to a number of transcription factors. Inhibits NF-kappa-B-regulated gene expression. Inhibits the transcriptional activation mediated by FOXA2, and by CTNNB1 and TCF family members in Wnt signaling. Enhances FOXG1/BF-1- and HES1-mediated transcriptional repression (By similarity). The effects of full-length TLE family members may be modulated by association with dominant-negative AES. Unusual function as coactivator for ESRRG. {ECO:0000250|UniProtKB:Q62440, ECO:0000269|PubMed:10660609}.",
+"Organism": "Homo sapiens (Human)"
+},
+{
+"Entry": "Q62440",
+"Reviewed": "reviewed",
+"Protein names": "Transducin-like enhancer protein 1 (Groucho-related protein 1) (Grg-1)",
+"Gene Names": "Tle1 Grg1",
+"Protein families": "WD repeat Groucho/TLE family",
+"Function [CC]": "FUNCTION: Transcriptional corepressor that binds to a number of transcription factors. Inhibits NF-kappa-B-regulated gene expression. Inhibits the transcriptional activation mediated by FOXA2, and by CTNNB1 and TCF family members in Wnt signaling. Enhances FOXG1/BF-1- and HES1-mediated transcriptional repression (PubMed:16314515). The effects of full-length TLE family members may be modulated by association with dominant-negative AES. Unusual function as coactivator for ESRRG (By similarity). {ECO:0000250, ECO:0000269|PubMed:16314515}.",
+"Organism": "Mus musculus (Mouse)"
+}
+],
+"(gene:EFF00150) AND (reviewed:true)": [],
+"(gene:TseM) AND (reviewed:true)": [],
+"(YE_RS17825) AND (organism_name:\"Yersinia enterocolitica\") AND (taxonomy_name:Bacteria)": [],
+"(gene:YspE) AND (organism_name:\"Yersinia enterocolitica\") AND (taxonomy_name:Bacteria)": [],
+"(ECs_4571) AND (organism_name:\"Escherichia coli\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "Q7DB68",
+"Reviewed": "unreviewed",
+"Protein names": "T3SS secreted effector EspZ",
+"Gene Names": "espZ ECs_4571",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli O157:H7"
+}
+],
+"(ROD_RS14635) AND (organism_name:\"Citrobacter rodentium\") AND (taxonomy_name:Bacteria)": [],
+"(gene:NleB) AND (organism_name:\"Citrobacter rodentium\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "A0A482PDI9",
+"Reviewed": "reviewed",
+"Protein names": "Protein-arginine N-acetylglucosaminyltransferase NleB (Arginine GlcNAcyltransferase NleB) (NleBc) (EC 2.4.1.-) (Non-LEE-encoded type III effector B)",
+"Gene Names": "nleB E2R62_01920",
+"Protein families": "Glycosyltransferase NleB family",
+"Function [CC]": "FUNCTION: Protein-arginine N-acetylglucosaminyltransferase effector that disrupts TNF signaling in infected cells, including NF-kappa-B signaling, apoptosis and necroptosis (PubMed:16552063, PubMed:23955153, PubMed:24025841, PubMed:28522607). Acts by catalyzing the transfer of a single N-acetylglucosamine (GlcNAc) to a conserved arginine residue in the death domain of host proteins FADD, TNFRSF1A and RIPK1: arginine GlcNAcylation prevents homotypic/heterotypic death domain interactions and assembly of the oligomeric TNF receptor complex, thereby disrupting TNF signaling (PubMed:23955153, PubMed:28522607, PubMed:28860194). Has preference for host FADD as substrate compared to TNFRSF1A and RIPK1 (PubMed:28860194). Also acts on host proteins without a death domain: catalyzes GlcNAcylation of host GAPDH protein, thereby preventing GAPDH interaction with TRAF2 and TRAF3, leading to inhibit NF-kappa-B signaling and type I interferon production, respectively (PubMed:23332158, PubMed:27387501, PubMed:28522607). Also displays intra-bacterial activity by mediating GlcNAcylation of glutathione synthetase GshB (PubMed:31974499). Catalyzes auto-GlcNAcylation, which is required for activity toward death domain-containing host target proteins (By similarity). {ECO:0000250|UniProtKB:B7UI21, ECO:0000269|PubMed:16552063, ECO:0000269|PubMed:23332158, ECO:0000269|PubMed:23955153, ECO:0000269|PubMed:24025841, ECO:0000269|PubMed:27387501, ECO:0000269|PubMed:28522607, ECO:0000269|PubMed:28860194, ECO:0000269|PubMed:31974499}.",
+"Organism": "Citrobacter rodentium"
+}
+],
+"(CT_089) AND (organism_name:\"Chlamydia trachomatis\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "O84091",
+"Reviewed": "unreviewed",
+"Protein names": "Low Calcium Response E",
+"Gene Names": "lcrE CT_089",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Chlamydia trachomatis serovar D (strain ATCC VR-885 / DSM 19411 / UW-3/Cx)"
+}
+],
+"(BTH_RS04545) AND (organism_name:\"Burkholderia thailandensis\") AND (taxonomy_name:Bacteria)": [],
+"(gene:BopA) AND (organism_name:\"Burkholderia thailandensis\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "Q2T703",
+"Reviewed": "reviewed",
+"Protein names": "Effector protein BopA",
+"Gene Names": "bopA BTH_II0849",
+"Protein families": "BopA/IcsB family",
+"Function [CC]": "FUNCTION: Plays a role in mediating bacterial evasion from the host autophagic pathway. {ECO:0000250}.",
+"Organism": "Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)"
+}
+],
+"(STM14_RS02020) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tae4_Stm) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tae4) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Stm) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(STM14_RS02030) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tlde1A) AND (organism_name:\"Salmonella enterica\") AND (taxonomy_name:Bacteria)": [],
+"(ATU_RS20360) AND (organism_name:\"Agrobacterium tumefaciens\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tae_Atu4347) AND (organism_name:\"Agrobacterium tumefaciens\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tae) AND (organism_name:\"Agrobacterium tumefaciens\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "A0A7S9FTT9",
+"Reviewed": "unreviewed",
+"Protein names": "TaeMX",
+"Gene Names": "tae",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Agrobacterium fabrum (strain C58 / ATCC 33970) (Agrobacterium tumefaciens (strain C58))"
+}
+],
+"(ATU_RS20375) AND (organism_name:\"Agrobacterium tumefaciens\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tde1) AND (organism_name:\"Agrobacterium tumefaciens\") AND (taxonomy_name:Bacteria)": [],
+"(EC042_RS24190) AND (organism_name:\"Escherichia coli\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tle1_Sci1) AND (organism_name:\"Escherichia coli\") AND (taxonomy_name:Bacteria)": [],
+"(gene:Tle1) AND (organism_name:\"Escherichia coli\") AND (taxonomy_name:Bacteria)": [
+{
+"Entry": "A0A377LA80",
+"Reviewed": "unreviewed",
+"Protein names": "Putative type VI secretion protein (T6SS effector phospholipase Tle1-EAEC)",
+"Gene Names": "tle1 NCTC9044_02520 Q2V20_01835",
+"Protein families": "",
+"Function [CC]": "",
+"Organism": "Escherichia coli"
+}
+]
+}

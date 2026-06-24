@@ -29,8 +29,11 @@ AUDIT_REMOVED = [
     GOLD_BUILD / "effector_gold_set.removed_audit.tsv",
     GOLD_BUILD / "effector_gold_set.removed_reaudit2.tsv",
 ]
-# hlyA, apxIA, ltxA, lktA — reachable@3 T1SS, full-assembly T1SS detection confirmed (script 50)
+# hlyA, apxIA, ltxA, lktA — reachable@3 T1SS, full-assembly T1SS detection confirmed (script 50).
+# DISABLED 2026-06-24 per Teo: recall now reports STRICT emission (no draft-assembly-fragmentation
+# rescue) so it reconciles 1:1 with the annotation figure. Set APPLY_T1SS_STAGING_FIX=True to restore.
 T1SS_STAGING_FIX = {"P08715", "P55128", "P16462", "P55117"}
+APPLY_T1SS_STAGING_FIX = False
 
 
 def _real(u: str) -> str:
@@ -60,7 +63,7 @@ def load_clean_actual(path) -> list[dict]:
     keys = _keep_keys()
     rows = [r for r in read_tsv(path) if _verified(r, keys)]
     for r in rows:
-        if _real(r.get("uniprot")) in T1SS_STAGING_FIX:
+        if APPLY_T1SS_STAGING_FIX and _real(r.get("uniprot")) in T1SS_STAGING_FIX:
             r["ssign_call"] = "emitted_secreted"
             r["recovered_by_staging_fix"] = "yes"
     return rows
