@@ -10,8 +10,9 @@
 
 ## 2. Phase B: build the corrected genome panel
 
-- [ ] 2.1 Confirm which of the 15 missing T5SS genomes are already staged in `inputs_gb/`; fetch any absent ones via `09_fetch_refseq.py` (resolve the top open question first).
-- [ ] 2.2 Derive the 66-genome panel manifest (accession + reason-for-inclusion) from the testable-proximity set (51) ∪ T5SS-missing set (15), excluding the 16 system-less inputs; commit the manifest + the 16-genome exclusion list with reasons.
+- [x] 2.1 Confirm which T5SS genomes are already staged in `inputs_gb/`; fetch any absent ones (top open question RESOLVED, `scripts/57_build_rerun_panel.py`): 13 of 20 T5SS genomes already in 10 staged units; 7 are cache-not-staged (stage from `refseq_cache`, **0 need a network fetch**). Accession drift (RefSeq NC_ vs INSDC) resolved via the Datasets API + eutils `assemblyacc`.
+- [x] 2.2 Derive the panel manifest (`data/phase2/rerun_panel_manifest.tsv`): the real numbers are **59 genomes** (51 proximity + 8 net T5SS = 52 staged-to-run + 7 stage-from-cache), with **15** staged units dropped, NOT the 66/16 estimated in the proposal. `AE002098` (N. meningitidis MC58, listed as `NC_003112.2` in the T5SS table) was rescued from the drop list because it bears a T5SS effector. Cross-checked: no dropped unit secretly carries a T5SS effector.
+- [ ] 2.2b Stage the 7 cache-not-staged T5SS genomes from `refseq_cache` into `inputs_gb/` `.gbff` units (extend script 22's staging) so the panel is submission-ready on CX3.
 - [ ] 2.3 Dry-run `submit_batched_overnight.sh --dry-run --small --enrichment-stats` over a sample of the panel to confirm `gpu_type=RTX6000`, colon-joined genomes, and the enrichment flag.
 
 ## 3. Phase B: run on CX3 (user-driven)

@@ -1,0 +1,75 @@
+genome	role	staged_status	action	unit_id
+AE004091	proximity	staged	run	AE004091
+AE005673	proximity	staged	run	AE005673
+BX470248	proximity+T5SS	staged	run	BX470248
+BX470251	proximity	staged	run	BX470251
+CT573326	proximity	staged	run	CT573326
+NC_000117.1	proximity	staged	run	NC_000117.1
+NC_000915.1	proximity	staged	run	NC_000915.1
+NC_002128.1	proximity+T5SS	staged	run	NC_002128.1
+NC_002505.1	proximity	staged	run	NC_002505.1
+NC_002516.2	proximity+T5SS	staged	run	NC_002516.2
+NC_002942.5	proximity	staged	run	NC_002942.5
+NC_002971.4	proximity	staged	run	NC_002971.4
+NC_003063.2	proximity	staged	run	NC_003063.2
+NC_003065.3	proximity	staged	run	NC_003065.3
+NC_003131.1	proximity	staged	run	NC_003131.1
+NC_003197.2	proximity+T5SS	staged	run	NC_003197.2
+NC_003295.1	proximity	staged	run	NC_003295.1
+NC_004337.2	proximity+T5SS	staged	run	NC_004337.2
+NC_004578.1	proximity	staged	run	NC_004578.1
+NC_004603.1	proximity	staged	run	NC_004603.1
+NC_005956.1	proximity	staged	run	NC_005956.1
+NC_006351.1	proximity	staged	run	NC_006351.1
+NC_007508.1	proximity	staged	run	NC_007508.1
+NC_007618.1	proximity	staged	run	NC_007618.1
+NC_007650.1	proximity+T5SS	staged	run	NC_007650.1
+NC_007797.1	proximity	staged	run	NC_007797.1
+NC_007799.1	proximity	staged	run	NC_007799.1
+NC_008570.1	proximity	staged	run	NC_008570.1
+NC_008791.1	proximity+T5SS	staged	run	NC_008791.1
+NC_009656.1	proximity	staged	run	NC_009656.1
+NC_010465.1	proximity	staged	run	NC_010465.1
+NC_010939.1	proximity	staged	run	NC_010939.1
+NC_010943.1	proximity	staged	run	NC_010943.1
+NC_011601.1	proximity	staged	run	NC_011601.1
+NC_013508.1	proximity	staged	run	NC_013508.1
+NC_013716.1	proximity	staged	run	NC_013716.1
+NC_014500.1	proximity	staged	run	NC_014500.1
+NC_016856.1	proximity	staged	run	NC_016856.1
+NC_017626.1	proximity+T5SS	staged	run	NC_017626.1
+NZ_CAWQBW010000010.1	proximity	staged	run	NZ_CAWQBW010000010.1
+NZ_CBDBTK010000022.1	proximity	staged	run	NZ_CBDBTK010000022.1
+NZ_CP006957.3	proximity	staged	run	NZ_CP006957.3
+NZ_CP018927.1	proximity	staged	run	NZ_CP018927.1
+NZ_CP023467.1	proximity	staged	run	NZ_CP023467.1
+NZ_CP031766.1	proximity	staged	run	NZ_CP031766.1
+NZ_CP031859.1	proximity	staged	run	NZ_CP031859.1
+NZ_HG326223.1	proximity+T5SS	staged	run	NZ_HG326223.1
+NZ_JABJZG010000001.1	proximity	staged	run	NZ_JABJZG010000001.1
+NZ_JBBBOO010000010.1	proximity	staged	run	NZ_JBBBOO010000010.1
+NZ_JBCGCZ010000007.1	proximity	staged	run	NZ_JBCGCZ010000007.1
+NZ_LN869922.1	proximity	staged	run	NZ_LN869922.1
+AE002098	T5SS	staged	run	AE002098
+GCF_000013305.1	T5SS	cache-not-staged	stage-from-cache	
+GCF_000069965.1	T5SS	cache-not-staged	stage-from-cache	
+NC_000907.1	T5SS	cache-not-staged	stage-from-cache	
+NC_000913.3	T5SS	cache-not-staged	stage-from-cache	
+NC_002940.2	T5SS	cache-not-staged	stage-from-cache	
+NC_004431.1	T5SS	cache-not-staged	stage-from-cache	
+NC_017452.1	T5SS	cache-not-staged	stage-from-cache	
+BX470250	none	staged	DROP (no testable answer-key system)	BX470250
+NC_002978.6	none	staged	DROP (no testable answer-key system)	NC_002978.6
+NC_003317.1	none	staged	DROP (no testable answer-key system)	NC_003317.1
+NC_003902.1	none	staged	DROP (no testable answer-key system)	NC_003902.1
+NC_007086.1	none	staged	DROP (no testable answer-key system)	NC_007086.1
+NC_009085.1	none	staged	DROP (no testable answer-key system)	NC_009085.1
+NC_009348.1	none	staged	DROP (no testable answer-key system)	NC_009348.1
+NC_010263.3	none	staged	DROP (no testable answer-key system)	NC_010263.3
+NC_011000.1	none	staged	DROP (no testable answer-key system)	NC_011000.1
+NZ_CP012003	none	staged	DROP (no testable answer-key system)	NZ_CP012003
+NZ_CP019789.1	none	staged	DROP (no testable answer-key system)	NZ_CP019789.1
+NZ_CP176502.1	none	staged	DROP (no testable answer-key system)	NZ_CP176502.1
+NZ_JBKQFV010000250.1	none	staged	DROP (no testable answer-key system)	NZ_JBKQFV010000250.1
+NZ_SMAM01000003.1	none	staged	DROP (no testable answer-key system)	NZ_SMAM01000003.1
+X12831	none	staged	DROP (no testable answer-key system)	X12831

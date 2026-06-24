@@ -2,6 +2,17 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## benchmark-final-validation: panel is 59 genomes, not the proposed 66
+- **What:** `scripts/57_build_rerun_panel.py` computed the rerun panel = **59 genomes** (52 staged-to-run
+  + 7 stage-from-cache), **15** dropped, **0** needing a network fetch. The proposal/design/specs still
+  say "66 genomes / 15 missing T5SS / 16 dropped" (the directive's estimate).
+- **Why the estimate was high:** 13 of 20 T5SS genomes already overlap staged proximity genomes (the
+  directive assumed only 5), and every genuinely-missing T5SS genome is already in `refseq_cache`.
+- **Trigger to revisit:** before `/opsx:archive` of this change, sync the 66→59 / 16→15 numbers into
+  `proposal.md` + `specs/tier2-benchmark-rerun/spec.md` so the contract matches `rerun_panel_manifest.tsv`.
+- **Also deferred:** task 2.2b (stage the 7 cache-not-staged T5SS genomes into `inputs_gb/`) before the
+  CX3 submit dry-run (2.3).
+
 ## RESUME HERE (2026-06-24): apply OpenSpec change `figures-v2`
 Teo stepped away to revamp poster figures; resume the figure overhaul after.
 - **What:** `openspec/changes/figures-v2/` — APPROVED proposal, 0/20 tasks. All decisions + verified
