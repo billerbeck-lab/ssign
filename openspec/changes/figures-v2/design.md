@@ -59,8 +59,8 @@ Each in BOTH scopes: overall (one bar chart over all secreted proteins, Xanthoba
 5. Docs + full unit suite; validate on a small local/CX3 multi-genome run; Teo reviews, prunes the functional set.
 6. Rollback: revert; no data migration.
 
-## Open Questions
+## Open Questions (resolved 2026-06-24)
 
-- Exact appendage set (confirm T4bP/MSH/ComM/Archaeal-T4P alongside T4aP).
-- `cog_detailed` definition (per-COG-ID vs finer category grouping).
-- Machinery-associated secreted proteins: labeled bucket (default) vs filtered out.
+- **Appendage set:** RESOLVED, exclude everything that is not a secretion system: `Flagellum, Tad, T4aP, T4bP, MSH, ComM, Archaeal-T4P`. Keep T1–T6SS, T9SS, pT4SSi, pT4SSt. (Verify the exact `ss_type` label strings the pipeline emits during apply, e.g. the heatmap shows `T4aP`, while `validate_macsyfinder_systems` parsing may normalize, match the emitted labels.)
+- **COG figures:** RESOLVED, the COG-category figure uses the human-readable COG **category names** (single-letter → name via the standard COG table), not the letters. `cog_detailed` = the finer per-COG-function descriptions where available; if too sparse, fall back to category names (implementer's call).
+- **Machinery-associated secreted proteins:** RESOLVED, route to a labeled "apparatus-associated" bucket in the functional figures (not filtered out).

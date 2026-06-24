@@ -1,7 +1,7 @@
 ## 1. Data plumbing + substrate scope (foundational)
 
 - [ ] 1.1 `integrate_annotations.py`: carry `outer_membrane_prob` from the predictions file into the integrated CSV (DLP already computes it; cross_validate already emits it). Confirm `dlp_extracellular_prob`/`cog_category`/`kegg_ko` already present.
-- [ ] 1.2 Default `excluded_systems` -> add non-secretion appendages: `[Flagellum, Tad, T4aP, T4bP, MSH, ComM, Archaeal-T4P]` in all entry points (cli, Home x2, runner, system_filtering, validate_macsyfinder_systems, `DEFAULT_EXCLUDED_SYSTEMS`). Grep-guard for stragglers. (CONFIRM exact set with Teo.)
+- [ ] 1.2 Default `excluded_systems` -> exclude everything that is not a secretion system: `[Flagellum, Tad, T4aP, T4bP, MSH, ComM, Archaeal-T4P]` in all entry points (cli, Home x2, runner, system_filtering, validate_macsyfinder_systems, `DEFAULT_EXCLUDED_SYSTEMS`). Verify the labels match the emitted `ss_type` strings. Grep-guard for stragglers.
 - [ ] 1.3 Tests: integrated CSV has `outer_membrane_prob`; default `excluded_systems` matches the new set across config + constant; a T4aP-bearing genome yields no T4aP substrates by default.
 
 ## 2. Per-run figure restructure
@@ -12,8 +12,8 @@
 
 ## 3. Functional-category figures (candidates; Teo prunes)
 
-- [ ] 3.1 COG-category figure (`cog_category` -> 25 standard groups, full names) in overall + per-SS-type scopes.
-- [ ] 3.2 COG-detailed figure (per-COG description / finer grouping) in both scopes.
+- [ ] 3.1 COG-category figure: map the single-letter `cog_category` codes to the standard COG **category names** (e.g. M = Cell wall/membrane/envelope biogenesis), bars by name. Overall + per-SS-type scopes.
+- [ ] 3.2 COG-detailed figure: finer per-COG-function descriptions where available, else fall back to category names. Both scopes.
 - [ ] 3.3 KEGG figure (`kegg_ko` -> KO / pathway) in both scopes.
 - [ ] 3.4 EggNOG-annotation figure (`eggnog_description`/`preferred_name`) in both scopes.
 - [ ] 3.5 Broad-consensus figure (`broad_consensus_annotation`), with a keyword-matching revamp toward a curated vocabulary (Transporter/Hydrolase/Protease/...); machinery-associated secreted proteins (consensus = secretion-system/translocator) routed to a labeled "apparatus-associated" bucket. Both scopes.
