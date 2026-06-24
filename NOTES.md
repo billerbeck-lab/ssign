@@ -2,6 +2,28 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## RESUME HERE (2026-06-24): apply OpenSpec change `figures-v2`
+Teo stepped away to revamp poster figures; resume the figure overhaul after.
+- **What:** `openspec/changes/figures-v2/` — APPROVED proposal, 0/20 tasks. All decisions + verified
+  facts are in its `design.md` (self-contained). Next step: `/opsx:apply figures-v2`.
+- **Branch:** `enrichment-circular-shift-per-run` (main is behind; all recent work is here).
+- **Decisions locked (design.md):** exclude ALL non-secretion appendages by default
+  (Flagellum,Tad,T4aP,T4bP,MSH,ComM,Archaeal-T4P; keep T1-T6SS/T9SS/pT4SSi/pT4SSt); COG figures use
+  category NAMES not letters; apparatus-associated secreted proteins -> labeled bucket (not filtered).
+- **Verified facts (don't re-investigate):** `outer_membrane_prob` is in cross_validate predictions
+  (line 277) but dropped at `integrate_annotations` -> surface it; `cog_category`/`kegg_ko` already in
+  the integrated CSV when EggNOG ran; `dlp_extracellular_prob` already there.
+- **Already shipped this session (commit 5152c0a):** dropped `04_signalp_by_type` + `05_tool_coverage`;
+  SS variant labels collapse via `display_type`; per-run set is now `01`-`05`.
+- **Multi-genome enrichment bug FIXED (d7435a8):** `_pool_segment_b_inputs` now pools the whole proteome
+  for DLP/DSE under `--enrichment-stats`. Validation check: batched Salmonella T3SS null_mean should be
+  ~0.55 (matching single-genome), not 0.08.
+- **Work order:** task groups 1-6 in tasks.md (1 data+appendage-exclusion -> 2 T5a/c split+autotransporter
+  fig -> 3 functional COG/KEGG/EggNOG/consensus candidates -> 4 enrichment fold-bars+group genome-wide
+  null -> 5 genome-group pooled 01-05 -> 6 docs/tests/validate). CHECK IN with Teo after groups 1-2 before
+  building the 10 functional candidates.
+- Untracked artifacts kept locally: `validation_sweeps/cx3_t3ss/` (the 1/4/20-genome run figures+stats).
+
 ## CX3 validation runs PENDING (set 2026-06-22) — figure-revamp + t3ss-on-by-default
 
 Branch `enrichment-circular-shift-per-run` @ b6805bf carries BOTH changes (figure-revamp
