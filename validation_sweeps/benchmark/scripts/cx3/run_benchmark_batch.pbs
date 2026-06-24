@@ -74,6 +74,10 @@ set -eo pipefail
 : "${SP_WHOLE_GENOME:=0}"
 : "${ENRICH:=0}"
 : "${ANNOT:=0}"
+# REANNOTATE=1 in genbank mode drops --use-input-annotations so ssign re-annotates the GenBank
+# input with Bakta from scratch (clean slate), instead of trusting its RefSeq CDS. No effect in
+# fasta mode (already Bakta). Needs BAKTA_DB (set below).
+: "${REANNOTATE:=0}"
 # EXCLUDED carries a space ("Flagellum Tad ..."), which cannot pass cleanly through
 # `qsub -v` (PBS splits the comma-list and the space mangles it). So derive it here from
 # the space-free INCLUDE_T3SS knob instead of passing EXCLUDED over -v.
@@ -90,7 +94,10 @@ VENV="${SSIGN_VENV:-$HOME/blastp_t5a/ssign/.venv}"
 : "${PLMBLAST_SCRIPT:=$HOME/build/pLM-BLAST/scripts/plmblast.py}"
 
 case "$INPUT_MODE" in
-    genbank) IN_DIR="$INPUT_DIR_GB"; IN_EXT="gbff"; MODE_FLAGS=(--use-input-annotations) ;;
+    genbank)
+        IN_DIR="$INPUT_DIR_GB"; IN_EXT="gbff"
+        # REANNOTATE=1 -> Bakta re-annotates the GenBank (clean slate); else trust its RefSeq CDS.
+        if [ "$REANNOTATE" = "1" ]; then MODE_FLAGS=(); else MODE_FLAGS=(--use-input-annotations); fi ;;
     fasta)   IN_DIR="$INPUT_DIR";    IN_EXT="fasta"; MODE_FLAGS=() ;;
     *) echo "FATAL: INPUT_MODE must be 'genbank' or 'fasta' (got '$INPUT_MODE')"; exit 1 ;;
 esac
