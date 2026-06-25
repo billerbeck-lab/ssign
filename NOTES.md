@@ -77,6 +77,28 @@ emitted `*_results.csv`. Contig name == RefSeq accession for single-replicon ass
 - **Changes are uncommitted** (working tree on `enrichment-circular-shift-per-run`): script 58 + 2 cx3
   files + NOTES + openspec tasks.md. Commit when Teo is ready.
 
+### Session progress 2026-06-25 (cont.) — 4.1 staged for CX3, 4.3 DONE, 4.4 scoped
+- **4.3 DONE** (enrichment sane fleet-wide): scanned all 57 `*_enrichment_stats.tsv` (444 rows, 0 numeric
+  issues; every p/q in [0,1], every fold finite). Bug-fix #4 holds in every genome (21/21 T3SS DSE rows
+  blanked, 21/21 T3SS DLP populated, 7 sig). Pooled: T3SS DLP fold 5.90 q=2e-4 sig, no T3SS DSE row.
+  openspec 4.3 ticked. (formal "close task 70" = a docs line in 4.5.)
+- **4.1 staged for CX3** (see BLOCKER block above): awaiting `rerun_fullasm/` for hlyA/apxIA/ltxA/Serralysin.
+- **4.4 scoping (DO THIS NEXT, with rerun_fullasm in hand):** the recall figures (01 effector-level, 06
+  system-instance) are built from `data/phase2/actual_per_effector.<tag>.tsv` (582 rows; tags
+  `panel_genbank_default` + `panel_genbank_t3ss`) filtered by `clean_dataset`, NOT from
+  `positives_all.testable` (that col is a sparse 13-row T1SS leftover — do not use it). Join keys in
+  actual_per_effector: `unit_id` (genome), `effector_locus` (RefSeq locus), `ssign_call`
+  (emitted_secreted/not_emitted), `testable`, `reachable_n3`. hlyA already shows `ssign_call=not_emitted`
+  there too -> the fragment-input problem PREDATES the rerun; clean_dataset's APPLY_T1SS_STAGING_FIX was
+  the workaround. **4.4 pipeline to build:** (a) for each (unit_id, effector_locus) parse the RefSeq gbff
+  (`inputs_gb/<unit>.gbff`, or `inputs_gb_fullasm/` for the 4) to map effector_locus -> (contig,start,end);
+  (b) coordinate-join to the rerun proteins (`rerun[_fullasm]/<unit>/results/<unit>_results_raw.csv` has
+  contig+start+end; emitted = locus in `<unit>_results.csv`); (c) per-SS-type found/not vs the old
+  actual_per_effector ssign_call; (d) compare to figure 06; (e) regen poster 01-06 ONCE with all 57
+  (prefer rerun_fullasm/<g> over rerun/<g>). Coordinate-join method validated (near-exact overlaps).
+- **4.2 (independent of the RTX re-run):** grade 15 T5SS effectors from the rerun, regen 07/08. T5SS
+  genomes are not among the 4 fragment genomes, so 4.2 can be done anytime.
+
 ### Open work inventory (pick up here)
 1. **Reconciliation** (benchmark-final-validation tasks 4.1-4.5): 4.1 confirm the 4 RTX T1SS toxins
    (hlyA/apxIA/ltxA/lktA = P08715/P55128/P16462/P55117) emit from rerun -> retire `clean_dataset`
