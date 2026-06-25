@@ -14,5 +14,10 @@ inputs/
 *.gb
 *.gbff
 
+# Tier-2 benchmark rerun outputs (2026-06-25) + transfer tarballs — regenerate on CX3.
+rerun/
+rerun_results.tgz
+*.tgz
+
 __pycache__/
 *.pyc

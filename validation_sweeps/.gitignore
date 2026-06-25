@@ -2,6 +2,12 @@
 # Only the structural skeleton + README ship.
 
 *.tar.gz
+*.tgz
+
+# CX3 validation run outputs (figure + enrichment validation) — kept local, regenerate on CX3.
+cx3_t3ss/
+cx3_enrichment/
+
 proximity_window/*
 fragmentation/*
 copies/*

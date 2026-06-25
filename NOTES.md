@@ -2,6 +2,77 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## ⭐ RESUME HERE (2026-06-25) — tier-2 rerun DONE; pooled figure done
+
+**State:** the `benchmark-final-validation` tier-2 CX3 rerun is COMPLETE + healthy. 57 distinct
+genomes, clean-slate Bakta re-annotation, T3SS-on, `--enrichment-stats`, annotation-on. Results
+extracted at `validation_sweeps/benchmark/rerun/<genome>/results/`. 52/57 emitted secreted +
+enrichment; 3671 secreted proteins fleet-wide.
+
+**Branch:** `enrichment-circular-shift-per-run` (NOT main, all recent work here). Only tracked dirty
+file is NOTES.md.
+
+**UNTRACKED run data — do NOT `git add`** (none of it is gitignored yet): `rerun/`,
+`rerun_results.tgz`, `rerun/rerun_nulls.tgz`, `cx3_t3ss/`, `cx3_enrichment/`, `*.tgz`. GB-scale.
+
+**Done this session:** reconstructed the pooled cross-genome enrichment figure post-hoc (the benchmark
+batch runs one genome per `ssign run`, so MultiGenomeRunner's pooled figure was never auto-emitted).
+Re-tarred the 57 `*_enrichment_nulls.npz` from CX3, ran `rerun/_pool_enrichment.py` (throwaway, calls
+the production `pool_and_plot_enrichment`). Output `rerun/_pooled/{pooled_enrichment_stats.tsv,
+figures/pooled_enrichment_null_distributions.png}`. Result: T1/T2/T3/T5a/T5b/T6 significantly enriched
+(DLP+DSE); **T3SS DLP 5.9x *** with DSE correctly empty** (validates bug-fix #4 fleet-wide); T4SS +
+T5cSS n.s. (low count). Effectively answers task #70 at the pooled level.
+
+### The 4 active OpenSpec changes (what each scopes)
+| change | status | scope |
+|---|---|---|
+| `benchmark-final-validation` | 4/20 | THE deep audit + tier-2 rerun + reconcile. Phase A (1.1-1.7) = re-verify 100% of 337 effectors + every DOI = the secreted-protein deep audit, UNSTARTED, held for go-ahead. Phase B rerun DONE. |
+| `effector-recovery-benchmark` | 45/51 | original benchmark: verified gold set, ssign-INDEPENDENT machinery answer key (the SYSTEMS audit, lit-only, NO MacSyFinder), proximity ceiling, actual recall |
+| `figures-v2` | 0/20 | the auto figure-gen redesign ONLY (appendage exclusion, T5a/c split, autotransporter fig, COG/KEGG/EggNOG functional figs, fold-bar enrichment, genome-group pooled 01-05). NOT implemented, paused for poster |
+| `secretion-classifier-dataset` | 24/29 | classifier training set (audit 347 predicted rows, instance assignment, T5SS sourcing, feature matrix) |
+
+"Deep proper audit of systems + secreted proteins" = SYSTEMS in `effector-recovery-benchmark`
+(machinery answer key) + EFFECTORS in `benchmark-final-validation` Phase A (the unstarted 337-row pass).
+
+### Open work inventory (pick up here)
+1. **Reconciliation** (benchmark-final-validation tasks 4.1-4.5): 4.1 confirm the 4 RTX T1SS toxins
+   (hlyA/apxIA/ltxA/lktA = P08715/P55128/P16462/P55117) emit from rerun -> retire `clean_dataset`
+   APPLY_T1SS_STAGING_FIX; 4.2 grade 15 T5SS annotation; 4.3 enrichment fleet-wide (pooled fig already
+   shows OK) -> close #70; 4.4 reconcile rerun recall vs figure 06; 4.5 docs, close #70+#71. Read
+   `scripts/clean_dataset.py`, `scripts/52_system_recall.py`, `analysis/annotation_correctness.py` first.
+2. **Phase A** (benchmark-final-validation 1.1-1.7): the 337-effector + DOI deep re-audit. Large
+   multi-agent run, HELD for Teo's go-ahead. Reuses the tasks-74-84 blind-agent method.
+3. **Poster figures:** `validation_sweeps/benchmark/figures/` has only `01`-`04`, STALE (pre-rerun). The
+   openspec recall set is `01`-`06` + annotation `07/08`. Regenerating from the rerun = reconciliation 4.4 + 4.2.
+4. **figures-v2** (0/20): auto figure-gen redesign, paused for poster. Self-contained in its design.md.
+5. **Task #97:** proper Diamond PATH fix in run_benchmark_batch.pbs + `ssign doctor` Bakta-subtool
+   version-check (tactical `ln -sf` already applied on CX3, see Diamond section below).
+6. **Pre-archive:** sync 66->57 / 16->15 numbers in benchmark-final-validation proposal/specs (see panel
+   section below) before `/opsx:archive`.
+
+### Key file pointers
+- Rerun per-genome: `rerun/<g>/results/{<g>_results.csv emitted, <g>_results_raw.csv all+annot,
+  <g>_enrichment_stats.tsv, <g>_enrichment_nulls.npz}`
+- Pooled figure (this session): `rerun/_pooled/figures/pooled_enrichment_null_distributions.png`
+- Panel: `data/phase2/rerun_panel_manifest.tsv` (57 distinct), `data/phase2/rerun_inputs.txt`
+
+## CX3 gotcha: Bakta 1.12 needs Diamond >= 2.1.21 (clean-slate rerun blocker, 2026-06-24)
+- **Symptom:** rerun batch jobs die at step 2 (extract_proteins) in ~30s: "Wrong Diamond version
+  installed. Please install Diamond version v2.1.21 or ...". Hits any Bakta run (we almost always
+  re-annotate with Bakta, NOT --use-input-annotations).
+- **Cause:** REGRESSION + a PATH-shadowing trap. `bakta/utils.py` `DEPENDENCY_DIAMOND=(2,1,21)`; Bakta
+  1.12 needs Diamond >= 2.1.21. `bakta-deps` Diamond was actually already 2.2.0, BUT the
+  `run_benchmark_batch.pbs` `ANNOT=1` block PREPENDS `~/.conda/envs/eggnog/bin` to PATH, and eggnog's
+  bundled Diamond is OLDER than 2.1.21, so Bakta resolved eggnog's old diamond first. `which -a diamond`
+  in a plain shell hid this (bakta-deps was first there; only the ANNOT PATH prepend reorders it).
+- **Tactical fix (CX3):** `ln -sf ~/.conda/envs/bakta-deps/bin/diamond ~/.conda/envs/eggnog/bin/diamond`
+  (eggnog-mapper tolerates diamond 2.2.0). Proper fix (deferred): in run_benchmark_batch.pbs, prepend a
+  diamond-only dir (symlink to bakta-deps diamond) AFTER the annot block so the right diamond always
+  wins without touching the eggnog env; and have `ssign doctor` version-check Bakta's Diamond.
+- **Fix:** `module load Mamba/23.11.0-0; mamba install -n bakta-deps -c bioconda 'diamond>=2.1.21' -y`.
+- **Follow-up (deferred):** `ssign doctor` should version-check Bakta's sub-tools (Diamond), it only
+  checks the bakta binary exists, so it reported "All checks passed" while Bakta was unrunnable.
+
 ## benchmark-final-validation: panel is 59 genomes, not the proposed 66
 - **What:** `scripts/57_build_rerun_panel.py` computed the rerun panel = **59 genomes** (52 staged-to-run
   + 7 stage-from-cache), **15** dropped, **0** needing a network fetch. The proposal/design/specs still
