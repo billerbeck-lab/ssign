@@ -22,7 +22,9 @@ BENCH="$REPO/validation_sweeps/benchmark"
 PBS="$BENCH/scripts/cx3/run_benchmark_batch.pbs"
 BATCH="$BENCH/scripts/cx3/rerun_fullasm_batch.txt"
 GB="$BENCH/inputs_gb_fullasm"
-WALLTIME="${WALLTIME:-72:00:00}"
+# 4 genomes x ~30-48 min each ~= 3 h; 8 h leaves margin. Over-requesting walltime only lengthens the
+# queue wait (PBS backfills shorter jobs first), it does not buy anything. Override via env if a genome runs long.
+WALLTIME="${WALLTIME:-08:00:00}"
 qsub -l select=1:ncpus=32:mem=64gb:ngpus=1:gpu_type=RTX6000 -l walltime="$WALLTIME" \
     -v "BATCH_FILE=$BATCH,INPUT_MODE=genbank,REANNOTATE=1,INCLUDE_T3SS=1,WHOLE_GENOME=1,ENRICH=1,ANNOT=1,INPUT_DIR_GB=$GB,SSIGN_VENV=$REPO/.venv,RUN_TAG=rerun_fullasm" \
     "$PBS"
