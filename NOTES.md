@@ -96,8 +96,23 @@ emitted `*_results.csv`. Contig name == RefSeq accession for single-replicon ass
   contig+start+end; emitted = locus in `<unit>_results.csv`); (c) per-SS-type found/not vs the old
   actual_per_effector ssign_call; (d) compare to figure 06; (e) regen poster 01-06 ONCE with all 57
   (prefer rerun_fullasm/<g> over rerun/<g>). Coordinate-join method validated (near-exact overlaps).
-- **4.2 (independent of the RTX re-run):** grade 15 T5SS effectors from the rerun, regen 07/08. T5SS
-  genomes are not among the 4 fragment genomes, so 4.2 can be done anytime.
+- **4.2 DONE** (T5SS annotation from rerun): built reusable `scripts/rerun_coords.py` (`RerunIndex`,
+  coordinate-join on (contig,start,stop) since Bakta renames loci; prefers `rerun_fullasm/` once it
+  lands) and rewired `annotation_correctness.py` to source T5SS from `rerun/` (killed the dead
+  `/tmp/ssign_fleet_67` path). Corpus has 23 T5SS effectors; **13 emit + graded** (NOT the 15 "found"
+  53_t5ss_recall estimated). Re-source reproduced the old 4 verdicts (espP/pic/yadA/cdrA) = join
+  validated. **All 13 overall-correct**; only T5SS per-tool misses are Pfam on the 2 TAAs (yadA wrong,
+  nadA partial). Pfam channel now `eggnog__pfam_ids` (rerun Bakta emits no `pfam_ids`; EggNOG gives the
+  same short-name format). Sheet 55 rows (42 proximity + 13 T5SS); 07 = 45/54 (83%), 08 = T5SS 13/13.
+  T5SS verdicts gene-keyed (`T5SS_V`) so they survive Bakta locus drift.
+  - **4.4 datapoint (recall discrepancy):** 8 T5SS corpus effectors do NOT emit in the rerun despite
+    `53_t5ss_recall` marking 5 of them "found" via *local MacSyFinder + inferred* emission:
+    plpD, eae (no TXSScan model), **shlA, hpmA, lspA1, lspA2, cdiA, bcpA** (T5bSS TpsA substrates not
+    recovered). `53_t5ss_recall`'s "found=15" overcounts real emission (=10 of its 15); fold this into
+    the 4.4 T5SS recall reconciliation. (prn, fhaB: genomes not in panel.)
+  - **DEFERRED (4.4 follow-up):** the 42 proximity rows in `annotation_accuracy_sheet.tsv` still carry
+    fleet_67 provenance strings (the hand-authored verdicts are biology judgments, unaffected, so 07/08
+    are correct); a full rerun re-source of the proximity panel via `rerun_coords` belongs in 4.4.
 
 ### Open work inventory (pick up here)
 1. **Reconciliation** (benchmark-final-validation tasks 4.1-4.5): 4.1 confirm the 4 RTX T1SS toxins

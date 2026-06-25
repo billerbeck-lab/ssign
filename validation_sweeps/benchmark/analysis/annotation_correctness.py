@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score annotation correctness for the 45 emitted effectors and plot it.
+"""Score annotation correctness for every emitted effector and plot it.
 
 Each emitted effector was annotated by up to four ssign tools (InterProScan, EggNOG,
 pLM-BLAST/ECOD, Pfam). For each tool we hand-grade its call against the protein's known
@@ -14,9 +14,11 @@ annotation_groundtruth_fill.tsv), as one of:
 
 overall = best call across the four tools (correct if any tool is correct, etc.).
 
-Verdicts are authored by hand (no LLM/keyword auto-scoring), keyed by ssign_locus. This
-script writes the per-tool + overall verdicts back into annotation_accuracy_sheet.tsv and
-renders summary/07_annotation_correctness.png.
+The proximity-panel effectors are graded from the checked-in sheet (locus-keyed verdicts, V);
+the self-secreting T5SS effectors are sourced fresh from the tier-2 rerun by coordinate join and
+graded gene-keyed (T5SS_V), since Bakta renames their loci. Verdicts are authored by hand (no
+LLM/keyword auto-scoring). This script writes the per-tool + overall verdicts back into
+annotation_accuracy_sheet.tsv and renders summary/07_annotation_correctness.png + 08 (by SS type).
 
     .venv/bin/python annotation_correctness.py
 """
@@ -24,6 +26,7 @@ renders summary/07_annotation_correctness.png.
 from __future__ import annotations
 
 import csv
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -36,21 +39,24 @@ HERE = Path(__file__).resolve().parent
 SHEET = HERE / "annotation_accuracy_sheet.tsv"
 FIGDIR = HERE.parent / "data" / "phase2" / "figures" / "summary"
 
+sys.path.insert(0, str(HERE.parent / "scripts"))
+from rerun_coords import RerunIndex  # noqa: E402  (needs scripts/ on sys.path above)
+
 # Self-secreting T5SS autotransporters live on a separate self-detection path, not the proximity
-# panel the sheet is built from. Of the 15 "found" T5SS effectors only these 4 were run through
-# ssign annotation in the 67-genome fleet (gene -> ssign locus); the other 11 have no annotation
-# (their genomes are not in the fleet) so cannot be graded.
-FLEET = Path("/tmp/ssign_fleet_67")
+# panel the sheet is built from, so they are sourced directly from the tier-2 rerun by COORDINATE
+# join (Bakta renames every locus, so we bridge corpus->rerun on genome position; see rerun_coords).
+# Every T5SS corpus effector the rerun EMITTED is graded; the rerun's Bakta emits no Pfam IDs of its
+# own, so the Pfam channel reads EggNOG's Pfam-domain names (same short-name format the fleet used).
 T5SS_CORPUS = HERE.parent / "data" / "dataset" / "t5ss_effectors.tsv"
-T5SS_EFF = {"espP": "pO157p78", "pic": "EC042_RS24520", "yadA": "YE_RS21430", "cdrA": "PA4625"}
 T5SS_ANN = {
     "ssign_interpro": "interpro_descriptions",
     "ssign_eggnog": "eggnog_description",
     "ssign_plmblast_ecod": "ecod_top1_description",
-    "ssign_pfam": "pfam_ids",
+    "ssign_pfam": "eggnog__pfam_ids",
 }
 
-# locus -> (interpro, eggnog, plmblast, pfam, overall, basis)
+# Proximity-panel verdicts, ssign_locus -> (interpro, eggnog, plmblast, pfam, overall, basis).
+# (Self-secreting T5SS are graded separately in T5SS_V below, keyed by gene.)
 V = {
     "CC_1007": ("p", "p", "c", "p", "correct", "S-layer/RTX protein; ECOD names S-layer, others capture RTX repeats"),
     "CO076_RS11485": ("c", "c", "c", "c", "correct", "Serralysin M10 metalloprotease"),
@@ -132,32 +138,81 @@ V = {
         "partial",
         "TseZ Zn-scavenging effector; InterPro gets DUF6277 family, ECOD wrong",
     ),
-    # T5SS self-secreting autotransporters (separate path; appended by ensure_t5ss_in_sheet)
-    "pO157p78": (
+}
+
+# T5SS verdicts, gene-keyed (the rerun's Bakta loci are volatile, so we resolve them at runtime via the
+# coordinate join). Hand-graded from the tier-2 rerun annotation strings for every emitted T5SS corpus
+# effector: (interpro, eggnog, plmblast, pfam, overall, basis). Pfam channel = EggNOG Pfam-domain names.
+T5SS_V = {
+    "espP": (
         "c",
         "c",
         "c",
         "c",
         "correct",
-        "espP SPATE serine-protease autotransporter; Pfam = Autotransporter + Peptidase_S6",
+        "SPATE serine-protease AT; InterPro+ECOD+Pfam name Peptidase_S6 + Autotransporter",
     ),
-    "EC042_RS24520": (
+    "pic": (
         "c",
         "c",
         "c",
         "c",
         "correct",
-        "Pic SPATE serine-protease/mucinase AT; EggNOG IgA-protease ortholog = same SPATE family",
+        "Pic SPATE serine-protease/mucinase AT; all four name SPATE/IgA-protease + S6",
     ),
-    "YE_RS21430": (
+    "flu": ("c", "c", "c", "c", "correct", "Antigen 43 self-associating AT adhesin; ECOD names Ag43, others AIDA/AT"),
+    "sat": ("c", "c", "c", "c", "correct", "Sat SPATE toxin; InterPro+ECOD name Peptidase_S6 + autotransporter"),
+    "iga": (
+        "c",
+        "c",
+        "c",
+        "c",
+        "correct",
+        "IgA1 protease (founding classical AT); InterPro+ECOD name IgA1-protease + S6",
+    ),
+    "icsA": (
+        "c",
+        "c",
+        "c",
+        "c",
+        "correct",
+        "IcsA/VirG AT; InterPro names VirG insertion domain, ECOD names IcsA autotransporter",
+    ),
+    "yadA": (
         "c",
         "c",
         "c",
         "w",
         "correct",
-        "YadA trimeric autotransporter adhesin; 3 tools name YadA TAA, Pfam wrong (DUF814/FbpA)",
+        "YadA trimeric AT adhesin; 3 tools name YadA TAA, Pfam wrong (DUF814/FbpA)",
     ),
-    "PA4625": ("c", "c", "c", "c", "correct", "CdrA TPS exoprotein / FhaB filamentous-hemagglutinin adhesin"),
+    "nadA": (
+        "c",
+        "c",
+        "c",
+        "p",
+        "correct",
+        "NadA YadA-like TAA; InterPro/EggNOG/ECOD name YadA anchor, Pfam dilutes YadA_anchor with noise",
+    ),
+    "sadA": ("c", "c", "c", "c", "correct", "SadA TAA; all four name YadA-like head/stalk/anchor"),
+    "cdrA": (
+        "c",
+        "c",
+        "c",
+        "c",
+        "correct",
+        "CdrA TpsA exoprotein; all four name TPS / filamentous-haemagglutinin (Haemagg_act)",
+    ),
+    "hxuA": (
+        "c",
+        "c",
+        "c",
+        "c",
+        "correct",
+        "HxuA TpsA heme-haemopexin binding; ECOD names heme/hemopexin protein, Haemagg_act",
+    ),
+    "hmw1A": ("c", "c", "c", "c", "correct", "HMW1A TpsA adhesin; all four name TPS / Haemagg_act"),
+    "hmw2A": ("c", "c", "c", "c", "correct", "HMW2A TpsA adhesin (HMW1A paralog); all four name TPS / Haemagg_act"),
 }
 
 TOOLS = ["interpro", "eggnog", "plmblast", "pfam"]
@@ -191,7 +246,8 @@ def apply_to_sheet():
             cols.append(c)
     missing = []
     for r in rows:
-        v = V.get(r["ssign_locus"])
+        # T5SS verdicts are gene-keyed (Bakta loci vary per rerun); proximity verdicts are locus-keyed.
+        v = T5SS_V.get(r["gene"]) if r.get("ss_type") == "T5SS" else V.get(r["ssign_locus"])
         if not v:
             missing.append(r["ssign_locus"])
             continue
@@ -392,55 +448,59 @@ def figure_by_sstype(rows, poster=True):
     print(f"wrote {name}  (" + ", ".join(f"{t} {tab[t]['correct']}/{totals[t]}" for t in types) + ")")
 
 
-def ensure_t5ss_in_sheet():
-    """Append the 4 fleet-annotated self-secreting T5SS autotransporters to the sheet if absent.
+def ensure_t5ss_from_rerun():
+    """Rebuild the sheet's T5SS rows from the tier-2 rerun (coordinate-joined).
 
-    Idempotent. They are missing because the sheet is built from the proximity panel, which never
-    contains the self-secreting T5SS class. The other 11 'found' T5SS effectors have no ssign
-    annotation (genomes not in the fleet), so they are not added and stay out of the grade."""
-    import glob
-
+    Self-secreting T5SS are absent from the proximity panel the sheet is built from, so we add every
+    T5SS corpus effector the rerun EMITTED as secreted, matched corpus->rerun on genome coordinates
+    (Bakta renames the loci). The rerun annotates only emitted proteins, so non-emitted T5SS effectors
+    (TPS substrates ssign did not recover) carry no annotation and are left out, logged for the recall
+    reconciliation. Idempotent: existing T5SS rows are dropped and rebuilt every run."""
     rows = list(csv.DictReader(open(SHEET), delimiter="\t"))
     cols = list(rows[0].keys())
-    if any(r.get("ss_type") == "T5SS" for r in rows):
+    rows = [r for r in rows if r.get("ss_type") != "T5SS"]  # rebuild T5SS cleanly
+    if not T5SS_CORPUS.exists():
+        print("  (T5SS corpus unavailable; figure will omit T5SS)")
         return
-    if not FLEET.is_dir() or not T5SS_CORPUS.exists():
-        print("  (T5SS source unavailable; figure will omit T5SS)")
-        return
-    eff = {r["gene"]: r for r in csv.DictReader(open(T5SS_CORPUS), delimiter="\t")}
-    raw_by_locus = {}
-    for raw in glob.glob(str(FLEET / "*" / "results" / "*_results_raw.csv")):
-        for row in csv.DictReader(open(raw)):
-            if row.get("locus_tag", "") in T5SS_EFF.values():
-                raw_by_locus[row["locus_tag"]] = row
-    added = 0
-    for gene, locus in T5SS_EFF.items():
-        e, raw = eff.get(gene, {}), raw_by_locus.get(locus)
-        if not raw:
+    idx = RerunIndex()
+    graded, not_recovered, no_unit = 0, [], []
+    for e in csv.DictReader(open(T5SS_CORPUS), delimiter="\t"):
+        if not e.get("contig") or not e.get("start"):
+            no_unit.append(e["gene"])
+            continue
+        j = idx.join(e["contig"], int(e["start"]), int(e["stop"]))
+        if j is None:
+            no_unit.append(e["gene"])
+            continue
+        if not j["emitted"]:
+            not_recovered.append(e["gene"])
             continue
         new = {c: "" for c in cols}
         new.update(
             uniprot=e.get("uniprot", ""),
-            gene=gene,
+            gene=e["gene"],
             organism=e.get("organism", ""),
             ss_type="T5SS",
             known_quote=(e.get("uniprot_note") or e.get("quote", ""))[:300],
-            genome=e.get("refseq_genome", ""),
-            ssign_locus=locus,
+            genome=j["unit"],
+            ssign_locus=j["locus_tag"],
         )
         for out_col, raw_col in T5SS_ANN.items():
-            new[out_col] = (raw.get(raw_col, "") or "").strip()
+            new[out_col] = (j["raw"].get(raw_col, "") or "").strip()
         rows.append(new)
-        added += 1
+        graded += 1
     with open(SHEET, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols, delimiter="\t")
         w.writeheader()
         w.writerows(rows)
-    print(f"  appended {added} fleet-annotated T5SS effectors to the sheet")
+    print(
+        f"  T5SS from rerun: {graded} emitted+graded; {len(not_recovered)} not recovered "
+        f"({', '.join(not_recovered)}); {len(no_unit)} not in panel ({', '.join(no_unit)})"
+    )
 
 
 def main():
-    ensure_t5ss_in_sheet()
+    ensure_t5ss_from_rerun()
     rows = apply_to_sheet()
     figure(rows)
     figure_by_sstype(rows, poster=False)
