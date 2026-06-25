@@ -7,11 +7,11 @@
 # could not emit. script 50 had already staged the PARENT whole assemblies in inputs_gb_fullasm/; this
 # job runs THOSE, with the identical rerun config, into a separate RUN_TAG so it never clobbers rerun/.
 #
-# PREREQ on CX3 (one-time): copy the 4 full-assembly inputs over (they were NOT in the original rsync):
-#   scp validation_sweeps/benchmark/inputs_gb_fullasm/{NZ_CP031766.1,NZ_CBDBTK010000022.1,\
-#       NZ_JABJZG010000001.1,NZ_JBCGCZ010000007.1}.gbff \
-#       cx3:$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb_fullasm/
-#   (and `git pull` to get this script + the rerun_fullasm_batch.txt + the script-58 fix)
+# PREREQ (one-time): the 4 full-assembly inputs were NOT in the original rsync. From the LAPTOP repo root:
+#   rsync -av \
+#     validation_sweeps/benchmark/inputs_gb_fullasm/{NZ_CP031766.1,NZ_CBDBTK010000022.1,NZ_JABJZG010000001.1,NZ_JBCGCZ010000007.1}.gbff \
+#     ttr25@login.cx3.hpc.ic.ac.uk:blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb_fullasm/
+#   then on CX3:  cd ~/blastp_t5a/ssign && git pull   (gets this script + batch + the script-58 fix)
 #
 # Config matches SUBMIT_rerun.sh exactly (genbank + REANNOTATE=1 + T3SS on + whole-genome enrichment +
 # annotation on) so the results reconcile 1:1 with rerun/. Results land in
