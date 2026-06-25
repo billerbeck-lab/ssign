@@ -34,6 +34,49 @@ T5cSS n.s. (low count). Effectively answers task #70 at the pooled level.
 "Deep proper audit of systems + secreted proteins" = SYSTEMS in `effector-recovery-benchmark`
 (machinery answer key) + EFFECTORS in `benchmark-final-validation` Phase A (the unstarted 337-row pass).
 
+### ⚠ BLOCKER FOUND 2026-06-25: rerun used FRAGMENT inputs for 4 genomes (script 58 bug)
+Reconciliation 4.1 surfaced a staging defect. `scripts/58_stage_rerun_inputs.py` always reuses
+`inputs_gb/<acc>.gbff` and never consults `inputs_gb_fullasm/`. For genomes whose corpus
+`refseq_genome` accession is a plasmid/WGS-contig, the rerun ran ssign on that FRAGMENT, not the
+full assembly that `scripts/50_stage_full_assembly.py` had already staged in `inputs_gb_fullasm/`.
+The rerun thus reproduced the exact partial-assembly staging defect the T1SS fix was meant to cure.
+
+Affected (rerun-input CDS -> full-assembly CDS, emitted): 
+- `NZ_CP031766.1` hlyA (P08715, T1SS): 175 (plasmid) -> 5220, emitted 0
+- `NZ_CBDBTK010000022.1` apxIA (P55128, T1SS): 33 (contig) -> 2192, emitted 0
+- `NZ_JABJZG010000001.1` ltxA (P16462, T1SS): 241 (contig) -> 2164, emitted 0
+- `NZ_JBCGCZ010000007.1` Serralysin (P23694, T1SS): 256 (contig) -> 4947, emitted 4 (toxin not among them)
+NOT affected: `NC_010939.1` apxIIA (inputs_gb 2140 ≈ fullasm 2158, already ~complete); `NZ_SMAM01000003.1`
+(not in rerun, no current effector). `NZ_CP006957.3` lktA was already the full chromosome.
+
+**4.1 status:** of the 4 staging-fix toxins {hlyA,apxIA,ltxA,lktA}, only **lktA emits** (P0C082 NOT P55117;
+UniProt drift — clean_dataset.T1SS_STAGING_FIX still lists the stale P55117). lktA in NZ_CP006957.3 =
+locus OKNMBO_02445 "Leukotoxin", DLP 0.988, DLP+DSE, emitted ✓. hlyA/apxIA/ltxA cannot be confirmed from
+this rerun (wrong input). Side note: apxIIA (P15377, full asm, DLP 0.98) did NOT emit = proximity/machinery
+miss, a real 4.4 recall datapoint.
+
+**Coordinate-join method (works):** rerun raw CSV has contig+start+end+strand; join answer-key effector
+(placement_start/stop or start/stop) to the max-overlap rerun protein, check if its locus_tag is in the
+emitted `*_results.csv`. Contig name == RefSeq accession for single-replicon assemblies. Near-exact overlap.
+
+**Resolution (Teo chose: fix staging + re-run 4 on CX3):**
+- **Code fix DONE:** `scripts/58_stage_rerun_inputs.py` now has `stage_whole_assembly()` — prefers
+  `inputs_gb_fullasm/<acc>.gbff` over the fragment for single staged units (unit-tested; idempotent;
+  flags copied files as NEW for CX3 transfer). rerun_inputs.txt stems are unchanged (only file content).
+- **Targeted re-run STAGED (awaiting Teo's qsub):** `scripts/cx3/rerun_fullasm_batch.txt` (the 4 stems) +
+  `scripts/cx3/SUBMIT_rerun_fullasm.sh` (one job, `INPUT_DIR_GB=inputs_gb_fullasm`, `RUN_TAG=rerun_fullasm`,
+  config identical to the main rerun: genbank+REANNOTATE+T3SS+whole-genome+ENRICH+ANNOT). Separate RUN_TAG
+  so it never clobbers `rerun/`. Results -> `~/runs/benchmark_phase2/rerun_fullasm/<unit>/`.
+- **CX3 steps for Teo:** (1) `git pull` on CX3; (2) scp the 4 full-assembly gbffs to CX3
+  `inputs_gb_fullasm/` (they were NOT in the original rsync — see the scp line in SUBMIT_rerun_fullasm.sh
+  header); (3) `bash validation_sweeps/benchmark/scripts/cx3/SUBMIT_rerun_fullasm.sh`; (4) retrieve to
+  `validation_sweeps/benchmark/rerun_fullasm/<unit>/`. NB Diamond PATH symlink must still be in place
+  (ANNOT=1 hits eggnog env) — see the Diamond section below.
+- **On return:** confirm hlyA/apxIA/ltxA/Serralysin emit via the coordinate join; if the 3 RTX toxins
+  emit, retire APPLY_T1SS_STAGING_FIX (flag stays as fallback) + fix its stale P55117->P0C082 lktA id.
+- **Changes are uncommitted** (working tree on `enrichment-circular-shift-per-run`): script 58 + 2 cx3
+  files + NOTES + openspec tasks.md. Commit when Teo is ready.
+
 ### Open work inventory (pick up here)
 1. **Reconciliation** (benchmark-final-validation tasks 4.1-4.5): 4.1 confirm the 4 RTX T1SS toxins
    (hlyA/apxIA/ltxA/lktA = P08715/P55128/P16462/P55117) emit from rerun -> retire `clean_dataset`

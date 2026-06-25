@@ -4,7 +4,9 @@
 For each genome in the panel we produce exactly one input `.gbff` (whole-assembly), so MacSyFinder and
 the whole-genome DLP/DSE enrichment see the complete genome:
 
-  - single staged unit       -> reuse the existing inputs_gb/<unit>.gbff
+  - single staged unit       -> the whole assembly: prefer inputs_gb_fullasm/<unit>.gbff (the parent
+                                assembly script 50 staged when the corpus accession is only a
+                                plasmid/WGS contig), else reuse inputs_gb/<unit>.gbff
   - split assembly (a group   -> if the units are the SAME sequence (equal total length = a RefSeq/INSDC
     with >1 unit)               duplicate, e.g. PAO1 AE004091==NC_002516.2) keep ONE (the unit with more
                                  answer-key effectors); if they are DIFFERENT replicons (e.g. A. fabrum
@@ -37,8 +39,26 @@ P2 = BENCH / "data" / "phase2"
 MANIFEST = P2 / "rerun_panel_manifest.tsv"
 ACC_CACHE = P2 / "_t5_acc_cache.json"
 INPUTS = BENCH / "inputs_gb"
+FULLASM = BENCH / "inputs_gb_fullasm"  # script 50: parent assembly for fragment-only corpus accessions
 CACHE = BENCH / "data" / "refseq_cache"
 OUT_LIST = P2 / "rerun_inputs.txt"
+
+
+def stage_whole_assembly(genome: str, new_files: list[str]) -> str:
+    """Filename for a single staged accession, preferring the script-50 full assembly when present.
+
+    When the corpus refseq_genome is only a plasmid/WGS contig (e.g. hlyA on a 175-CDS plasmid),
+    script 50 stages the PARENT whole assembly in inputs_gb_fullasm/<acc>.gbff. The rerun must run
+    that, not the fragment, or MacSyFinder never sees the chromosomal machinery and the effector
+    cannot emit. Copy it over the fragment so the single inputs_gb dir is always whole-assembly,
+    and flag it for re-transfer to CX3."""
+    name = f"{genome}.gbff"
+    fa = FULLASM / name
+    dst = INPUTS / name
+    if fa.exists() and (not dst.exists() or dst.stat().st_size != fa.stat().st_size):
+        dst.write_bytes(fa.read_bytes())
+        new_files.append(name)
+    return name
 
 
 def gb_total_len(path: Path) -> int:
@@ -74,7 +94,7 @@ def main() -> int:
         by_group[r["genome_group"]].append(r)
     for group, units in sorted(by_group.items()):
         if len(units) == 1:
-            inputs.append(f"{units[0]['genome']}.gbff")
+            inputs.append(stage_whole_assembly(units[0]["genome"], new_files))
             continue
         # split assembly: cluster units by total sequence length (equal length = same sequence)
         by_len: dict[int, list[dict]] = defaultdict(list)
@@ -82,7 +102,7 @@ def main() -> int:
             by_len[gb_total_len(INPUTS / f"{u['genome']}.gbff")].append(u)
         reps = [max(us, key=lambda u: int(u["n_secreted_proteins"])) for us in by_len.values()]
         if len(reps) == 1:  # pure duplicate (e.g. PAO1 RefSeq==INSDC) -> keep the richer copy
-            inputs.append(f"{reps[0]['genome']}.gbff")
+            inputs.append(stage_whole_assembly(reps[0]["genome"], new_files))
         else:  # genuine multi-replicon (e.g. C58) -> concatenate into one whole-assembly input
             reps.sort(key=lambda u: u["genome"])
             name = "_".join(u["genome"] for u in reps) + ".gbff"
