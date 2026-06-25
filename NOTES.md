@@ -2,12 +2,27 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-25) — tier-2 rerun DONE; pooled figure done
+## ⭐ RESUME HERE (2026-06-25 late) — Phase B reconcile 4.1/4.2/4.3 DONE, 4.4 HELD for Phase A
+
+**Next action = Phase A** (`benchmark-final-validation` tasks 1.1-1.7): the deep re-audit of the 337
+secreted-protein effectors + every DOI. UNSTARTED, needs Teo's explicit go-ahead. Everything else in
+Phase B is done or deliberately held. Why held: 4.4 (recall figure rebuild) waits on Phase A because
+the re-audit will change the effector set, so rebuilding recall now would be throwaway (Teo's call
+2026-06-25).
+
+**Phase B (4.x) status:** 4.1 DONE (RTX toxins confirmed emit from fullasm rerun), 4.2 DONE (T5SS
+annotation), 4.3 DONE (enrichment), **4.4 RECONCILED but figure-rebuild HELD**, 4.5 pending (docs).
+Reconciliation result (preserve): coordinate-joined all 496 testable effectors to the tier-2 rerun =
+**471/481 agree (98%)**; **+3** toxins now emit (hlyA/apxIA/ltxA, the fragment-bug fix), **-6 in-figure**
+the rerun no longer emits (RipJ, NleB [T3SS]; Tae4_Stm, Tle1_Sci1, BopE, TseM [T6SS], clean-Bakta
+borderline shifts), 15 unjoinable (genomes outside the 57-panel). Full detail in `benchmark-final-
+validation` tasks.md 4.4. The join tool is `scripts/rerun_coords.py` (reusable when 4.4 resumes).
 
 **State:** the `benchmark-final-validation` tier-2 CX3 rerun is COMPLETE + healthy. 57 distinct
 genomes, clean-slate Bakta re-annotation, T3SS-on, `--enrichment-stats`, annotation-on. Results
-extracted at `validation_sweeps/benchmark/rerun/<genome>/results/`. 52/57 emitted secreted +
-enrichment; 3671 secreted proteins fleet-wide.
+extracted at `validation_sweeps/benchmark/rerun/<genome>/results/` (+ `rerun_fullasm/<g>/` for the 4
+RTX/Serralysin genomes re-run on full assemblies). 52/57 emitted secreted + enrichment; 3671 secreted
+proteins fleet-wide.
 
 **Branch:** `enrichment-circular-shift-per-run` (NOT main, all recent work here). Only tracked dirty
 file is NOTES.md.

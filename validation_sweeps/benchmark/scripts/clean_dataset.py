@@ -5,11 +5,14 @@ After the full-table citation audit, positives_all.tsv holds the 337 citation-ve
 the runtime per-effector tables (actual_per_effector, ceiling_per_effector) still carry every effector
 from the original (largely fabricated) answer key. This helper keeps only the verified effectors.
 
-It also flips the four RTX T1SS toxins whose detection failed solely because they were staged on a
-plasmid / partial WGS contig that lacked the chromosomal TolC (hlyA, apxIA, ltxA, lktA). Full-assembly
-MacSyFinder (script 50) confirms all four now detect a complete T1SS; emission is expected from the
-found-RTX-toxin DLP/DSE scores (~0.99) and will be confirmed by the CX3 rerun. Flipped rows are marked
-recovered_by_staging_fix=yes for transparency.
+It also (optionally) flips the RTX T1SS toxins whose detection failed solely because they were staged
+on a plasmid / partial WGS contig that lacked the chromosomal TolC (hlyA, apxIA, ltxA, lktA). The flag
+is now SUPERSEDED by the CX3 full-assembly rerun (2026-06-25): re-running hlyA/apxIA/ltxA on their full
+assemblies emits all three as secreted (DLP+DSE, DLP 0.87-0.98, nearby T1SS), so 4.4 writes the real
+emission straight into actual_per_effector and the flag is left OFF. lktA P55117 (NZ_SMAM01000003.1)
+was NOT in the fullasm rerun, but the other two lktA instances (P0C082, Q9ETX2) already emit from
+complete genomes, so every RTX toxin type is shown to emit on a complete assembly. The flag stays as a
+documented fallback only. Flipped rows are marked recovered_by_staging_fix=yes for transparency.
 """
 
 from __future__ import annotations
@@ -29,9 +32,10 @@ AUDIT_REMOVED = [
     GOLD_BUILD / "effector_gold_set.removed_audit.tsv",
     GOLD_BUILD / "effector_gold_set.removed_reaudit2.tsv",
 ]
-# hlyA, apxIA, ltxA, lktA — reachable@3 T1SS, full-assembly T1SS detection confirmed (script 50).
-# DISABLED 2026-06-24 per Teo: recall now reports STRICT emission (no draft-assembly-fragmentation
-# rescue) so it reconciles 1:1 with the annotation figure. Set APPLY_T1SS_STAGING_FIX=True to restore.
+# hlyA, apxIA, ltxA, lktA: reachable@3 T1SS, full-assembly T1SS detection confirmed (script 50).
+# DISABLED 2026-06-24 per Teo (recall reports STRICT emission, no draft-fragmentation rescue), and now
+# RETIRED 2026-06-25: the CX3 fullasm rerun emits hlyA/apxIA/ltxA for real, so 4.4 writes their true
+# emission into actual_per_effector instead. Kept only as a documented fallback (set =True to restore).
 T1SS_STAGING_FIX = {"P08715", "P55128", "P16462", "P55117"}
 APPLY_T1SS_STAGING_FIX = False
 
