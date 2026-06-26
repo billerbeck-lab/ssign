@@ -49,6 +49,11 @@ INF = 10**9
 
 EPEC = "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
 CROD = "Citrobacter rodentium (strain ICC168)"
+# Verbatim from Ward et al. 2004 Infect Immun abstract (PMID 15039306) -- documents LspA1/LspA2 supernatant secretion.
+LSPA_QUOTE = (
+    "The LspA1 and LspA2 proteins of Haemophilus ducreyi 35000 are two very large macromolecules that can be "
+    "detected in concentrated culture supernatant fluid."
+)
 
 
 def _norm(lt: str) -> str:
@@ -196,30 +201,37 @@ DISPOSITIONS: dict[str, tuple] = {
         "3/4",
         "DOI 10.1101/868539 is the Aux3 MGE preprint; ledger quote is verbatim from Altindis 2015 mBio (PMID 25759499)",
     ),
-    # --- note: single-agent concern, kept on 3/4 majority; alt recorded for curator ---
+    # --- second-pass upgrades (2026-06-26): on direct review the 4 "note" rows each resolved to a concrete fix ---
     "T5SS_03": (
-        "note",
-        {},
-        "1/4 fix",
-        "kept Q51163 (3/4 confirm, N. meningitidis IgA protease); agent1 alt = Q9K0B4/NMB0700 (clean MC58 entry)",
+        "swap_up",
+        {"uniprot": "Q9K0B4"},
+        "agent3 + re-review",
+        "Q51163 is a 496aa Fragment (strain unspecified); Q9K0B4 = full-length 1815aa iga/NMB0700, strain MC58, "
+        "RefSeq WP_002225480.1 on NC_003112.2 -- matches the gold genome + the 5447bp span. primary_ref Pohlner "
+        "1987 kept (foundational autotransporter-secretion paper; note it characterises the gonococcal iga prototype).",
     ),
     "T4SS_05": (
-        "note",
-        {},
-        "1/4 fix",
-        "kept P08061 (3/4 confirm VirE3 C58); agent4 flags P08061 is an 83aa fragment, full-length = A0A2Z2PK47",
+        "reanchor",
+        {"effector_locus": "ATU_RS23905", "uniprot": "A0A2Z2PK47", "gene": "VirE3"},
+        "agent4 + re-review",
+        "old ATU_RS23890 = Atu6188/P08061, an 83aa 'VirE 9 kDa' ORF mislabelled virE3 (not the effector). The "
+        "VirB/D4-translocated VirE3 effector = Atu6191/ATU_RS23905/A0A2Z2PK47 (684aa) on pTiC58 NC_003065.3; "
+        "~6 genes from VirD4 -> not reachable.",
     ),
     "T5SS_13": (
-        "note",
-        {},
-        "1/4 fix",
-        "kept ref (3/4 confirm it documents LspA1 supernatant secretion); agent1 alt = 10.1128/IAI.72.4.1874-1884.2004",
+        "swap_ref",
+        {"primary_ref": "10.1128/IAI.72.4.1874-1884.2004", "citation_quote": LSPA_QUOTE},
+        "agent2 + re-review",
+        "kept ref documented antiphagocytic function, not secretion. Ward 2004 IAI (PMID 15039306) directly "
+        "documents LspB-mediated TPS secretion of LspA1/LspA2 to the supernatant. Q7VLE8 (35000HP lspA1, 4152aa = "
+        "the span) unchanged.",
     ),
     "T5SS_14": (
-        "note",
-        {},
-        "1/4 fix",
-        "kept ref (3/4 confirm it covers LspA2 secretion); agent1 alt = 10.1128/IAI.72.4.1874-1884.2004",
+        "swap_ref",
+        {"uniprot": "Q9ZHL0", "primary_ref": "10.1128/IAI.72.4.1874-1884.2004", "citation_quote": LSPA_QUOTE},
+        "agent4 + re-review",
+        "uniprot was blank; full-length LspA2 = Q9ZHL0 (4919aa = the 14760bp span). Same ref swap to the Ward 2004 "
+        "LspB-secretion paper.",
     ),
     # --- reanchor: answer key pointed at the wrong gene/replicon; supply the verified locus, recompute geometry ---
     "T2SS_05": (
