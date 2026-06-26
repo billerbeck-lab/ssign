@@ -56,6 +56,7 @@ FIELDS = [
     "start",
     "stop",
     "strand",
+    "stage_replicons",
     "nearest_machinery_gene",
     "nearest_machinery_locus",
     "distance_to_machinery_genes",
@@ -71,6 +72,17 @@ FIELDS = [
 
 def _norm(lt: str) -> str:
     return (lt or "").replace("_", "").replace(" ", "").upper()
+
+
+# PAO1 is staged under both its INSDC and RefSeq accessions in the gene-order index (the one known
+# duplicate molecule in the panel), so machinery loci resolve to both; canonicalize to the RefSeq form
+# so a single chromosome is never listed as two co-staging replicons. accession_base can't bridge these
+# (different prefixes), hence the explicit map.
+REPLICON_ALIAS = {"AE004091": "NC_002516.2"}
+
+
+def _canon(acc: str) -> str:
+    return REPLICON_ALIAS.get(acc, REPLICON_ALIAS.get(acc.split(".")[0], acc))
 
 
 def gene_order():
@@ -99,6 +111,14 @@ def main() -> int:
     for m in mach:
         if m.get("locus_tag", "").strip():
             mach_loci[m["instance_id"]].append(_norm(m["locus_tag"]))
+    # instance -> {replicon carrying machinery}, taken from the INDEX (same accession namespace as the
+    # substrate contig) so INSDC/RefSeq aliases of one chromosome (PAO1 AE004091 vs NC_002516) collapse
+    # to a single replicon instead of looking like two.
+    mach_acc = defaultdict(set)
+    for inst_id, loci in mach_loci.items():
+        for mlt in loci:
+            for rec, *_ in gidx.get(mlt, []):
+                mach_acc[inst_id].add(rec)
 
     sub_by_inst = defaultdict(list)
     for r in pos:
@@ -146,6 +166,11 @@ def main() -> int:
 
     def emit(inst_id, ss, subtype, organism, sub, pos_tuple, dist, dmethod, nmg, nml, ncand):
         rec, ordn, s, e, strand = pos_tuple
+        # Replicons that MUST be staged together for ssign: the substrate's replicon + every replicon
+        # carrying this instance's machinery. For cross-replicon systems (machinery and substrate on
+        # different chromosomes/plasmids) this lists both, so the assembly is run whole and the pieces
+        # are never split into separate ssign runs.
+        replicons = ";".join(sorted({_canon(rec)} | {_canon(a) for a in mach_acc.get(inst_id, set())}))
         rows.append(
             {
                 "instance_id": inst_id,
@@ -160,6 +185,7 @@ def main() -> int:
                 "start": s if s is not None else "",
                 "stop": e if e is not None else "",
                 "strand": strand,
+                "stage_replicons": replicons,
                 "nearest_machinery_gene": nmg,
                 "nearest_machinery_locus": nml,
                 "distance_to_machinery_genes": "" if dist >= INF else dist,
