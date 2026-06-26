@@ -10,12 +10,25 @@ substrate", not how many). The closest substrate to the instance's machinery is 
 +/-N proximity). This 1:1 list is the **new trusted GOLD LIST** for the paper, replacing the 337 table.
 
 **Built (committed):** `scripts/60` (337-row ledger, superseded), `scripts/61` (mechanical DOI+UniProt
-check: 0 dead DOIs / 0 dead accessions across 337), `scripts/62` (representative selection),
-**`scripts/63_build_gold_list.py` -> `data/phase2/verification_phase_a/gold_list.tsv` = 79 trusted
-system<->substrate pairs** (T1 5, T2 11, T3 21, T4 9, T5 19, T6 14). Fully enriched: host, gene,
-uniprot, genome+coords, nearest machinery + gene-distance, reachability, `stage_replicons`, DOI, quote.
-Dropped 30 (26 no verified substrate + 4 unpositionable: T3SS_10 GtgA, T3SS_22 YopJ, T6SS_11, T6SS_13 --
-GtgA/YopJ are canonical, dropped only on locus-form; offer NCBI-coord rescue if Teo wants them).
+check: 0 dead DOIs / 0 dead accessions across 337), `scripts/62` (early representative selector, superseded),
+**`scripts/63_build_gold_list.py` -> `data/phase2/verification_phase_a/gold_list.tsv` = 97 trusted
+system<->substrate pairs** (T1 18, T2 11, T3 25, T4 9, T5 19, T6 15). Fully enriched: host, gene,
+uniprot, genome+coords, nearest machinery + gene-distance, reachability, found_by_ssign,
+`stage_replicons`, DOI, quote.
+
+**KEY FIX (2026-06-26):** an earlier 79-row version restricted to the 90 machinery instances, which
+SILENTLY DROPPED 13 verified T1SS effectors (hlyA/apxIA/ltxA/lktA/rtxA/apxII/apxIII RTX toxins, prtA-C +
+Serralysin proteases, hasA) -- their systems are T1SS_R## RESCUE instances, not in the original
+machinery audit. Teo caught it (his fig 06 showed T1SS n=18, found 13; my 79-row list had T1SS n=5).
+Rebuilt `scripts/63` from the SAME answer key `52_system_recall` uses (instance set + `nearest_dist`
+from `ceiling_per_effector` incl. rescue; cleaned effectors + `ssign_call` from `actual_per_effector`
+via clean_dataset; provenance from positives_all). Per instance keep the CLOSEST effector, preferring
+one that preserves the instance found/reachable status. **Now reconciles with fig 06 EXACTLY** for
+T1-T6 in its 3-segment logic (found/reach_miss/unreach): T1 13/3/2, T2 2/0/9, T3 8/3/14, T4 0/4/5,
+T6 7/3/5. T5SS uses the REAL rerun emission (10/19 found) not 53's inferred 15 (the 4.2 over-count);
+T5d/e (plpD/eae) flagged no-TXSScan-model = unreachable. The "discrepancy" was NOT a reachability bug
+(my per-substrate reachable matched the answer key 56/56); it was the 90-only restriction + me comparing
+reachable-vs-found columns.
 
 **STAGING RULE (Teo, important):** multi-replicon hosts must be staged WHOLE for ssign, never split
 into separate runs (the V. cholerae chr2 / Ralstonia megaplasmid bug class). `gold_list.stage_replicons`
