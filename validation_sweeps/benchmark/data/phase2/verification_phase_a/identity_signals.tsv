@@ -1,0 +1,91 @@
+instance_id	ss_type	gene	uniprot	reviewed	uniprot_len	expected_aa	len_ratio	uniprot_protein	flags
+T2SS_01	T2SS	lipoprotein	Q9KPR8	no	206	191	1.079		unreviewed
+T2SS_02	T2SS	tagA-related	Q9KN18	no	1335	1247	1.071		unreviewed
+T2SS_05	T2SS	plaA	Q5ZT22	no	325	309	1.052		unreviewed
+T2SS_13	T2SS	stmPr1	Q93IQ4	no	617	580	1.064		unreviewed
+T2SS_15	T2SS	pelI	E0SM75	no	344	344	1.0	Pectate lyase	unreviewed
+T3SS_01	T3SS	CopN	-			421			no_acc
+T3SS_03	T3SS	EspZ	-			99			no_acc
+T3SS_04	T3SS	EspJ	Q8XB62	no	217	217	1.0		unreviewed
+T3SS_05	T3SS	NleC	Q8X834	no	339	339	1.0		unreviewed
+T3SS_07	T3SS	EspL2	A0A0H3JP21	no	549	549	1.0		unreviewed
+T3SS_08	T3SS	YopJ_YopP	Q9RI13	no	288	288	1.0		unreviewed
+T3SS_11	T3SS	PipA	-			229			no_acc
+T3SS_16	T3SS	HrpK1	-			302			no_acc
+T3SS_23	T3SS	YspE	-			163			no_acc
+T3SS_24	T3SS	EspH	B7UMA2	no	168	168	1.0		unreviewed
+T3SS_25	T3SS	NleD	-			232			no_acc
+T3SS_27	T3SS	NleF	-			346			no_acc
+T3SS_28	T3SS	EspA	-			139			no_acc
+T3SS_29	T3SS	NleA_EspI	Q6T6T6	no	430	326	1.319		len_mismatch;unreviewed
+T3SS_30	T3SS	NleD	Q6RYA7	no	235	278	0.845		len_mismatch;unreviewed
+T3SS_31	T3SS	NleB	-			378			no_acc
+T3SS_32	T3SS	EspJ	-			637			no_acc
+T4SS_02	T4SS	Ceg14	-			666			no_acc
+T4SS_05	T4SS	VirE3	A0A2Z2PK47	no	684	684	1.0		unreviewed
+T4SS_08	T4SS	BtpB	Q2YN91	no	277	292	0.949	TIR domain-containing protein	unreviewed
+T4SS_09	T4SS	VceC	Q2YQ34	no	418	418	1.0		unreviewed
+T4SS_10	T4SS	Ats-1	Q2GJL5	no	376	376	1.0		unreviewed
+T4SS_11	T4SS	Etf-1	Q2GG12	no	380	380	1.0		unreviewed
+T5SS_03	T5SS	iga	Q9K0B4	no	1815	1815	1.0	IgA-specific serine endopeptidase	unreviewed
+T5SS_06	T5SS	bcpA				3147			no_acc
+T5SS_08	T5SS	cdrA				2154			no_acc
+T5SS_10	T5SS	hmw1A				1536			no_acc
+T5SS_11	T5SS	hpmA	B4F0Z9	no	1577	1577	1.0		unreviewed
+T5SS_13	T5SS	lspA1	Q7VLE8	no	4152	4152	1.0		unreviewed
+T5SS_14	T5SS	lspA2	Q9ZHL0	no	4919	4919	1.0		unreviewed
+T5SS_18	T5SS	plpD	Q9HYQ6	no	728	728	1.0		unreviewed
+T6SS_03	T6SS	TseH	-			223			no_acc
+T6SS_06	T6SS	TplE_alias_Tle4	Q9I3K2	no	569	569	1.0	Alpha/beta hydrolase	unreviewed
+T6SS_08	T6SS	Tae_Atu4347	-			166			no_acc
+T6SS_09	T6SS	TseM				141			no_acc
+T6SS_10	T6SS	Tle1				800			no_acc
+T6SS_13	T6SS	YezP_Zn_binding	-			117			no_acc
+T6SS_16	T6SS	EvpQ_C70_protease	A0AAU8P3V9	no	173	173	1.0	Peptidase C39 domain-containing protein	unreviewed
+T6SS_17	T6SS	Tae4_Stm	-			262			no_acc
+T6SS_18	T6SS	Tle1_Sci1	-			576			no_acc
+T6SS_21	T6SS	Ssp2	-			273			no_acc
+T1SS_02	T1SS	aprA	Q03023	yes	479	479	1.0	Serralysin	
+T1SS_03	T1SS	rsaA	P35828	yes	1026	1073	0.956	S-layer protein	
+T1SS_04	T1SS	cya	P0DKX7	yes	1706	1706	1.0	Bifunctional hemolysin/adenylate cyclase	
+T1SS_06	T1SS	prtA	Q7N8R3	yes	480	484	0.992	Serralysin	
+T1SS_07	T1SS	aprA	Q1ID47	yes	485	485	1.0	Metalloprotease AprA	
+T1SS_R01	T1SS	Serralysin	P23694	yes	487	487	1.0	Serralysin	
+T1SS_R02	T1SS	apxIA	P55128	yes	1023	1022	1.001	RTX-I toxin determinant A from serotypes 1/9	
+T1SS_R03	T1SS	apxIIA	P15377	yes	956	956	1.0	RTX-II toxin determinant A	
+T1SS_R04	T1SS	apxIIIA	P55131	yes	1052	1052	1.0	RTX-III toxin determinant A from serotype 8	
+T1SS_R05	T1SS	hasA	Q54450	yes	188	188	1.0	Hemophore HasA	
+T1SS_R06	T1SS	hlyA	P08715	yes	1024	1024	1.0	Hemolysin, plasmid	
+T1SS_R07	T1SS	lktA	P0C082	yes	954	954	1.0	Leukotoxin	
+T1SS_R10	T1SS	ltxA	P16462	yes	1055	1055	1.0	Leukotoxin	
+T1SS_R11	T1SS	prtA	Q07295	yes	472	478	0.987	Serralysin A	
+T1SS_R12	T1SS	prtA1	Q84F70	yes	486	486	1.0	Serralysin	
+T1SS_R13	T1SS	prtB	P16316	yes	481	481	1.0	Serralysin B	
+T1SS_R14	T1SS	prtC	P16317	yes	479	479	1.0	Serralysin C	
+T1SS_R15	T1SS	rtxA	A1YKW7	yes	956	956	1.0	Cytolysin RtxA	
+T2SS_03	T2SS	lapA	P35482	yes	368	368	1.0	Alkaline phosphatase L	
+T2SS_04	T2SS	paAP	Q9HZQ8	yes	536	536	1.0	Aminopeptidase	
+T2SS_09	T2SS	aerA	P09167	yes	493	493	1.0	Aerolysin	
+T3SS_06	T3SS	NleG	Q8XAN6	yes	215	215	1.0	E3 ubiquitin-protein ligase NleG	
+T3SS_09	T3SS	SipA	P0CL52	yes	685	687	0.997	Cell invasion protein SipA	
+T3SS_17	T3SS	VopS	Q87P32	yes	387	387	1.0	Protein adenylyltransferase VopS	
+T3SS_20	T3SS	VirA	Q7BU69	yes	400	400	1.0	Cysteine protease-like VirA	
+T3SS_21	T3SS	BipC	Q63K35	yes	419	419	1.0	Effector protein BipC	
+T3SS_26	T3SS	NleE	B7UI22	yes	224	224	1.0	Cysteine S-methyltransferase NleE	
+T4SS_01	T4SS	CagA	P55980	yes	1186	1186	1.0	Cytotoxicity-associated immunodominant antigen	
+T4SS_07	T4SS	BepA	Q6G2A9	yes	544	544	1.0	Protein adenylyltransferase	
+T5SS_01	T5SS	espP	Q7BSW5	yes	1300	1300	1.0	Serine protease EspP	
+T5SS_02	T5SS	flu	P39180	yes	1039	1039	1.0	Antigen 43	
+T5SS_04	T5SS	pic	Q7BS42	yes	1372	1372	1.0	Serine protease pic autotransporter	
+T5SS_05	T5SS	sat	Q8FDW4	yes	1295	1295	1.0	Serine protease sat autotransporter	
+T5SS_07	T5SS	cdiA	Q0T963	yes	3242	3242	1.0	tRNA nuclease CdiA	
+T5SS_09	T5SS	fhaB	P12255	yes	3590	3590	1.0	Filamentous hemagglutinin	
+T5SS_12	T5SS	hxuA	P44602	yes	905	905	1.0	Heme/hemopexin-binding protein	
+T5SS_15	T5SS	shlA	P15320	yes	1608	1608	1.0	Hemolysin	
+T5SS_16	T5SS	nadA	Q9JXK7	yes	362	362	1.0	Neisseria adhesin A	
+T5SS_17	T5SS	yadA	A1JUB7	yes	422	422	1.0	Adhesin YadA	
+T5SS_19	T5SS	eae	P43261	yes	934	934	1.0	Intimin	
+T6SS_01	T6SS	TseL	Q9KS43	yes	641	641	1.0	Toxin TseL	
+T6SS_02	T6SS	VasX	Q9KNE5	yes	1085	1085	1.0	Toxin VasX	
+T6SS_04	T6SS	VgrG-3	Q9KN42	yes	1017	1017	1.0	Type VI secretion system spike protein VgrG3	
+T6SS_05	T6SS	Tse7	Q9I733	yes	386	386	1.0	DNase toxin Tse7	

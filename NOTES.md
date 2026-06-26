@@ -2,7 +2,32 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-26) — Phase A gold list FINALIZED (90 rows); next = 1.7 figs + 4.4 recall
+## ⭐ RESUME HERE (2026-06-26) — Phase A gold list v3 (90 rows); SECOND-PASS multi-agent review next
+
+**SECOND-PASS REVIEW IN PROGRESS (Teo asked 2026-06-26).** After the tier-B re-anchor, a direct look at the
+4 "note" rows found all 4 were real fixes (committed a30ed53): T4SS_05 reanchor (ATU_RS23890 was the 83aa
+Atu6188/P08061 mislabelled virE3; real effector = Atu6191/ATU_RS23905/A0A2Z2PK47, flips reachable->no),
+T5SS_03 swap_up Q51163(fragment)->Q9K0B4(1815aa MC58), T5SS_13/14 swap_ref to Ward 2004 LspB-secretion paper
++ fill LspA2=Q9ZHL0. **gold_list_final.tsv now 71 confirmed + 19 corrected + 0 noted = 90.**
+
+That the notes hid real defects (only caught because one agent noticed) prompted a full second-pass review of
+the dimensions the blind review did NOT check. **Plan = two agent sweeps over the 90 rows** (Agent tool,
+batched, NOT Workflow):
+  - **DETERMINISTIC PRECOMPUTE DONE** (`scripts/66_identity_signals.py` -> `identity_signals.tsv`): len_ratio
+    (UniProt length vs CDS span/3), Reviewed flag, UniProt-Fragment flag, dup accession/locus. Cleared 66/90
+    on length+dup. **Flagged: T3SS_29 (Q6T6T6 ratio 1.32), T3SS_30 (Q6RYA7 ratio 0.85); 22 blank-accession
+    rows** (CopN/EspZ/NleB/D/F, Tse/Tle/Tae...) needing an accession found or CDS-translation confirm; 0 dups.
+  - **SWEEP 1 (identity, ~24 flagged rows):** agents resolve len_mismatch + find genome-matched accession for
+    the 22 blanks (or confirm none exists), check Reviewed-entry preference. Agents SEE the precomputed signals.
+  - **SWEEP 2 (citation, all 90):** primary_ref organism == row organism? ref documents SECRETION
+    (supernatant/translocation, STRICT rubric) not just virulence? citation_quote verbatim in the paper?
+    Tools: PubMed MCP / Crossref / europepmc.
+  - Reuse the prior harness shape: a `gold_review2/` dir with per-sweep SCHEMA + batches + verdicts + a
+    reconcile script; then fold reconciled fixes into `scripts/65` DISPOSITIONS and re-run.
+
+**THEN (still pending):** 1.7 regen figures from gold_list_final + 4.4 recall rebuild + 4.5 docs.
+
+## (history) Phase A gold list FINALIZED (90 rows) — tier-B re-anchor
 
 **Phase A strategy changed (Teo, 2026-06-26):** instead of re-verifying all 337 effectors, collapse to
 **ONE representative substrate per secretion-system instance** (benchmark scores "found a system + a
