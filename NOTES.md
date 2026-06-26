@@ -2,7 +2,7 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-26) — Phase A pivoted to a 1:1 GOLD LIST (79 rows), review pending
+## ⭐ RESUME HERE (2026-06-26) — Phase A gold list REVIEWED; tier-B re-anchor decision pending
 
 **Phase A strategy changed (Teo, 2026-06-26):** instead of re-verifying all 337 effectors, collapse to
 **ONE representative substrate per secretion-system instance** (benchmark scores "found a system + a
@@ -37,11 +37,32 @@ lists the replicons to co-stage. **7 genomes need it:** V. cholerae (T2SS_02, T6
 (T6SS_10). 4 are cross-replicon (machinery+substrate on different molecules -> substrate unreachable by
 proximity, flagged). Reachable within +/-3 genes: 39/79.
 
-**Multi-agent review (NOT yet run):** prior overnight attempt failed = MY bug (workflow `args` arrived
-as a STRING, char-split into 40 bogus batches; agents improvised). Verdict QUALITY was good (real PMIDs,
-schema followed). Review design TBD with Teo; set is now 79 (tiny). SCHEMA.md + verdict schema ready.
-Lesson: pass workflow args as a real array OR hardcode the batch list; agents must hard-fail on missing
-batch file, not improvise.
+**Multi-agent blind review (DONE 2026-06-26):** 97 gold rows in 10 batches, **4 independent agents each
+via the Agent tool** (NOT workflow; the overnight failure was the workflow `args`-as-string char-split
+bug). Each agent read only `gold_review/batches/<id>.tsv` + `SCHEMA.md`, hard-failed if missing, used
+PubMed MCP + UniProt/Crossref, wrote `gold_review/verdicts/agent{k}_<id>.tsv` (16-col schema). 40/40
+passes, 4/4 coverage (one agent4_T2SS_1 dropped T2SS_12 -> 3/4 there; one T4SS_1 agent3 hit a usage-policy
+block, re-run clean).
+
+**Reconciliation (`scripts/64_reconcile_gold_review.py` -> `gold_review/reconciliation.tsv`):** majority-vote
+final verdict per row + agreement label + row_id-drift/coverage check. **71 confirmed / 25 fix / 1 split /
+0 drop.** The split T4SS_03 + 3 dead-accession fixes (T2SS_10/12, T6SS_12) were DROPPED per Teo.
+
+**Corrections applied (`scripts/65_apply_corrections.py` -> `data/phase2/verification_phase_a/gold_list_final.tsv`
++ `gold_review/corrections.tsv`):** disposition table is the human-adjudicated outcome; raw gold_list.tsv
+untouched. **gold_list_final.tsv = 93 rows: 71 confirmed + 11 corrected + 4 noted = 86 SCORABLE; 7 HELD
+(verification_status=hold_reanchor, EXCLUDED from scoring); 4 dropped.** Tier-A fixes applied = 8 organism
+relabels (genome+locus were already right, only free-text wrong) + 2 uniprot swaps (T3SS_17/21) + 1 ref
+swap (T6SS_03). Per-type kept: T1 18, T2 9, T3 25, T4 8, T5 19, T6 14.
+
+**>>> DECISION PENDING — 7 tier-B held rows are MIS-ANCHORED in the answer key** (locus/genome/coords point
+at the wrong gene or replicon; can't be cosmetically patched): **T1SS_04** (B. pertussis locus on B.
+bronchiseptica genome), **T2SS_05** (coords on lpg0926/ravI not plaA/lpg2837), **T2SS_08** (genome is
+Xanthomonas, should be V. cholerae VC_A0221/P15493/NC_002506.1), **T3SS_13** (PopC on GMI1000 megaplasmid
+RSp0875 not chr RS_RS03050), **T3SS_14** (only RipJ replacement is a different strain), **T4SS_08** (locus
+likely BAB1_0782/DUF2069 not BtpB/BAB1_0756), **T4SS_09** (VceC chr I not chr II). Next: re-anchor each to
+correct locus+coords on the right genome (mostly already in the corpus), OR drop. Then **1.7** (regen figs
+from gold_list_final) + the held **4.4** recall rebuild.
 
 ## (superseded) RESUME (2026-06-25 late) — Phase B reconcile 4.1/4.2/4.3 DONE, 4.4 HELD for Phase A
 
