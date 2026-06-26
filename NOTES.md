@@ -2,7 +2,35 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-25 late) — Phase B reconcile 4.1/4.2/4.3 DONE, 4.4 HELD for Phase A
+## ⭐ RESUME HERE (2026-06-26) — Phase A pivoted to a 1:1 GOLD LIST (79 rows), review pending
+
+**Phase A strategy changed (Teo, 2026-06-26):** instead of re-verifying all 337 effectors, collapse to
+**ONE representative substrate per secretion-system instance** (benchmark scores "found a system + a
+substrate", not how many). The closest substrate to the instance's machinery is kept (mirrors ssign's
++/-N proximity). This 1:1 list is the **new trusted GOLD LIST** for the paper, replacing the 337 table.
+
+**Built (committed):** `scripts/60` (337-row ledger, superseded), `scripts/61` (mechanical DOI+UniProt
+check: 0 dead DOIs / 0 dead accessions across 337), `scripts/62` (representative selection),
+**`scripts/63_build_gold_list.py` -> `data/phase2/verification_phase_a/gold_list.tsv` = 79 trusted
+system<->substrate pairs** (T1 5, T2 11, T3 21, T4 9, T5 19, T6 14). Fully enriched: host, gene,
+uniprot, genome+coords, nearest machinery + gene-distance, reachability, `stage_replicons`, DOI, quote.
+Dropped 30 (26 no verified substrate + 4 unpositionable: T3SS_10 GtgA, T3SS_22 YopJ, T6SS_11, T6SS_13 --
+GtgA/YopJ are canonical, dropped only on locus-form; offer NCBI-coord rescue if Teo wants them).
+
+**STAGING RULE (Teo, important):** multi-replicon hosts must be staged WHOLE for ssign, never split
+into separate runs (the V. cholerae chr2 / Ralstonia megaplasmid bug class). `gold_list.stage_replicons`
+lists the replicons to co-stage. **7 genomes need it:** V. cholerae (T2SS_02, T6SS_01), Ralstonia
+(T3SS_13), Yersinia ent. (T3SS_23), B. melitensis (T4SS_06), B. abortus (T4SS_08), B. thailandensis
+(T6SS_10). 4 are cross-replicon (machinery+substrate on different molecules -> substrate unreachable by
+proximity, flagged). Reachable within +/-3 genes: 39/79.
+
+**Multi-agent review (NOT yet run):** prior overnight attempt failed = MY bug (workflow `args` arrived
+as a STRING, char-split into 40 bogus batches; agents improvised). Verdict QUALITY was good (real PMIDs,
+schema followed). Review design TBD with Teo; set is now 79 (tiny). SCHEMA.md + verdict schema ready.
+Lesson: pass workflow args as a real array OR hardcode the batch list; agents must hard-fail on missing
+batch file, not improvise.
+
+## (superseded) RESUME (2026-06-25 late) — Phase B reconcile 4.1/4.2/4.3 DONE, 4.4 HELD for Phase A
 
 **Next action = Phase A** (`benchmark-final-validation` tasks 1.1-1.7): the deep re-audit of the 337
 secreted-protein effectors + every DOI. UNSTARTED, needs Teo's explicit go-ahead. Everything else in
