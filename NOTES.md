@@ -2,7 +2,7 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-26) — Phase A gold list REVIEWED; tier-B re-anchor decision pending
+## ⭐ RESUME HERE (2026-06-26) — Phase A gold list FINALIZED (90 rows); next = 1.7 figs + 4.4 recall
 
 **Phase A strategy changed (Teo, 2026-06-26):** instead of re-verifying all 337 effectors, collapse to
 **ONE representative substrate per secretion-system instance** (benchmark scores "found a system + a
@@ -50,19 +50,38 @@ final verdict per row + agreement label + row_id-drift/coverage check. **71 conf
 
 **Corrections applied (`scripts/65_apply_corrections.py` -> `data/phase2/verification_phase_a/gold_list_final.tsv`
 + `gold_review/corrections.tsv`):** disposition table is the human-adjudicated outcome; raw gold_list.tsv
-untouched. **gold_list_final.tsv = 93 rows: 71 confirmed + 11 corrected + 4 noted = 86 SCORABLE; 7 HELD
-(verification_status=hold_reanchor, EXCLUDED from scoring); 4 dropped.** Tier-A fixes applied = 8 organism
-relabels (genome+locus were already right, only free-text wrong) + 2 uniprot swaps (T3SS_17/21) + 1 ref
-swap (T6SS_03). Per-type kept: T1 18, T2 9, T3 25, T4 8, T5 19, T6 14.
+untouched. **gold_list_final.tsv = 90 rows, ALL SCORABLE (0 holds): 71 confirmed + 15 corrected + 4 noted;
+7 dropped.** Per-type kept: T1 18, T2 8, T3 23, T4 8, T5 19, T6 14. Tier-A fixes = 9 organism relabels +
+2 uniprot swaps (T3SS_17/21) + 1 ref swap (T6SS_03).
 
-**>>> DECISION PENDING — 7 tier-B held rows are MIS-ANCHORED in the answer key** (locus/genome/coords point
-at the wrong gene or replicon; can't be cosmetically patched): **T1SS_04** (B. pertussis locus on B.
-bronchiseptica genome), **T2SS_05** (coords on lpg0926/ravI not plaA/lpg2837), **T2SS_08** (genome is
-Xanthomonas, should be V. cholerae VC_A0221/P15493/NC_002506.1), **T3SS_13** (PopC on GMI1000 megaplasmid
-RSp0875 not chr RS_RS03050), **T3SS_14** (only RipJ replacement is a different strain), **T4SS_08** (locus
-likely BAB1_0782/DUF2069 not BtpB/BAB1_0756), **T4SS_09** (VceC chr I not chr II). Next: re-anchor each to
-correct locus+coords on the right genome (mostly already in the corpus), OR drop. Then **1.7** (regen figs
-from gold_list_final) + the held **4.4** recall rebuild.
+**Tier-B re-anchor pass DONE (2026-06-26, Teo: "high quality, drop if you can't"):** the 7 held rows resolved.
+`scripts/65` gained a `reanchor` action that recomputes coords + nearest-machinery + gene-distance +
+reachability from the SAME gene-order index/machinery tables 62/63 use (no hand-typed numbers); found_by_ssign
+read from the rerun by coordinate join (RerunIndex), like the T5SS rows.
+  - **T1SS_04 -> relabel** (NOT mis-anchored): BX470248.1 ORGANISM line = *B. pertussis Tohama I*; cya/BP0760/
+    P0DKX7 + CyaB neighbour all consistent. Was a mislabel. Scorable (found yes).
+  - **T2SS_05 -> reanchor** plaA = LPG_RS11775/lpg2343/Q5ZT22 (old LPG_RS04595 was ravI/lpg0926, a Dot/Icm
+    effector). Far from Lsp machinery (nearest LspM, 472 genes) -> reachable no, found no.
+  - **T4SS_08 -> reanchor** BtpB = BAB1_0756/BAB_RS19540/Q2YN91 (TIR) on chr I (old was BAB1_0782/DUF2069).
+    VirB machinery on chr II -> cross-replicon, not reachable. Both chrs staged.
+  - **T4SS_09 -> reanchor** VceC = BAB1_1058/BAB_RS20990/Q2YQ34 on chr I (old was chr II). Cross-replicon, not
+    reachable. Both chrs staged.
+  - **T2SS_08 -> DROP:** instance machinery is Xanthomonas Xps (NC_007508.1); cited substrate is V. cholerae
+    lipase. Substrate organism != machinery organism -> cannot re-anchor coherently.
+  - **T3SS_14 -> DROP:** listed locus RS_RS21300/RSp0871 is *hrpD* (machinery), not RipJ -- anchored onto the
+    machinery (spurious dist 1); deleted RipJ accession's only successor is a different assembly, not GMI1000.
+  - **T3SS_13 -> DROP** (Teo: "drop the one with the dead uniprot"): PopC's cited A0ABY6NJB5 was deleted from
+    UniProt. A live Reviewed replacement EXISTS if reinstated (PopC = RSp0875/RS_RS21320/Q9RBS2/POPC_RALN1 on
+    the GMI1000 megaplasmid NC_003296.1, adjacent to HrcC, reachable=yes) -- recorded in the drop basis.
+
+**>>> NEXT:** **1.7** regen figures from `gold_list_final.tsv` (record before/after delta) + the held **4.4**
+recall rebuild on the finalized 90-row gold list, then **4.5** docs + close tasks 70/71.
+
+**DEFERRED (simplify):** `scripts/65 Reanchor.__init__`, `62 ordinal_index`, `63 gene_order` are three
+near-identical gene-order-index loaders. Fold into one `bench_io.gene_order_index()` -> locus ->
+[(rec, ordinal, start, end, strand)]. Deferred because it touches 62/63 (already produced committed
+artifacts); do it with a re-run + reconcile check, not right before a commit. Trigger: next time 62/63/65
+are edited for other reasons.
 
 ## (superseded) RESUME (2026-06-25 late) — Phase B reconcile 4.1/4.2/4.3 DONE, 4.4 HELD for Phase A
 

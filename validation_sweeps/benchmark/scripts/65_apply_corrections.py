@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """Phase A task 1.6: apply the reconciled blind-review corrections to the gold list.
 
-The dispositions below are the human-adjudicated outcome of the 4-agent blind review (reconciliation.tsv).
-Each affected instance gets exactly one disposition:
+The dispositions below are the human-adjudicated outcome of the 4-agent blind review (reconciliation.tsv)
+plus the tier-B re-anchor pass (2026-06-26). Each affected instance gets exactly one disposition:
 
   relabel    - organism free-text was wrong but genome+locus+coords are already correct -> swap the label only
   swap_up    - cited UniProt accession was deleted/wrong but the locus is the right gene -> swap accession only
   swap_ref   - primary_ref pointed at the wrong paper; the verbatim quote traces to another DOI -> swap ref
   note       - single-agent concern, kept on the 3/4 majority; record the alternative for the curator
-  hold       - the answer key is MIS-ANCHORED (locus/genome/coords point at the wrong gene or replicon);
-               can't be cosmetically patched, needs coordinate re-derivation or a drop decision. Kept in the
-               file but verification_status=hold_reanchor so it is EXCLUDED from scoring until resolved.
-  drop       - removed from the gold list (user-confirmed: weak evidence, or deleted accession w/ no successor)
+  reanchor   - the answer key pointed at the WRONG gene/replicon. Supply the correct effector_locus (+ the
+               verified UniProt/gene); the geometry (contig, coords, strand, nearest machinery + gene-
+               distance, reachability, found-by-ssign) is RECOMPUTED from the same gene-order index and
+               machinery table scripts 62/63 use -- no hand-typed numbers. found_by_ssign is read from the
+               tier-2 rerun by coordinate join (RerunIndex), exactly as the T5SS rows in 63 are graded.
+  drop       - removed: weak evidence, a deleted accession with no live successor, or a mis-anchored row
+               that cannot be re-anchored coherently (substrate belongs to a different organism than the
+               detected machinery instance, or no clean locus for the cited effector exists in the corpus).
 
 Raw gold_list.tsv is never modified; the corrected list is written to gold_list_final.tsv, and the full
 audit trail to gold_review/corrections.tsv. Re-running is idempotent. Edit the DISPOSITIONS table (not the
 output) to change a call, then re-run.
 
 Inputs : data/phase2/verification_phase_a/gold_list.tsv
+         data/phase1/gene_order_index.tsv, data/machinery/machinery_resolved.tsv  (reanchor geometry)
+         rerun/ + rerun_fullasm/                                                  (reanchor found-by-ssign)
 Outputs: data/phase2/verification_phase_a/gold_list_final.tsv
          data/phase2/verification_phase_a/gold_review/corrections.tsv
 Run    : .venv/bin/python scripts/65_apply_corrections.py
@@ -26,7 +32,7 @@ Run    : .venv/bin/python scripts/65_apply_corrections.py
 from __future__ import annotations
 
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -37,13 +43,91 @@ VDIR = BENCH / "data" / "phase2" / "verification_phase_a"
 GOLD = VDIR / "gold_list.tsv"
 FINAL = VDIR / "gold_list_final.tsv"
 CORR = VDIR / "gold_review" / "corrections.tsv"
+IDX = BENCH / "data" / "phase1" / "gene_order_index.tsv"
+MR = BENCH / "data" / "machinery" / "machinery_resolved.tsv"
+INF = 10**9
 
 EPEC = "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
 CROD = "Citrobacter rodentium (strain ICC168)"
 
-# instance_id -> (action, {field: new_value}, agreement, basis)
+
+def _norm(lt: str) -> str:
+    return (lt or "").replace("_", "").replace(" ", "").upper()
+
+
+class Reanchor:
+    """Recompute a substrate's coordinates + machinery geometry from the gene-order index and the
+    machinery table, so a corrected anchor is internally consistent (same gene-distance ssign's window
+    uses; no hand-typed numbers)."""
+
+    def __init__(self) -> None:
+        self.idx: dict[str, list[tuple]] = defaultdict(list)  # norm(locus) -> [(rec, ordinal, start, end, strand)]
+        for r in read_tsv(IDX):
+            entry = (
+                r["record_acc"],
+                int(r["ordinal"]),
+                int(r["start"]) if r.get("start") else None,
+                int(r["end"]) if r.get("end") else None,
+                r.get("strand", ""),
+            )
+            keys = {_norm(r["locus_tag"])} | {_norm(a) for a in (r.get("aliases", "") or "").split(";") if a.strip()}
+            for k in keys:
+                self.idx[k].append(entry)
+        self.mach: dict[str, list[tuple]] = defaultdict(list)  # instance -> [(locus_tag, machinery_gene)]
+        for m in read_tsv(MR):
+            lt = (m.get("locus_tag") or "").strip()
+            if lt:
+                self.mach[m["instance_id"]].append((lt, m.get("gene", "")))
+        try:
+            from rerun_coords import RerunIndex  # noqa: PLC0415
+
+            self.ridx = RerunIndex()
+        except Exception:
+            self.ridx = None
+
+    def _coords(self, locus: str) -> tuple:
+        for rec, ordn, s, e, strand in self.idx.get(_norm(locus), []):
+            if s is not None:
+                return rec, ordn, s, e, strand
+        return ("", None, None, None, "")
+
+    def geometry(self, iid: str, new_locus: str) -> dict:
+        rec, ordn, s, e, strand = self._coords(new_locus)
+        if not rec:
+            raise ValueError(f"{iid}: re-anchor locus {new_locus} absent from gene-order index")
+        best, bgene, bloc, machrecs = INF, "", "", set()
+        for mlt, mgene in self.mach.get(iid, []):
+            for mrec, mord, *_ in self.idx.get(_norm(mlt), []):
+                machrecs.add(mrec)
+                if mrec == rec and mord is not None and ordn is not None and abs(mord - ordn) < best:
+                    best, bgene, bloc = abs(mord - ordn), mgene, mlt
+        j = self.ridx.join(rec, s, e) if (self.ridx and s and e) else None
+        return {
+            "genome": rec,
+            "contig": rec,
+            "start": s,
+            "stop": e,
+            "strand": strand,
+            "stage_replicons": ";".join(sorted({rec} | (machrecs - {""}))),
+            "nearest_machinery_gene": bgene if best < INF else "",
+            "nearest_machinery_locus": bloc if best < INF else "",
+            "distance_to_machinery_genes": best if best < INF else "",
+            "reachable_within_3": "yes" if best <= 3 else "no",
+            "found_by_ssign": "yes" if (j and j["emitted"]) else "no",
+        }
+
+
+# instance_id -> (action, {field_or_identity_overrides}, agreement, basis)
 DISPOSITIONS: dict[str, tuple] = {
     # --- relabel: organism free-text wrong, genome+locus+coords already correct ---
+    "T1SS_04": (
+        "relabel",
+        {"organism": "Bordetella pertussis Tohama I"},
+        "4/4 (re-resolved)",
+        "BX470248.1 ORGANISM line = B. pertussis Tohama I; cya/BP0760/P0DKX7 + CyaB (BP0761, dist 1, found) "
+        "all consistent on it. The hold wrongly assumed BX470248 was B. bronchiseptica -- it is a mislabel, "
+        "not a mis-anchor.",
+    ),
     "T1SS_06": (
         "relabel",
         {"organism": "Photorhabdus laumondii subsp. laumondii TT01"},
@@ -137,50 +221,53 @@ DISPOSITIONS: dict[str, tuple] = {
         "1/4 fix",
         "kept ref (3/4 confirm it covers LspA2 secretion); agent1 alt = 10.1128/IAI.72.4.1874-1884.2004",
     ),
-    # --- hold: answer key mis-anchored (wrong gene/genome/replicon); excluded from scoring until re-derived ---
-    "T1SS_04": (
-        "hold",
-        {},
-        "4/4 wrong_genome",
-        "locus BP0760 + uniprot P0DKX7 are B. pertussis; staged genome BX470248 is B. bronchiseptica RB50",
-    ),
+    # --- reanchor: answer key pointed at the wrong gene/replicon; supply the verified locus, recompute geometry ---
     "T2SS_05": (
-        "hold",
-        {},
+        "reanchor",
+        {"effector_locus": "LPG_RS11775", "uniprot": "Q5ZT22", "gene": "plaA"},
         "4/4 wrong_uniprot",
-        "coords/locus LPG_RS04595 are lpg0926/ravI; plaA is lpg2837/Q5ZRP3 elsewhere on NC_002942.5",
-    ),
-    "T2SS_08": (
-        "hold",
-        {},
-        "4/4 wrong_genome",
-        "genome NC_007508.1 is Xanthomonas; V. cholerae lipase = P15493/VC_A0221 on NC_002506.1",
-    ),
-    "T3SS_13": (
-        "hold",
-        {},
-        "4/4 wrong_uniprot",
-        "A0ABY6NJB5 deleted; PopC/Q9RBS2 is on the GMI1000 megaplasmid NC_003296.1/RSp0875, not chr locus RS_RS03050",
-    ),
-    "T3SS_14": (
-        "hold",
-        {},
-        "3/4 wrong_uniprot",
-        "A0ABY6NGA6 deleted; only replacement A0ABX7ZTC2 is a different-strain (R. nicotianae) RipJ, not GMI1000",
+        "old LPG_RS04595/Q5ZX07 is ravI/lpg0926 (a Dot/Icm T4SS effector). plaA = LPG_RS11775/lpg2343/Q5ZT22 "
+        "(lysophospholipase A) on the same NC_002942.5, far from the Lsp machinery -> not reachable.",
     ),
     "T4SS_08": (
-        "hold",
-        {},
+        "reanchor",
+        {"effector_locus": "BAB_RS19540", "uniprot": "Q2YN91", "gene": "BtpB"},
         "4/4 wrong_uniprot",
-        "Q2YNA0 = BAB1_0782/DUF2069; BtpB = Q2YN91/BAB1_0756, so locus BAB_RS19660 likely the wrong gene too",
+        "old BAB_RS19660/Q2YNA0 is BAB1_0782/DUF2069. BtpB = BAB1_0756/BAB_RS19540/Q2YN91 (TIR domain) on chr I "
+        "NC_007618.1; the VirB machinery is on chr II -> cross-replicon, not reachable.",
     ),
     "T4SS_09": (
-        "hold",
-        {},
-        "1/4 wrong_genome",
-        "VceC = BAB1_1058 on chr I NC_007618.1; listed on chr II NC_007624.1 (locus BAB_RS26945)",
+        "reanchor",
+        {"effector_locus": "BAB_RS20990", "uniprot": "Q2YQ34", "gene": "VceC"},
+        "4/4 wrong_genome",
+        "old BAB_RS26945 (chr II) was the wrong gene. VceC = BR1038/BAB1_1058/BAB_RS20990/Q2YQ34 on chr I "
+        "NC_007618.1; the VirB machinery is on chr II -> cross-replicon, not reachable.",
     ),
-    # --- drop: user-confirmed ---
+    # --- drop ---
+    "T2SS_08": (
+        "drop",
+        {},
+        "4/4 wrong_genome",
+        "the detected instance is a Xanthomonas euvesicatoria Xps T2SS (NC_007508.1, XpsE/XpsF...); the cited "
+        "substrate is a Vibrio cholerae lipase (P15493/VC_A0221). Substrate organism != machinery organism, so "
+        "it cannot be re-anchored coherently to this instance.",
+    ),
+    "T3SS_13": (
+        "drop",
+        {},
+        "4/4 wrong_uniprot",
+        "PopC's cited accession A0ABY6NJB5 was deleted from UniProt; dropped per curator (do not substitute "
+        "identifiers on dead-accession rows). A live Reviewed replacement exists if ever reinstated: "
+        "PopC = RSp0875/RS_RS21320/Q9RBS2 (POPC_RALN1) on the GMI1000 megaplasmid NC_003296.1, adjacent to HrcC.",
+    ),
+    "T3SS_14": (
+        "drop",
+        {},
+        "3/4 wrong_uniprot",
+        "the listed locus RS_RS21300/RSp0871 is hrpD (a hrp-cluster gene), not RipJ -- the row was anchored onto "
+        "the machinery (spurious dist 1). The deleted RipJ accession's only successor (A0ABX7ZTC2) is a different "
+        "assembly (R. nicotianae, NZ_CP046674.1), not GMI1000; no clean GMI1000 RipJ locus exists in the corpus.",
+    ),
     "T4SS_03": (
         "drop",
         {},
@@ -196,8 +283,8 @@ STATUS = {
     "relabel": "corrected",
     "swap_up": "corrected",
     "swap_ref": "corrected",
+    "reanchor": "corrected",
     "note": "confirmed_note",
-    "hold": "hold_reanchor",
 }
 
 
@@ -206,6 +293,7 @@ def main() -> int:
     header = list(gold[0].keys())
     if "correction" not in header:
         header = header + ["correction"]
+    engine = Reanchor()
 
     out, corr_rows = [], []
     for r in gold:
@@ -217,6 +305,7 @@ def main() -> int:
             out.append(r)
             continue
         action, overrides, agreement, basis = disp
+
         if action == "drop":
             corr_rows.append(
                 {
@@ -232,6 +321,47 @@ def main() -> int:
                 }
             )
             continue
+
+        if action == "reanchor":
+            old = {
+                k: r.get(k, "")
+                for k in (
+                    "effector_locus",
+                    "uniprot",
+                    "contig",
+                    "start",
+                    "stop",
+                    "reachable_within_3",
+                    "found_by_ssign",
+                )
+            }
+            merged = {**overrides, **engine.geometry(iid, overrides["effector_locus"])}
+            for field, new in merged.items():
+                r[field] = new
+            r["verification_status"] = "corrected"
+            r["correction"] = (
+                f"reanchor: {basis} [{old['effector_locus']}@{old['contig']}:{old['start']} -> "
+                f"{r['effector_locus']}@{r['contig']}:{r['start']}; reach {old['reachable_within_3']}->"
+                f"{r['reachable_within_3']}, found {old['found_by_ssign']}->{r['found_by_ssign']}]"
+            )
+            corr_rows.append(
+                {
+                    "instance_id": iid,
+                    "ss_type": r["ss_type"],
+                    "gene": r["gene"],
+                    "action": "reanchor",
+                    "field": "anchor",
+                    "old_value": f"{old['effector_locus']}/{old['uniprot']} @ {old['contig']}:{old['start']}-{old['stop']} "
+                    f"(reach {old['reachable_within_3']}, found {old['found_by_ssign']})",
+                    "new_value": f"{r['effector_locus']}/{r['uniprot']} @ {r['contig']}:{r['start']}-{r['stop']} "
+                    f"(reach {r['reachable_within_3']}, found {r['found_by_ssign']})",
+                    "agreement": agreement,
+                    "basis": basis,
+                }
+            )
+            out.append(r)
+            continue
+
         changed = []
         for field, new in overrides.items():
             old = r.get(field, "")
@@ -251,7 +381,7 @@ def main() -> int:
                 )
                 r[field] = new
                 changed.append(f"{field}:{old}->{new}")
-        if action in ("note", "hold"):
+        if action == "note":
             corr_rows.append(
                 {
                     "instance_id": iid,
@@ -277,16 +407,15 @@ def main() -> int:
     )
 
     dropped = [i for i, d in DISPOSITIONS.items() if d[0] == "drop"]
-    held = [i for i, d in DISPOSITIONS.items() if d[0] == "hold"]
+    reanchored = [i for i, d in DISPOSITIONS.items() if d[0] == "reanchor"]
     by_status = Counter(r["verification_status"] for r in out)
     by_type = Counter(r["ss_type"] for r in out)
-    scorable = [r for r in out if r["verification_status"] != "hold_reanchor"]
     print(f"gold_list_final.tsv: {len(out)} rows kept ({len(gold)} - {len(dropped)} dropped)")
     print(f"  dropped: {dropped}")
-    print(f"  held (excluded from scoring until re-anchored): {held}")
+    print(f"  reanchored (geometry recomputed): {reanchored}")
     print(f"  by verification_status: {dict(by_status)}")
     print(f"  by ss_type (kept): {dict(sorted(by_type.items()))}")
-    print(f"  SCORABLE rows (confirmed + corrected + noted, excludes held): {len(scorable)}")
+    print(f"  SCORABLE rows (no holds remain): {len(out)}")
     print(f"corrections.tsv: {len(corr_rows)} audit rows")
     return 0
 
