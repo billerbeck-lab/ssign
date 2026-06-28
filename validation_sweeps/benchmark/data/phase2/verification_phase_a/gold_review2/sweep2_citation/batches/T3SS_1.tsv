@@ -1,11 +1,11 @@
 row_id	ss_type	subtype	gene	uniprot	organism	primary_ref	citation_quote
-T3SS_01	T3SS		CopN	-	Chlamydia trachomatis D/UW-3/CX	10.1046/j.1365-2958.2000.02212.x	The observation that CopN is also secreted by the Yersinia type III apparatus provides support for the notion that chlamydiae secrete proteins via a type III mechanism.
-T3SS_03	T3SS		EspZ	-	Escherichia coli O157:H7 Sakai	10.1128/IAI.73.7.4327-4337.2005	A SepZ-CyaA fusion was secreted and translocated into HeLa cells in a TTSS-dependent manner. ... we propose to rename SepZ as EspZ.
+T3SS_01	T3SS		CopN	O84091	Chlamydia trachomatis D/UW-3/CX	10.1046/j.1365-2958.2000.02212.x	The observation that CopN is also secreted by the Yersinia type III apparatus provides support for the notion that chlamydiae secrete proteins via a type III mechanism.
+T3SS_03	T3SS		EspZ	Q7DB68	Escherichia coli O157:H7 Sakai	10.1128/IAI.73.7.4327-4337.2005	A SepZ-CyaA fusion was secreted and translocated into HeLa cells in a TTSS-dependent manner. ... we propose to rename SepZ as EspZ.
 T3SS_04	T3SS		EspJ	Q8XB62	Escherichia coli O157:H7 Sakai	10.1073/pnas.0604891103	"Table 1 ""Summary of E. coli O157:H7 effectors""; Effector column: ""EspJ"""
 T3SS_05	T3SS		NleC	Q8X834	Escherichia coli O157:H7 Sakai	10.1073/pnas.0604891103	"Table 1 ""Summary of E. coli O157:H7 effectors""; Effector column: ""NleC"""
 T3SS_06	T3SS		NleG	Q8XAN6	Escherichia coli O157:H7 Sakai	10.1073/pnas.0604891103	"Table 1 ""Summary of E. coli O157:H7 effectors""; Effector column: ""NleG"""
 T3SS_07	T3SS		EspL2	A0A0H3JP21	Escherichia coli O157:H7 Sakai	10.1073/pnas.0604891103	"Table 1 ""Summary of E. coli O157:H7 effectors""; Effector column: ""EspL2"""
 T3SS_08	T3SS		YopJ_YopP	Q9RI13	Yersinia pestis CO92	10.1126/science.290.5496.1594	Homologs of the Yersinia virulence effector YopJ are found in both plant and animal bacterial pathogens
 T3SS_09	T3SS		SipA	P0CL52	Salmonella enterica Typhimurium LT2	10.1128/iai.73.1.146-154.2005	T3SS-1 secreted proteins (effectors) SopE2 and SopB are required for invasion while the SipA protein accelerates entry into cells.
-T3SS_11	T3SS		PipA	-	Salmonella enterica Typhimurium LT2	10.1371/journal.pone.0248975	We also showed that PipA was secreted into RAW264.7 cells through T3SS-2.
-T3SS_16	T3SS		HrpK1	-	Pseudomonas syringae pv tomato DC3000	10.1128/JB.187.2.649-663.2005	Both HopB1 and HrpK were secreted in culture and translocated into plant cells via the TTSS. However, the translocation of HrpK required its C-terminal half.
+T3SS_11	T3SS		PipA	Q8ZQ60	Salmonella enterica Typhimurium LT2	10.1371/journal.pone.0248975	We also showed that PipA was secreted into RAW264.7 cells through T3SS-2.
+T3SS_16	T3SS		HrpK1	G3XDB3	Pseudomonas syringae pv tomato DC3000	10.1128/JB.187.2.649-663.2005	Both HopB1 and HrpK were secreted in culture and translocated into plant cells via the TTSS. However, the translocation of HrpK required its C-terminal half.

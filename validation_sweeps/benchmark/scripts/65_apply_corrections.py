@@ -7,6 +7,8 @@ plus the tier-B re-anchor pass (2026-06-26). Each affected instance gets exactly
   relabel    - organism free-text was wrong but genome+locus+coords are already correct -> swap the label only
   swap_up    - cited UniProt accession was deleted/wrong but the locus is the right gene -> swap accession only
   swap_ref   - primary_ref pointed at the wrong paper; the verbatim quote traces to another DOI -> swap ref
+  fix_quote  - ref is correct but citation_quote was garbled/non-verbatim/described function not secretion ->
+               swap in a verbatim secretion sentence from the same paper (sweep-2 citation pass)
   note       - single-agent concern, kept on the 3/4 majority; record the alternative for the curator
   reanchor   - the answer key pointed at the WRONG gene/replicon. Supply the correct effector_locus (+ the
                verified UniProt/gene); the geometry (contig, coords, strand, nearest machinery + gene-
@@ -53,6 +55,12 @@ CROD = "Citrobacter rodentium (strain ICC168)"
 LSPA_QUOTE = (
     "The LspA1 and LspA2 proteins of Haemophilus ducreyi 35000 are two very large macromolecules that can be "
     "detected in concentrated culture supernatant fluid."
+)
+# Verbatim from Bowen et al. 2003 Microbiology (PMID 12777498) -- shared by T1SS_06 (P. laumondii TT01) and
+# T1SS_R12 (P. luminescens W14), the same conserved Photorhabdus prtA RTX metalloprotease.
+PRTA_RTX_QUOTE = (
+    "One of the secreted proteins is PrtA, which is shown here to be a repeats-in-toxin (RTX) alkaline zinc "
+    "metalloprotease."
 )
 
 
@@ -135,9 +143,15 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     "T1SS_06": (
         "relabel",
-        {"organism": "Photorhabdus laumondii subsp. laumondii TT01"},
-        "4/4",
-        "genome BX470251 + locus plu0655 are Photorhabdus TT01; organism said Dickeya chrysanthemi",
+        {
+            "organism": "Photorhabdus laumondii subsp. laumondii TT01",
+            "primary_ref": "10.1099/mic.0.26171-0",
+            "citation_quote": PRTA_RTX_QUOTE,
+        },
+        "4/4 + citation 3/3",
+        "genome BX470251 + locus plu0655 are Photorhabdus TT01 (organism said Dickeya chrysanthemi). Citation sweep: "
+        "old ref Akatsuka 1997 is the SERRATIA PrtA heterologous-secretion paper (wrong-organism quote); swapped to "
+        "Bowen 2003 Microbiology (PMID 12777498), the Photorhabdus prtA secretion paper.",
     ),
     "T1SS_07": (
         "relabel",
@@ -171,21 +185,18 @@ DISPOSITIONS: dict[str, tuple] = {
         "4/4",
         "A0A8A4DTS9 deleted; Q63K35 = BipC/BPSS1531 (chr2 NC_006351.1, matches)",
     ),
-    # --- swap_ref: cited paper wrong; verbatim quote traces to another DOI ---
-    "T6SS_03": (
-        "swap_ref",
-        {"primary_ref": "10.1128/mBio.00075-15"},
-        "3/4",
-        "DOI 10.1101/868539 is the Aux3 MGE preprint; ledger quote is verbatim from Altindis 2015 mBio (PMID 25759499)",
-    ),
     # --- second-pass upgrades (2026-06-26): on direct review the 4 "note" rows each resolved to a concrete fix ---
     "T5SS_03": (
         "swap_up",
-        {"uniprot": "Q9K0B4"},
-        "agent3 + re-review",
+        {
+            "uniprot": "Q9K0B4",
+            "citation_quote": "The precursor contains three functional domains, the amino-terminal leader which is assumed to initiate the inner membrane transport of the precursor, the protease, and a carboxyl-terminal 'helper' domain apparently required for extracellular secretion (excretion).",
+        },
+        "agent3 + re-review + citation 2/3",
         "Q51163 is a 496aa Fragment (strain unspecified); Q9K0B4 = full-length 1815aa iga/NMB0700, strain MC58, "
         "RefSeq WP_002225480.1 on NC_003112.2 -- matches the gold genome + the 5447bp span. primary_ref Pohlner "
-        "1987 kept (foundational autotransporter-secretion paper; note it characterises the gonococcal iga prototype).",
+        "1987 kept (foundational autotransporter-secretion paper); citation sweep swapped to its verbatim "
+        "extracellular-secretion sentence.",
     ),
     "T4SS_05": (
         "reanchor",
@@ -227,10 +238,16 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     "T4SS_09": (
         "reanchor",
-        {"effector_locus": "BAB_RS20990", "uniprot": "Q2YQ34", "gene": "VceC"},
-        "4/4 wrong_genome",
+        {
+            "effector_locus": "BAB_RS20990",
+            "uniprot": "Q2YQ34",
+            "gene": "VceC",
+            "citation_quote": "This analysis resulted in the identification of the proteins encoded by BAB1_1652 (VceA) and BR1038/BAB1_1058 (VceC) as novel protein substrates of the Brucella T4SS.",
+        },
+        "4/4 wrong_genome + citation 2/2",
         "old BAB_RS26945 (chr II) was the wrong gene. VceC = BR1038/BAB1_1058/BAB_RS20990/Q2YQ34 on chr I "
-        "NC_007618.1; the VirB machinery is on chr II -> cross-replicon, not reachable.",
+        "NC_007618.1; the VirB machinery is on chr II -> cross-replicon, not reachable. Citation sweep also fixed the "
+        "quote (old had dropped 'Brucella' -> 'theT4SS'; de Jong 2008 Mol Microbiol).",
     ),
     # --- drop ---
     "T2SS_08": (
@@ -289,9 +306,13 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     "T4SS_02": (
         "swap_up",
-        {"uniprot": "Q5ZYD5"},
-        "identity 3/3",
-        "Ceg14 = LPG_RS02190/Q5ZYD5 (Dot/Icm substrate, 666aa = span), L. pneumophila Philadelphia 1.",
+        {
+            "uniprot": "Q5ZYD5",
+            "citation_quote": "Legionella pneumophila utilizes the Dot/Icm type IVB secretion system to deliver hundreds of effector proteins inside eukaryotic cells to ensure intracellular replication.",
+        },
+        "identity 3/3 + citation 2/3",
+        "Ceg14 = LPG_RS02190/Q5ZYD5 (Dot/Icm substrate, 666aa = span), L. pneumophila Philadelphia 1. Citation sweep: "
+        "old quote was an effector-function list; swapped to the verbatim Dot/Icm-delivery sentence (Patel 2024 Mol Syst Biol).",
     ),
     "T5SS_06": (
         "swap_up",
@@ -307,21 +328,36 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     "T5SS_10": (
         "swap_up",
-        {"uniprot": "Q48031"},
-        "identity 3/3",
-        "hmw1A = R2846_RS03620/Q48031 (HMW1 adhesin, 1536aa = span), H. influenzae R2846.",
+        {
+            "uniprot": "Q48031",
+            "citation_quote": "HMW1B is located in the outer membrane and serves to translocate HMW1 across the outer membrane.",
+        },
+        "identity 3/3 + citation 2/3",
+        "hmw1A = R2846_RS03620/Q48031 (HMW1 adhesin, 1536aa = span), H. influenzae R2846. Citation sweep swapped to the "
+        "verbatim HMW1-translocation sentence (St Geme & Grass 1998 Mol Microbiol).",
     ),
     "T6SS_03": (
         "swap_up",
-        {"uniprot": "Q9KMN9"},
-        "identity 3/3",
-        "TseH = VC_RS14690/Q9KMN9 (T6SS effector TseH, 223aa = span), V. cholerae N16961.",
+        {
+            "uniprot": "Q9KMN9",
+            "primary_ref": "10.1128/mBio.00075-15",
+            "citation_quote": "We show that the product of the gene VCA0285 is likely a new peptidoglycan hydrolase that is secreted by T6SS and that its cognate immunity protein is encoded by the gene that is immediately downstream (VCA0286).",
+        },
+        "identity 3/3 + citation 3/3",
+        "TseH = VC_RS14690/Q9KMN9 (T6SS effector TseH, 223aa = span), V. cholerae N16961. Citation sweep: cited "
+        "10.1101/868539 is the Aux3 MGE preprint; the quote traces to Altindis 2015 mBio (10.1128/mBio.00075-15). This "
+        "ref swap had been LOST when the sweep-1 swap_up entry shadowed the first-pass swap_ref (dup key) -- now consolidated.",
     ),
     "T6SS_08": (
         "swap_up",
-        {"uniprot": "Q7CUP8"},
-        "identity 3/3",
-        "Tae = ATU_RS20360/Q7CUP8 (T6SS amidase effector, 166aa = span), A. tumefaciens C58.",
+        {
+            "uniprot": "Q7CUP8",
+            "citation_quote": "Although Tde1 and Tae were readily secreted when bacteria were grown on acidic AB-MES agar plate",
+        },
+        "identity 3/3 + citation (tie -> documented)",
+        "Tae = ATU_RS20360/Q7CUP8 (T6SS amidase effector, 166aa = span), A. tumefaciens C58. Citation sweep: old quote "
+        "was a Tae-Tai classification statement; swapped to the verbatim secretion observation from the same ref "
+        "(Ma 2014 Cell Host Microbe).",
     ),
     "T6SS_09": (
         "swap_up",
@@ -406,12 +442,149 @@ DISPOSITIONS: dict[str, tuple] = {
         "old locus ROD_RS12795 is a lytic transglycosylase, NOT EspJ. True EspJ = ROD_48901/ROD_RS24095/"
         "D2TRY1 (217aa) on NC_013716.1; organism also said O157:H7 Sakai.",
     ),
+    # ===== second-pass CITATION sweep (2026-06-28, gold_review2/sweep2_citation, 3 agents/batch) =====
+    # quote-only: ref is correct but citation_quote was garbled / non-verbatim / described function not secretion.
+    # Agents supplied a verbatim secretion sentence from the SAME ref (modal support noted; >=2/3 unless flagged).
+    "T1SS_R12": (
+        "fix_quote",
+        {"citation_quote": PRTA_RTX_QUOTE},
+        "citation 3/3",
+        "Bowen 2003 Microbiology (PMID 12777498), Photorhabdus prtA1; old quote described the prt locus structure, not secretion.",
+    ),
+    "T3SS_20": (
+        "fix_quote",
+        {
+            "citation_quote": "Shigella deliver a subset of effectors into the host cell via the type III secretion system, that stimulate host cell signal pathways to modulate the actin dynamics required for invasion of epithelial cells."
+        },
+        "citation 2/3",
+        "Yoshida 2002 EMBO J (PMID 12065406); old quote was a VirA effector-function sentence, not the T3SS-delivery statement.",
+    ),
+    "T4SS_07": (
+        "fix_quote",
+        {
+            "citation_quote": "These Bartonella-translocated effector proteins (Beps) A-G are encoded together with the VirB system and the T4S coupling protein VirD4 on a Bartonella-specific pathogenicity island."
+        },
+        "citation 3/3",
+        "Schulein 2005 PNAS (PMID 15642951); old quote carried a '[Bartonella]' placeholder -> restored verbatim.",
+    ),
+    "T4SS_10": (
+        "fix_quote",
+        {
+            "citation_quote": "A hypothetical protein was identified as a putative effector, hereby named Anaplasma translocated substrate 1 (Ats-1)."
+        },
+        "citation 2/3",
+        "Niu 2010 PLoS Pathog (PMID 20174550); old quote was garbled ('namedranslocatedubstrate 1') -> restored verbatim.",
+    ),
+    "T4SS_11": (
+        "fix_quote",
+        {
+            "citation_quote": "ECH0825 was translocated from the bacterium into the host-cell cytoplasm and localized to mitochondria."
+        },
+        "citation 3/3",
+        "Liu 2012 Cell Microbiol (PMID 22348527), Etf-1=ECH0825; citation_quote was EMPTY -> filled with the verbatim translocation sentence.",
+    ),
+    "T5SS_04": (
+        "fix_quote",
+        {
+            "citation_quote": "We have identified and characterized a secreted protein, designated Pic, which is encoded on the chromosomes of enteroaggregative Escherichia coli (EAEC) 042 and Shigella flexneri 2457T."
+        },
+        "citation 3/3",
+        "Henderson 1999 Infect Immun (PMC96930); old quote had dropped 'Escherichia coli'/'Shigella flexneri' -> restored verbatim.",
+    ),
+    "T5SS_05": (
+        "fix_quote",
+        {
+            "citation_quote": "Sat, the secreted autotransporter toxin of uropathogenic Escherichia coli, is a vacuolating cytotoxin for bladder and kidney epithelial cells."
+        },
+        "citation 2/3",
+        "Guyer 2002 Infect Immun (PMC128167); old quote had the typo 'uropathogenicCFT073' (missing 'E. coli') -> verbatim title sentence.",
+    ),
+    "T5SS_09": (
+        "fix_quote",
+        {
+            "citation_quote": "Although partly surface associated, it is also very efficiently secreted into the extracellular milieu. Its secretion depends on the outer membrane accessory protein FhaC."
+        },
+        "citation 2/3",
+        "Jacob-Dubuisson 1996 Mol Microbiol; old quote was the FhaB preproprotein/adhesin-family sentence, not the secretion statement.",
+    ),
+    "T5SS_11": (
+        "fix_quote",
+        {"citation_quote": "HpmB is necessary for the extracellular secretion and activation of HpmA"},
+        "citation (corrects cross-wired quote)",
+        "Uphoff & Welch 1990 J Bacteriol (PMC208585); old quote referenced FhaC (a Bordetella TpsB) on this Proteus HpmA "
+        "row -> swapped to the verbatim HpmB-secretes-HpmA TPS sentence.",
+    ),
+    # ref swaps: cited paper did not document secretion (or wrong organism). Swapped to a verified, organism-matched
+    # secretion paper + a verbatim sentence pulled from its abstract (Europe PMC, confirmed this session).
+    "T3SS_08": (
+        "swap_ref",
+        {
+            "primary_ref": "10.1371/journal.ppat.1000067",
+            "citation_quote": "This is due to the activity of a Type III secreted effector protein, designated YopJ in Y. pseudotuberculosis and Y. pestis, and YopP in the closely related Y. enterocolitica.",
+        },
+        "citation fix_ref:2/3",
+        "old Orth 2000 Science documents YopJ enzymatic mechanism + homology, no secretion assay. Brodsky 2008 PLoS "
+        "Pathog (DOI 10.1371/journal.ppat.1000067) directly addresses YopJ Type-III secretion; Y. pestis matches.",
+    ),
+    "T1SS_R06": (
+        "swap_ref",
+        {
+            "primary_ref": "10.1002/j.1460-2075.1991.tb04890.x",
+            "citation_quote": "The alternative secretion pathway which exports hemolysin across both Escherichia coli membranes into the surrounding medium is directed by an uncleaved C-terminal targeting signal and the membrane translocator proteins HlyD and HlyB.",
+        },
+        "citation fix_ref:3/3",
+        "old Felmlee 1985 is the hemolysin DNA-sequence/transcription paper (quote was a molecular-mass list). Koronakis "
+        "1991 EMBO J directly documents HlyB/HlyD-dependent HlyA secretion across both E. coli membranes.",
+    ),
+    "T1SS_R11": (
+        "swap_ref",
+        {
+            "primary_ref": "10.1007/BF00279652",
+            "citation_quote": "Erwinia chrysanthemi, a phytopathogenic enterobacterium, secretes three proteases (PrtA, PrtB and PrtC) into the extracellular medium.",
+        },
+        "citation fix_ref:1/3 (verified)",
+        "old Akatsuka 1997 documents SERRATIA PrtA secreted via the E. chrysanthemi exporter (wrong-organism quote for "
+        "this Erwinia/Dickeya PrtA row). Ghigo 1992 MGG is the organism-matched E. chrysanthemi PrtA secretion paper; "
+        "quote verified verbatim via Europe PMC.",
+    ),
+    # weak-but-valid: protein is a bona fide substrate; the cited quote describes structure/function, not a direct
+    # secretion assay, and no better organism-matched secretion sentence was found. Kept -> confirmed_note.
+    "T1SS_R15": (
+        "note",
+        {},
+        "citation weak:3/3 (kept)",
+        "RtxA is a bona fide RTX/T1SS toxin (Kingella kingae); Kehl-Fie & St Geme 2007 establishes the rtx locus + "
+        "cytotoxicity. Quote describes the mutagenesis screen, not a supernatant assay -- kept as a valid T1SS substrate.",
+    ),
+    "T5SS_02": (
+        "note",
+        {},
+        "citation fix_quote:3/3 (current quote kept)",
+        "Ag43 (flu) is a canonical T5aSS autotransporter; the current quote ('surface-displayed autotransporter protein "
+        "that mediates...') is a valid autotransport statement, and the agents' proposed replacement was a weaker "
+        "structure/homology sentence -- so the current quote is kept.",
+    ),
+    "T5SS_16": (
+        "note",
+        {},
+        "citation weak:3/3 (kept)",
+        "NadA is a canonical trimeric autotransporter adhesin (T5cSS); its passenger is translocated across the OM by its "
+        "own C-terminal barrel. Comanducci 2002 quote describes oligomeric structure -- kept as a valid T5cSS substrate.",
+    ),
+    "T5SS_17": (
+        "note",
+        {},
+        "citation weak:3/3 (kept)",
+        "YadA is the prototypical trimeric autotransporter adhesin (T5cSS); Hoiczyk 2000 quote describes the head/stalk/"
+        "anchor architecture -- kept as a valid T5cSS substrate.",
+    ),
 }
 
 STATUS = {
     "relabel": "corrected",
     "swap_up": "corrected",
     "swap_ref": "corrected",
+    "fix_quote": "corrected",
     "reanchor": "corrected",
     "note": "confirmed_note",
 }

@@ -1,9 +1,9 @@
 row_id	ss_type	gene	organism	genome	contig	start	stop	strand	effector_locus	uniprot_in	uniprot_len	expected_aa	len_ratio	signal_flags	uniprot_protein
-T3SS_01	T3SS	CopN	Chlamydia trachomatis D/UW-3/CX	NC_000117.1	NC_000117.1	102048	103313	-1	CT_089	-		421		no_acc	
-T3SS_03	T3SS	EspZ	Escherichia coli O157:H7 Sakai	NC_002695.2	NC_002695.2	4609705	4610004	1	ECs_4571	-		99		no_acc	
-T3SS_11	T3SS	PipA	Salmonella enterica Typhimurium LT2	NC_003197.2	NC_003197.2	1175536	1176224	-1	STM1087	-		229		no_acc	
-T3SS_16	T3SS	HrpK1	Pseudomonas syringae pv tomato DC3000	NC_004578.1	NC_004578.1	1523279	1524187	1	PSPTO_RS07250	-		302		no_acc	
+T3SS_01	T3SS	CopN	Chlamydia trachomatis D/UW-3/CX	NC_000117.1	NC_000117.1	102048	103313	-1	CT_089	O84091		421		no_acc	
+T3SS_03	T3SS	EspZ	Escherichia coli O157:H7 Sakai	NC_002695.2	NC_002695.2	4609705	4610004	1	ECs_4571	Q7DB68		99		no_acc	
+T3SS_11	T3SS	PipA	Salmonella enterica Typhimurium LT2	NC_003197.2	NC_003197.2	1175536	1176224	-1	STM1087	Q8ZQ60		229		no_acc	
+T3SS_16	T3SS	HrpK1	Pseudomonas syringae pv tomato DC3000	NC_004578.1	NC_004578.1	1543479	1545821	1	PSPTO_RS07380	G3XDB3		302		no_acc	
 T3SS_23	T3SS	YspE	Yersinia enterocolitica 8081	NC_008800.1	NC_008800.1	3871797	3872288	1	YE_RS17825	-		163		no_acc	
-T3SS_25	T3SS	NleD	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	NC_011601.1	NC_011601.1	1087845	1088543	1	E2348C_RS05530	-		232		no_acc	
-T3SS_27	T3SS	NleF	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	NC_011601.1	NC_011601.1	1779082	1780122	-1	E2348C_RS09145	-		346		no_acc	
-T3SS_28	T3SS	EspA	Citrobacter rodentium (strain ICC168)	NC_013716.1	NC_013716.1	3183424	3183843	-1	ROD_RS14860	-		139		no_acc	
+T3SS_25	T3SS	NleD	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	NC_011601.1	NC_011601.1	1087845	1088543	1	E2348C_RS05530	B7UNX6		232		no_acc	
+T3SS_27	T3SS	NleF	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	NC_011601.1	NC_011601.1	1477701	1478270	1	E2348C_RS07680	B7UR63		346		no_acc	
+T3SS_28	T3SS	EspA	Citrobacter rodentium (strain ICC168)	NC_013716.1	NC_013716.1	3151081	3151659	-1	ROD_RS14675	D2TKE3		139		no_acc	

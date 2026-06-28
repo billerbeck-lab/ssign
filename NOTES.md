@@ -2,7 +2,7 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-26) — Phase A gold list v3 (90 rows); SECOND-PASS multi-agent review next
+## ⭐ RESUME HERE (2026-06-28) — Phase A gold list v3 FINAL (90 rows); both review sweeps DONE; next = 1.7 figs + 4.4 recall
 
 **SECOND-PASS REVIEW IN PROGRESS (Teo asked 2026-06-26).** After the tier-B re-anchor, a direct look at the
 4 "note" rows found all 4 were real fixes (committed a30ed53): T4SS_05 reanchor (ATU_RS23890 was the 83aa
@@ -43,12 +43,22 @@ NOT Workflow). **HARNESS BUILT + COMMITTED 02162ed** under `gold_review2/`:
     gene-name+length already checked), 11 T5SS gold_locus_unindexed + 1 espP (phase1 index doesn't cover those
     genomes; graded from rerun; large distinctive autotransporters/TPS), 3 no_acc (none_exists). Output
     `locus_identity_audit.tsv`. Low residual risk; optional follow-up = cross-check the 12 T5SS vs the rerun
-    Bakta annotation. Committed fc2c955.
-  - **SWEEP 2 (citation, all 90) NOT YET LAUNCHED.** Batches already built (`gold_review2/sweep2_citation`,
-    11 batches). NOTE: re-run `scripts/67` first so citation batches carry the sweep-1 corrected accessions.
-    Launch 11 batches x 3 agents reading sweep2 SCHEMA (organism / documents-SECRETION strict / quote-verbatim).
-    Then `scripts/68 sweep2_citation`, adjudicate, fold into 65, re-run.
-  - Final: re-run 65 -> gold_list_final v3; update corrections.tsv + NOTES; commit.
+    Bakta annotation. Committed 3edbb5a.
+  - **SWEEP 2 (citation, all 90) DONE 2026-06-28.** Re-ran `scripts/67` (batches carry sweep-1 accessions) -> 33
+    agents (11 batches x 3, full 3/3 coverage) -> `68 sweep2_citation`: **66 ok / 32 adjudicate** (14 fix_quote,
+    4 fix_ref, 4 weak, 2 ties, 8 majority-ok). Signal was overwhelmingly QUOTE quality, not membership: many quotes
+    were garbled (placeholder `[Bartonella]`, dropped species names, `uropathogenicCFT073` typo, an EMPTY T4SS_11
+    quote, a cross-wired FhaC-on-a-Proteus-HpmA row) or described function/structure not secretion. Folded into
+    `scripts/65` (new `fix_quote` action; STATUS+=fix_quote): **9 quote-only fixes + 3 ref swaps (YopJ->Brodsky2008,
+    hlyA->Koronakis1991, prtA->Ghigo1992, all verbatim-verified via Europe PMC this session) + 6 existing
+    dispositions extended with citation_quote + 4 weak-but-valid kept as notes** (rtxA T1SS, nadA/yadA T5cSS TAAs,
+    flu T5aSS -- bona fide substrates, current/structure quote kept, NO drops). **Caught a latent bug:** T6SS_03
+    was duplicated in DISPOSITIONS (sweep-1 swap_up shadowed the first-pass mBio swap_ref -> ref correction silently
+    lost); consolidated. gold_list_final v3 = **39 confirmed + 47 corrected + 4 confirmed_note = 90** (per-type
+    unchanged T1 18/T2 8/T3 23/T4 8/T5 19/T6 14). corrections.tsv = 75 rows. simplify: factored the shared Bowen-2003
+    prtA quote into `PRTA_RTX_QUOTE` (used by T1SS_06 + T1SS_R12). Committed 6ef902a.
+  - Sweep-2 weak-but-kept rows to remember (citation describes structure, protein IS a valid substrate): T3SS_17
+    VopS (left as-is, AMPylating T3SS effector), T1SS_R15 rtxA, T5SS_16 nadA, T5SS_17 yadA, T5SS_02 flu.
 
 **THEN (still pending):** 1.7 regen figures from gold_list_final + 4.4 recall rebuild + 4.5 docs.
 
