@@ -24,7 +24,7 @@ NOT Workflow). **HARNESS BUILT + COMMITTED 02162ed** under `gold_review2/`:
     -> validate (`69`). Outcome folded into `scripts/65` + re-run: **14 accession ADDs** (blank rows, gene-name
     confirmed, length-matched), **7 REANCHORS**, **1 organism fix** (T6SS_13), **3 none_exists** kept blank
     (T3SS_23, T6SS_21, + T6SS_13 accession). gold_list_final = **55 confirmed + 35 corrected = 90** (per-type
-    unchanged T1 18 / T2 8 / T3 23 / T4 8 / T5 19 / T6 14). corrections.tsv = 48 rows. Committed <SWEEP1_SHA>.
+    unchanged T1 18 / T2 8 / T3 23 / T4 8 / T5 19 / T6 14). corrections.tsv = 48 rows. Committed 6b74fd5.
   - **!!! SYSTEMIC MIS-ANCHORING FOUND.** 7 of 23 T3SS rows had `effector_locus` pointing to the WRONG gene
     (a transposase/hydrolase/regulator, not the named effector); agents caught it via NCBI feature-table.
     Reanchored to the true effector locus (length confirmed vs index + UniProt): T3SS_16 (hrpS->HrpK1
@@ -35,6 +35,15 @@ NOT Workflow). **HARNESS BUILT + COMMITTED 02162ed** under `gold_review2/`:
     (does each gold effector_locus actually encode the named gene?) before finalizing -- the build (scripts/63)
     clearly mis-mapped some loci; non-flagged rows with a coincidentally length-matching wrong gene would NOT
     have been caught by the precompute. Decide: locus-audit first, or sweep-2-citation first, or both.
+  - **LOCUS-IDENTITY AUDIT DONE 2026-06-28 (Teo chose this before sweep 2).** `scripts/70` (+ bench_io
+    `locus_index`/`norm_locus` helpers) deterministically maps each accession's UniProt ordered-locus-name AND
+    the gold effector_locus through the gene-order index; a `match` = same gene. Result: **54 match, 0 MISMATCH**
+    -> the systemic mis-anchoring was confined to the 7 T3SS rows already fixed; nothing new. Residual 36 are
+    UNVERIFIABLE-BY-INDEX, no mis-anchor signal: 21 no_oln (reviewed Swiss-Prot toxins, distinctive lengths,
+    gene-name+length already checked), 11 T5SS gold_locus_unindexed + 1 espP (phase1 index doesn't cover those
+    genomes; graded from rerun; large distinctive autotransporters/TPS), 3 no_acc (none_exists). Output
+    `locus_identity_audit.tsv`. Low residual risk; optional follow-up = cross-check the 12 T5SS vs the rerun
+    Bakta annotation. Committed fc2c955.
   - **SWEEP 2 (citation, all 90) NOT YET LAUNCHED.** Batches already built (`gold_review2/sweep2_citation`,
     11 batches). NOTE: re-run `scripts/67` first so citation batches carry the sweep-1 corrected accessions.
     Launch 11 batches x 3 agents reading sweep2 SCHEMA (organism / documents-SECRETION strict / quote-verbatim).

@@ -36,6 +36,24 @@ def by_type(rows: list[dict], field: str = "ss_type") -> dict:
     return dict(sorted(Counter((r.get(field) or "?").strip() for r in rows).items()))
 
 
+def norm_locus(s: str) -> str:
+    """Canonicalize a locus tag/alias for comparison: drop underscores/spaces, uppercase.
+    So `ROD_29761`, `rod29761`, and `ROD_RS14675`'s old-tag alias all compare equal to the index."""
+    return (s or "").replace("_", "").replace(" ", "").upper()
+
+
+def locus_index(path: Path) -> dict:
+    """norm(locus_tag or any alias) -> (record_acc, ordinal, locus_tag) from the gene-order index.
+    Lets a UniProt ordered-locus-name and a gold effector_locus be tested for resolving to the same gene."""
+    idx: dict[str, tuple] = {}
+    for r in read_tsv(path):
+        entry = (r["record_acc"], int(r["ordinal"]), r["locus_tag"])
+        aliases = {norm_locus(a) for a in (r.get("aliases", "") or "").split(";") if a.strip()}
+        for k in {norm_locus(r["locus_tag"])} | aliases:
+            idx[k] = entry
+    return idx
+
+
 def modal(values: list[str]) -> tuple[str, int]:
     """Most common non-empty value + how many proposed it. Ties broken deterministically
     (lowest value wins) so the same inputs always yield the same pick across runs."""

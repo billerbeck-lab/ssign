@@ -1,0 +1,482 @@
+{
+"A0A0F6AX88": {
+"oln": [
+"STM14_0334"
+],
+"primary": ""
+},
+"A0A0H3JP21": {
+"oln": [],
+"primary": "espL2"
+},
+"A0A2Z2PK47": {
+"oln": [
+"Atu6191"
+],
+"primary": "virE3"
+},
+"A0AAU8P3V9": {
+"oln": [
+"ETAE_2037"
+],
+"primary": ""
+},
+"A1JUB7": {
+"oln": [
+"YEP0066"
+],
+"primary": "yadA"
+},
+"A1YKW7": {
+"oln": [],
+"primary": "rtxA"
+},
+"B4F0Z9": {
+"oln": [
+"PMI2057"
+],
+"primary": "hpmA"
+},
+"B7UI22": {
+"oln": [
+"E2348C_3232"
+],
+"primary": "nleE"
+},
+"B7UMA2": {
+"oln": [
+"E2348C_3944"
+],
+"primary": "espH"
+},
+"B7UNX6": {
+"oln": [
+"E2348C_1044"
+],
+"primary": ""
+},
+"B7UR63": {
+"oln": [
+"E2348C_1445"
+],
+"primary": ""
+},
+"D2TJZ4": {
+"oln": [
+"ROD_03401"
+],
+"primary": "espI"
+},
+"D2TKE3": {
+"oln": [
+"ROD_29761"
+],
+"primary": "espA"
+},
+"D2TML3": {
+"oln": [
+"ROD_05791",
+"ROD_38691"
+],
+"primary": "nleD-1"
+},
+"D2TRY1": {
+"oln": [
+"ROD_48901"
+],
+"primary": "espJ"
+},
+"D2TT37": {
+"oln": [
+"ROD_10831"
+],
+"primary": "nleB1"
+},
+"D3GUV9": {
+"oln": [
+"EC042_4528"
+],
+"primary": ""
+},
+"E0SM75": {
+"oln": [
+"Dda3937_00058"
+],
+"primary": "pelI"
+},
+"G3XDB3": {
+"oln": [
+"PSPTO_1405"
+],
+"primary": "hrpK1"
+},
+"O84091": {
+"oln": [
+"CT_089"
+],
+"primary": "lcrE"
+},
+"P08715": {
+"oln": [],
+"primary": "hlyA"
+},
+"P09167": {
+"oln": [],
+"primary": "aerA"
+},
+"P0C082": {
+"oln": [],
+"primary": "lktA"
+},
+"P0CL52": {
+"oln": [
+"STM2882"
+],
+"primary": "sipA"
+},
+"P0DKX7": {
+"oln": [
+"BP0760"
+],
+"primary": "cya"
+},
+"P12255": {
+"oln": [
+"BP1879"
+],
+"primary": "fhaB"
+},
+"P15320": {
+"oln": [],
+"primary": "shlA"
+},
+"P15377": {
+"oln": [],
+"primary": "apxIIA"
+},
+"P16316": {
+"oln": [],
+"primary": "prtB"
+},
+"P16317": {
+"oln": [],
+"primary": "prtC"
+},
+"P16462": {
+"oln": [],
+"primary": "ltxA"
+},
+"P23694": {
+"oln": [],
+"primary": ""
+},
+"P35482": {
+"oln": [
+"PA0688"
+],
+"primary": "lapA"
+},
+"P35828": {
+"oln": [
+"CC_1007"
+],
+"primary": "rsaA"
+},
+"P39180": {
+"oln": [
+"b2000",
+"JW1982"
+],
+"primary": "flu"
+},
+"P43261": {
+"oln": [
+"Z5110",
+"ECs4559"
+],
+"primary": "eae"
+},
+"P44602": {
+"oln": [
+"HI_0264"
+],
+"primary": "hxuA"
+},
+"P55128": {
+"oln": [],
+"primary": "apxIA"
+},
+"P55131": {
+"oln": [],
+"primary": "apxIIIA"
+},
+"P55980": {
+"oln": [
+"HP_0547"
+],
+"primary": "cagA"
+},
+"Q03023": {
+"oln": [
+"PA1249"
+],
+"primary": "aprA"
+},
+"Q07295": {
+"oln": [],
+"primary": "prtA"
+},
+"Q0T963": {
+"oln": [
+"ECP_4580"
+],
+"primary": "cdiA"
+},
+"Q1ID47": {
+"oln": [
+"PSEEN1550"
+],
+"primary": "aprA"
+},
+"Q2GG12": {
+"oln": [
+"ECH_0825"
+],
+"primary": ""
+},
+"Q2GJL5": {
+"oln": [
+"APH_0859"
+],
+"primary": "ats-1"
+},
+"Q2SV12": {
+"oln": [
+"BTH_I2723"
+],
+"primary": ""
+},
+"Q2SV36": {
+"oln": [
+"BTH_I2698"
+],
+"primary": ""
+},
+"Q2T422": {
+"oln": [
+"BTH_II1883"
+],
+"primary": ""
+},
+"Q2YN91": {
+"oln": [
+"BAB1_0756"
+],
+"primary": ""
+},
+"Q2YQ34": {
+"oln": [
+"BAB1_1058"
+],
+"primary": ""
+},
+"Q48031": {
+"oln": [],
+"primary": "hmw1A"
+},
+"Q54450": {
+"oln": [],
+"primary": "hasA"
+},
+"Q5ZT22": {
+"oln": [
+"lpg2343"
+],
+"primary": "sseJ"
+},
+"Q5ZYD5": {
+"oln": [
+"lpg0437"
+],
+"primary": ""
+},
+"Q63K35": {
+"oln": [
+"BPSS1531"
+],
+"primary": "bipC"
+},
+"Q6G2A9": {
+"oln": [
+"BH13370"
+],
+"primary": "bepA"
+},
+"Q7BS42": {
+"oln": [
+"EC042_4593"
+],
+"primary": "pic"
+},
+"Q7BSW5": {
+"oln": [
+"L7020",
+"ECO57PM78"
+],
+"primary": "espP"
+},
+"Q7BU69": {
+"oln": [
+"CP0181"
+],
+"primary": "virA"
+},
+"Q7CUP8": {
+"oln": [
+"Atu4347"
+],
+"primary": ""
+},
+"Q7DB68": {
+"oln": [],
+"primary": "espZ"
+},
+"Q7N8R3": {
+"oln": [
+"plu0655"
+],
+"primary": "prtA"
+},
+"Q7VLE8": {
+"oln": [
+"HD_1505"
+],
+"primary": "lspA1"
+},
+"Q84F70": {
+"oln": [],
+"primary": "prtA1"
+},
+"Q87P32": {
+"oln": [
+"VP1686"
+],
+"primary": "vopS"
+},
+"Q8FDW4": {
+"oln": [
+"c3619"
+],
+"primary": "sat"
+},
+"Q8X834": {
+"oln": [],
+"primary": "nleC"
+},
+"Q8XAN6": {
+"oln": [],
+"primary": "nleG8"
+},
+"Q8XB62": {
+"oln": [],
+"primary": "espJ"
+},
+"Q8ZQ60": {
+"oln": [
+"STM1087"
+],
+"primary": "pipA"
+},
+"Q93IQ4": {
+"oln": [],
+"primary": "StmPr1"
+},
+"Q9HVG6": {
+"oln": [
+"PA4625"
+],
+"primary": ""
+},
+"Q9HYQ6": {
+"oln": [
+"PA3339"
+],
+"primary": "plpD"
+},
+"Q9HZQ8": {
+"oln": [
+"PA2939"
+],
+"primary": "lap"
+},
+"Q9I3K2": {
+"oln": [
+"PA1510"
+],
+"primary": ""
+},
+"Q9I733": {
+"oln": [
+"PA0099"
+],
+"primary": "tse7"
+},
+"Q9JXK7": {
+"oln": [
+"NMB1994"
+],
+"primary": "nadA"
+},
+"Q9K0B4": {
+"oln": [
+"NMB0700"
+],
+"primary": "iga"
+},
+"Q9KMN9": {
+"oln": [
+"VC_A0285"
+],
+"primary": ""
+},
+"Q9KN18": {
+"oln": [
+"VC_A0148"
+],
+"primary": ""
+},
+"Q9KN42": {
+"oln": [
+"VC_A0123"
+],
+"primary": "vgrG3"
+},
+"Q9KNE5": {
+"oln": [
+"VC_A0020"
+],
+"primary": "vasX"
+},
+"Q9KPR8": {
+"oln": [
+"VC_2298"
+],
+"primary": ""
+},
+"Q9KS43": {
+"oln": [
+"VC_1418"
+],
+"primary": "tseL"
+},
+"Q9RI13": {
+"oln": [
+"YPCD1.71c"
+],
+"primary": "yopP"
+},
+"Q9ZHL0": {
+"oln": [],
+"primary": "lspA2"
+}
+}
