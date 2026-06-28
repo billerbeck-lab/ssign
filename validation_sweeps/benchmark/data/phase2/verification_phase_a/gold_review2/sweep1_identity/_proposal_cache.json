@@ -1,0 +1,107 @@
+{
+"A0A0F6AX88": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 262,
+"organism": "Salmonella typhimurium (strain 14028s / SGSC 2262)"
+},
+"B7UNX6": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 232,
+"organism": "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
+},
+"B7URW4": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 346,
+"organism": "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
+},
+"D2TJZ4": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 430,
+"organism": "Citrobacter rodentium (strain ICC168)"
+},
+"D2TKH9": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 139,
+"organism": "Citrobacter rodentium (strain ICC168)"
+},
+"D2TML3": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 235,
+"organism": "Citrobacter rodentium (strain ICC168)"
+},
+"D2TRY1": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 217,
+"organism": "Citrobacter rodentium (strain ICC168)"
+},
+"D2TT37": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 329,
+"organism": "Citrobacter rodentium (strain ICC168)"
+},
+"D3GUV9": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 576,
+"organism": "Escherichia coli O44:H18 (strain 042 / EAEC)"
+},
+"O84091": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 421,
+"organism": "Chlamydia trachomatis serovar D (strain ATCC VR-885 / DSM 19411 / UW-3/Cx)"
+},
+"Q2SV12": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 3147,
+"organism": "Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)"
+},
+"Q2SV36": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 800,
+"organism": "Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)"
+},
+"Q2T422": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 141,
+"organism": "Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)"
+},
+"Q48031": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 1536,
+"organism": "Haemophilus influenzae"
+},
+"Q5ZYD5": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 666,
+"organism": "Legionella pneumophila subsp. pneumophila (strain Philadelphia 1 / ATCC 33152 / DSM 7513)"
+},
+"Q7CUP8": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 166,
+"organism": "Agrobacterium fabrum (strain C58 / ATCC 33970)"
+},
+"Q7DB68": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 99,
+"organism": "Escherichia coli O157:H7"
+},
+"Q887C7": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 302,
+"organism": "Pseudomonas syringae pv. tomato (strain ATCC BAA-871 / DC3000)"
+},
+"Q8ZQ60": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 226,
+"organism": "Salmonella typhimurium (strain LT2 / SGSC1412 / ATCC 700720)"
+},
+"Q9HVG6": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 2154,
+"organism": "Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)"
+},
+"Q9KMN9": {
+"reviewed": "UniProtKB unreviewed (TrEMBL)",
+"length": 223,
+"organism": "Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)"
+}
+}

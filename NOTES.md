@@ -11,19 +11,35 @@ T5SS_03 swap_up Q51163(fragment)->Q9K0B4(1815aa MC58), T5SS_13/14 swap_ref to Wa
 + fill LspA2=Q9ZHL0. **gold_list_final.tsv now 71 confirmed + 19 corrected + 0 noted = 90.**
 
 That the notes hid real defects (only caught because one agent noticed) prompted a full second-pass review of
-the dimensions the blind review did NOT check. **Plan = two agent sweeps over the 90 rows** (Agent tool,
-batched, NOT Workflow):
-  - **DETERMINISTIC PRECOMPUTE DONE** (`scripts/66_identity_signals.py` -> `identity_signals.tsv`): len_ratio
-    (UniProt length vs CDS span/3), Reviewed flag, UniProt-Fragment flag, dup accession/locus. Cleared 66/90
-    on length+dup. **Flagged: T3SS_29 (Q6T6T6 ratio 1.32), T3SS_30 (Q6RYA7 ratio 0.85); 22 blank-accession
-    rows** (CopN/EspZ/NleB/D/F, Tse/Tle/Tae...) needing an accession found or CDS-translation confirm; 0 dups.
-  - **SWEEP 1 (identity, ~24 flagged rows):** agents resolve len_mismatch + find genome-matched accession for
-    the 22 blanks (or confirm none exists), check Reviewed-entry preference. Agents SEE the precomputed signals.
-  - **SWEEP 2 (citation, all 90):** primary_ref organism == row organism? ref documents SECRETION
-    (supernatant/translocation, STRICT rubric) not just virulence? citation_quote verbatim in the paper?
-    Tools: PubMed MCP / Crossref / europepmc.
-  - Reuse the prior harness shape: a `gold_review2/` dir with per-sweep SCHEMA + batches + verdicts + a
-    reconcile script; then fold reconciled fixes into `scripts/65` DISPOSITIONS and re-run.
+the dimensions the blind review did NOT check. **Two agent sweeps over the 90 rows** (Agent tool, batched,
+NOT Workflow). **HARNESS BUILT + COMMITTED 02162ed** under `gold_review2/`:
+  - `scripts/66` precompute (`identity_signals.tsv`): cleared 66/90; flagged T3SS_29 (Q6T6T6 ratio 1.32),
+    T3SS_30 (Q6RYA7 ratio 0.85) + 22 blank-accession rows; 0 dups.
+  - `scripts/67` builds batches: sweep1_identity = the 24 flagged rows (3 batches s1_1..s1_3),
+    sweep2_citation = all 90 grouped by ss_type (11 batches). Each sweep has its own anti-hallucination
+    SCHEMA.md. `scripts/68` reconciles per sweep (generic; deterministic plurality + TIE, 3 agents/batch).
+    simplify pass folded modal() into bench_io. `scripts/69` deterministically re-validates every
+    agent-proposed accession (length+organism vs UniProt) — the machine-checked safety net for adjudication.
+  - **SWEEP 1 (identity) DONE 2026-06-28.** 9 agents (3/batch, 3/3 coverage) -> reconcile (`68 sweep1_identity`)
+    -> validate (`69`). Outcome folded into `scripts/65` + re-run: **14 accession ADDs** (blank rows, gene-name
+    confirmed, length-matched), **7 REANCHORS**, **1 organism fix** (T6SS_13), **3 none_exists** kept blank
+    (T3SS_23, T6SS_21, + T6SS_13 accession). gold_list_final = **55 confirmed + 35 corrected = 90** (per-type
+    unchanged T1 18 / T2 8 / T3 23 / T4 8 / T5 19 / T6 14). corrections.tsv = 48 rows. Committed <SWEEP1_SHA>.
+  - **!!! SYSTEMIC MIS-ANCHORING FOUND.** 7 of 23 T3SS rows had `effector_locus` pointing to the WRONG gene
+    (a transposase/hydrolase/regulator, not the named effector); agents caught it via NCBI feature-table.
+    Reanchored to the true effector locus (length confirmed vs index + UniProt): T3SS_16 (hrpS->HrpK1
+    PSPTO_RS07380/G3XDB3), T3SS_27 (ydgJ->NleF E2348C_RS07680/B7UR63), T3SS_28 (HTH->EspA ROD_RS14675/D2TKE3),
+    T3SS_29 (IS110->NleA ROD_RS01735/D2TJZ4), T3SS_30 (hydrolase->NleD ROD_RS02910/D2TML3), T3SS_31
+    (IS3->NleB1 ROD_RS05475/D2TT37, was spuriously found=yes!), T3SS_32 (transglycosylase->EspJ
+    ROD_RS24095/D2TRY1). **OPEN QUESTION for Teo: run a deterministic locus-identity audit on ALL 90 rows**
+    (does each gold effector_locus actually encode the named gene?) before finalizing -- the build (scripts/63)
+    clearly mis-mapped some loci; non-flagged rows with a coincidentally length-matching wrong gene would NOT
+    have been caught by the precompute. Decide: locus-audit first, or sweep-2-citation first, or both.
+  - **SWEEP 2 (citation, all 90) NOT YET LAUNCHED.** Batches already built (`gold_review2/sweep2_citation`,
+    11 batches). NOTE: re-run `scripts/67` first so citation batches carry the sweep-1 corrected accessions.
+    Launch 11 batches x 3 agents reading sweep2 SCHEMA (organism / documents-SECRETION strict / quote-verbatim).
+    Then `scripts/68 sweep2_citation`, adjudicate, fold into 65, re-run.
+  - Final: re-run 65 -> gold_list_final v3; update corrections.tsv + NOTES; commit.
 
 **THEN (still pending):** 1.7 regen figures from gold_list_final + 4.4 recall rebuild + 4.5 docs.
 

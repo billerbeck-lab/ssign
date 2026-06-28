@@ -147,39 +147,16 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     "T3SS_25": (
         "relabel",
-        {"organism": EPEC},
-        "4/4",
-        "genome NC_011601.1 + locus E2348C_ are EPEC; organism said O157:H7 Sakai",
+        {"organism": EPEC, "uniprot": "B7UNX6"},
+        "4/4 + identity 3/3",
+        "genome NC_011601.1 + locus E2348C_ are EPEC; organism said O157:H7 Sakai. Identity sweep: "
+        "blank accession -> B7UNX6 (NleD homolog, E2348/69, 232aa = the CDS span).",
     ),
     "T3SS_26": (
         "relabel",
         {"organism": EPEC},
         "4/4",
         "genome NC_011601.1 + locus E2348C_ + uniprot B7UI22 are EPEC; organism said O157:H7 Sakai",
-    ),
-    "T3SS_27": (
-        "relabel",
-        {"organism": EPEC},
-        "4/4",
-        "genome NC_011601.1 + locus E2348C_ are EPEC; organism said O157:H7 Sakai",
-    ),
-    "T3SS_28": (
-        "relabel",
-        {"organism": CROD},
-        "4/4",
-        "genome NC_013716.1 + locus ROD_ are C. rodentium ICC168; organism said O157:H7 Sakai",
-    ),
-    "T3SS_30": (
-        "relabel",
-        {"organism": CROD},
-        "4/4",
-        "genome NC_013716.1 + locus ROD_ are C. rodentium ICC168; organism said O157:H7 Sakai",
-    ),
-    "T3SS_32": (
-        "relabel",
-        {"organism": CROD},
-        "4/4",
-        "genome NC_013716.1 + locus ROD_ are C. rodentium ICC168; organism said O157:H7 Sakai",
     ),
     # --- swap_up: deleted/wrong accession, locus is the right gene, coords correct ---
     "T3SS_17": (
@@ -289,6 +266,146 @@ DISPOSITIONS: dict[str, tuple] = {
     "T2SS_10": ("drop", {}, "4/4 wrong_uniprot", "A1JQR7 deleted, no live successor accession"),
     "T2SS_12": ("drop", {}, "3/3 wrong_uniprot", "A6V5Q1 deleted, no live successor accession"),
     "T6SS_12": ("drop", {}, "4/4 wrong_uniprot", "A0A0H3B0Q3 deleted, no live successor accession"),
+    # ===== second-pass IDENTITY sweep (2026-06-28, gold_review2/sweep1_identity, 3 agents/batch) =====
+    # accession ADD: the gold locus IS the named gene (UniProt gene/protein name confirms it); agents found
+    # the genome-matched accession whose length equals the CDS span. Deterministically re-validated by scripts/69.
+    "T3SS_01": (
+        "swap_up",
+        {"uniprot": "O84091"},
+        "identity 3/3",
+        "CopN = CT_089/O84091 (gene lcrE, 421aa = span), Chlamydia trachomatis D.",
+    ),
+    "T3SS_03": (
+        "swap_up",
+        {"uniprot": "Q7DB68"},
+        "identity 3/3",
+        "EspZ = ECs_4571/Q7DB68 (99aa = span), E. coli O157:H7 Sakai.",
+    ),
+    "T3SS_11": (
+        "swap_up",
+        {"uniprot": "Q8ZQ60"},
+        "identity 3/3",
+        "PipA = STM1087/Q8ZQ60 (SPI5 protein, 226aa ~ span), S. Typhimurium LT2.",
+    ),
+    "T4SS_02": (
+        "swap_up",
+        {"uniprot": "Q5ZYD5"},
+        "identity 3/3",
+        "Ceg14 = LPG_RS02190/Q5ZYD5 (Dot/Icm substrate, 666aa = span), L. pneumophila Philadelphia 1.",
+    ),
+    "T5SS_06": (
+        "swap_up",
+        {"uniprot": "Q2SV12"},
+        "identity 3/3",
+        "bcpA = BTH_RS26080/Q2SV12 (filamentous haemagglutinin, 3147aa = span), B. thailandensis E264.",
+    ),
+    "T5SS_08": (
+        "swap_up",
+        {"uniprot": "Q9HVG6"},
+        "identity 3/3",
+        "cdrA = PA4625/Q9HVG6 (TPS FhaB/CdiA family, 2154aa = span), P. aeruginosa PAO1.",
+    ),
+    "T5SS_10": (
+        "swap_up",
+        {"uniprot": "Q48031"},
+        "identity 3/3",
+        "hmw1A = R2846_RS03620/Q48031 (HMW1 adhesin, 1536aa = span), H. influenzae R2846.",
+    ),
+    "T6SS_03": (
+        "swap_up",
+        {"uniprot": "Q9KMN9"},
+        "identity 3/3",
+        "TseH = VC_RS14690/Q9KMN9 (T6SS effector TseH, 223aa = span), V. cholerae N16961.",
+    ),
+    "T6SS_08": (
+        "swap_up",
+        {"uniprot": "Q7CUP8"},
+        "identity 3/3",
+        "Tae = ATU_RS20360/Q7CUP8 (T6SS amidase effector, 166aa = span), A. tumefaciens C58.",
+    ),
+    "T6SS_09": (
+        "swap_up",
+        {"uniprot": "Q2T422", "organism": "Burkholderia thailandensis E264"},
+        "identity 3/3",
+        "TseM = BTH_RS09640/Q2T422 (141aa = span); organism field had carried the contig id NC_007650.",
+    ),
+    "T6SS_10": (
+        "swap_up",
+        {"uniprot": "Q2SV36", "organism": "Burkholderia thailandensis E264"},
+        "identity 3/3",
+        "Tle1 = BTH_RS32260/Q2SV36 (T6SS phospholipase Tle1, 800aa = span); organism field had the contig id NC_007651.",
+    ),
+    "T6SS_17": (
+        "swap_up",
+        {"uniprot": "A0A0F6AX88"},
+        "identity 3/3",
+        "Tae4 = STM14_RS02020/A0A0F6AX88 (262aa = span), S. Typhimurium 14028s.",
+    ),
+    "T6SS_18": (
+        "swap_up",
+        {"uniprot": "D3GUV9"},
+        "identity 3/3",
+        "Tle1 = EC042_RS24190/D3GUV9 (T6SS Tle1, 576aa = span), E. coli 042.",
+    ),
+    # organism-only fix: no genome-matched UniProt entry exists for this strain protein (accession kept blank),
+    # but the organism field had carried the contig id instead of the species name.
+    "T6SS_13": (
+        "relabel",
+        {"organism": "Yersinia pseudotuberculosis YPIII"},
+        "identity 3/3 none_exists",
+        "YezP: no genome-matched UniProt accession exists (kept blank); organism field had the contig id NC_010465.1.",
+    ),
+    # MIS-ANCHORED (coord/gene mismatch): the gold effector_locus encodes a DIFFERENT gene (transposase /
+    # hydrolase / regulator); reanchor to the true effector locus (length confirmed against the index + UniProt).
+    "T3SS_16": (
+        "reanchor",
+        {"effector_locus": "PSPTO_RS07380", "uniprot": "G3XDB3", "gene": "HrpK1"},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus PSPTO_RS07250 is hrpS (a T3SS transcriptional regulator), NOT HrpK1. True HrpK1 = "
+        "PSPTO_1405/PSPTO_RS07380/G3XDB3 (780aa) on NC_004578.1.",
+    ),
+    "T3SS_27": (
+        "reanchor",
+        {"effector_locus": "E2348C_RS07680", "uniprot": "B7UR63", "gene": "NleF", "organism": EPEC},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus E2348C_RS09145 is ydgJ (a predicted oxidoreductase), NOT NleF. True NleF = "
+        "E2348C_1445/E2348C_RS07680/B7UR63 (189aa) on NC_011601.1; organism also said O157:H7 Sakai.",
+    ),
+    "T3SS_28": (
+        "reanchor",
+        {"effector_locus": "ROD_RS14675", "uniprot": "D2TKE3", "gene": "EspA", "organism": CROD},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus ROD_RS14860 is an HTH-domain protein, NOT EspA. True EspA = ROD_29761/ROD_RS14675/"
+        "D2TKE3 (192aa) on NC_013716.1; organism also said O157:H7 Sakai.",
+    ),
+    "T3SS_29": (
+        "reanchor",
+        {"effector_locus": "ROD_RS01735", "uniprot": "D2TJZ4", "gene": "NleA_EspI", "organism": CROD},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus ROD_RS06085 is an IS110 transposase, NOT NleA. True NleA/EspI = ROD_03401/ROD_RS01735/"
+        "D2TJZ4 (430aa) on NC_013716.1; replaces the length-mismatched Q6T6T6.",
+    ),
+    "T3SS_30": (
+        "reanchor",
+        {"effector_locus": "ROD_RS02910", "uniprot": "D2TML3", "gene": "NleD", "organism": CROD},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus ROD_RS03135 is an alpha/beta hydrolase, NOT NleD. True NleD = ROD_05791/ROD_RS02910/"
+        "D2TML3 (235aa) on NC_013716.1; organism also said O157:H7 Sakai.",
+    ),
+    "T3SS_31": (
+        "reanchor",
+        {"effector_locus": "ROD_RS05475", "uniprot": "D2TT37", "gene": "NleB", "organism": CROD},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus ROD_RS14635 is an IS3 transposase (spuriously dist 5 from EscF, found=yes). True NleB1 = "
+        "ROD_10831/ROD_RS05475/D2TT37 (329aa) on NC_013716.1.",
+    ),
+    "T3SS_32": (
+        "reanchor",
+        {"effector_locus": "ROD_RS24095", "uniprot": "D2TRY1", "gene": "EspJ", "organism": CROD},
+        "identity 3/3 (coord/gene mismatch)",
+        "old locus ROD_RS12795 is a lytic transglycosylase, NOT EspJ. True EspJ = ROD_48901/ROD_RS24095/"
+        "D2TRY1 (217aa) on NC_013716.1; organism also said O157:H7 Sakai.",
+    ),
 }
 
 STATUS = {
