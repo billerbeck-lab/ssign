@@ -1,0 +1,11 @@
+row_id	ss_type	subtype	gene	uniprot	organism	primary_ref	citation_quote
+T6SS_01	T6SS		TseL	Q9KS43	Vibrio cholerae N16961	10.1073/pnas.1222783110	the antibacterial effect of TseL is dependent on its lipase domain
+T6SS_02	T6SS		VasX	Q9KNE5	Vibrio cholerae N16961	10.1128/IAI.01266-10	we present evidence that VasH regulates the production of a newly identified protein, VasX, which in turn requires a functional T6SS for secretion. ... We present VasX as a novel virulence factor of the T6SS
+T6SS_03	T6SS		TseH	-	Vibrio cholerae N16961	10.1128/mBio.00075-15	the product of the gene VCA0285 is likely a new peptidoglycan hydrolase that is secreted by T6SS
+T6SS_04	T6SS		VgrG-3	Q9KN42	Vibrio cholerae N16961	10.1073/pnas.1222783110	VgrG3 is a lysozyme-like T6SS effector and, like other effectors described in P. aeruginosa, likely targets the cell wall of bacterial prey for enzymatic digestion.
+T6SS_05	T6SS		Tse7	Q9I733	Pseudomonas aeruginosa PAO1	10.1073/pnas.1814181115	We find that Tse7 sits on the tip of the VgrG1b spike and that specific residues at the PAAR-VgrG1b interface are essential for VgrG1b-dependent delivery of Tse7 into bacterial prey.
+T6SS_06	T6SS		TplE_alias_Tle4	Q9I3K2	Pseudomonas aeruginosa PAO1	10.1016/j.celrep.2016.07.012	we report a detailed investigation of a P. aeruginosa H2-T6SS-dependent phospholipase effector, TplE, which acts as a trans-kingdom toxin.
+T6SS_08	T6SS		Tae_Atu4347	-	Agrobacterium tumefaciens C58	10.1016/j.chom.2014.06.002	The Atu4347-Atu4346 pair belongs to the family type VI secretion amidase effector and immunity (Tae-Tai), and the toxin likely targets the peptidoglycan.
+T6SS_09	T6SS		TseM		NC_007650	10.1073/pnas.1614902114	we identified a T6SS-4–dependent Mn-binding effector TseM, and its interacting partner MnoT, a Mn-specific TonB-dependent outer membrane transporter.
+T6SS_10	T6SS		Tle1		NC_007651	10.1038/nature12074	These data show that Tle1 is an antibacterial effector delivered between cells by T6S, and that I2699, henceforth referred to as Tli1 ... protects against Tle1.
+T6SS_13	T6SS		YezP_Zn_binding	-	NC_010465.1	10.1371/journal.ppat.1005020	These results establish that YezP is a substrate secreted by T6SS-4.

@@ -34,3 +34,14 @@ def norm_doi(d: str) -> str:
 def by_type(rows: list[dict], field: str = "ss_type") -> dict:
     """Sorted per-value counts for a column, for run-summary logging."""
     return dict(sorted(Counter((r.get(field) or "?").strip() for r in rows).items()))
+
+
+def modal(values: list[str]) -> tuple[str, int]:
+    """Most common non-empty value + how many proposed it. Ties broken deterministically
+    (lowest value wins) so the same inputs always yield the same pick across runs."""
+    vals = [v.strip() for v in values if (v or "").strip()]
+    if not vals:
+        return "", 0
+    counts = Counter(vals)
+    top = max(counts.values())
+    return min(v for v, c in counts.items() if c == top), top

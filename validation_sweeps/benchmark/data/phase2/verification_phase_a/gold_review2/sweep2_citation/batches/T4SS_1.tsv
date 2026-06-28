@@ -1,0 +1,9 @@
+row_id	ss_type	subtype	gene	uniprot	organism	primary_ref	citation_quote
+T4SS_01	T4SS		CagA	P55980	Helicobacter pylori 26695	10.1126/science.287.5457.1497	such strains translocate the bacterial protein CagA into gastric epithelial cells by a type IV secretion system, encoded by the cag pathogenicity island.
+T4SS_02	T4SS		Ceg14	-	Legionella pneumophila Philadelphia 1	10.1038/s44320-024-00076-z	a large group of effectors (Lpg0103/VipF, Leg0208/LegK4, Lpg0437/Ceg14, Lpg1368/Lgt1, Lpg1488/Lgt3, Lpg2504/SidI, and Lpg2862/Lgt2) shown to manipulate eukaryotic protein translation
+T4SS_05	T4SS		VirE3	A0A2Z2PK47	Agrobacterium fabrum str. C58	10.1371/journal.ppat.1003948	the VirB/D4 system is also involved in the translocation of several effector proteins, including VirE2, VirE3 and VirF into the host cell cytoplasm.
+T4SS_07	T4SS		BepA	Q6G2A9	Bartonella henselae Houston-1	10.1073/pnas.0406796102	These translocated effector proteins (Beps) A-G are encoded together with the VirB system and the T4S coupling protein VirD4 on a [Bartonella]-specific pathogenicity island.
+T4SS_08	T4SS		BtpB	Q2YN91	Brucella abortus 2308	10.3389/fcimb.2013.00028	translocation of BtpA-CyaA and CyaA-BtpB was clearly reduced in a virB genetic background, indicating that delivery of both proteins is dependent on the T4SS.
+T4SS_09	T4SS		VceC	Q2YQ34	Brucella abortus 2308	10.1111/j.1365-2958.2008.06487.x	identification of the proteins encoded by BAB1_1652 (VceA) and BR1038/BAB1_1058 (VceC) as novel protein substrates of theT4SS.
+T4SS_10	T4SS		Ats-1	Q2GJL5	Anaplasma phagocytophilum HZ	10.1371/journal.ppat.1000774	we screened a genomic DNA library offor effectors of the type IV secretion system... A hypothetical protein was identified as a putative effector, hereby namedranslocatedubstrate 1 (Ats-1)
+T4SS_11	T4SS		Etf-1	Q2GG12	Ehrlichia chaffeensis Arkansas	10.1111/j.1462-5822.2012.01775.x	

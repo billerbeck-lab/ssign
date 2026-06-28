@@ -28,7 +28,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from bench_io import read_tsv, write_tsv  # noqa: E402
+from bench_io import modal, read_tsv, write_tsv  # noqa: E402
 
 BENCH = Path(__file__).resolve().parents[1]
 GR = BENCH / "data" / "phase2" / "verification_phase_a" / "gold_review"
@@ -57,15 +57,6 @@ FIELDS = [
     "fix_support",
     "agent_notes",
 ]
-
-
-def _modal(values: list[str]) -> tuple[str, int]:
-    """Most common non-empty value and how many agents proposed it (blank, 0 if none)."""
-    vals = [v.strip() for v in values if (v or "").strip()]
-    if not vals:
-        return "", 0
-    val, n = Counter(vals).most_common(1)[0]
-    return val, n
 
 
 def _final(c: int, f: int, d: int, u: int, n: int) -> tuple[str, str]:
@@ -123,9 +114,9 @@ def main() -> int:
         final, agreement = _final(c, f, d, u, n) if n else ("NO_VERDICT", "missing")
 
         fixers = [x for x in vs if (x.get("verdict") or "").strip() in ("fix", "drop")]
-        nu, nu_s = _modal([x.get("new_uniprot", "") for x in fixers])
-        nl, nl_s = _modal([x.get("new_locus_tag", "") for x in fixers])
-        nr, nr_s = _modal([x.get("new_primary_ref", "") for x in fixers])
+        nu, nu_s = modal([x.get("new_uniprot", "") for x in fixers])
+        nl, nl_s = modal([x.get("new_locus_tag", "") for x in fixers])
+        nr, nr_s = modal([x.get("new_primary_ref", "") for x in fixers])
         defects = ";".join(sorted({(x.get("defect") or "").strip() for x in vs if (x.get("defect") or "").strip()}))
         fix_support = ",".join(
             s

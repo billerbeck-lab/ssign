@@ -1,0 +1,9 @@
+row_id	ss_type	gene	organism	genome	contig	start	stop	strand	effector_locus	uniprot_in	uniprot_len	expected_aa	len_ratio	signal_flags	uniprot_protein
+T3SS_29	T3SS	NleA_EspI	Citrobacter rodentium ICC168	NC_013716.1	NC_013716.1	1319087	1320067	1	ROD_RS06085	Q6T6T6	430	326	1.319	len_mismatch;unreviewed	
+T3SS_30	T3SS	NleD	Citrobacter rodentium (strain ICC168)	NC_013716.1	NC_013716.1	687023	687859	1	ROD_RS03135	Q6RYA7	235	278	0.845	len_mismatch;unreviewed	
+T3SS_31	T3SS	NleB	Citrobacter rodentium ICC168	NC_013716.1	NC_013716.1	3142672	3143807	-1	ROD_RS14635	-		378		no_acc	
+T3SS_32	T3SS	EspJ	Citrobacter rodentium (strain ICC168)	NC_013716.1	NC_013716.1	2739027	2740940	-1	ROD_RS12795	-		637		no_acc	
+T4SS_02	T4SS	Ceg14	Legionella pneumophila Philadelphia 1	NC_002942.5	NC_002942.5	474811	476811	1	LPG_RS02190	-		666		no_acc	
+T5SS_06	T5SS	bcpA	Burkholderia thailandensis E264	GCF_000012365.1	NC_007651.1	3122515	3131958	-1	BTH_RS26080			3147		no_acc	
+T5SS_08	T5SS	cdrA	Pseudomonas aeruginosa PAO1	GCF_000006765.1	AE004091.2	5186411	5192875	-1	PA4625			2154		no_acc	
+T5SS_10	T5SS	hmw1A	Haemophilus influenzae R2846 (strain 12)	NC_017452.1	NC_017452.1	733258	737868	-1	R2846_RS03620			1536		no_acc	
