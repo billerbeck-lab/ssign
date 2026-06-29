@@ -47,11 +47,12 @@ FINAL = VDIR / "gold_list_final.tsv"
 CORR = VDIR / "gold_review" / "corrections.tsv"
 IDX = BENCH / "data" / "phase1" / "gene_order_index.tsv"
 MR = BENCH / "data" / "machinery" / "machinery_resolved.tsv"
-# scripts/73 output: recomputed geometry for the RTX-T1SS/T5SS/(reanchored T6SS) rows machinery_resolved.tsv
-# can't resolve. Absent -> the geometry-override pass is a no-op. Run order converges as 65 -> 73 -> 65: this
-# script first reanchors T6SS_17/18 onto their new coords, scripts/73 then reads those coords to recompute
-# their geometry, and a second 65 run applies it. All three steps are idempotent.
-GEOM_RC = VDIR / "t1ss_t5ss_geometry_recompute.tsv"
+# scripts/73 output: geometry (nearest/distance/reachable) recomputed for ALL 90 rows from rerun-DETECTED
+# machinery, replacing the partial+unreliable machinery_resolved.tsv for these columns. Absent -> the
+# geometry-override pass is a no-op. Run order converges as 65 -> 73 -> 65: this script first reanchors
+# T6SS_17/18 onto their new coords, scripts/73 then reads those coords to recompute geometry, and a second
+# 65 run applies it. All three steps are idempotent.
+GEOM_RC = VDIR / "geometry_recompute.tsv"
 INF = 10**9
 
 EPEC = "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
@@ -766,12 +767,11 @@ def main() -> int:
         )
         n_found_fixed += 1
 
-    # geometry override for the RTX-T1SS + T5SS rows (scripts/73): machinery_resolved.tsv has no instance for
-    # these types, so the Reanchor engine can't set their nearest/distance/reachable. scripts/73 derives them
-    # from the secretion-system components TXSScan actually DETECTED in the rerun (gene-order distance to the
-    # nearest T1SS component / the T5bSS TpsB translocator; self-secreting autotransporters get distance 0,
-    # reachable "self"). This corrects the prior T5bSS mislabel ("(self-secreting)" -> real TpsB distance, so
-    # fhaB/lspA1 flip reachable yes->no). It does NOT touch found_by_ssign (recall is unchanged).
+    # geometry override (scripts/73): set nearest/distance/reachable for ALL rows from the machinery TXSScan
+    # actually DETECTED in the rerun (gene-order distance to the nearest cognate component), replacing the
+    # curated machinery_resolved.tsv whose partial component lists put effectors 100-1000 genes from "their"
+    # machinery while ssign emitted them via proximity. Corrects e.g. CopN/BipC/TplE/Tle1 reach no->yes and the
+    # T5bSS "(self-secreting)" mislabel -> real TpsB distance. Does NOT touch found_by_ssign (recall unchanged).
     GEOM_FIELDS = {
         "nearest_machinery_gene": "rc_nearest",
         "nearest_machinery_locus": "rc_locus",
@@ -780,10 +780,14 @@ def main() -> int:
     }
     n_geom_fixed = 0
     geom_rc = {x["instance_id"]: x for x in read_tsv(GEOM_RC)} if GEOM_RC.exists() else {}
-    APPLICABLE = ("recomputed", "self_secreting", "self_no_model")  # allow-list: every other status
-    for r in out:  # (contig_absent / effector_not_in_order /
-        g = geom_rc.get(r["instance_id"])  # no_*_component_on_contig) blanks the recompute,
-        if not g or g["status"] not in APPLICABLE:  # so keep the stored value instead of overwriting it
+    # allow-list of recompute statuses to apply. contig_absent keeps the stored value (the molecule wasn't in
+    # the rerun, so we can say nothing). The rest are honest verdicts: no_cognate_machinery / effector_not_in_order
+    # both legitimately mean reach="no" (cognate system not detected near the effector / the effector ORF is
+    # absent from the rerun = a Bakta gene-miss).
+    APPLICABLE = ("recomputed", "self_secreting", "self_no_model", "no_cognate_machinery", "effector_not_in_order")
+    for r in out:
+        g = geom_rc.get(r["instance_id"])
+        if not g or g["status"] not in APPLICABLE:
             continue
         changed = [(f, r.get(f, ""), g[src]) for f, src in GEOM_FIELDS.items() if r.get(f, "") != g[src]]
         if not changed:
@@ -824,7 +828,7 @@ def main() -> int:
     print(f"  by verification_status: {dict(by_status)}")
     print(f"  by ss_type (kept): {dict(sorted(by_type.items()))}")
     print(f"  found_by_ssign recomputed (any-overlap): {n_found_fixed} value(s) corrected vs raw")
-    print(f"  geometry recomputed (RTX-T1SS/T5SS, scripts/73): {n_geom_fixed} row(s) corrected")
+    print(f"  geometry recomputed from rerun-detected machinery (scripts/73): {n_geom_fixed} row(s) corrected")
     print(f"  SCORABLE rows (no holds remain): {len(out)}")
     print(f"corrections.tsv: {len(corr_rows)} audit rows")
     return 0

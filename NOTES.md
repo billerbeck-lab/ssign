@@ -2,7 +2,37 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-29 pm) — gold list v4 (90 rows); high-churn re-review + RTX/T5SS/T6SS geometry DONE; recall now 39/90; next = wire into figs (1.7 / 4.4 back-half)
+## ⭐ RESUME HERE (2026-06-29 eve) — gold v4 (90 rows); ALL-90 reachable recompute DONE; clean found×reachable 2x2; next = figs (1.7) with the new miss categories
+
+**ALL-90 REACHABLE RECOMPUTE DONE 2026-06-29 eve (Teo: "do the full reachable recompute, I don't trust this now").**
+Replaced the curated `machinery_resolved.tsv` as the source for `nearest_machinery_gene/locus`, `distance_to_machinery_genes`,
+`reachable_within_3` on ALL 90 rows with the machinery TXSScan actually DETECTED in the rerun (gene-order distance to the
+nearest COGNATE component; `scripts/73_recompute_geometry.py`, renamed from the t1ss_t5ss version). Motivation: the curated
+table is a partial component list that put effectors 100-3000 genes from "their" machinery while ssign emitted them via
+proximity (CopN 520->1, BipC 11->3, TplE 1454->1, Tle1 265->1, TseM 453->2, YezP 3114->1). **found_by_ssign untouched ->
+recall stays 39/90.**
+- **Clean found × reachable 2x2 now:** found=yes/reach=yes 31, found=yes/reach=self 7 (self-secretors), **found=yes/reach=no 1
+  (VirA only)**, found=no/reach=yes 9, found=no/reach=no 40, found=no/reach=self 2 (plpD, eae). `found ⊆ reachable` holds bar VirA.
+- **VirA (T3SS_20) is the one genuine found-but-far:** a T3SS effector on the Shigella virulence plasmid, 24 genes from its
+  T3SS apparatus but **1 gene from a T5aSS autotransporter**; ssign emitted it via DLP-extracellular 0.9994 + that non-cognate
+  neighbor (dse_type_match=False). Real "recovered, but not by cognate proximity" datapoint, not a near-miss.
+- **BUG found + fixed (mine):** the simplify "consistency" tweak that made `detected_components` stop at the first blank line
+  was WRONG -- results.csv splits secretion systems into TWO subsections, `# Secretion Systems (with secreted proteins)` and
+  `# Secretion Systems (other)`, blank-separated, and a system with no emitted substrate (often the T6SS) lives only in
+  `(other)`. The terminator dropped `(other)`, so e.g. Ssp2 came back "no machinery" with 13 T6SS comps on its contig.
+  Reverted to read-to-EOF + record_type filter (commented why it canNOT share `_read_emitted_loci`'s terminating reader).
+- **Miss-reason categories for the figure (verified honest, status col in `geometry_recompute.tsv`):**
+  (1) recovered = found (39); (2) reachable-but-missed = found=no/reach=yes 9 (cognate machinery detected + effector <=3 away,
+  but the secretion-prediction/localization gate failed -- the TUNABLE misses); (3) unreachable, machinery detected, effector
+  far = found=no/reach=no `recomputed` (NleD 2944 from LEE, SipA 5, BepA 220, VasX 78 -- proximity-filter limit); (4)
+  unreachable, cognate NOT detected / cross-replicon = the 14 `no_cognate_machinery` (3 cross-contig: VceC/BtpB Brucella chr1
+  effector vs VirB on chr2, tagA V.cholerae chr2 vs T2SS chr1; 11 absent: cag T4SS/Dot-Icm not modeled as pT4SSt, Citrobacter
+  LEE undetected genome-wide [same IS-dense genome that lost NleD to a Bakta miss], HrpK1 Hrp T3SS, Serralysin) -- DETECTION
+  limit / replicon split; (5) self-secretor not emitted = reach=self/found=no (plpD, eae). T3SS_30 NleD = `effector_not_in_order`
+  (Bakta gene-miss, ORF absent from rerun) -> nearest="(effector ORF absent from rerun)", reach=no.
+- Scripts converge as 65 -> 73 -> 65 (gold md5 stable, "reachable changed vs stored: 0"); all idempotent. corrections.tsv = 338 rows.
+
+## (history) RESUME 2026-06-29 (pm) — gold list v4 (90 rows); high-churn re-review + RTX/T5SS/T6SS geometry DONE; recall 39/90
 
 **HIGH-CHURN RE-REVIEW + GEOMETRY RECOMPUTE DONE 2026-06-29 pm (Teo: "confirm the sheet; re-review high-churn rows + the 32 geometry rows").**
 - **2 wrong-gene errors found + fixed (recall 37->39/90).** Blind 3-agent re-review of the 30 rows with >=2 correction

@@ -78,6 +78,18 @@ T1SS_R02	T1SS	apxIA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/7
 T1SS_R06	T1SS	hlyA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3074 emit=NJDLCG_05342
 T1SS_R10	T1SS	ltxA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3167 emit=BKOJAN_00117
 T6SS_09	T6SS	TseM	found_recompute	found_by_ssign	yes	no	any-overlap (scripts/71)	overlap_not_emitted: n_overlap=1 bp=293 emit=-
+T1SS_02	T1SS	aprA	geometry_recompute	nearest_machinery_gene	AprF	T1SS_omf	rerun-detected components (scripts/73)	recomputed
+T1SS_02	T1SS	aprA	geometry_recompute	nearest_machinery_locus	PA1248	NFOBNJ_01298	rerun-detected components (scripts/73)	recomputed
+T1SS_03	T1SS	rsaA	geometry_recompute	nearest_machinery_gene	RsaD	T1SS_abc	rerun-detected components (scripts/73)	recomputed
+T1SS_03	T1SS	rsaA	geometry_recompute	nearest_machinery_locus	CC_1008	OOFJFA_01013	rerun-detected components (scripts/73)	recomputed
+T1SS_03	T1SS	rsaA	geometry_recompute	distance_to_machinery_genes	1	2	rerun-detected components (scripts/73)	recomputed
+T1SS_04	T1SS	cya	geometry_recompute	nearest_machinery_gene	CyaB	T1SS_abc	rerun-detected components (scripts/73)	recomputed
+T1SS_04	T1SS	cya	geometry_recompute	nearest_machinery_locus	BP0761	KAKDJD_00762	rerun-detected components (scripts/73)	recomputed
+T1SS_06	T1SS	prtA	geometry_recompute	nearest_machinery_gene	PrtB	T1SS_abc	rerun-detected components (scripts/73)	recomputed
+T1SS_06	T1SS	prtA	geometry_recompute	nearest_machinery_locus	plu0657	DMPCOF_00665	rerun-detected components (scripts/73)	recomputed
+T1SS_07	T1SS	aprA	geometry_recompute	nearest_machinery_gene	AprD	T1SS_abc	rerun-detected components (scripts/73)	recomputed
+T1SS_07	T1SS	aprA	geometry_recompute	nearest_machinery_locus	PSEEN1552	ADCAEP_01466	rerun-detected components (scripts/73)	recomputed
+T1SS_R01	T1SS	Serralysin	geometry_recompute	nearest_machinery_gene		(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
 T1SS_R02	T1SS	apxIA	geometry_recompute	nearest_machinery_gene	apxIB	T1SS_abc	rerun-detected components (scripts/73)	recomputed
 T1SS_R02	T1SS	apxIA	geometry_recompute	nearest_machinery_locus	ACOGIN_RS02430	KKEJGA_00581	rerun-detected components (scripts/73)	recomputed
 T1SS_R03	T1SS	apxIIA	geometry_recompute	nearest_machinery_gene		T1SS_mfp	rerun-detected components (scripts/73)	recomputed
@@ -103,6 +115,120 @@ T1SS_R14	T1SS	prtC	geometry_recompute	nearest_machinery_gene		T1SS_omf	rerun-det
 T1SS_R14	T1SS	prtC	geometry_recompute	nearest_machinery_locus	CO076_RS11500	NBALGM_02261	rerun-detected components (scripts/73)	recomputed
 T1SS_R15	T1SS	rtxA	geometry_recompute	nearest_machinery_gene		T1SS_omf	rerun-detected components (scripts/73)	recomputed
 T1SS_R15	T1SS	rtxA	geometry_recompute	nearest_machinery_locus	KKKWG1_RS01535	ALNNFM_00315	rerun-detected components (scripts/73)	recomputed
+T2SS_01	T2SS	lipoprotein	geometry_recompute	nearest_machinery_gene	EpsL	T4aP_pilD	rerun-detected components (scripts/73)	recomputed
+T2SS_01	T2SS	lipoprotein	geometry_recompute	nearest_machinery_locus	VC_RS13125	ACMILJ_02397	rerun-detected components (scripts/73)	recomputed
+T2SS_01	T2SS	lipoprotein	geometry_recompute	distance_to_machinery_genes	405	115	rerun-detected components (scripts/73)	recomputed
+T2SS_02	T2SS	tagA-related	geometry_recompute	nearest_machinery_gene		(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T2SS_03	T2SS	lapA	geometry_recompute	nearest_machinery_gene	HxcR	T2SS_gspF	rerun-detected components (scripts/73)	recomputed
+T2SS_03	T2SS	lapA	geometry_recompute	nearest_machinery_locus	PA0686	NFOBNJ_00711	rerun-detected components (scripts/73)	recomputed
+T2SS_03	T2SS	lapA	geometry_recompute	distance_to_machinery_genes	2	1	rerun-detected components (scripts/73)	recomputed
+T2SS_04	T2SS	paAP	geometry_recompute	nearest_machinery_gene	XcpZ	T2SS_gspM	rerun-detected components (scripts/73)	recomputed
+T2SS_04	T2SS	paAP	geometry_recompute	nearest_machinery_locus	PA3095	NFOBNJ_03226	rerun-detected components (scripts/73)	recomputed
+T2SS_04	T2SS	paAP	geometry_recompute	distance_to_machinery_genes	162	157	rerun-detected components (scripts/73)	recomputed
+T2SS_05	T2SS	plaA	geometry_recompute	nearest_machinery_gene	LspM	T2SS_gspM	rerun-detected components (scripts/73)	recomputed
+T2SS_05	T2SS	plaA	geometry_recompute	nearest_machinery_locus	LPG_RS09405	BFHGEA_01905	rerun-detected components (scripts/73)	recomputed
+T2SS_05	T2SS	plaA	geometry_recompute	distance_to_machinery_genes	472	470	rerun-detected components (scripts/73)	recomputed
+T2SS_09	T2SS	aerA	geometry_recompute	nearest_machinery_gene	ExeC	T2SS_gspC	rerun-detected components (scripts/73)	recomputed
+T2SS_09	T2SS	aerA	geometry_recompute	nearest_machinery_locus	AHA_RS02845	DJMCGI_00584	rerun-detected components (scripts/73)	recomputed
+T2SS_13	T2SS	stmPr1	geometry_recompute	nearest_machinery_gene	XpsD	T2SS_gspD	rerun-detected components (scripts/73)	recomputed
+T2SS_13	T2SS	stmPr1	geometry_recompute	nearest_machinery_locus	SMLT_RS03325	OFOOIG_00682	rerun-detected components (scripts/73)	recomputed
+T2SS_13	T2SS	stmPr1	geometry_recompute	distance_to_machinery_genes	156	158	rerun-detected components (scripts/73)	recomputed
+T2SS_15	T2SS	pelI	geometry_recompute	nearest_machinery_gene	OutS	T2SS_gspC	rerun-detected components (scripts/73)	recomputed
+T2SS_15	T2SS	pelI	geometry_recompute	nearest_machinery_locus	DDA3937_RS14820	BLMABL_03056	rerun-detected components (scripts/73)	recomputed
+T2SS_15	T2SS	pelI	geometry_recompute	distance_to_machinery_genes	27	28	rerun-detected components (scripts/73)	recomputed
+T3SS_01	T3SS	CopN	geometry_recompute	nearest_machinery_gene	CopB	T3SS_sctV	rerun-detected components (scripts/73)	recomputed
+T3SS_01	T3SS	CopN	geometry_recompute	nearest_machinery_locus	CT_578	CIBMCK_0092	rerun-detected components (scripts/73)	recomputed
+T3SS_01	T3SS	CopN	geometry_recompute	distance_to_machinery_genes	520	1	rerun-detected components (scripts/73)	recomputed
+T3SS_01	T3SS	CopN	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T3SS_03	T3SS	EspZ	geometry_recompute	nearest_machinery_gene	EscJ	T3SS_sctV	rerun-detected components (scripts/73)	recomputed
+T3SS_03	T3SS	EspZ	geometry_recompute	nearest_machinery_locus	ECs_4573	NLKKIN_04856	rerun-detected components (scripts/73)	recomputed
+T3SS_04	T3SS	EspJ	geometry_recompute	nearest_machinery_gene	EscR	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_04	T3SS	EspJ	geometry_recompute	nearest_machinery_locus	ECs_3725	NLKKIN_03965	rerun-detected components (scripts/73)	recomputed
+T3SS_04	T3SS	EspJ	geometry_recompute	distance_to_machinery_genes	1021	1009	rerun-detected components (scripts/73)	recomputed
+T3SS_05	T3SS	NleC	geometry_recompute	nearest_machinery_gene	SepZ	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_05	T3SS	NleC	geometry_recompute	nearest_machinery_locus	ECs_0025	NLKKIN_03965	rerun-detected components (scripts/73)	recomputed
+T3SS_05	T3SS	NleC	geometry_recompute	distance_to_machinery_genes	810	2831	rerun-detected components (scripts/73)	recomputed
+T3SS_06	T3SS	NleG	geometry_recompute	nearest_machinery_gene	EscR	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_06	T3SS	NleG	geometry_recompute	nearest_machinery_locus	ECs_3725	NLKKIN_03965	rerun-detected components (scripts/73)	recomputed
+T3SS_06	T3SS	NleG	geometry_recompute	distance_to_machinery_genes	1901	1899	rerun-detected components (scripts/73)	recomputed
+T3SS_07	T3SS	EspL2	geometry_recompute	nearest_machinery_gene	EscR	T3SS_sctC	rerun-detected components (scripts/73)	recomputed
+T3SS_07	T3SS	EspL2	geometry_recompute	nearest_machinery_locus	ECs_3725	NLKKIN_03982	rerun-detected components (scripts/73)	recomputed
+T3SS_07	T3SS	EspL2	geometry_recompute	distance_to_machinery_genes	127	117	rerun-detected components (scripts/73)	recomputed
+T3SS_08	T3SS	YopJ_YopP	geometry_recompute	nearest_machinery_gene	YscL	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_08	T3SS	YopJ_YopP	geometry_recompute	nearest_machinery_locus	YPO_RS00350	GKEHFL_054	rerun-detected components (scripts/73)	recomputed
+T3SS_08	T3SS	YopJ_YopP	geometry_recompute	distance_to_machinery_genes	8	9	rerun-detected components (scripts/73)	recomputed
+T3SS_09	T3SS	SipA	geometry_recompute	nearest_machinery_gene	SipD	T3SS_sctU	rerun-detected components (scripts/73)	recomputed
+T3SS_09	T3SS	SipA	geometry_recompute	nearest_machinery_locus	STM2883	GMEOCJ_03004	rerun-detected components (scripts/73)	recomputed
+T3SS_09	T3SS	SipA	geometry_recompute	distance_to_machinery_genes	1	5	rerun-detected components (scripts/73)	recomputed
+T3SS_09	T3SS	SipA	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	recomputed
+T3SS_11	T3SS	PipA	geometry_recompute	nearest_machinery_gene	SsaC	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_11	T3SS	PipA	geometry_recompute	nearest_machinery_locus	STM1394	GMEOCJ_01476	rerun-detected components (scripts/73)	recomputed
+T3SS_11	T3SS	PipA	geometry_recompute	distance_to_machinery_genes	307	314	rerun-detected components (scripts/73)	recomputed
+T3SS_16	T3SS	HrpK1	geometry_recompute	nearest_machinery_gene	HrcV	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_16	T3SS	HrpK1	geometry_recompute	nearest_machinery_locus	PSPTO_RS07365		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_16	T3SS	HrpK1	geometry_recompute	distance_to_machinery_genes	3		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_16	T3SS	HrpK1	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_17	T3SS	VopS	geometry_recompute	nearest_machinery_gene	VP1690	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_17	T3SS	VopS	geometry_recompute	nearest_machinery_locus	VP_RS08135	NFBFAE_01662	rerun-detected components (scripts/73)	recomputed
+T3SS_20	T3SS	VirA	geometry_recompute	nearest_machinery_gene	Spa40	T3SS_sctU	rerun-detected components (scripts/73)	recomputed
+T3SS_20	T3SS	VirA	geometry_recompute	nearest_machinery_locus	CP0156	EICGHA_05207	rerun-detected components (scripts/73)	recomputed
+T3SS_21	T3SS	BipC	geometry_recompute	nearest_machinery_gene	bipD	T3SS_sctU	rerun-detected components (scripts/73)	recomputed
+T3SS_21	T3SS	BipC	geometry_recompute	nearest_machinery_locus	BPS_RS27005	LNAIFI_01611	rerun-detected components (scripts/73)	recomputed
+T3SS_21	T3SS	BipC	geometry_recompute	distance_to_machinery_genes	11	3	rerun-detected components (scripts/73)	recomputed
+T3SS_21	T3SS	BipC	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T3SS_23	T3SS	YspE	geometry_recompute	nearest_machinery_gene	YsaP	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
+T3SS_23	T3SS	YspE	geometry_recompute	nearest_machinery_locus	YE_RS17840	DIBMGG_03793	rerun-detected components (scripts/73)	recomputed
+T3SS_24	T3SS	EspH	geometry_recompute	nearest_machinery_gene	EscQ	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
+T3SS_24	T3SS	EspH	geometry_recompute	nearest_machinery_locus	E2348C_RS21155	FDFAGP_04182	rerun-detected components (scripts/73)	recomputed
+T3SS_25	T3SS	NleD	geometry_recompute	nearest_machinery_gene	EscA	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
+T3SS_25	T3SS	NleD	geometry_recompute	nearest_machinery_locus	E2348C_RS28260	FDFAGP_04182	rerun-detected components (scripts/73)	recomputed
+T3SS_25	T3SS	NleD	geometry_recompute	distance_to_machinery_genes	2	2944	rerun-detected components (scripts/73)	recomputed
+T3SS_25	T3SS	NleD	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	recomputed
+T3SS_26	T3SS	NleE	geometry_recompute	nearest_machinery_gene	EscF	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
+T3SS_26	T3SS	NleE	geometry_recompute	nearest_machinery_locus	E2348C_RS21090	FDFAGP_04182	rerun-detected components (scripts/73)	recomputed
+T3SS_26	T3SS	NleE	geometry_recompute	distance_to_machinery_genes	728	724	rerun-detected components (scripts/73)	recomputed
+T3SS_27	T3SS	NleF	geometry_recompute	nearest_machinery_gene	EscF	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
+T3SS_27	T3SS	NleF	geometry_recompute	nearest_machinery_locus	E2348C_RS21090	FDFAGP_04182	rerun-detected components (scripts/73)	recomputed
+T3SS_27	T3SS	NleF	geometry_recompute	distance_to_machinery_genes	2646	2549	rerun-detected components (scripts/73)	recomputed
+T3SS_28	T3SS	EspA	geometry_recompute	nearest_machinery_gene	EspA	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_28	T3SS	EspA	geometry_recompute	nearest_machinery_locus	ROD_RS14675		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_28	T3SS	EspA	geometry_recompute	distance_to_machinery_genes	0		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_28	T3SS	EspA	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_29	T3SS	NleA_EspI	geometry_recompute	nearest_machinery_gene	EscF	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_29	T3SS	NleA_EspI	geometry_recompute	nearest_machinery_locus	ROD_RS14655		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_29	T3SS	NleA_EspI	geometry_recompute	distance_to_machinery_genes	2641		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_30	T3SS	NleD	geometry_recompute	nearest_machinery_gene	SepD	(effector ORF absent from rerun)	rerun-detected components (scripts/73)	effector_not_in_order
+T3SS_30	T3SS	NleD	geometry_recompute	nearest_machinery_locus	ROD_RS26105		rerun-detected components (scripts/73)	effector_not_in_order
+T3SS_30	T3SS	NleD	geometry_recompute	distance_to_machinery_genes	1086		rerun-detected components (scripts/73)	effector_not_in_order
+T3SS_31	T3SS	NleB	geometry_recompute	nearest_machinery_gene	EscF	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_31	T3SS	NleB	geometry_recompute	nearest_machinery_locus	ROD_RS14655		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_31	T3SS	NleB	geometry_recompute	distance_to_machinery_genes	1879		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_32	T3SS	EspJ	geometry_recompute	nearest_machinery_gene	EscR	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_32	T3SS	EspJ	geometry_recompute	nearest_machinery_locus	ROD_RS14815		rerun-detected components (scripts/73)	no_cognate_machinery
+T3SS_32	T3SS	EspJ	geometry_recompute	distance_to_machinery_genes	1896		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_01	T4SS	CagA	geometry_recompute	nearest_machinery_gene	CagC	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_01	T4SS	CagA	geometry_recompute	nearest_machinery_locus	HP_RS02685		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_01	T4SS	CagA	geometry_recompute	distance_to_machinery_genes	2		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_01	T4SS	CagA	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_02	T4SS	Ceg14	geometry_recompute	nearest_machinery_gene	IcmT	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_02	T4SS	Ceg14	geometry_recompute	nearest_machinery_locus	LPG_RS02205		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_02	T4SS	Ceg14	geometry_recompute	distance_to_machinery_genes	3		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_02	T4SS	Ceg14	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_05	T4SS	VirE3	geometry_recompute	nearest_machinery_gene	VirD4	T4SS_T_virB11	rerun-detected components (scripts/73)	recomputed
+T4SS_05	T4SS	VirE3	geometry_recompute	nearest_machinery_locus	ATU_RS23875	AAOKNN_01897	rerun-detected components (scripts/73)	recomputed
+T4SS_05	T4SS	VirE3	geometry_recompute	distance_to_machinery_genes	6	141	rerun-detected components (scripts/73)	recomputed
+T4SS_07	T4SS	BepA	geometry_recompute	nearest_machinery_gene	VirB11	T4SS_T_virB1	rerun-detected components (scripts/73)	recomputed
+T4SS_07	T4SS	BepA	geometry_recompute	nearest_machinery_locus	AYT27_RS06810	DOCEHO_01573	rerun-detected components (scripts/73)	recomputed
+T4SS_07	T4SS	BepA	geometry_recompute	distance_to_machinery_genes	2	220	rerun-detected components (scripts/73)	recomputed
+T4SS_07	T4SS	BepA	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	recomputed
+T4SS_08	T4SS	BtpB	geometry_recompute	nearest_machinery_gene		(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_09	T4SS	VceC	geometry_recompute	nearest_machinery_gene		(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_10	T4SS	Ats-1	geometry_recompute	nearest_machinery_gene	VirB2	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_10	T4SS	Ats-1	geometry_recompute	nearest_machinery_locus	APH_RS04505		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_10	T4SS	Ats-1	geometry_recompute	distance_to_machinery_genes	207		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_11	T4SS	Etf-1	geometry_recompute	nearest_machinery_gene	VirB6-1	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_11	T4SS	Etf-1	geometry_recompute	nearest_machinery_locus	ECH_RS02065		rerun-detected components (scripts/73)	no_cognate_machinery
+T4SS_11	T4SS	Etf-1	geometry_recompute	distance_to_machinery_genes	287		rerun-detected components (scripts/73)	no_cognate_machinery
 T5SS_01	T5SS	espP	geometry_recompute	nearest_machinery_gene	(self-secreting)	self (T5aSS autotransporter)	rerun-detected components (scripts/73)	self_secreting
 T5SS_01	T5SS	espP	geometry_recompute	nearest_machinery_locus	pO157p78	NLKKIN_00082	rerun-detected components (scripts/73)	self_secreting
 T5SS_01	T5SS	espP	geometry_recompute	reachable_within_3	yes	self	rerun-detected components (scripts/73)	self_secreting
@@ -164,6 +290,43 @@ T5SS_19	T5SS	eae	geometry_recompute	nearest_machinery_gene	(no TXSScan model)	se
 T5SS_19	T5SS	eae	geometry_recompute	nearest_machinery_locus	ECs_4559	NLKKIN_04847	rerun-detected components (scripts/73)	self_no_model
 T5SS_19	T5SS	eae	geometry_recompute	distance_to_machinery_genes		0	rerun-detected components (scripts/73)	self_no_model
 T5SS_19	T5SS	eae	geometry_recompute	reachable_within_3	no	self	rerun-detected components (scripts/73)	self_no_model
+T6SS_01	T6SS	TseL	geometry_recompute	nearest_machinery_gene	VgrG-1	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_01	T6SS	TseL	geometry_recompute	nearest_machinery_locus	VC_RS06850	ACMILJ_01402	rerun-detected components (scripts/73)	recomputed
+T6SS_02	T6SS	VasX	geometry_recompute	nearest_machinery_gene	Hcp-2	T6SSi_evpJ	rerun-detected components (scripts/73)	recomputed
+T6SS_02	T6SS	VasX	geometry_recompute	nearest_machinery_locus	VC_RS13490	ACMILJ_02851	rerun-detected components (scripts/73)	recomputed
+T6SS_02	T6SS	VasX	geometry_recompute	distance_to_machinery_genes	3	78	rerun-detected components (scripts/73)	recomputed
+T6SS_02	T6SS	VasX	geometry_recompute	reachable_within_3	yes	no	rerun-detected components (scripts/73)	recomputed
+T6SS_03	T6SS	TseH	geometry_recompute	nearest_machinery_gene	VgrG-1	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_03	T6SS	TseH	geometry_recompute	nearest_machinery_locus	VC_RS13955	ACMILJ_02868	rerun-detected components (scripts/73)	recomputed
+T6SS_03	T6SS	TseH	geometry_recompute	distance_to_machinery_genes	144	149	rerun-detected components (scripts/73)	recomputed
+T6SS_04	T6SS	VgrG-3	geometry_recompute	nearest_machinery_gene	VgrG-1	T6SSi_tssA	rerun-detected components (scripts/73)	recomputed
+T6SS_04	T6SS	VgrG-3	geometry_recompute	nearest_machinery_locus	VC_RS13955	ACMILJ_02867	rerun-detected components (scripts/73)	recomputed
+T6SS_04	T6SS	VgrG-3	geometry_recompute	distance_to_machinery_genes	0	1	rerun-detected components (scripts/73)	recomputed
+T6SS_05	T6SS	Tse7	geometry_recompute	nearest_machinery_gene	VgrG1	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_05	T6SS	Tse7	geometry_recompute	nearest_machinery_locus	PA0091	NFOBNJ_00101	rerun-detected components (scripts/73)	recomputed
+T6SS_05	T6SS	Tse7	geometry_recompute	distance_to_machinery_genes	8	4	rerun-detected components (scripts/73)	recomputed
+T6SS_06	T6SS	TplE_alias_Tle4	geometry_recompute	nearest_machinery_gene	Fha2	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_06	T6SS	TplE_alias_Tle4	geometry_recompute	nearest_machinery_locus	PA0081	NFOBNJ_01565	rerun-detected components (scripts/73)	recomputed
+T6SS_06	T6SS	TplE_alias_Tle4	geometry_recompute	distance_to_machinery_genes	1454	1	rerun-detected components (scripts/73)	recomputed
+T6SS_06	T6SS	TplE_alias_Tle4	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T6SS_08	T6SS	Tae_Atu4347	geometry_recompute	nearest_machinery_gene	Hcp	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_08	T6SS	Tae_Atu4347	geometry_recompute	nearest_machinery_locus	ATU_RS20350	AAOKNN_01321	rerun-detected components (scripts/73)	recomputed
+T6SS_08	T6SS	Tae_Atu4347	geometry_recompute	distance_to_machinery_genes	2	1	rerun-detected components (scripts/73)	recomputed
+T6SS_09	T6SS	TseM	geometry_recompute	nearest_machinery_gene	VgrG-5	T6SSi_tssM	rerun-detected components (scripts/73)	recomputed
+T6SS_09	T6SS	TseM	geometry_recompute	nearest_machinery_locus	BTH_RS07370	EGNGPM_01886	rerun-detected components (scripts/73)	recomputed
+T6SS_09	T6SS	TseM	geometry_recompute	distance_to_machinery_genes	453	2	rerun-detected components (scripts/73)	recomputed
+T6SS_09	T6SS	TseM	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T6SS_10	T6SS	Tle1	geometry_recompute	nearest_machinery_gene	TssM-1	T6SSi_tssI	rerun-detected components (scripts/73)	recomputed
+T6SS_10	T6SS	Tle1	geometry_recompute	nearest_machinery_locus	BTH_RS27260	EGNGPM_05099	rerun-detected components (scripts/73)	recomputed
+T6SS_10	T6SS	Tle1	geometry_recompute	distance_to_machinery_genes	265	1	rerun-detected components (scripts/73)	recomputed
+T6SS_10	T6SS	Tle1	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T6SS_13	T6SS	YezP_Zn_binding	geometry_recompute	nearest_machinery_gene	ClpV4	T6SSi_tssM	rerun-detected components (scripts/73)	recomputed
+T6SS_13	T6SS	YezP_Zn_binding	geometry_recompute	nearest_machinery_locus	YPK_RS01980	PAFEDL_03578	rerun-detected components (scripts/73)	recomputed
+T6SS_13	T6SS	YezP_Zn_binding	geometry_recompute	distance_to_machinery_genes	3114	1	rerun-detected components (scripts/73)	recomputed
+T6SS_13	T6SS	YezP_Zn_binding	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T6SS_16	T6SS	EvpQ_C70_protease	geometry_recompute	nearest_machinery_gene	EvpC	(no cognate machinery detected)	rerun-detected components (scripts/73)	no_cognate_machinery
+T6SS_16	T6SS	EvpQ_C70_protease	geometry_recompute	nearest_machinery_locus	ETAE_RS10285		rerun-detected components (scripts/73)	no_cognate_machinery
+T6SS_16	T6SS	EvpQ_C70_protease	geometry_recompute	distance_to_machinery_genes	167		rerun-detected components (scripts/73)	no_cognate_machinery
 T6SS_17	T6SS	Tae4_Stm	geometry_recompute	nearest_machinery_gene	SciI	T6SSi_tssD	rerun-detected components (scripts/73)	recomputed
 T6SS_17	T6SS	Tae4_Stm	geometry_recompute	nearest_machinery_locus	STM14_RS01960	KHNKPC_00291	rerun-detected components (scripts/73)	recomputed
 T6SS_17	T6SS	Tae4_Stm	geometry_recompute	distance_to_machinery_genes	5	1	rerun-detected components (scripts/73)	recomputed
@@ -172,3 +335,5 @@ T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	nearest_machinery_gene	SciP	T6SSi_tssI
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	nearest_machinery_locus	EC042_RS24185	DCENBD_04850	rerun-detected components (scripts/73)	recomputed
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	distance_to_machinery_genes	7	1	rerun-detected components (scripts/73)	recomputed
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
+T6SS_21	T6SS	Ssp2	geometry_recompute	nearest_machinery_gene	TssE	T6SSi_tssE	rerun-detected components (scripts/73)	recomputed
+T6SS_21	T6SS	Ssp2	geometry_recompute	nearest_machinery_locus	SMDB11_RS11230	HMEAPB_02288	rerun-detected components (scripts/73)	recomputed
