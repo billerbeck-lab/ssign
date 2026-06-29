@@ -21,15 +21,23 @@ import glob
 import io
 from pathlib import Path
 
+from bench_runout import _strand_norm, _three_prime  # exact scripts/24 coord semantics (strand, 3'-stop)
+
 BENCH = Path(__file__).resolve().parents[1]
 RERUN = BENCH / "rerun"
 RERUN_FULLASM = BENCH / "rerun_fullasm"
 
 # Corpus contig -> rerun internal contig, for genomes whose rerun unit uses a different
-# replicon accession for the SAME assembly/coordinate system. MC58 is staged under its
-# INSDC accession (AE002098.2) but the corpus places its effectors on the RefSeq
-# accession (NC_003112.2); the two are the identical sequence, so coords join 1:1.
-CONTIG_ALIAS = {"NC_003112.2": "AE002098.2"}
+# replicon accession for the SAME assembly/coordinate system. RefSeq (NC_/NZ_) and INSDC
+# (AE/BX/CP...) are two NCBI IDs for the identical DNA at identical coordinates, so coords
+# join 1:1. Each pair below was verified by coordinate+length concordance (scripts/71): the
+# gold CDS span overlaps a rerun protein of the same length at the same position (lenratio
+# 1.000). gold contig (absent from rerun) -> the rerun-staged accession for the same molecule.
+CONTIG_ALIAS = {
+    "NC_003112.2": "AE002098.2",  # N. meningitidis MC58 chromosome
+    "AE004091.2": "NC_002516.2",  # P. aeruginosa PAO1 chromosome
+    "NC_002929.2": "BX470248.1",  # B. pertussis Tohama I chromosome
+}
 
 
 def _unit_dirs() -> list[Path]:
@@ -130,4 +138,61 @@ class RerunIndex:
             "overlap_frac": best_ovl / span,
             "emitted": best["locus_tag"] in emitted,
             "raw": best,
+        }
+
+    def emitted_overlap(self, contig: str, start: int, stop: int, strand=None) -> dict | None:
+        """Canonical found-by-ssign rule (Teo, 2026-06-29): does ssign EMIT a secreted protein that
+        overlaps the gold span by >=1 bp on the reconciled molecule?
+
+          found=yes : at least one emitted protein overlaps  -> ssign recovered the effector.
+          found=no, n_overlap>0, not emitted : Bakta called the ORF but ssign didn't emit it.
+          found=no, n_overlap==0             : Bakta missed the gene entirely (still a genuine ssign fail).
+
+        Unlike `join` (max-overlap, which can report a 0-overlap protein's emission since best_ovl
+        starts at -1), this requires real overlap AND tests every overlapper for emission, so a small
+        emitted overlapper isn't masked by a larger non-emitted one. Returns None if the contig is
+        absent from the rerun (molecule un-reconcilable -> data fix, not a fail).
+
+        When `strand` is given, also reports the scripts/24 bridge verdict (3'-stop within 3 bp, same
+        strand) so the audit can show where that stricter rule diverges from any-overlap."""
+        ic = contig if contig in self._contig2unit else CONTIG_ALIAS.get(contig)
+        if ic not in self._contig2unit:
+            return None
+        unit = self._contig2unit[ic]
+        rows, emitted = self._load(unit)
+        st = _strand_norm(strand) if strand is not None else 0
+        gtp = _three_prime(start, stop, st) if st else None
+        hits, tp_hit = [], None
+        for row in rows:
+            if row["contig"] != ic or not row["start"] or not row["end"]:
+                continue
+            rs, re_ = int(row["start"]), int(row["end"])
+            # _overlap is half-open arithmetic on 1-based inclusive coords, so it under-counts the shared
+            # length by 1 bp and misses a hypothetical single-shared-base boundary case. Inert here: real
+            # effector<->ORF overlaps span the whole gene body (min 293 bp across the 90 rows), nowhere near
+            # the boundary, and Bakta only shifts the start by ~1 bp (stop identical). `> 0` is correct as used.
+            ov = _overlap(start, stop, rs, re_)
+            if ov > 0:
+                hits.append((ov, row["locus_tag"], row["locus_tag"] in emitted))
+            if (
+                gtp is not None
+                and _strand_norm(row.get("strand", "")) == st
+                and abs(_three_prime(rs, re_, st) - gtp) <= 3
+            ):
+                tp_hit = row["locus_tag"]
+        hits.sort(reverse=True)
+        emitted_hits = [h for h in hits if h[2]]
+        return {
+            "contig": ic,
+            "unit": unit.name,
+            "n_overlap": len(hits),
+            "best_locus": hits[0][1] if hits else "",
+            "best_overlap_bp": hits[0][0] if hits else 0,
+            "emitted_locus": emitted_hits[0][1] if emitted_hits else "",
+            "found": "yes" if emitted_hits else "no",
+            "reason": "emitted_overlap"
+            if emitted_hits
+            else ("overlap_not_emitted" if hits else "no_overlap_bakta_miss"),
+            "three_prime_locus": tp_hit or "",
+            "three_prime_found": "yes" if (tp_hit and tp_hit in emitted) else "no",
         }

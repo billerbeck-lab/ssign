@@ -2,7 +2,25 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-28) — Phase A gold list v3 FINAL (90 rows); both review sweeps DONE; next = 1.7 figs + 4.4 recall
+## ⭐ RESUME HERE (2026-06-29) — gold list v3 FINAL (90 rows); geometry+overlap audit DONE; next = wire recall into figs (1.7 / 4.4 back-half)
+
+**GEOMETRY + OVERLAP found_by_ssign AUDIT DONE 2026-06-29 (task #19, OpenSpec 4.4a).** Built
+`scripts/71_geometry_overlap_audit.py` + canonical `RerunIndex.emitted_overlap()` (the any-overlap rule Teo
+fixed on 2026-06-29: any bp overlap with an EMITTED secreted protein = found; ORF-called-but-not-emitted or
+Bakta-gene-miss = genuine fail). `scripts/65` now RECOMPUTES found_by_ssign for every row from its coords, so
+the column can't go stale. Results: **geometry 0 true mis-anchors** (58 machinery-resolved all match; 21 RTX/
+T5SS self-secretors have no resolved machinery instance; 11 effector-locus unindexed). **Molecule identity
+reconciled**: 3 RefSeq↔INSDC contig aliases verified at lenratio 1.000 (PAO1 AE004091.2↔NC_002516.2,
+B.pertussis NC_002929.2↔BX470248.1, +MC58) → all 90 reconcile, 0 un-reconcilable, NO naming-mismatch fails.
+**6 found corrections** (all 3 matchers agree): apxIA/hlyA/ltxA no→yes (rerun_fullasm emits them, stored was
+stale); TseM/Tae4/Tle1 yes→no (ORF annotated but ssign never emitted it). **Recall = 37/90 = 41% (headline
+no-T5SS 27/71 = 38%)**: T1 16/18, T2 1/8, T3 6/23, T4 0/8, T5 10/19, T6 4/14. T4SS 0% = correct consequence of
+the cross-replicon re-anchors (effectors far from VirB), not a bug. corrections.tsv now 81 rows (75 + 6
+found_recompute). 4 simplify agents reviewed: 0 correctness bugs (overlap `>0` proven inert, min real overlap
+293 bp); folded `reason` into emitted_overlap return, dropped a dead line, unrolled a walrus. **NEXT: back-half
+of 4.4 = wire this 90-row recall into figs 01-06 (task 1.7); then 4.5 docs.** Committing now.
+
+## (history) RESUME 2026-06-28 — Phase A gold list v3 FINAL (90 rows); both review sweeps DONE
 
 **SECOND-PASS REVIEW IN PROGRESS (Teo asked 2026-06-26).** After the tier-B re-anchor, a direct look at the
 4 "note" rows found all 4 were real fixes (committed a30ed53): T4SS_05 reanchor (ATU_RS23890 was the 83aa
@@ -56,7 +74,7 @@ NOT Workflow). **HARNESS BUILT + COMMITTED 02162ed** under `gold_review2/`:
     was duplicated in DISPOSITIONS (sweep-1 swap_up shadowed the first-pass mBio swap_ref -> ref correction silently
     lost); consolidated. gold_list_final v3 = **39 confirmed + 47 corrected + 4 confirmed_note = 90** (per-type
     unchanged T1 18/T2 8/T3 23/T4 8/T5 19/T6 14). corrections.tsv = 75 rows. simplify: factored the shared Bowen-2003
-    prtA quote into `PRTA_RTX_QUOTE` (used by T1SS_06 + T1SS_R12). Committed 6ef902a.
+    prtA quote into `PRTA_RTX_QUOTE` (used by T1SS_06 + T1SS_R12). Committed 18d48a4.
   - Sweep-2 weak-but-kept rows to remember (citation describes structure, protein IS a valid substrate): T3SS_17
     VopS (left as-is, AMPylating T3SS effector), T1SS_R15 rtxA, T5SS_16 nadA, T5SS_17 yadA, T5SS_02 flu.
 

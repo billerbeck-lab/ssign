@@ -701,6 +701,44 @@ def main() -> int:
         r["correction"] = f"{action}: {basis}" + (f" [{'; '.join(changed)}]" if changed else "")
         out.append(r)
 
+    # found_by_ssign is a MEASURED quantity, not a curated label: recompute it for every kept row from
+    # its current coordinates via the canonical any-overlap rule (RerunIndex.emitted_overlap), so the
+    # column can't go stale (e.g. the 3 RTX toxins the rerun_fullasm re-run only later emitted) or stay
+    # over-credited (a T6SS effector whose ORF Bakta called but ssign never emitted). The contig is
+    # molecule-reconciled (RefSeq<->INSDC) inside emitted_overlap; None = un-reconcilable -> keep stored.
+    n_found_fixed = 0
+    for r in out:
+        if engine.ridx is None:
+            break
+        try:
+            eo = engine.ridx.emitted_overlap(
+                r["contig"].strip(), int(r["start"]), int(r["stop"]), strand=r.get("strand")
+            )
+        except (ValueError, KeyError):
+            eo = None
+        if eo is None or eo["found"] == r.get("found_by_ssign", ""):
+            continue
+        corr_rows.append(
+            {
+                "instance_id": r["instance_id"],
+                "ss_type": r["ss_type"],
+                "gene": r["gene"],
+                "action": "found_recompute",
+                "field": "found_by_ssign",
+                "old_value": r.get("found_by_ssign", ""),
+                "new_value": eo["found"],
+                "agreement": "any-overlap (scripts/71)",
+                "basis": f"{eo['reason']}: n_overlap={eo['n_overlap']} bp={eo['best_overlap_bp']} emit={eo['emitted_locus'] or '-'}",
+            }
+        )
+        r["found_by_ssign"] = eo["found"]
+        r["correction"] = (
+            f"{r['correction']}; found_recompute->{eo['found']}"
+            if r.get("correction")
+            else f"found_recompute->{eo['found']}"
+        )
+        n_found_fixed += 1
+
     write_tsv(FINAL, header, out)
     write_tsv(
         CORR,
@@ -717,6 +755,7 @@ def main() -> int:
     print(f"  reanchored (geometry recomputed): {reanchored}")
     print(f"  by verification_status: {dict(by_status)}")
     print(f"  by ss_type (kept): {dict(sorted(by_type.items()))}")
+    print(f"  found_by_ssign recomputed (any-overlap): {n_found_fixed} value(s) corrected vs raw")
     print(f"  SCORABLE rows (no holds remain): {len(out)}")
     print(f"corrections.tsv: {len(corr_rows)} audit rows")
     return 0

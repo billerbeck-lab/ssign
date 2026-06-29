@@ -74,3 +74,9 @@ T6SS_12	T6SS	YPK_0952_DNase	drop				4/4 wrong_uniprot	A0A0H3B0Q3 deleted, no liv
 T6SS_13	T6SS	YezP_Zn_binding	relabel	organism	NC_010465.1	Yersinia pseudotuberculosis YPIII	identity 3/3 none_exists	YezP: no genome-matched UniProt accession exists (kept blank); organism field had the contig id NC_010465.1.
 T6SS_17	T6SS	Tae4_Stm	swap_up	uniprot	-	A0A0F6AX88	identity 3/3	Tae4 = STM14_RS02020/A0A0F6AX88 (262aa = span), S. Typhimurium 14028s.
 T6SS_18	T6SS	Tle1_Sci1	swap_up	uniprot	-	D3GUV9	identity 3/3	Tle1 = EC042_RS24190/D3GUV9 (T6SS Tle1, 576aa = span), E. coli 042.
+T1SS_R02	T1SS	apxIA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3068 emit=KKEJGA_00582
+T1SS_R06	T1SS	hlyA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3074 emit=NJDLCG_05342
+T1SS_R10	T1SS	ltxA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3167 emit=BKOJAN_00117
+T6SS_09	T6SS	TseM	found_recompute	found_by_ssign	yes	no	any-overlap (scripts/71)	overlap_not_emitted: n_overlap=1 bp=293 emit=-
+T6SS_17	T6SS	Tae4_Stm	found_recompute	found_by_ssign	yes	no	any-overlap (scripts/71)	overlap_not_emitted: n_overlap=1 bp=788 emit=-
+T6SS_18	T6SS	Tle1_Sci1	found_recompute	found_by_ssign	yes	no	any-overlap (scripts/71)	overlap_not_emitted: n_overlap=1 bp=1730 emit=-
