@@ -132,7 +132,8 @@ def classify_t5a(
         return "Unclassified-AT", 0, "unclassified"
 
     barrel_start, _barrel_end = pfam_hits["PF03797"]
-    effective_sp_end = sp_end if not no_signalp else 1
+    # equivalent to `not no_signalp` but written so mypy sees sp_end is non-None here (no_signalp is a plain bool)
+    effective_sp_end = sp_end if (sp_end is not None and sp_end > 0) else 1
     passenger_length = max(0, (barrel_start - LINKER_LENGTH) - (effective_sp_end + 1) + 1)
 
     if passenger_length >= MIN_PASSENGER_LENGTH:
@@ -157,7 +158,8 @@ def _parse_sp_end(raw: str) -> int | None:
     Thin wrapper around ``parse_int_or_none(allow_range=True)``; kept
     locally so call sites read naturally as ``_parse_sp_end(...)``.
     """
-    return parse_int_or_none(raw, allow_range=True)
+    parsed: int | None = parse_int_or_none(raw, allow_range=True)
+    return parsed
 
 
 def _signalp_was_run(predictions: dict[str, dict]) -> bool:

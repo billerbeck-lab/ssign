@@ -94,7 +94,9 @@ def load_predictions_keyed(path: str) -> dict:
     ``locus_tag``; this script's inputs always come from the runner's
     prediction-tool wrappers and have the canonical column name.
     """
-    return load_tsv_by_key(path, key_columns=("locus_tag",))
+    # annotate the result so the flat ssign_lib import (Any under the mypy override) is narrowed to its real type
+    keyed: dict[str, dict[str, str]] = load_tsv_by_key(path, key_columns=("locus_tag",))
+    return keyed
 
 
 def load_systems(ss_components_path: str):

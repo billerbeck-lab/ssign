@@ -124,7 +124,7 @@ def _autodetect_dbmem() -> bool:
     """
     from ssign_lib.resources import effective_ram_gb
 
-    return effective_ram_gb() >= _EGGNOG_DBMEM_MIN_GB
+    return bool(effective_ram_gb() >= _EGGNOG_DBMEM_MIN_GB)
 
 
 def _autodetect_block_size(dbmem: bool) -> int:

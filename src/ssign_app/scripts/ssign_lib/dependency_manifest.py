@@ -20,9 +20,18 @@ from __future__ import annotations
 import glob
 import os
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal, Optional, Protocol, TypeVar
 
 Tier = Literal["base", "extended", "full"]
+
+
+class _HasTier(Protocol):
+    # read-only so it structurally matches the frozen manifest dataclasses (PythonDep, ExternalBinary, ...)
+    @property
+    def tier(self) -> Tier: ...
+
+
+_TierItem = TypeVar("_TierItem", bound=_HasTier)
 
 
 @dataclass(frozen=True)
@@ -382,7 +391,7 @@ MODEL_WEIGHTS: tuple[ModelWeights, ...] = (
 _TIER_ORDER: tuple[Tier, ...] = ("base", "extended", "full")
 
 
-def _filter_by_tier(items, tier: Tier):
+def _filter_by_tier(items: tuple[_TierItem, ...], tier: Tier) -> tuple[_TierItem, ...]:
     upto = _TIER_ORDER[: _TIER_ORDER.index(tier) + 1]
     return tuple(i for i in items if i.tier in upto)
 

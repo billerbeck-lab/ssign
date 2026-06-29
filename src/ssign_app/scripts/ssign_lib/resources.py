@@ -256,7 +256,7 @@ def host_ram_gb() -> float:
     try:
         import psutil
 
-        return psutil.virtual_memory().total / 2**30
+        return float(psutil.virtual_memory().total) / 2**30
     except Exception:
         return 0.0
 
@@ -319,7 +319,7 @@ def _fs_type(path: str) -> str | None:
     except OSError:
         return None
     target = os.path.realpath(path)
-    best = ("", None)
+    best: tuple[str, str | None] = ("", None)
     for parts in mounts:
         if len(parts) < 3:
             continue

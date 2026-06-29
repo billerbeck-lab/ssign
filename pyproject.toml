@@ -259,9 +259,11 @@ ignore_missing_imports = true
 # not help because the stub IS found — it's just unparseable. Skip
 # following into pyhmmer entirely; call sites get typed as Any.
 [[tool.mypy.overrides]]
-module = ["pyhmmer.*"]
+module = ["pyhmmer", "pyhmmer.*"]
 follow_imports = "skip"
+follow_imports_for_stubs = true
 ignore_missing_imports = true
+ignore_errors = true
 
 [tool.ruff]
 # Default 88 is too tight for the bioinformatics-style identifiers and

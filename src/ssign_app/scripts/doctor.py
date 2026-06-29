@@ -121,7 +121,7 @@ def check_external_binary(b: ExternalBinary, db_root: str = "") -> CheckResult:
     if b.install_dir_env and db_root:
         dbp = find_db_by_env_var(b.install_dir_env)
         if dbp is not None:
-            install_dir = dbp.resolve_path(db_root)
+            install_dir = dbp.resolve_path(db_root) or ""
             if install_dir:
                 candidate = os.path.join(install_dir, b.binary)
                 if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
