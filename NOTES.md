@@ -20,6 +20,31 @@ found_recompute). 4 simplify agents reviewed: 0 correctness bugs (overlap `>0` p
 293 bp); folded `reason` into emitted_overlap return, dropped a dead line, unrolled a walrus. **NEXT: back-half
 of 4.4 = wire this 90-row recall into figs 01-06 (task 1.7); then 4.5 docs.** Committing now.
 
+**RECALL SANITY CHECK 2026-06-29 (Teo flagged low T2SS/T5SS).** Verified NO genes dropped: every T2SS+T5SS
+gold row cleanly overlaps its annotated rerun protein (thousands of bp). The misses are real non-emissions,
+interpretable by subtype:
+  - **T5SS canonical self-secretors found 7/7** (T5aSS espP/flu/iga/pic/sat 5/5 via `src=T5SS-self`; T5cSS
+    nadA/yadA 2/2 on OM+SignalP). Exactly as expected.
+  - **T5bSS (TPS, two-partner, NOT self-secreting) 3/10.** KEY: the TpsA substrate is RIGHT NEXT to the
+    detected TpsB pore (gene-distance 1) in most misses, so it is NOT a proximity problem — it is the
+    DeepLocPro localization gate. 5/7 misses are within ±3 of the pore but fail DLP extracellular>=0.80:
+    cdiA d1 (0.79), lspA2 d1 (0.69), bcpA d3 (0.75) extracellular-but-just-under-cutoff; hpmA d1 (0.11) +
+    shlA d1 (0.09) DLP calls the big TpsA exoprotein Outer Membrane. Only 2 are true proximity misses: fhaB
+    d4 (just outside window, also OM) and lspA1 d153 (H. ducreyi's two LspA share one distant LspB). **Teo's
+    call: do NOT change the pipeline — this is the correct consequence of a strict cutoff; report honestly.**
+    Found T5bSS (cdrA/hmw1A/hxuA) all d1 + DLP 0.91-0.98. Paper-worthy line: T5bSS recall is DLP-gated, not
+    distance-gated.
+  - **T5SS non-canonical 0/2** (plpD T5dSS, eae T5eSS): OM, no self path. Architecture, as Teo predicted.
+  - **T2SS 1/8** (Teo: "fine"): substrates genomically scattered, no T2SS component within +/-3 (`near=`
+    empty) even though DLP called most extracellular 0.80-0.997. Known proximity-filter limit; motivates the
+    classifier. Only lapA (next to machinery) emitted.
+  - **DEFERRED (data-correctness, does NOT affect found/recall):** the 10 T5bSS gold rows are mislabeled
+    `nearest_machinery_gene=(self-secreting)`, `reachable_within_3=yes`, `distance=0`. TPS substrates are NOT
+    self-secreting; the real gene-distance to the cognate TpsB pore is 1-4 (153 for lspA1). `found_by_ssign`
+    is computed from emission overlap, not this column, so numbers are unaffected. Proper fix needs curating
+    each TpsB pore locus (machinery_resolved has no T5SS instances). **Trigger to revisit:** if a paper figure
+    reports a proximity-reachability ceiling (then T5bSS true reachable = 8/10, not 10/10), curate TpsB loci.
+
 ## (history) RESUME 2026-06-28 — Phase A gold list v3 FINAL (90 rows); both review sweeps DONE
 
 **SECOND-PASS REVIEW IN PROGRESS (Teo asked 2026-06-26).** After the tier-B re-anchor, a direct look at the
