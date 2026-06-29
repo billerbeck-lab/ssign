@@ -22,8 +22,6 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Callable, Literal, Optional
 
-SegmentLetter = Literal["A", "B", "C", "D", "E"]
-
 from ssign_app.core._pool_utils import (
     pool_fastas,
     pool_tsvs,
@@ -31,6 +29,8 @@ from ssign_app.core._pool_utils import (
     validate_sample_id,
 )
 from ssign_app.core.runner import PipelineConfig, PipelineRunner, StepResult
+
+SegmentLetter = Literal["A", "B", "C", "D", "E"]
 
 logger = logging.getLogger(__name__)
 
