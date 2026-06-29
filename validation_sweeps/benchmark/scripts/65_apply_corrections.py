@@ -47,6 +47,11 @@ FINAL = VDIR / "gold_list_final.tsv"
 CORR = VDIR / "gold_review" / "corrections.tsv"
 IDX = BENCH / "data" / "phase1" / "gene_order_index.tsv"
 MR = BENCH / "data" / "machinery" / "machinery_resolved.tsv"
+# scripts/73 output: recomputed geometry for the RTX-T1SS/T5SS/(reanchored T6SS) rows machinery_resolved.tsv
+# can't resolve. Absent -> the geometry-override pass is a no-op. Run order converges as 65 -> 73 -> 65: this
+# script first reanchors T6SS_17/18 onto their new coords, scripts/73 then reads those coords to recompute
+# their geometry, and a second 65 run applies it. All three steps are idempotent.
+GEOM_RC = VDIR / "t1ss_t5ss_geometry_recompute.tsv"
 INF = 10**9
 
 EPEC = "Escherichia coli O127:H6 (strain E2348/69 / EPEC)"
@@ -578,6 +583,28 @@ DISPOSITIONS: dict[str, tuple] = {
         "YadA is the prototypical trimeric autotransporter adhesin (T5cSS); Hoiczyk 2000 quote describes the head/stalk/"
         "anchor architecture -- kept as a valid T5cSS substrate.",
     ),
+    # ===== third-pass HIGH-CHURN re-review (2026-06-29, blind 3-agent + my deterministic Pfam check) =====
+    # Two rows were anchored onto the WRONG gene by an earlier swap_up. Confirmed by Pfam domain (authoritative,
+    # not the agent vote): the cited accession's Pfam is a structural/regulatory domain, not the effector's.
+    # Re-anchored to the real effector-immunity gene (located in the rerun + RefSeq product + UniProt) so geometry
+    # and found_by_ssign are recomputed against the correct CDS.
+    "T6SS_17": (
+        "reanchor",
+        {"effector_locus": "STM14_RS01975", "uniprot": "A0A0F6AX79", "gene": "Tae4_Stm"},
+        "id re-review 1/3 + Pfam (authoritative)",
+        "old STM14_RS02020/A0A0F6AX88 (262aa) carries Pfam PF09867 TagF_N -- a T6SS regulator, NOT the Tae4 amidase "
+        "effector. Real Tae4 = STM14_RS01975/STM14_0325/A0A0F6AX79 (161aa), RefSeq 'T6SS amidase effector Tae4', "
+        "beside its Tai4 immunity gene (STM14_RS01980) in SPI-6, NC_016856.1:318368-318853.",
+    ),
+    "T6SS_18": (
+        "reanchor",
+        {"effector_locus": "EC042_RS24220", "uniprot": "B7LG63", "gene": "Tle1_Sci1"},
+        "id re-review 3/3 + Pfam (authoritative)",
+        "old EC042_RS24190/D3GUV9 (576aa) carries Pfam PF00691 OmpA -- the TagL PG-binding accessory protein (PDB "
+        "5M38/7BBA), NOT the Tle1 phospholipase. Real Tle1 = EC042_RS24220/EC042_4534/B7LG63 (560aa, Pfam PF09994 "
+        "Tle1-like_cat), RefSeq 'T6SS effector phospholipase Tle1-EAEC', beside its two Tli1 immunity genes in sci-1, "
+        "NC_017626.1:4865605-4867287.",
+    ),
 }
 
 STATUS = {
@@ -739,6 +766,47 @@ def main() -> int:
         )
         n_found_fixed += 1
 
+    # geometry override for the RTX-T1SS + T5SS rows (scripts/73): machinery_resolved.tsv has no instance for
+    # these types, so the Reanchor engine can't set their nearest/distance/reachable. scripts/73 derives them
+    # from the secretion-system components TXSScan actually DETECTED in the rerun (gene-order distance to the
+    # nearest T1SS component / the T5bSS TpsB translocator; self-secreting autotransporters get distance 0,
+    # reachable "self"). This corrects the prior T5bSS mislabel ("(self-secreting)" -> real TpsB distance, so
+    # fhaB/lspA1 flip reachable yes->no). It does NOT touch found_by_ssign (recall is unchanged).
+    GEOM_FIELDS = {
+        "nearest_machinery_gene": "rc_nearest",
+        "nearest_machinery_locus": "rc_locus",
+        "distance_to_machinery_genes": "rc_dist",
+        "reachable_within_3": "rc_reach",
+    }
+    n_geom_fixed = 0
+    geom_rc = {x["instance_id"]: x for x in read_tsv(GEOM_RC)} if GEOM_RC.exists() else {}
+    APPLICABLE = ("recomputed", "self_secreting", "self_no_model")  # allow-list: every other status
+    for r in out:  # (contig_absent / effector_not_in_order /
+        g = geom_rc.get(r["instance_id"])  # no_*_component_on_contig) blanks the recompute,
+        if not g or g["status"] not in APPLICABLE:  # so keep the stored value instead of overwriting it
+            continue
+        changed = [(f, r.get(f, ""), g[src]) for f, src in GEOM_FIELDS.items() if r.get(f, "") != g[src]]
+        if not changed:
+            continue
+        for f, old, new in changed:
+            r[f] = new
+            corr_rows.append(
+                {
+                    "instance_id": r["instance_id"],
+                    "ss_type": r["ss_type"],
+                    "gene": r["gene"],
+                    "action": "geometry_recompute",
+                    "field": f,
+                    "old_value": old,
+                    "new_value": new,
+                    "agreement": "rerun-detected components (scripts/73)",
+                    "basis": g["status"],
+                }
+            )
+        tag = f"geometry_recompute({g['status']})"
+        r["correction"] = f"{r['correction']}; {tag}" if r.get("correction") else tag
+        n_geom_fixed += 1
+
     write_tsv(FINAL, header, out)
     write_tsv(
         CORR,
@@ -756,6 +824,7 @@ def main() -> int:
     print(f"  by verification_status: {dict(by_status)}")
     print(f"  by ss_type (kept): {dict(sorted(by_type.items()))}")
     print(f"  found_by_ssign recomputed (any-overlap): {n_found_fixed} value(s) corrected vs raw")
+    print(f"  geometry recomputed (RTX-T1SS/T5SS, scripts/73): {n_geom_fixed} row(s) corrected")
     print(f"  SCORABLE rows (no holds remain): {len(out)}")
     print(f"corrections.tsv: {len(corr_rows)} audit rows")
     return 0

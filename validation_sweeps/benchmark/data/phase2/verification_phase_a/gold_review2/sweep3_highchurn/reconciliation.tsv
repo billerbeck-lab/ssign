@@ -1,0 +1,31 @@
+instance_id	gene	agentA	agentB	agentC	reconciled	action	note
+T1SS_R02	apxIA	fix_quote	fix_quote	fix_quote	fix_quote (3/3)	kept	apxIA quote is operon nomenclature; row is valid T1SS substrate (already noted)
+T1SS_R10	ltxA	fix_quote	ok	ok	ok (2/3)	kept	ltxA quote = ellipsis-stitched verbatim fragments; on-topic
+T1SS_R15	rtxA	fix_quote	fix_quote	fix_quote	fix_quote (3/3)	kept (prior note)	rtxA quote = mutagenesis screen; valid T1SS substrate (already noted)
+T4SS_02	Ceg14	ok	cant_verify	ok	ok (2/3)	kept	Ceg14: UniProt='Dot/Icm substrate'; 1 agent couldn't reach 2024 paper (paywall)
+T5SS_02	flu	fix_quote	fix_quote	fix_quote	fix_quote (3/3)	kept (prior note)	Ag43 quote disputed vs 1999 ref; prior pass kept current autotransport statement - SURFACE TO TEO
+T5SS_03	iga	ok	weak	weak	weak (2/3)	kept	iga ref is N.gonorrhoeae, accession N.meningitidis homolog; canonical T5aSS mechanism (already noted)
+T5SS_16	nadA	fix_quote	fix_quote	fix_quote	fix_quote (3/3)	kept (prior note)	NadA quote = structure; valid T5cSS self-secretor (already noted)
+T5SS_17	yadA	fix_quote	fix_quote	fix_quote	fix_quote (3/3)	kept (prior note)	YadA quote = architecture; valid T5cSS self-secretor (already noted)
+T6SS_17	Tae4_Stm	weak	ok	fix_id	fix_id (Pfam override)	REANCHOR->A0A0F6AX79/STM14_RS01975	old A0A0F6AX88=TagF(PF09867) not Tae4 amidase; real Tae4 emits, found no->yes
+T6SS_18	Tle1_Sci1	fix_id	fix_id	fix_id	fix_id (3/3)	REANCHOR->B7LG63/EC042_RS24220	old D3GUV9=TagL/OmpA(PF00691) not Tle1; real Tle1 emits, found no->yes
+T1SS_06	prtA	ok	ok	ok	ok (clean)	none	
+T1SS_R06	hlyA	ok	ok	ok	ok (clean)	none	
+T1SS_R11	prtA	ok	ok	ok	ok (clean)	none	
+T1SS_R12	prtA1	ok	ok	ok	ok (clean)	none	
+T3SS_08	YopJ_YopP	ok	ok	ok	ok (clean)	none	
+T3SS_20	VirA	ok	ok	ok	ok (clean)	none	
+T4SS_07	BepA	ok	ok	cant_verify	ok (clean)	none	
+T4SS_09	VceC	ok	ok	ok	ok (clean)	none	
+T4SS_10	Ats-1	ok	ok	ok	ok (clean)	none	
+T4SS_11	Etf-1	ok	ok	ok	ok (clean)	none	
+T5SS_04	pic	ok	ok	ok	ok (clean)	none	
+T5SS_05	sat	ok	ok	ok	ok (clean)	none	
+T5SS_09	fhaB	ok	ok	ok	ok (clean)	none	
+T5SS_10	hmw1A	ok	ok	ok	ok (clean)	none	
+T5SS_11	hpmA	ok	ok	ok	ok (clean)	none	
+T5SS_13	lspA1	ok	ok	ok	ok (clean)	none	
+T5SS_14	lspA2	ok	ok	ok	ok (clean)	none	
+T6SS_03	TseH	ok	ok	ok	ok (clean)	none	
+T6SS_08	Tae_Atu4347	ok	ok	ok	ok (clean)	none	
+T6SS_09	TseM	ok	ok	ok	ok (clean)	none	

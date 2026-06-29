@@ -1,0 +1,35 @@
+instance_id	ss_type	subtype	gene	stored_nearest	stored_dist	stored_reach	rc_nearest	rc_locus	rc_dist	rc_reach	status
+T1SS_R01	T1SS		Serralysin			no				no	no_T1SS_component_on_contig
+T1SS_R02	T1SS		apxIA	T1SS_abc	1	yes	T1SS_abc	KKEJGA_00581	1	yes	recomputed
+T1SS_R03	T1SS		apxIIA	T1SS_mfp	453	no	T1SS_mfp	DHAICC_01543	453	no	recomputed
+T1SS_R04	T1SS		apxIIIA	T1SS_abc	1	yes	T1SS_abc	JPEEAK_01352	1	yes	recomputed
+T1SS_R05	T1SS		hasA	T1SS_abc	1	yes	T1SS_abc	BDEGOO_00322	1	yes	recomputed
+T1SS_R06	T1SS		hlyA	T1SS_abc	1	yes	T1SS_abc	NJDLCG_05343	1	yes	recomputed
+T1SS_R07	T1SS		lktA	T1SS_abc	1	yes	T1SS_abc	OKNMBO_02446	1	yes	recomputed
+T1SS_R10	T1SS		ltxA	T1SS_abc	1	yes	T1SS_abc	BKOJAN_00116	1	yes	recomputed
+T1SS_R11	T1SS		prtA	T1SS_omf	3	yes	T1SS_omf	PGMPLP_0084	3	yes	recomputed
+T1SS_R12	T1SS		prtA1	T1SS_abc	2	yes	T1SS_abc	MKINFJ_0045	2	yes	recomputed
+T1SS_R13	T1SS		prtB	T1SS_omf	1	yes	T1SS_omf	NBALGM_02261	1	yes	recomputed
+T1SS_R14	T1SS		prtC	T1SS_omf	2	yes	T1SS_omf	NBALGM_02261	2	yes	recomputed
+T1SS_R15	T1SS		rtxA	T1SS_omf	1	yes	T1SS_omf	ALNNFM_00315	1	yes	recomputed
+T5SS_01	T5SS	T5aSS	espP	self (T5aSS autotransporter)	0	self	self (T5aSS autotransporter)	NLKKIN_00082	0	self	self_secreting
+T5SS_02	T5SS	T5aSS	flu	self (T5aSS autotransporter)	0	self	self (T5aSS autotransporter)	KOIAIB_02103	0	self	self_secreting
+T5SS_03	T5SS	T5aSS	iga	self (T5aSS autotransporter)	0	self	self (T5aSS autotransporter)	NEGFHK_00701	0	self	self_secreting
+T5SS_04	T5SS	T5aSS	pic	self (T5aSS autotransporter)	0	self	self (T5aSS autotransporter)	DCENBD_04908	0	self	self_secreting
+T5SS_05	T5SS	T5aSS	sat	self (T5aSS autotransporter)	0	self	self (T5aSS autotransporter)	HELNJG_03447	0	self	self_secreting
+T5SS_06	T5SS	T5bSS	bcpA	T5bSS_translocator	3	yes	T5bSS_translocator	EGNGPM_05120	3	yes	recomputed
+T5SS_07	T5SS	T5bSS	cdiA	T5bSS_translocator	1	yes	T5bSS_translocator	LGPELI_04664	1	yes	recomputed
+T5SS_08	T5SS	T5bSS	cdrA	T5bSS_translocator	1	yes	T5bSS_translocator	NFOBNJ_04812	1	yes	recomputed
+T5SS_09	T5SS	T5bSS	fhaB	T5bSS_translocator	4	no	T5bSS_translocator	KAKDJD_01901	4	no	recomputed
+T5SS_10	T5SS	T5bSS	hmw1A	T5bSS_translocator	1	yes	T5bSS_translocator	AJBMGG_00723	1	yes	recomputed
+T5SS_11	T5SS	T5bSS	hpmA	T5bSS_translocator	1	yes	T5bSS_translocator	EPFKCJ_02080	1	yes	recomputed
+T5SS_12	T5SS	T5bSS	hxuA	T5bSS_translocator	1	yes	T5bSS_translocator	CCMPAC_00288	1	yes	recomputed
+T5SS_13	T5SS	T5bSS	lspA1	T5bSS_translocator	153	no	T5bSS_translocator	GDEKHP_01140	153	no	recomputed
+T5SS_14	T5SS	T5bSS	lspA2	T5bSS_translocator	1	yes	T5bSS_translocator	GDEKHP_00996	1	yes	recomputed
+T5SS_15	T5SS	T5bSS	shlA	T5bSS_translocator	1	yes	T5bSS_translocator	HMEAPB_03775	1	yes	recomputed
+T5SS_16	T5SS	T5cSS	nadA	self (T5cSS autotransporter)	0	self	self (T5cSS autotransporter)	NEGFHK_02005	0	self	self_secreting
+T5SS_17	T5SS	T5cSS	yadA	self (T5cSS autotransporter)	0	self	self (T5cSS autotransporter)	DIBMGG_00062	0	self	self_secreting
+T5SS_18	T5SS	T5dSS	plpD	self (T5dSS, no TXSScan model)	0	self	self (T5dSS, no TXSScan model)	NFOBNJ_03484	0	self	self_no_model
+T5SS_19	T5SS	T5eSS	eae	self (T5eSS, no TXSScan model)	0	self	self (T5eSS, no TXSScan model)	NLKKIN_04847	0	self	self_no_model
+T6SS_17	T6SS		Tae4_Stm	T6SSi_tssD	1	yes	T6SSi_tssD	KHNKPC_00291	1	yes	recomputed
+T6SS_18	T6SS		Tle1_Sci1	T6SSi_tssI	1	yes	T6SSi_tssI	DCENBD_04850	1	yes	recomputed

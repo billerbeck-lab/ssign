@@ -2,7 +2,48 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-29) — gold list v3 FINAL (90 rows); geometry+overlap audit DONE; next = wire recall into figs (1.7 / 4.4 back-half)
+## ⭐ RESUME HERE (2026-06-29 pm) — gold list v4 (90 rows); high-churn re-review + RTX/T5SS/T6SS geometry DONE; recall now 39/90; next = wire into figs (1.7 / 4.4 back-half)
+
+**HIGH-CHURN RE-REVIEW + GEOMETRY RECOMPUTE DONE 2026-06-29 pm (Teo: "confirm the sheet; re-review high-churn rows + the 32 geometry rows").**
+- **2 wrong-gene errors found + fixed (recall 37->39/90).** Blind 3-agent re-review of the 30 rows with >=2 correction
+  types, cross-checked by my own deterministic Pfam lookup (authoritative over the vote). An earlier `swap_up` had
+  anchored two rows onto the WRONG gene:
+    - **T6SS_18 Tle1 (EAEC 042):** old D3GUV9/EC042_RS24190 = Pfam PF00691 OmpA = the TagL PG-binding accessory
+      (PDB 5M38/7BBA), NOT Tle1. Real Tle1 = **B7LG63 / EC042_RS24220** (560aa, PF09994 Tle1-like_cat), RefSeq
+      "T6SS effector phospholipase Tle1-EAEC", beside its Tli1 immunity genes. Re-anchored (`reanchor` in scripts/65).
+    - **T6SS_17 Tae4 (S. Tm 14028s):** old A0A0F6AX88/STM14_RS02020 = Pfam PF09867 TagF_N = a T6SS regulator, NOT the
+      Tae4 amidase. Real Tae4 = **A0A0F6AX79 / STM14_RS01975** (161aa), RefSeq "T6SS amidase effector Tae4", beside Tai4.
+      (agents split weak/ok/fix_id; the Pfam settles it.) Re-anchored.
+  Both real effectors EMIT in the rerun (Tae4 DLP 0.99, Tle1 DLP 0.84, both DLP+DSE, nearby_ss=T6SSi) -> **found no->yes
+  for both, so the wrong-gene anchoring had UNDER-stated recall by 2.** Verified the emissions are real (in the emitted
+  secreted-proteins list), not a matcher artifact.
+- **Deterministic cross-field check (scripts/72) on all 30 high-churn rows: 0 mechanical errors** — UniProt length matches
+  the coord-encoded protein (28/30 ratio exactly 1.000, the 2 prtA off by a few aa = signal peptide); coords land on a real
+  gene; found fresh. The identity (uniprot<->locus<->coords) is airtight; only the 2 Pfam-level wrong-gene errors slipped
+  the length check (coords had been set to match the WRONG uniprot, so length was self-consistent).
+- **Other re-review flags were pre-adjudicated, kept (3-agent reconciliation in gold_review2/sweep3_highchurn/):**
+  5 fix_quote (T1SS_R02 apxIA, T1SS_R15 rtxA, T5SS_02 Ag43, T5SS_16 nadA, T5SS_17 yadA) + 1 weak (T5SS_03 iga, cross-species
+  ref). All are rows where the protein IS a bona fide secreted substrate but the citation_quote describes structure/
+  nomenclature rather than the export event; scripts/65 already carries `note` dispositions keeping them. **SURFACE TO TEO:
+  T5SS_02 (Ag43) — all 3 agents say the current quote isn't verbatim in the cited 1999 paper; prior pass kept it as a valid
+  autotransport statement. Decide whether to hunt a verbatim secretion sentence.** T4SS_02 Ceg14 = ok (2/3; 1 agent hit a
+  2024 paywall).
+- **Geometry recompute (scripts/73) — 34 rows now sourced from rerun-DETECTED components (gene-order distance), not the
+  partial machinery_resolved table:** 13 RTX-T1SS (11 distances confirmed identical, apxIIA now concrete d453, Serralysin no
+  T1SS on contig), 10 T5bSS (the big fix: "(self-secreting) d0" -> real TpsB distance; **8/10 reachable**, fhaB d4 + lspA1
+  d153 outside; matches my earlier hand-derived NOTES values exactly), 7 T5a/T5cSS self-secretors relabeled honestly
+  ("self", reach="self" not yes), 2 T5d/T5eSS self/no-model, + T6SS_17/18 (machinery_resolved gave d5/7=not-reachable but
+  the effectors sit d1 from a detected T6SSi component and emit -> recomputed d1 reach=yes). **Geometry recompute does NOT
+  touch found_by_ssign**; recall is driven by emission overlap only.
+- **Recall = 39/90 = 43% (headline no-T5SS 29/71 = 41%)**: T1 16/18, T2 1/8, T3 6/23, T4 0/8, T5 10/19, T6 6/14. corrections.tsv
+  = 173 audit rows. Scripts run order: `65 -> 73 -> 65` (reanchor sets coords; 73 reads them; 65 applies 73's geometry); all idempotent.
+- **DEFERRED:** machinery_resolved.tsv is a CURATED PARTIAL component set; for full consistency ALL 90 rows' reachable/distance
+  should be recomputed from rerun-detected components (only the 34 above were). Trigger: if reachable_within_3 is reported as a
+  proximity ceiling in the paper. (Supersedes the older T5bSS-only reachability deferral.)
+
+**NEXT: back-half of 4.4 = wire the 39/90 recall into figs 01-06 (task 1.7); then 4.5 docs. Then talk figure auto-generation (Teo queued this).**
+
+## (history) RESUME 2026-06-29 (am) — gold list v3 FINAL (90 rows); geometry+overlap audit DONE
 
 **GEOMETRY + OVERLAP found_by_ssign AUDIT DONE 2026-06-29 (task #19, OpenSpec 4.4a).** Built
 `scripts/71_geometry_overlap_audit.py` + canonical `RerunIndex.emitted_overlap()` (the any-overlap rule Teo
@@ -44,6 +85,30 @@ interpretable by subtype:
     is computed from emission overlap, not this column, so numbers are unaffected. Proper fix needs curating
     each TpsB pore locus (machinery_resolved has no T5SS instances). **Trigger to revisit:** if a paper figure
     reports a proximity-reachability ceiling (then T5bSS true reachable = 8/10, not 10/10), curate TpsB loci.
+
+**SHEET COVERAGE AUDIT 2026-06-29 (Teo: "confirm the sheet is correct; anything unchecked / high-churn?").**
+Mapped every verification dimension of the 90-row `gold_list_final.tsv`. All FOUR independent dimensions swept:
+  1. **Identity** (organism/accession/locus/uniprot/seq): 4-agent blind review (`gold_review` Jun26, 97 rows,
+     25 fixes) + focused uniprot sweep (`gold_review2/sweep1_identity` Jun28, 24 rows). Applied via scripts/65.
+  2. **Citation** (primary_ref + quote): 3-agent blind review (`gold_review2/sweep2_citation` Jun28, all 90):
+     66 ok, 14 fix_quote, 4 fix_ref, 4 weak, 2 ties. ALL adjudicated+applied (weak/tie rows too).
+  3. **Geometry** (nearest/distance/reachable): scripts/71 recompute — 58 machinery-resolved match exactly,
+     0 mis-anchors.
+  4. **found_by_ssign** (recall): scripts/71 any-overlap recompute, all 90, 6 fixes.
+Rechecked the two scariest residuals this turn, both CLEAN: (a) the single `no_overlap_bakta_miss` row
+(T3SS_30 NleD, D2TML3) — verified GENUINE Bakta gene-miss: gold span 638308-639015 = 708bp = 235aa (matches
+NleD exactly), but rerun Bakta left a ~1kb annotation gap there (skipped locus GMFMKK_00600) flanked by an
+integrase + 2 IS/transposases; coordinate is correct, honest found=no. (b) weak/tie citation rows — all carry
+an applied correction. **Two genuine residual gaps, NEITHER corrupts recall** (recall = found_by_ssign, which
+was recomputed for all 90):
+  - **DEFER: 32 rows have UNVERIFIED geometry** (13 T1SS RTX + 8 T5SS no_machinery + 11 T5SS unindexed):
+    distance/reachable never recomputed (machinery_resolved.tsv has no instance for RTX or T5SS). Subsumes the
+    T5bSS self-secretor mislabel above. Trigger: only matters if a figure/paper prints distance/reachability for
+    these types; fix needs TpsB-pore + RTX-machinery curation.
+  - **OPTIONAL: 6 triple-corrected rows** (hlyA 4 correction-types; lspA2/TseH/prtA[R11]/YopJ_YopP/lspA1 3
+    each) are the highest-churn = where a compounding error would hide. Each has a documented correction; a final
+    human eyeball (or a focused 3-agent re-review) is the cheapest belt-and-suspenders check. 30 rows touched by
+    >=2 correction types; events/row max = 4.
 
 ## (history) RESUME 2026-06-28 — Phase A gold list v3 FINAL (90 rows); both review sweeps DONE
 
