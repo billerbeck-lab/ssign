@@ -2,7 +2,26 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-30) — gold v5 (88 rows); DOMAIN/NAME audit DONE (found 2 more wrong-gene anchors, dropped); recall 38/88; figs handled in a SEPARATE session
+## ⭐ RESUME HERE (2026-06-30) — gold v5 (87 rows); machinery-anchor recheck CLEAN; NEXT = exhaustive blind re-read of all 87; figs in a SEPARATE session
+
+**MACHINERY-ANCHOR RECHECK DONE 2026-06-30 (Teo: "recheck the gold list for placeholder/machinery anchoring").**
+`scripts/75_machinery_anchor_audit.py` checks, per row, what the protein at the row's locus is ANNOTATED as
+(RefSeq gene name + Bakta rerun product) and flags apparatus/accessory/structural/regulatory classes + near-
+sequential locus clusters (the Ysa placeholder pattern). **Result: 0/87 machinery-anchored, 0 placeholder
+clusters.** Detector self-tested to fire on all 4 known-bad products (YscL/TagJ/TagF/OmpA) and pass real effectors.
+**Dropped T3SS_30 NleD** (Teo): real verified effector, correctly anchored, but Bakta missed its ORF (IS-dense, the
+NleD Bakta-gene-miss) so it had no product and was found=no for an ANNOTATION reason -> dropped so recall measures
+prediction+proximity on cleanly-annotated genes. **Recall now 38/87 = 44%.**
+
+**NEXT (Teo asked): EXHAUSTIVE BLIND RE-READ of all 87 rows.** The dimension-specific multi-agent sweeps covered
+all rows (gold_review 4-agent IDENTITY; sweep2 3-agent CITATION) but only the 30 high-churn rows got a HOLISTIC
+"is this whole row a correct, experimentally-secreted effector at the right locus" 3-agent pass. Do that holistic
+blind pass over all 87 (or at least the ~57 non-high-churn): per row verify uniprot==named effector, locus/coords
+right, experimentally secreted by THIS ss_type, with provenance. Batch across agents; reconcile; fix/drop findings.
+Best run in a FRESH context (it is agent-heavy). gold_list_final = 87 rows; audits: domain_audit.tsv,
+machinery_anchor_audit.tsv, geometry_recompute.tsv all current.
+
+## (history) 2026-06-30 — gold (88 rows); DOMAIN/NAME audit (dropped YspE+Ssp2 machinery anchors)
 
 **DOMAIN/NAME AUDIT DONE 2026-06-30 (Teo: "whenever I ask you find something wrong — was there nothing else to check?").**
 Built `scripts/74_domain_audit.py`: for every row, fetch the UniProt entry and flag (a) RED_DOMAIN = a machinery/

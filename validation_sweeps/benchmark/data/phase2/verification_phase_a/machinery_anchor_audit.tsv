@@ -44,7 +44,6 @@ T3SS_26	T3SS	NleE	E2348C_RS17340	nleE e2348_c_3232;e2348c_3232;e2348c_rs17340;nl
 T3SS_27	T3SS	NleF	E2348C_RS07680	nleF e2348_c_1445;e2348c_1445;e2348c_rs07680;nlef	T3SS effector caspase inhibitor NleF	ok
 T3SS_28	T3SS	EspA	ROD_RS14675	espA espa;rod_29761;rod_rs14675	type III secretion system LEE translocon filament protein EspA	ok
 T3SS_29	T3SS	NleA_EspI	ROD_RS01735	rod_03401;rod_rs01735	T3SS effector protein NleA/EspI	ok
-T3SS_30	T3SS	NleD	ROD_RS02910	rod_05791;rod_rs02910		ok
 T3SS_31	T3SS	NleB	ROD_RS05475	rod_10831;rod_rs05475	type III secretion system effector arginine glycosyltransferase NleB	ok
 T3SS_32	T3SS	EspJ	ROD_RS24095	rod_48901;rod_rs24095	EspJ family T3SS effector ADP-ribosyltransferase	ok
 T4SS_01	T4SS	CagA	HP_RS02695	cagA caga;hp0547;hp_0547;hp_rs02695	cag T4SS translocated effector CagA	ok

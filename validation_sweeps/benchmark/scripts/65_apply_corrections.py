@@ -629,6 +629,15 @@ DISPOSITIONS: dict[str, tuple] = {
         "(MW 17867 matches the proteomics), but Bakta missed that ORF in the rerun (gene gap) so it would be found=no. "
         "Blank uniprot dodged the sweeps. Dropped per Teo.",
     ),
+    "T3SS_30": (
+        "drop",
+        {},
+        "Bakta gene-miss (annotation artifact)",
+        "NleD (D2TML3, real verified Citrobacter T3SS effector, correctly anchored) -- but Bakta missed its ORF in "
+        "the rerun (IS-dense region, skipped locus GMFMKK_00600), so it has no annotated product to check and is "
+        "found=no for an ANNOTATION reason, not a prediction/proximity reason. Dropped per Teo to keep recall "
+        "measuring ssign's prediction+proximity on cleanly-annotated genes, not Bakta annotation gaps.",
+    ),
 }
 
 STATUS = {
