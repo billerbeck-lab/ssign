@@ -606,6 +606,29 @@ DISPOSITIONS: dict[str, tuple] = {
         "Tle1-like_cat), RefSeq 'T6SS effector phospholipase Tle1-EAEC', beside its two Tli1 immunity genes in sci-1, "
         "NC_017626.1:4865605-4867287.",
     ),
+    # ===== fourth-pass DOMAIN/NAME audit drops (2026-06-30, scripts/74 + agent verification) =====
+    # These two had a BLANK uniprot, so they slipped every identity sweep, and were anchored onto T6SS/T3SS
+    # MACHINERY, not the effector. The named effectors are real and experimentally validated, but the rows point
+    # at the wrong gene; Teo's call is to drop rather than re-anchor (the real loci aren't cleanly emitted in the
+    # rerun anyway). The third blank-uniprot row, T6SS_13 YezP, is KEPT -- it is correctly anchored to the real
+    # effector at the T6SS-cluster edge (Wang 2015 PLoS Pathog experimentally secretes it; just no UniProt entry).
+    "T3SS_23": (
+        "drop",
+        {},
+        "domain audit + agent",
+        "YspE (Ysa T3SS, Matsumoto 2006) is a real secreted Ysp, but YE_RS17825 is a 'HrpE/YscL family T3SS "
+        "APPARATUS protein' -- the row is anchored to machinery, not the effector. No UniProt accession was ever "
+        "assigned, so it dodged the identity sweeps. Dropped (not re-anchored) per Teo.",
+    ),
+    "T6SS_21": (
+        "drop",
+        {},
+        "domain audit + agent (proteomics MW-confirmed)",
+        "Ssp2 (Serratia T6SS amidase effector, English 2012 / Fritsch 2013) is real, but SMDB11_RS11225 is 'T6SS "
+        "ACCESSORY protein TagJ' -- machinery, not the effector. Real Ssp2 = SMDB11_RS24150/SMA2264/WP_089196535.1 "
+        "(MW 17867 matches the proteomics), but Bakta missed that ORF in the rerun (gene gap) so it would be found=no. "
+        "Blank uniprot dodged the sweeps. Dropped per Teo.",
+    ),
 }
 
 STATUS = {

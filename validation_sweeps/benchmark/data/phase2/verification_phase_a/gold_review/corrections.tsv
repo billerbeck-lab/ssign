@@ -25,6 +25,7 @@ T3SS_16	T3SS	HrpK1	reanchor	anchor	PSPTO_RS07250/- @ NC_004578.1:1523279-1524187
 T3SS_17	T3SS	VopS	swap_up	uniprot	A0AAW8Q5J6	Q87P32	4/4	A0AAW8Q5J6 deleted; Q87P32 = VopS, VP1686 exact strain match
 T3SS_20	T3SS	VirA	fix_quote	citation_quote	VirA is a novel type of bacterial effector capable of inducing membrane ruffling through the stimulation of MT destabilization.	Shigella deliver a subset of effectors into the host cell via the type III secretion system, that stimulate host cell signal pathways to modulate the actin dynamics required for invasion of epithelial cells.	citation 2/3	Yoshida 2002 EMBO J (PMID 12065406); old quote was a VirA effector-function sentence, not the T3SS-delivery statement.
 T3SS_21	T3SS	BipC	swap_up	uniprot	A0A8A4DTS9	Q63K35	4/4	A0A8A4DTS9 deleted; Q63K35 = BipC/BPSS1531 (chr2 NC_006351.1, matches)
+T3SS_23	T3SS	YspE	drop				domain audit + agent	YspE (Ysa T3SS, Matsumoto 2006) is a real secreted Ysp, but YE_RS17825 is a 'HrpE/YscL family T3SS APPARATUS protein' -- the row is anchored to machinery, not the effector. No UniProt accession was ever assigned, so it dodged the identity sweeps. Dropped (not re-anchored) per Teo.
 T3SS_25	T3SS	NleD	relabel	organism	Escherichia coli O157:H7 Sakai	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	4/4 + identity 3/3	genome NC_011601.1 + locus E2348C_ are EPEC; organism said O157:H7 Sakai. Identity sweep: blank accession -> B7UNX6 (NleD homolog, E2348/69, 232aa = the CDS span).
 T3SS_25	T3SS	NleD	relabel	uniprot	-	B7UNX6	4/4 + identity 3/3	genome NC_011601.1 + locus E2348C_ are EPEC; organism said O157:H7 Sakai. Identity sweep: blank accession -> B7UNX6 (NleD homolog, E2348/69, 232aa = the CDS span).
 T3SS_26	T3SS	NleE	relabel	organism	Escherichia coli O157:H7 Sakai	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	4/4	genome NC_011601.1 + locus E2348C_ + uniprot B7UI22 are EPEC; organism said O157:H7 Sakai
@@ -74,6 +75,7 @@ T6SS_12	T6SS	YPK_0952_DNase	drop				4/4 wrong_uniprot	A0A0H3B0Q3 deleted, no liv
 T6SS_13	T6SS	YezP_Zn_binding	relabel	organism	NC_010465.1	Yersinia pseudotuberculosis YPIII	identity 3/3 none_exists	YezP: no genome-matched UniProt accession exists (kept blank); organism field had the contig id NC_010465.1.
 T6SS_17	T6SS	Tae4_Stm	reanchor	anchor	STM14_RS02020/- @ NC_016856.1:328415-329203 (reach no, found yes)	STM14_RS01975/A0A0F6AX79 @ NC_016856.1:318368-318853 (reach no, found yes)	id re-review 1/3 + Pfam (authoritative)	old STM14_RS02020/A0A0F6AX88 (262aa) carries Pfam PF09867 TagF_N -- a T6SS regulator, NOT the Tae4 amidase effector. Real Tae4 = STM14_RS01975/STM14_0325/A0A0F6AX79 (161aa), RefSeq 'T6SS amidase effector Tae4', beside its Tai4 immunity gene (STM14_RS01980) in SPI-6, NC_016856.1:318368-318853.
 T6SS_18	T6SS	Tle1_Sci1	reanchor	anchor	EC042_RS24190/- @ NC_017626.1:4856944-4858674 (reach yes, found yes)	EC042_RS24220/B7LG63 @ NC_017626.1:4865605-4867287 (reach no, found yes)	id re-review 3/3 + Pfam (authoritative)	old EC042_RS24190/D3GUV9 (576aa) carries Pfam PF00691 OmpA -- the TagL PG-binding accessory protein (PDB 5M38/7BBA), NOT the Tle1 phospholipase. Real Tle1 = EC042_RS24220/EC042_4534/B7LG63 (560aa, Pfam PF09994 Tle1-like_cat), RefSeq 'T6SS effector phospholipase Tle1-EAEC', beside its two Tli1 immunity genes in sci-1, NC_017626.1:4865605-4867287.
+T6SS_21	T6SS	Ssp2	drop				domain audit + agent (proteomics MW-confirmed)	Ssp2 (Serratia T6SS amidase effector, English 2012 / Fritsch 2013) is real, but SMDB11_RS11225 is 'T6SS ACCESSORY protein TagJ' -- machinery, not the effector. Real Ssp2 = SMDB11_RS24150/SMA2264/WP_089196535.1 (MW 17867 matches the proteomics), but Bakta missed that ORF in the rerun (gene gap) so it would be found=no. Blank uniprot dodged the sweeps. Dropped per Teo.
 T1SS_R02	T1SS	apxIA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3068 emit=KKEJGA_00582
 T1SS_R06	T1SS	hlyA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3074 emit=NJDLCG_05342
 T1SS_R10	T1SS	ltxA	found_recompute	found_by_ssign	no	yes	any-overlap (scripts/71)	emitted_overlap: n_overlap=1 bp=3167 emit=BKOJAN_00117
@@ -176,8 +178,6 @@ T3SS_21	T3SS	BipC	geometry_recompute	nearest_machinery_gene	bipD	T3SS_sctU	rerun
 T3SS_21	T3SS	BipC	geometry_recompute	nearest_machinery_locus	BPS_RS27005	LNAIFI_01611	rerun-detected components (scripts/73)	recomputed
 T3SS_21	T3SS	BipC	geometry_recompute	distance_to_machinery_genes	11	3	rerun-detected components (scripts/73)	recomputed
 T3SS_21	T3SS	BipC	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
-T3SS_23	T3SS	YspE	geometry_recompute	nearest_machinery_gene	YsaP	T3SS_sctJ	rerun-detected components (scripts/73)	recomputed
-T3SS_23	T3SS	YspE	geometry_recompute	nearest_machinery_locus	YE_RS17840	DIBMGG_03793	rerun-detected components (scripts/73)	recomputed
 T3SS_24	T3SS	EspH	geometry_recompute	nearest_machinery_gene	EscQ	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
 T3SS_24	T3SS	EspH	geometry_recompute	nearest_machinery_locus	E2348C_RS21155	FDFAGP_04182	rerun-detected components (scripts/73)	recomputed
 T3SS_25	T3SS	NleD	geometry_recompute	nearest_machinery_gene	EscA	T3SS_sctQ	rerun-detected components (scripts/73)	recomputed
@@ -335,5 +335,3 @@ T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	nearest_machinery_gene	SciP	T6SSi_tssI
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	nearest_machinery_locus	EC042_RS24185	DCENBD_04850	rerun-detected components (scripts/73)	recomputed
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	distance_to_machinery_genes	7	1	rerun-detected components (scripts/73)	recomputed
 T6SS_18	T6SS	Tle1_Sci1	geometry_recompute	reachable_within_3	no	yes	rerun-detected components (scripts/73)	recomputed
-T6SS_21	T6SS	Ssp2	geometry_recompute	nearest_machinery_gene	TssE	T6SSi_tssE	rerun-detected components (scripts/73)	recomputed
-T6SS_21	T6SS	Ssp2	geometry_recompute	nearest_machinery_locus	SMDB11_RS11230	HMEAPB_02288	rerun-detected components (scripts/73)	recomputed

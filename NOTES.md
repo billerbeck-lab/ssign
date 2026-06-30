@@ -2,7 +2,39 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-29 eve) — gold v4 (90 rows); ALL-90 reachable recompute DONE; clean found×reachable 2x2; next = figs (1.7) with the new miss categories
+## ⭐ RESUME HERE (2026-06-30) — gold v5 (88 rows); DOMAIN/NAME audit DONE (found 2 more wrong-gene anchors, dropped); recall 38/88; figs handled in a SEPARATE session
+
+**DOMAIN/NAME AUDIT DONE 2026-06-30 (Teo: "whenever I ask you find something wrong — was there nothing else to check?").**
+Built `scripts/74_domain_audit.py`: for every row, fetch the UniProt entry and flag (a) RED_DOMAIN = a machinery/
+structural/mobile-element Pfam (the systematic version of the T6SS_17/18 catch), (b) NAME_MISMATCH = the UniProt
+entry doesn't name the effector, (c) length/organism mismatch. Plus integrity (no dup uniprot/locus/coords) and a
+blank-field sweep. KEY structural lesson Teo flagged: **a BLANK field dodges every check that keys on it** -- 3 rows
+had NO uniprot, so they skipped all identity sweeps.
+- **2 MORE wrong-gene anchors found + DROPPED** (both blank-uniprot, both anchored to MACHINERY, both real
+  experimentally-validated effectors but mis-anchored; Teo's call = drop, not re-anchor):
+    - **T3SS_23 YspE** -> YE_RS17825 = a HrpE/YscL-family T3SS APPARATUS protein (in the ysa operon), not the
+      secreted Ysp. (It was found=yes because ssign emitted the apparatus protein, so the drop slightly DE-inflated
+      recall -- more honest.)
+    - **T6SS_21 Ssp2** -> SMDB11_RS11225 = T6SS ACCESSORY protein TagJ. Real Ssp2 = SMDB11_RS24150/SMA2264/
+      WP_089196535.1 (proteomics MW 17867 confirms), but Bakta missed that ORF -> would be found=no anyway.
+- **T6SS_13 YezP KEPT**: real effector, correctly anchored at the T6SS-cluster edge (next to TssM), Wang 2015 PLoS
+  Pathog experimentally secretes it ("establish that YezP is a substrate secreted by T6SS-4"); just no UniProt entry.
+- **T2SS_05 plaA FALSE ALARM (walked back)**: UniProt mislabels lpg2343's gene as sseJ and misassigns "plaA" to
+  lpg2837(=PlaC). RefSeq + Flieger 2002 confirm lpg2343 = PlaA = the row. Row is CORRECT. (Lesson: check the
+  gene-order index before "fixing" a flag.)
+- **Are the source papers experimental? YES** (Teo asked): 85/90 citation quotes carry a direct experimental
+  secretion signal (immunoblot/secretome/translocation); the ~5 exceptions are autotransporters whose secretion is
+  experimentally established but whose quote describes structure (Ag43/NadA/YadA), a proteomic-secretome row with a
+  name-listing quote (T2SS_01), and the YspE truncation. No row rests on a prediction/review/database paper.
+- **Recall now 38/88 = 43%** (was 39/90): T1 16/18, T2 1/8, T3 5/22, T4 0/8, T5 10/19, T6 6/13. corrections.tsv = 336 rows.
+- **SEPARATE-BENCHMARK FINDING (NOT the 88-row gold list -- flag for the effector-recovery-benchmark / 337-corpus):**
+  `data/source_corpus/T3SS_verified.tsv` anchors the whole dispersed-Ysa-effector block (YspE/F/I/K/L/M) to a
+  SEQUENTIAL placeholder run YE3556-YE3564 = apparatus/regulatory genes (ysaP pilotin, response regulator, ysrS
+  sensor kinase). Agent verified the REAL loci are dispersed (yspI=YE2444, yspK=YE2447, yspM=YE3614). Exact YspE YE
+  number is only in Matsumoto&Young 2006 Table 1 (paywalled). The 337-corpus Ysa block needs re-anchoring or dropping;
+  does NOT affect the 88-row gold list (only YspE reached it, now dropped). **Trigger: before trusting 337-corpus T3SS recall.**
+
+## (history) RESUME 2026-06-29 (eve) — gold v4 (90 rows); ALL-90 reachable recompute DONE; clean found×reachable 2x2
 
 **ALL-90 REACHABLE RECOMPUTE DONE 2026-06-29 eve (Teo: "do the full reachable recompute, I don't trust this now").**
 Replaced the curated `machinery_resolved.tsv` as the source for `nearest_machinery_gene/locus`, `distance_to_machinery_genes`,

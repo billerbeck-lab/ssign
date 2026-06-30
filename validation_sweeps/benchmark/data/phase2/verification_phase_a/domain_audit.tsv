@@ -1,0 +1,88 @@
+instance_id	ss_type	gene	uniprot	uniprot_name	pfam	uniprot_len	expected_aa	uniprot_organism	row_organism	flags
+T2SS_05	T2SS	plaA	Q5ZT22		PF00657:Lipase_GDSL	325	309	Legionella pneumophila subsp. pneumophila (strain Philadelphia 1 / ATCC 33152 / DSM 7513)	Legionella pneumophila Philadelphia-1	NAME_MISMATCH
+T3SS_01	T3SS	CopN	O84091		PF07201:HrpJ; PF22342:T3SS_CopN_3rd	421	421	Chlamydia trachomatis serovar D (strain ATCC VR-885 / DSM 19411 / UW-3/Cx)	Chlamydia trachomatis D/UW-3/CX	NAME_MISMATCH
+T3SS_24	T3SS	EspH	B7UMA2			168	168	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	Escherichia coli O127:H6 E2348/69 (EPEC)	NO_PFAM
+T3SS_29	T3SS	NleA_EspI	D2TJZ4			430	430	Citrobacter rodentium (strain ICC168)	Citrobacter rodentium (strain ICC168)	NO_PFAM
+T3SS_32	T3SS	EspJ	D2TRY1			217	217	Citrobacter rodentium (strain ICC168)	Citrobacter rodentium (strain ICC168)	NO_PFAM
+T4SS_02	T4SS	Ceg14	Q5ZYD5	Dot/Icm secretion system substrate	PF28185:T4SS_Ceg14	666	666	Legionella pneumophila subsp. pneumophila (strain Philadelphia 1 / ATCC 33152 / DSM 7513)	Legionella pneumophila Philadelphia 1	NAME_MISMATCH
+T4SS_08	T4SS	BtpB	Q2YN91	TIR domain-containing protein	PF13676:TIR_2	277	292	Brucella abortus (strain 2308)	Brucella abortus 2308	NAME_MISMATCH
+T4SS_09	T4SS	VceC	Q2YQ34			418	418	Brucella abortus (strain 2308)	Brucella abortus 2308	NO_PFAM
+T4SS_10	T4SS	Ats-1	Q2GJL5			376	376	Anaplasma phagocytophilum (strain HZ)	Anaplasma phagocytophilum HZ	NO_PFAM
+T4SS_11	T4SS	Etf-1	Q2GG12			380	380	Ehrlichia chaffeensis (strain ATCC CRL-10679 / Arkansas)	Ehrlichia chaffeensis Arkansas	NO_PFAM
+T5SS_07	T5SS	cdiA	Q0T963	tRNA nuclease CdiA; Anticodon nuclease CdiA; CdiA-EC536; Toxin CdiA	PF13332:Fil_haemagg_2; PF15605:Ntox28; PF04829:PT-VENN; PF05860:TPS	3242	3242	Escherichia coli O6:K15:H31 (strain 536 / UPEC)	Escherichia coli UPEC 536	RED_DOMAIN:trna 
+T5SS_08	T5SS	cdrA	Q9HVG6	Filamentous haemagglutinin FhaB/tRNA nuclease CdiA-like TPS domain-containing pr	PF18676:MBG_2; PF05860:TPS	2154	2154	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	RED_DOMAIN:trna ,NAME_MISMATCH
+T6SS_04	T6SS	VgrG-3	Q9KN42	Type VI secretion system spike protein VgrG3; Muramidase Vgrg3C	PF22178:Gp5_trimer_C; PF01471:PG_binding_1; PF04717:Phage_base_V; PF05954:Phage_GPD; PF212	1017	1017	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	NAME_MISMATCH
+T6SS_06	T6SS	TplE_alias_Tle4	Q9I3K2	Alpha/beta hydrolase		569	569	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	NO_PFAM,NAME_MISMATCH
+T6SS_09	T6SS	TseM	Q2T422			141	141	Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)	Burkholderia thailandensis E264	NO_PFAM
+T6SS_16	T6SS	EvpQ_C70_protease	A0AAU8P3V9	Peptidase C39 domain-containing protein	PF12385:Peptidase_C70	173	173	Edwardsiella piscicida	Edwardsiella piscicida EIB202	NAME_MISMATCH
+T1SS_02	T1SS	aprA	Q03023	Serralysin; Alkaline metalloproteinase	PF00353:HemolysinCabind; PF00413:Peptidase_M10; PF08548:Peptidase_M10_C	479	479	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	ok
+T1SS_03	T1SS	rsaA	P35828	S-layer protein; Paracrystalline surface layer protein	PF00353:HemolysinCabind; PF19198:RsaA_NTD	1026	1073	Caulobacter vibrioides (strain ATCC 19089 / CIP 103742 / CB 15)	Caulobacter vibrioides (strain ATCC 19089 / CIP 103742 / CB 15) (Caulobacter crescentus)	ok
+T1SS_04	T1SS	cya	P0DKX7	Bifunctional hemolysin/adenylate cyclase; AC-HLY; ACT; Cyclolysin	PF03497:Anthrax_toxA; PF06594:HCBP_related; PF00353:HemolysinCabind; PF02382:RTX	1706	1706	Bordetella pertussis (strain Tohama I / ATCC BAA-589 / NCTC 13251)	Bordetella pertussis Tohama I	ok
+T1SS_06	T1SS	prtA	Q7N8R3	Serralysin; Secreted alkaline metalloproteinase	PF00353:HemolysinCabind; PF08548:Peptidase_M10_C; PF13688:Reprolysin_5	480	483	Photorhabdus laumondii subsp. laumondii (strain DSM 15139 / CIP 105565 / TT01)	Photorhabdus laumondii subsp. laumondii TT01	ok
+T1SS_07	T1SS	aprA	Q1ID47	Metalloprotease AprA	PF00353:HemolysinCabind; PF08548:Peptidase_M10_C; PF13583:Reprolysin_4	485	485	Pseudomonas entomophila (strain L48)	Pseudomonas entomophila (strain L48)	ok
+T1SS_R01	T1SS	Serralysin	P23694	Serralysin; Extracellular metalloproteinase; Zinc proteinase	PF00353:HemolysinCabind; PF00413:Peptidase_M10; PF08548:Peptidase_M10_C	487	487	Serratia marcescens	Serratia marcescens	ok
+T1SS_R02	T1SS	apxIA	P55128	RTX-I toxin determinant A from serotypes 1/9; APX-IA; ApxI; Cytolysin IA; Hemoly	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	1023	1022	Actinobacillus pleuropneumoniae	Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae)	ok
+T1SS_R03	T1SS	apxIIA	P15377	RTX-II toxin determinant A; APX-IIA; Cytolysin IIA; Hemolysin IIA	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	956	956	Actinobacillus pleuropneumoniae	Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae)	ok
+T1SS_R04	T1SS	apxIIIA	P55131	RTX-III toxin determinant A from serotype 8; APX-IIIA; Cytolysin IIIA	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	1052	1052	Actinobacillus pleuropneumoniae	Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae)	ok
+T1SS_R05	T1SS	hasA	Q54450	Hemophore HasA; Heme acquisition system protein A	PF06438:HasA	188	188	Serratia marcescens	Serratia marcescens	ok
+T1SS_R06	T1SS	hlyA	P08715	Hemolysin, plasmid	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	1024	1024	Escherichia coli	Escherichia coli	ok
+T1SS_R07	T1SS	lktA	P0C082	Leukotoxin	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	954	954	Mannheimia haemolytica	Mannheimia haemolytica (Pasteurella haemolytica)	ok
+T1SS_R10	T1SS	ltxA	P16462	Leukotoxin	PF00353:HemolysinCabind; PF02382:RTX	1055	1055	Aggregatibacter actinomycetemcomitans	Aggregatibacter actinomycetemcomitans (Actinobacillus actinomycetemcomitans) (Haemophilus actinomycetemcomitans)	ok
+T1SS_R11	T1SS	prtA	Q07295	Serralysin A; Secreted protease A	PF00353:HemolysinCabind; PF00413:Peptidase_M10; PF08548:Peptidase_M10_C	472	478	Dickeya chrysanthemi	Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi)	ok
+T1SS_R12	T1SS	prtA1	Q84F70	Serralysin; Secreted alkaline metalloproteinase	PF00353:HemolysinCabind; PF08548:Peptidase_M10_C; PF13688:Reprolysin_5	486	486	Photorhabdus luminescens	Photorhabdus luminescens (Xenorhabdus luminescens)	ok
+T1SS_R13	T1SS	prtB	P16316	Serralysin B; Secreted protease B	PF00353:HemolysinCabind; PF00413:Peptidase_M10; PF08548:Peptidase_M10_C	481	481	Dickeya chrysanthemi	Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi)	ok
+T1SS_R14	T1SS	prtC	P16317	Serralysin C; Secreted protease C	PF00353:HemolysinCabind; PF00413:Peptidase_M10; PF08548:Peptidase_M10_C	479	479	Dickeya chrysanthemi	Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi)	ok
+T1SS_R15	T1SS	rtxA	A1YKW7	Cytolysin RtxA; Repeats in toxin A	PF00353:HemolysinCabind; PF02382:RTX; PF08339:RTX_C	956	956	Kingella kingae	Kingella kingae	ok
+T2SS_01	T2SS	lipoprotein	Q9KPR8		PF03923:Lipoprotein_16	206	191	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	ok
+T2SS_02	T2SS	tagA-related	Q9KN18		PF10462:Peptidase_M66; PF12561:TagA	1335	1247	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	ok
+T2SS_03	T2SS	lapA	P35482	Alkaline phosphatase L; Low-molecular-weight alkaline phosphatase A; Protein DIN	PF12849:PBP_like_2	368	368	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	ok
+T2SS_04	T2SS	paAP	Q9HZQ8	Aminopeptidase; Leucine aminopeptidase; PaAP	PF02225:PA; PF04389:Peptidase_M28	536	536	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	ok
+T2SS_09	T2SS	aerA	P09167	Aerolysin	PF01117:Aerolysin; PF03440:APT	493	493	Aeromonas hydrophila	Aeromonas hydrophila ATCC 7966	ok
+T2SS_13	T2SS	stmPr1	Q93IQ4		PF00082:Peptidase_S8; PF04151:PPC	617	580	Stenotrophomonas maltophilia	Stenotrophomonas maltophilia K279a	ok
+T2SS_15	T2SS	pelI	E0SM75	Pectate lyase	PF03211:Pectate_lyase	344	344	Dickeya dadantii (strain 3937)	Dickeya dadantii 3937	ok
+T3SS_03	T3SS	EspZ	Q7DB68		PF06066:SepZ	99	99	Escherichia coli O157:H7	Escherichia coli O157:H7 Sakai	ok
+T3SS_04	T3SS	EspJ	Q8XB62		PF09143:AvrPphF-ORF-2	217	217	Escherichia coli O157:H7	Escherichia coli O157:H7 Sakai	ok
+T3SS_05	T3SS	NleC	Q8X834		PF13678:Peptidase_M85	339	339	Escherichia coli O157:H7	Escherichia coli O157:H7 Sakai	ok
+T3SS_06	T3SS	NleG	Q8XAN6	E3 ubiquitin-protein ligase NleG	PF06416:T3SS_NleG	215	215	Escherichia coli O157:H7	Escherichia coli O157:H7 Sakai	ok
+T3SS_07	T3SS	EspL2	A0A0H3JP21		PF07906:Toxin_15	549	549	Escherichia coli O157:H7	Escherichia coli O157:H7 Sakai	ok
+T3SS_08	T3SS	YopJ_YopP	Q9RI13		PF03421:Acetyltransf_14	288	288	Yersinia pestis	Yersinia pestis CO92	ok
+T3SS_09	T3SS	SipA	P0CL52	Cell invasion protein SipA; Effector protein SipA	PF09052:SipA; PF22163:SipA_2nd	685	687	Salmonella typhimurium (strain LT2 / SGSC1412 / ATCC 700720)	Salmonella enterica Typhimurium LT2	ok
+T3SS_11	T3SS	PipA	Q8ZQ60		PF07108:PipA	226	228	Salmonella typhimurium (strain LT2 / SGSC1412 / ATCC 700720)	Salmonella enterica Typhimurium LT2	ok
+T3SS_16	T3SS	HrpK1	G3XDB3		PF16937:T3SS_HrpK1	780	780	Pseudomonas syringae pv. tomato (strain ATCC BAA-871 / DC3000)	Pseudomonas syringae pv tomato DC3000	ok
+T3SS_17	T3SS	VopS	Q87P32	Protein adenylyltransferase VopS; AMPylator VopS; Vibrio outer protein S	PF02661:Fic; PF20793:VopS_N	387	387	Vibrio parahaemolyticus serotype O3:K6 (strain RIMD 2210633)	Vibrio parahaemolyticus RIMD 2210633	ok
+T3SS_20	T3SS	VirA	Q7BU69	Cysteine protease-like VirA; Effector protein VirA	PF06872:EspG	400	400	Shigella flexneri	Shigella flexneri 2a 301	ok
+T3SS_21	T3SS	BipC	Q63K35	Effector protein BipC	PF09599:IpaC_SipC	419	419	Burkholderia pseudomallei (strain K96243)	Burkholderia pseudomallei K96243	ok
+T3SS_25	T3SS	NleD	B7UNX6		PF14891:Peptidase_M91	232	232	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	ok
+T3SS_26	T3SS	NleE	B7UI22	Cysteine S-methyltransferase NleE; Effector protein NleE; Non-LEE-encoded type I	PF20798:NleE	224	224	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	ok
+T3SS_27	T3SS	NleF	B7UR63		PF16809:NleF_casp_inhib	189	189	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	Escherichia coli O127:H6 (strain E2348/69 / EPEC)	ok
+T3SS_28	T3SS	EspA	D2TKE3		PF03433:EspA	192	192	Citrobacter rodentium (strain ICC168)	Citrobacter rodentium (strain ICC168)	ok
+T3SS_30	T3SS	NleD	D2TML3		PF14891:Peptidase_M91	235	235	Citrobacter rodentium (strain ICC168)	Citrobacter rodentium (strain ICC168)	ok
+T3SS_31	T3SS	NleB	D2TT37		PF24688:SseK_NleB	329	329	Citrobacter rodentium (strain ICC168)	Citrobacter rodentium (strain ICC168)	ok
+T4SS_01	T4SS	CagA	P55980	Cytotoxicity-associated immunodominant antigen; 120 kDa protein; CAG pathogenici	PF03507:CagA; PF18971:CagA_N	1186	1186	Helicobacter pylori (strain ATCC 700392 / 26695)	Helicobacter pylori 26695	ok
+T4SS_05	T4SS	VirE3	A0A2Z2PK47		PF06661:VirE3	684	684	Agrobacterium fabrum (strain C58 / ATCC 33970)	Agrobacterium fabrum str. C58	ok
+T4SS_07	T4SS	BepA	Q6G2A9	Protein adenylyltransferase; AMPylator	PF02661:Fic; PF18543:ID	544	544	Bartonella henselae (strain ATCC 49882 / DSM 28221 / CCUG 30454 / Houston 1)	Bartonella henselae Houston-1	ok
+T5SS_01	T5SS	espP	Q7BSW5	Serine protease EspP	PF03797:Autotransporter; PF02395:Peptidase_S6	1300	1300	Escherichia coli O157:H7	Escherichia coli O157:H7 str. Sakai	ok
+T5SS_02	T5SS	flu	P39180	Antigen 43; Fluffing protein	PF18883:AC_1; PF16168:AIDA; PF03797:Autotransporter; PF13018:ESPR	1039	1039	Escherichia coli (strain K12)	Escherichia coli K-12 MG1655	ok
+T5SS_03	T5SS	iga	Q9K0B4	IgA-specific serine endopeptidase	PF03797:Autotransporter; PF24078:Beta-sol_PIC_HAP1_IgA0_2nd; PF24077:IgA0_D2; PF02395:Pept	1815	1815	Neisseria meningitidis serogroup B (strain ATCC BAA-335 / MC58)	Neisseria meningitidis MC58	ok
+T5SS_04	T5SS	pic	Q7BS42	Serine protease pic autotransporter	PF03797:Autotransporter; PF24078:Beta-sol_PIC_HAP1_IgA0_2nd; PF02395:Peptidase_S6	1372	1372	Escherichia coli O44:H18 (strain 042 / EAEC)	Escherichia coli O44:H18 str. 042 (EAEC)	ok
+T5SS_05	T5SS	sat	Q8FDW4	Serine protease sat autotransporter	PF03797:Autotransporter; PF13018:ESPR; PF02395:Peptidase_S6	1295	1295	Escherichia coli O6:H1 (strain CFT073 / ATCC 700928 / UPEC)	Escherichia coli O6:H1 str. CFT073 (UPEC)	ok
+T5SS_06	T5SS	bcpA	Q2SV12		PF13018:ESPR; PF13332:Fil_haemagg_2; PF05860:TPS	3147	3147	Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)	Burkholderia thailandensis E264	ok
+T5SS_09	T5SS	fhaB	P12255	Filamentous hemagglutinin	PF13018:ESPR; PF05594:Fil_haemagg; PF13332:Fil_haemagg_2; PF05860:TPS	3590	3590	Bordetella pertussis (strain Tohama I / ATCC BAA-589 / NCTC 13251)	Bordetella pertussis Tohama I	ok
+T5SS_10	T5SS	hmw1A	Q48031		PF13018:ESPR; PF05860:TPS	1536	1536	Haemophilus influenzae	Haemophilus influenzae R2846 (strain 12)	ok
+T5SS_11	T5SS	hpmA	B4F0Z9		PF13332:Fil_haemagg_2; PF05860:TPS	1577	1577	Proteus mirabilis (strain HI4320)	Proteus mirabilis HI4320	ok
+T5SS_12	T5SS	hxuA	P44602	Heme/hemopexin-binding protein; Heme:hemopexin utilization protein A	PF05860:TPS	905	905	Haemophilus influenzae (strain ATCC 51907 / DSM 11121 / KW20 / Rd)	Haemophilus influenzae Rd KW20	ok
+T5SS_13	T5SS	lspA1	Q7VLE8		PF13018:ESPR; PF05594:Fil_haemagg; PF13332:Fil_haemagg_2; PF03543:Peptidase_C58; PF05860:T	4152	4152	Haemophilus ducreyi (strain 35000HP / ATCC 700724)	Haemophilus ducreyi 35000HP	ok
+T5SS_14	T5SS	lspA2	Q9ZHL0		PF13018:ESPR; PF13332:Fil_haemagg_2; PF03543:Peptidase_C58; PF05860:TPS	4919	4919	Haemophilus ducreyi	Haemophilus ducreyi 35000HP	ok
+T5SS_15	T5SS	shlA	P15320	Hemolysin	PF13332:Fil_haemagg_2; PF05860:TPS	1608	1608	Serratia marcescens	Serratia marcescens subsp. marcescens Db11	ok
+T5SS_16	T5SS	nadA	Q9JXK7	Neisseria adhesin A	PF03895:YadA_anchor	362	362	Neisseria meningitidis serogroup B (strain ATCC BAA-335 / MC58)	Neisseria meningitidis serogroup B str. MC58	ok
+T5SS_17	T5SS	yadA	A1JUB7	Adhesin YadA; Protein Yop1; Trimeric autotransporter adhesin YadA; Type 5 secret	PF03895:YadA_anchor; PF05658:YadA_head; PF05662:YadA_stalk	422	422	Yersinia enterocolitica serotype O:8 / biotype 1B (strain NCTC 13174 / 8081)	Yersinia enterocolitica subsp. enterocolitica 8081	ok
+T5SS_18	T5SS	plpD	Q9HYQ6		PF01103:Omp85; PF01734:Patatin; PF07244:POTRA	728	728	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	ok
+T5SS_19	T5SS	eae	P43261	Intimin; Attaching and effacing protein; Gamma-intimin	PF02369:Big_1; PF11924:IAT_beta; PF26918:Ig_Eae; PF07979:Intimin_C; PF01476:LysM	934	934	Escherichia coli O157:H7	Escherichia coli O157:H7 str. Sakai	ok
+T6SS_01	T6SS	TseL	Q9KS43	Toxin TseL	PF01764:Lipase_3	641	641	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	ok
+T6SS_02	T6SS	VasX	Q9KNE5	Toxin VasX	PF20249:VasX_N	1085	1085	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	ok
+T6SS_03	T6SS	TseH	Q9KMN9	Type VI secretion system effector TseH-like domain-containing protein	PF25218:TseH	223	223	Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)	Vibrio cholerae N16961	ok
+T6SS_05	T6SS	Tse7	Q9I733	DNase toxin Tse7	PF15635:Tox-GHH2; PF13665:Tox-PAAR-like	386	386	Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)	Pseudomonas aeruginosa PAO1	ok
+T6SS_08	T6SS	Tae_Atu4347	Q7CUP8	Type VI secretion system amidase effector protein Tae	PF14113:Tae4	166	166	Agrobacterium fabrum (strain C58 / ATCC 33970)	Agrobacterium tumefaciens C58	ok
+T6SS_10	T6SS	Tle1	Q2SV36	T6SS Phospholipase effector Tle1-like catalytic domain-containing protein	PF09994:T6SS_Tle1-like_cat	800	800	Burkholderia thailandensis (strain ATCC 700388 / DSM 13276 / CCUG 48851 / CIP 106301 / E264)	Burkholderia thailandensis E264	ok
+T6SS_17	T6SS	Tae4_Stm	A0A0F6AX79		PF14113:Tae4	161	161	Salmonella typhimurium (strain 14028s / SGSC 2262)	Salmonella enterica Typhimurium 14028	ok
+T6SS_18	T6SS	Tle1_Sci1	B7LG63	T6SS Phospholipase effector Tle1-like catalytic domain-containing protein	PF09994:T6SS_Tle1-like_cat	560	560	Escherichia coli (strain 55989 / EAEC)	Escherichia coli 042	ok
