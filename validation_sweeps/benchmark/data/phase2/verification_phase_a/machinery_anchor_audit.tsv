@@ -1,0 +1,89 @@
+instance_id	ss_type	gene	effector_locus	refseq_gene	rerun_product	flags
+T1SS_02	T1SS	aprA	PA1249	aprA apra;pa1249	serralysin family metalloprotease AprA	ok
+T1SS_03	T1SS	rsaA	CC_1007	cc_1007	S-layer protein RsaA	ok
+T1SS_04	T1SS	cya	BP0760	cyaA bp0760;cya;cyaa	bifunctional hemolysin-adenylate cyclase precursor	ok
+T1SS_06	T1SS	prtA	plu0655	prtA plu0655;prta	Serralysin	ok
+T1SS_07	T1SS	aprA	PSEEN1550	aprA apra;pseen1550	Serine 3-dehydrogenase	ok
+T1SS_R01	T1SS	Serralysin	AAG739_RS16605	aag739_16605;aag739_rs16605	Serralysin	ok
+T1SS_R02	T1SS	apxIA	ACOGIN_RS02435	apxIA acogin_rs02435;apxia	RTX family hemolysin ApxIA	ok
+T1SS_R03	T1SS	apxIIA	APP7_RS05125	app7_1008;app7_rs05125	Leukotoxin	ok
+T1SS_R04	T1SS	apxIIIA	D1108_RS06660	d1108_06705;d1108_rs06660	RTX-III toxin determinant A from serotype 2	ok
+T1SS_R05	T1SS	hasA	BVG90_RS01585	bvg90_01590;bvg90_rs01585	Hemophore HasA	ok
+T1SS_R06	T1SS	hlyA	CWB37_RS26900	hlyA cwb37_27730;cwb37_rs26900;hlya	RTX toxin hemolysin HlyA	ok
+T1SS_R07	T1SS	lktA	B824_RS12000	b824_80;b824_rs12000	Leukotoxin	ok
+T1SS_R10	T1SS	ltxA	IMM52_RS00555	ltxA imm52_rs00555;ltxa	RTX family leukotoxin LtxA	ok
+T1SS_R11	T1SS	prtA	WCU84_RS14645	wcu84_14645;wcu84_rs14645	Serralysin	ok
+T1SS_R12	T1SS	prtA1	AACX37_RS13005	prtA aacx37_rs13005;prta	Serralysin	ok
+T1SS_R13	T1SS	prtB	CO076_RS11485	co076_rs11485	Serralysin	ok
+T1SS_R14	T1SS	prtC	CO076_RS11480	co076_rs11480	Serralysin	ok
+T1SS_R15	T1SS	rtxA	KKKWG1_RS01520	rtxA kkkwg1_0321;kkkwg1_rs01520;rtxa	Cytolysin RtxA	ok
+T2SS_01	T2SS	lipoprotein	VC_RS11100	vc2298;vc_2298;vc_rs11100	Lipoprotein	ok
+T2SS_02	T2SS	tagA-related	VC_RS14065	vc_a0148;vc_rs14065;vca0148	Peptidase M66 domain-containing protein	ok
+T2SS_03	T2SS	lapA	PA0688	pa0688	Alkaline phosphatase L	ok
+T2SS_04	T2SS	paAP	PA2939	pa2939	aminopeptidase PaaP	ok
+T2SS_05	T2SS	plaA	LPG_RS11775	plaA lpg2343;lpg_rs11775;plaa	Lysophospholipase A	ok
+T2SS_09	T2SS	aerA	AHA_RS02190	aerA aera;aha_0438;aha_rs02190	beta-barrel pore-forming toxin aerolysin	ok
+T2SS_13	T2SS	stmPr1	SMLT_RS04110	smlt0861;smlt_rs04110	S8 family peptidase	ok
+T2SS_15	T2SS	pelI	DDA3937_RS14955	pelI dda3937_00058;dda3937_rs14955;peli	Pectate lyase	ok
+T3SS_01	T3SS	CopN	CT_089	lcrE ct_089;lcre	SctW family type III secretion system gatekeeper subunit CopN	ok
+T3SS_03	T3SS	EspZ	ECs_4571	espZ ecs_4571;espz	type III secretion system LEE cytoprotective effector EspZ	ok
+T3SS_04	T3SS	EspJ	ECs_2714	espJ ecs_2714;espj	type III secretion system effector ADP-ribosyltransferase EspJ	ok
+T3SS_05	T3SS	NleC	ECs_0847	nleC ecs_0847;nlec	type III secretion system effector zinc metalloprotease NleC	ok
+T3SS_06	T3SS	NleG	ECs_1824	nleG ecs_1824;nleg	T3SS effector E3 ubiquitin-protein ligase NleG	ok
+T3SS_07	T3SS	EspL2	ECs_3855	espL2 ecs_3855;espl2	Type III secretion system secreted effector EspL2, cysteine protease	ok
+T3SS_08	T3SS	YopJ_YopP	YPO_RS00385	yopJ yopj;ypcd1.71c;ypo_rs00385	YopJ/YopP family T3SS effector serine/threonine acetyltransferase	ok
+T3SS_09	T3SS	SipA	STM2882	sipA sipa;stm2882	SPI-1 type III secretion system effector SipA	ok
+T3SS_11	T3SS	PipA	STM1087	pipA pipa;stm1087	type III secretion system effector protease PipA	ok
+T3SS_16	T3SS	HrpK1	PSPTO_RS07380	hrpK1 hrpk1;pspto1405;pspto_1405;pspto_rs07380	type III secretion system helper protein HrpK1	ok
+T3SS_17	T3SS	VopS	VP_RS08115	vopS vops;vp1686;vp_rs08115	T3SS effector adenosine monophosphate-protein transferase VopS	ok
+T3SS_20	T3SS	VirA	CP0181	virA cp0181;vira	alpha-tubulin-specific protease	ok
+T3SS_21	T3SS	BipC	BPS_RS27060	bipC bipc;bps_rs27060;bpss1531	IpaC/SipC family type III secretion system effector BipC	ok
+T3SS_24	T3SS	EspH	E2348C_RS21150	e2348_c_3944;e2348c_3944;e2348c_rs21150	T3SS secreted effector EspH	ok
+T3SS_25	T3SS	NleD	E2348C_RS05530	nleD e2348_c_1044;e2348c_1044;e2348c_rs05530;nled	Type III secretion system effector NleD	ok
+T3SS_26	T3SS	NleE	E2348C_RS17340	nleE e2348_c_3232;e2348c_3232;e2348c_rs17340;nlee	type III secretion system effector cysteine methyltransferase NleE	ok
+T3SS_27	T3SS	NleF	E2348C_RS07680	nleF e2348_c_1445;e2348c_1445;e2348c_rs07680;nlef	T3SS effector caspase inhibitor NleF	ok
+T3SS_28	T3SS	EspA	ROD_RS14675	espA espa;rod_29761;rod_rs14675	type III secretion system LEE translocon filament protein EspA	ok
+T3SS_29	T3SS	NleA_EspI	ROD_RS01735	rod_03401;rod_rs01735	T3SS effector protein NleA/EspI	ok
+T3SS_30	T3SS	NleD	ROD_RS02910	rod_05791;rod_rs02910		ok
+T3SS_31	T3SS	NleB	ROD_RS05475	rod_10831;rod_rs05475	type III secretion system effector arginine glycosyltransferase NleB	ok
+T3SS_32	T3SS	EspJ	ROD_RS24095	rod_48901;rod_rs24095	EspJ family T3SS effector ADP-ribosyltransferase	ok
+T4SS_01	T4SS	CagA	HP_RS02695	cagA caga;hp0547;hp_0547;hp_rs02695	cag T4SS translocated effector CagA	ok
+T4SS_02	T4SS	Ceg14	LPG_RS02190	ceg14 ceg14;lpg0437;lpg_rs02190	Dot/Icm T4SS effector Ceg14/sidL	ok
+T4SS_05	T4SS	VirE3	ATU_RS23905	agr_pti_29;atu6191;atu_rs23905	VirA/G regulated protein	ok
+T4SS_07	T4SS	BepA	AYT27_RS06820	bepA ayt27_rs06820;bepa;bh13370;bh_rs06525	T4SS effector adenylyltransferase BepA	ok
+T4SS_08	T4SS	BtpB	BAB_RS19540	btpB bab1_0756;bab_rs19540;btpb	TIR domain-containing translocated effector BtpB	ok
+T4SS_09	T4SS	VceC	BAB_RS20990	bab1_1058;bab_rs20990	type IV secretion system effector VceC	ok
+T4SS_10	T4SS	Ats-1	APH_RS03430	ats1 aph_0859;aph_rs03430;ats1	type IV secretion system effector Ats1	ok
+T4SS_11	T4SS	Etf-1	ECH_RS03425	ech_0825;ech_rs03425	hypothetical protein	ok
+T5SS_01	T5SS	espP	pO157p78	espP espp;po157p78	serine protease autotransporter EspP	ok
+T5SS_02	T5SS	flu	b2000		autotransporter adhesin Ag43	ok
+T5SS_03	T5SS	iga	NMB_RS03625		IgA-specific serine endopeptidase autotransporter	ok
+T5SS_04	T5SS	pic	EC042_RS24520	pic ec042_4593;ec042_rs24520;pic	serine protease autotransporter toxin Pic	ok
+T5SS_05	T5SS	sat	C_RS17200		serine protease autotransporter toxin Sat	ok
+T5SS_06	T5SS	bcpA	BTH_RS26080	bcpA bcpa;bth_i2723;bth_rs26080;cdia	contact-dependent inhibition toxin BcpA	ok
+T5SS_07	T5SS	cdiA	ECP_RS23250		contact-dependent inhibition effector tRNA nuclease	ok
+T5SS_08	T5SS	cdrA	PA4625	pa4625	two-partner secretion system adhesin CdrA	ok
+T5SS_09	T5SS	fhaB	BP_RS09365		filamentous hemagglutinin/adhesin	ok
+T5SS_10	T5SS	hmw1A	R2846_RS03620		adhesin Hmw1A	ok
+T5SS_11	T5SS	hpmA	PMI_RS10140		calcium-independent hemolysin HpmA	ok
+T5SS_12	T5SS	hxuA	HI_RS01415		heme/hemopexin-binding protein HxuA	ok
+T5SS_13	T5SS	lspA1	HD_RS06155		hypothetical protein	ok
+T5SS_14	T5SS	lspA2	HD_RS04750		Large supernatant protein 2	ok
+T5SS_15	T5SS	shlA	SMDB11_RS18530	smdb11_3737;smdb11_rs18530	Hemolysin	ok
+T5SS_16	T5SS	nadA	NMB_RS10385		autotransporter adhesin NadA	ok
+T5SS_17	T5SS	yadA	YE_RS21430	yadA yada;ye_rs21430;yep0066	trimeric autotransporter adhesin YadA	ok
+T5SS_18	T5SS	plpD	PA3339	plpD pa3339;plpd	patatin-like phospholipase PlpD	ok
+T5SS_19	T5SS	eae	ECs_4559	eae eae;ecs_4559	intimin type gamma	ok
+T6SS_01	T6SS	TseL	VC_RS06860	tseL tsel;vc1418;vc_1418;vc_rs06860	Toxin TseL	ok
+T6SS_02	T6SS	VasX	VC_RS13505	vasX vasx;vc_a0020;vc_rs13505;vca0020	Toxin VasX	ok
+T6SS_03	T6SS	TseH	VC_RS14690	vc_a0285;vc_rs14690;vca0285	LRAT domain-containing protein	ok
+T6SS_04	T6SS	VgrG-3	VC_RS13955	tssI tssi;vc_a0123;vc_rs13955;vca0123	type VI secretion system effector VgrG-3 protein, lysozyme-like activity, VgrG-3 and TsaB are a toxin-antitoxin complex	ok
+T6SS_05	T6SS	Tse7	PA0099	pa0099	type VI secretion exported 7, a DNase and PAAR protein	ok
+T6SS_06	T6SS	TplE_alias_Tle4	PA1510	pa1510	Alpha/beta hydrolase	ok
+T6SS_08	T6SS	Tae_Atu4347	ATU_RS20360	agr_l_1035;atu4347;atu_rs20360	Type VI secretion system amidase effector protein Tae	ok
+T6SS_09	T6SS	TseM	BTH_RS09640	bth_ii1883;bth_rs09640	hypothetical protein	ok
+T6SS_10	T6SS	Tle1	BTH_RS32260	bth_i2698;bth_rs32260	T6SS Phospholipase effector Tle1-like catalytic domain-containing protein	ok
+T6SS_13	T6SS	YezP_Zn_binding	YPK_RS17835	ypk_3549;ypk_rs17835	hypothetical protein	ok
+T6SS_16	T6SS	EvpQ_C70_protease	ETAE_RS09465	etae_2037;etae_rs09465	hypothetical protein	ok
+T6SS_17	T6SS	Tae4_Stm	STM14_RS01975	stm14_0325;stm14_rs01975	type VI secretion system effector tae4, L,D-endopeptidase	ok
+T6SS_18	T6SS	Tle1_Sci1	EC042_RS24220	tle1 ec042_4534;ec042_rs24220;tle1	T6SS effector phospholipase Tle1-EAEC	ok
