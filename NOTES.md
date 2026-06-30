@@ -2,7 +2,69 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
-## ⭐ RESUME HERE (2026-06-30) — gold v5 (87 rows); machinery-anchor recheck CLEAN; NEXT = exhaustive blind re-read of all 87; figs in a SEPARATE session
+## 2026-06-30 — figures-v2 (parallel figures session, separate from the gold-list work below)
+
+Done + tested this session (full unit suite green, 1392): enrichment figure → single combined
+DLP+DSE fold/significance bar chart (`_enrichment_fold.png` / `pooled_enrichment_fold.png`);
+per-run restructure (T5a/c pulled out of cargo figs `01`/`03`/`04`, new `05` autotransporter
+self-detection scatter); functional-category candidates `06`–`13` (COG/KEGG/EggNOG/curated-consensus
+× overall+by-SS-type) in `generate_figures.py` + new `ssign_lib/functional_vocab.py`; genome-group
+`0N_pooled_*` figures; `outer_membrane_prob` plumbed end-to-end to the integrated CSV.
+
+LANDED / DEFERRED items from figures-v2:
+- **Appendage-exclusion default — LANDED 2026-06-30 (Teo approved).** `DEFAULT_EXCLUDED_SYSTEMS` now
+  `[Flagellum, Tad, T4aP, T4bP, MSH, ComM, Archaeal-T4P]`, wired via the constant across
+  cli/Home/runner/system_filtering/validate_macsyfinder_systems. **HEADS-UP for the gold-list/recall
+  session:** default substrate scope shrank — proteins whose only neighbour is a T4 pilus / MSH /
+  ComM / archaeal pilus are no longer substrate-called. They were never real secreted effectors, so
+  recall on the gold list should be unaffected (it removes false positives), but if you recompute
+  found/total against a fresh run, expect fewer total substrate calls.
+- **Consensus-function keyword grouping — REVISIT (Teo, 2026-06-30).** The `broad_annotation` /
+  consensus figure groups by `annotation_consensus.CATEGORY_PATTERNS` (16 regex keyword rules, first
+  match wins) plus the figure-side `consensus_bucket` (apparatus/Other routing). Teo wants a look at
+  whether the keyword grouping is the right vocabulary / granularity. *Trigger:* a dedicated pass over
+  CATEGORY_PATTERNS once the figure set is frozen.
+- **SignalP-as-enrichment-predictor for T5aSS/T5cSS (Teo's "do that in a second").** Add SignalP as a
+  measurable circular-shift enrichment predictor for autotransporter self-detection, alongside DLP/DSE.
+  *Why deferred:* needs whole-genome SignalP (today SignalP runs only on the ±3 neighborhood), so it
+  touches the prediction plumbing and the enrichment test; warrants its own openspec change. *Trigger:*
+  after figures-v2 is archived; discuss scope with Teo first.
+- **Functional-candidate pruning (figures-v2 task 6.3).** `06`–`13` are over-produced on purpose. Teo
+  reviews a real run, names the keep-set; delete the rejected figure functions in a follow-up.
+- **Pooled figures ignore per-figure toggles (minor).** `multi_runner.py`'s `generate_figures --mode pooled`
+  call doesn't forward the user's `--no-*` flags, so `0N_pooled_*` always renders the full curated set
+  even if a per-genome figure was disabled. *Why deferred:* arguably-correct (the group view should be
+  complete) and low-value; forwarding needs the config.fig_*→--no-* mapping runner.py already has.
+  *Trigger:* only if a user reports the inconsistency.
+
+4-agent simplify pass on the full figures-v2 diff (2026-06-30) caught a shipped crasher: the enrichment
+figure used `ordered_ss_types` without importing it (only the opt-in integration test covered the script,
+so the default unit run was green). Fixed + added unit-level render coverage
+(`test_run_enrichment_figure.py`). Also fixed: `functional_vocab` import fallback, a triplicated
+missing-value check (now `functional_vocab.is_missing`), and a return-code check in `pool_and_plot_enrichment`.
+
+## ⭐ RESUME HERE (2026-06-30) — gold v6 (85 rows, recall 38/85 = 44.7%); EXHAUSTIVE BLIND RE-READ DONE, list FINAL; figs in a SEPARATE session
+
+**EXHAUSTIVE BLIND RE-READ DONE 2026-06-30 (Teo: "do the exhaustive blind reread").** 6 blind agents (round-robin
+batched so each spans every SS type; inputs via `scripts/76_make_blind_batches.py`) independently re-verified all 87
+rows from primary evidence -- per row: (A) the UniProt IS the named effector (not a machinery/accessory paralog),
+(B) the locus is that gene, (C) the cited paper EXPERIMENTALLY shows secretion by this ss_type. **Result: 83/87
+confirmed; ZERO wrong-gene anchors, ZERO fabricated/mismatched accessions, ZERO length errors** -- the 4 earlier
+wrong-gene catches (Tae4/Tle1/YspE/Ssp2) were the last of that class. The ONLY substantive finding: 4 T3SS rows are
+TRANSLOCON/apparatus components (secreted BY the T3SS but not delivered host-effector cargo). Teo's scope call =
+drop pure-machinery, keep dual translocator/effectors:
+- **DROPPED** T3SS_28 EspA (needle-filament sheath, PF03433) + T3SS_16 HrpK1 (translocon-pore helper, PF16937) --
+  both correctly anchored, both found=no, pure structural translocon -> out of scope for an effector gold list.
+- **KEPT** T3SS_01 CopN (YopN/LcrE gatekeeper w/ documented tubulin/cell-cycle effector activity) + T3SS_21 BipC
+  (SipC/IpaC-family translocator w/ documented actin-nucleation effector activity) -- genuine dual-role effectors.
+Also swapped 2 weak citations to verified PRIMARY papers (blind agent confirmed DOI + verbatim quote by fetching):
+T4SS_02 Ceg14 -> Burstein 2009 PLoS Pathog (CyaA translocation, lpg0437 in Table 3); T2SS_03 LapA -> Ball 2002 Mol
+Microbiol (Hxc-system discovery, hxc mutant loses LapA from supernatant). Cross-strain ortholog cites (T1/T3
+Tobe-2006-table rows, T5SS_03 iga) left as-is -- identity + mechanism are correct, only the paper is an ortholog's.
+**gold v6 = 85 rows, recall 38/85 = 44.7%** (T1 16/18, T2 1/8, T3 5/19, T4 0/8, T5 10/19, T6 6/13). Run order
+65->73->65 (idempotent); blind verdicts saved in scratchpad `blind_verdict_{1..6}.tsv`. **THE GOLD LIST IS NOW FINAL.**
+
+### (history) 2026-06-30 — gold v5 (87 rows); machinery-anchor recheck
 
 **MACHINERY-ANCHOR RECHECK DONE 2026-06-30 (Teo: "recheck the gold list for placeholder/machinery anchoring").**
 `scripts/75_machinery_anchor_audit.py` checks, per row, what the protein at the row's locus is ANNOTATED as
@@ -13,13 +75,7 @@ clusters.** Detector self-tested to fire on all 4 known-bad products (YscL/TagJ/
 NleD Bakta-gene-miss) so it had no product and was found=no for an ANNOTATION reason -> dropped so recall measures
 prediction+proximity on cleanly-annotated genes. **Recall now 38/87 = 44%.**
 
-**NEXT (Teo asked): EXHAUSTIVE BLIND RE-READ of all 87 rows.** The dimension-specific multi-agent sweeps covered
-all rows (gold_review 4-agent IDENTITY; sweep2 3-agent CITATION) but only the 30 high-churn rows got a HOLISTIC
-"is this whole row a correct, experimentally-secreted effector at the right locus" 3-agent pass. Do that holistic
-blind pass over all 87 (or at least the ~57 non-high-churn): per row verify uniprot==named effector, locus/coords
-right, experimentally secreted by THIS ss_type, with provenance. Batch across agents; reconcile; fix/drop findings.
-Best run in a FRESH context (it is agent-heavy). gold_list_final = 87 rows; audits: domain_audit.tsv,
-machinery_anchor_audit.tsv, geometry_recompute.tsv all current.
+(That re-read is now DONE -- see the ⭐ block above. This subsection is kept only for the machinery-anchor history.)
 
 ## (history) 2026-06-30 — gold (88 rows); DOMAIN/NAME audit (dropped YspE+Ssp2 machinery anchors)
 

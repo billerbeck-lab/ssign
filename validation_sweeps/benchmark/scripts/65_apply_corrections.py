@@ -314,11 +314,14 @@ DISPOSITIONS: dict[str, tuple] = {
         "swap_up",
         {
             "uniprot": "Q5ZYD5",
-            "citation_quote": "Legionella pneumophila utilizes the Dot/Icm type IVB secretion system to deliver hundreds of effector proteins inside eukaryotic cells to ensure intracellular replication.",
+            "primary_ref": "10.1371/journal.ppat.1000508",
+            "citation_quote": "We followed up our predictions with experimental validations, using the CyaA reporter system, which led to the discovery of 40 novel L. pneumophila effectors.",
         },
-        "identity 3/3 + citation 2/3",
-        "Ceg14 = LPG_RS02190/Q5ZYD5 (Dot/Icm substrate, 666aa = span), L. pneumophila Philadelphia 1. Citation sweep: "
-        "old quote was an effector-function list; swapped to the verbatim Dot/Icm-delivery sentence (Patel 2024 Mol Syst Biol).",
+        "identity 3/3 + citation (primary, blind re-read)",
+        "Ceg14 = LPG_RS02190/Q5ZYD5 (Dot/Icm substrate, 666aa = span), L. pneumophila Philadelphia 1. Blind re-read "
+        "swapped the generic 2024 review (Patel, 'hundreds of effectors') for the PRIMARY experimental paper: Burstein "
+        "2009 PLoS Pathog (PMID 19593377) validated lpg0437/ceg14 by the CyaA translocation assay (Table 3, one of 40 "
+        "newly discovered Icm/Dot-dependent effectors).",
     ),
     "T5SS_06": (
         "swap_up",
@@ -399,12 +402,17 @@ DISPOSITIONS: dict[str, tuple] = {
     ),
     # MIS-ANCHORED (coord/gene mismatch): the gold effector_locus encodes a DIFFERENT gene (transposase /
     # hydrolase / regulator); reanchor to the true effector locus (length confirmed against the index + UniProt).
+    # dropped 2026-06-30 (exhaustive blind re-read, Teo's scope call): the prior reanchor was CORRECT --
+    # PSPTO_RS07380/G3XDB3 genuinely IS HrpK1 -- but HrpK1 is a T3SS TRANSLOCON-pore "helper" (NCBI
+    # "T3SS helper protein HrpK1"; PF16937, no effector domain), i.e. translocation machinery, not a
+    # delivered host-effector. Out of scope for an effector/substrate gold list. found_by_ssign was "no".
     "T3SS_16": (
-        "reanchor",
-        {"effector_locus": "PSPTO_RS07380", "uniprot": "G3XDB3", "gene": "HrpK1"},
-        "identity 3/3 (coord/gene mismatch)",
-        "old locus PSPTO_RS07250 is hrpS (a T3SS transcriptional regulator), NOT HrpK1. True HrpK1 = "
-        "PSPTO_1405/PSPTO_RS07380/G3XDB3 (780aa) on NC_004578.1.",
+        "drop",
+        {},
+        "blind re-read 6/6 (translocon)",
+        "HrpK1 = PSPTO_RS07380/G3XDB3 is correctly anchored but is a T3SS translocon-pore 'helper' (NCBI "
+        "'T3SS helper protein HrpK1'; PF16937, no effector domain) -- translocation machinery, not a delivered "
+        "effector. Dropped per Teo (effector-only scope), NOT a mis-anchor.",
     ),
     "T3SS_27": (
         "reanchor",
@@ -413,12 +421,18 @@ DISPOSITIONS: dict[str, tuple] = {
         "old locus E2348C_RS09145 is ydgJ (a predicted oxidoreductase), NOT NleF. True NleF = "
         "E2348C_1445/E2348C_RS07680/B7UR63 (189aa) on NC_011601.1; organism also said O157:H7 Sakai.",
     ),
+    # dropped 2026-06-30 (exhaustive blind re-read, Teo's scope call): the prior reanchor was CORRECT --
+    # ROD_RS14675/D2TKE3 genuinely IS EspA -- but EspA is the T3SS needle-FILAMENT sheath / translocon
+    # component (PF03433; NCBI "T3SS LEE translocon filament protein EspA"; the cited paper groups it with
+    # translocators EspB/EspD), i.e. translocation machinery, not a delivered host-effector. Out of scope.
+    # found_by_ssign was "no".
     "T3SS_28": (
-        "reanchor",
-        {"effector_locus": "ROD_RS14675", "uniprot": "D2TKE3", "gene": "EspA", "organism": CROD},
-        "identity 3/3 (coord/gene mismatch)",
-        "old locus ROD_RS14860 is an HTH-domain protein, NOT EspA. True EspA = ROD_29761/ROD_RS14675/"
-        "D2TKE3 (192aa) on NC_013716.1; organism also said O157:H7 Sakai.",
+        "drop",
+        {},
+        "blind re-read 6/6 (translocon)",
+        "EspA = ROD_RS14675/D2TKE3 is correctly anchored but is the T3SS needle-filament sheath / translocon "
+        "component (PF03433; the cited paper groups it with translocators EspB/EspD) -- translocation machinery, "
+        "not a delivered effector. Dropped per Teo (effector-only scope), NOT a mis-anchor.",
     ),
     "T3SS_29": (
         "reanchor",
@@ -637,6 +651,19 @@ DISPOSITIONS: dict[str, tuple] = {
         "the rerun (IS-dense region, skipped locus GMFMKK_00600), so it has no annotated product to check and is "
         "found=no for an ANNOTATION reason, not a prediction/proximity reason. Dropped per Teo to keep recall "
         "measuring ssign's prediction+proximity on cleanly-annotated genes, not Bakta annotation gaps.",
+    ),
+    # ===== exhaustive blind re-read citation upgrade (2026-06-30) =====
+    # The anchor was already correct; the cited source was a review, swapped to its verified PRIMARY paper.
+    "T2SS_03": (
+        "swap_ref",
+        {
+            "primary_ref": "10.1046/j.1365-2958.2002.02759.x",
+            "citation_quote": "The protein corresponded to the alkaline phosphatase L-AP, renamed LapA, which is secreted in an xcp-independent but hxc-dependent manner.",
+        },
+        "blind re-read (primary)",
+        "old ref 10.3389/fmicb.2011.00155 is the Bleves/Filloux 2011 review; swapped to its PRIMARY source, Ball "
+        "et al. 2002 Mol Microbiol (PMID 11985723), the Hxc T2SS discovery paper where the hxc mutant lost LapA from "
+        "the culture supernatant. Quote verbatim from the abstract.",
     ),
 }
 

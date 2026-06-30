@@ -34,18 +34,14 @@ T3SS_07	T3SS		EspL2	T3SS_sctC	117	no	T3SS_sctC	NLKKIN_03982	117	no	recomputed
 T3SS_08	T3SS		YopJ_YopP	T3SS_sctJ	9	no	T3SS_sctJ	GKEHFL_054	9	no	recomputed
 T3SS_09	T3SS		SipA	T3SS_sctU	5	no	T3SS_sctU	GMEOCJ_03004	5	no	recomputed
 T3SS_11	T3SS		PipA	T3SS_sctJ	314	no	T3SS_sctJ	GMEOCJ_01476	314	no	recomputed
-T3SS_16	T3SS		HrpK1	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
 T3SS_17	T3SS		VopS	T3SS_sctJ	4	no	T3SS_sctJ	NFBFAE_01662	4	no	recomputed
 T3SS_20	T3SS		VirA	T3SS_sctU	24	no	T3SS_sctU	EICGHA_05207	24	no	recomputed
 T3SS_21	T3SS		BipC	T3SS_sctU	3	yes	T3SS_sctU	LNAIFI_01611	3	yes	recomputed
-T3SS_23	T3SS		YspE	T3SS_sctJ	3	yes	T3SS_sctJ	DIBMGG_03793	3	yes	recomputed
 T3SS_24	T3SS		EspH	T3SS_sctQ	1	yes	T3SS_sctQ	FDFAGP_04182	1	yes	recomputed
 T3SS_25	T3SS		NleD	T3SS_sctQ	2944	no	T3SS_sctQ	FDFAGP_04182	2944	no	recomputed
 T3SS_26	T3SS		NleE	T3SS_sctQ	724	no	T3SS_sctQ	FDFAGP_04182	724	no	recomputed
 T3SS_27	T3SS		NleF	T3SS_sctQ	2549	no	T3SS_sctQ	FDFAGP_04182	2549	no	recomputed
-T3SS_28	T3SS		EspA	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
 T3SS_29	T3SS		NleA_EspI	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
-T3SS_30	T3SS		NleD	(effector ORF absent from rerun)		no	(effector ORF absent from rerun)			no	effector_not_in_order
 T3SS_31	T3SS		NleB	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
 T3SS_32	T3SS		EspJ	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
 T4SS_01	T4SS		CagA	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
@@ -88,4 +84,3 @@ T6SS_13	T6SS		YezP_Zn_binding	T6SSi_tssM	1	yes	T6SSi_tssM	PAFEDL_03578	1	yes	rec
 T6SS_16	T6SS		EvpQ_C70_protease	(no cognate machinery detected)		no	(no cognate machinery detected)			no	no_cognate_machinery
 T6SS_17	T6SS		Tae4_Stm	T6SSi_tssD	1	yes	T6SSi_tssD	KHNKPC_00291	1	yes	recomputed
 T6SS_18	T6SS		Tle1_Sci1	T6SSi_tssI	1	yes	T6SSi_tssI	DCENBD_04850	1	yes	recomputed
-T6SS_21	T6SS		Ssp2	T6SSi_tssE	1	yes	T6SSi_tssE	HMEAPB_02288	1	yes	recomputed
