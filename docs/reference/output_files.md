@@ -52,6 +52,12 @@ will not have a chunk 3):
 3. `# Secretion Systems (other)` — systems detected without high-confidence
    substrates.
 
+> **T5SS substrates:** a detected T5SS component is reported as a substrate only
+> if it has evidence: DeepLocPro localizes it (extracellular/OM; the T5bSS
+> translocator is outer-membrane only) OR SignalP predicts a Sec signal peptide.
+> A T5 component with neither is not reported (it is still counted in the domain
+> audit / secretion-system detection, just not called a substrate).
+
 ### Chunk 1 column reference (Secreted Proteins)
 
 Columns appear in this order when present; missing columns indicate the

@@ -19,7 +19,10 @@ _scripts_dir = _os.path.dirname(_os.path.abspath(__file__))
 if _scripts_dir not in _sys.path:
     _sys.path.insert(0, _scripts_dir)
 
-from ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: E402,F401  (default for --excluded-systems)
+from ssign_lib.constants import (  # noqa: E402
+    DEFAULT_EXCLUDED_SYSTEMS,  # noqa: F401  (default for --excluded-systems)
+    is_sec_signal_peptide,
+)
 from ssign_lib.localization_gate import (  # noqa: E402
     aggregate_failed_ss_types,
     default_localization_table_path,
@@ -58,6 +61,32 @@ def _load_systems_with_components(ss_components_path: str) -> dict:
             if not entry["ss_type"]:
                 entry["ss_type"] = ss_type
     return systems
+
+
+def _t5_self_has_evidence(row: dict, conf_threshold: float) -> bool:
+    """A T5SS-self component is a substrate iff it has localization evidence
+    (DeepLocPro) OR a Sec signal peptide (SignalP).
+
+    T5 passengers are Sec-exported, so a clear Sec signal calls the component even
+    when DeepLocPro misses it; a component with neither is dropped (previously all
+    detected T5 components were reported unconditionally). Preserves the
+    per-component DeepLocPro rule (critical bug-fix #6): the T5bSS translocator
+    (TpsB pore) passes on outer-membrane only, never extracellular; T5aSS/T5cSS
+    pass on extracellular OR outer-membrane. openspec: signalp-t5ss-substrate-call.
+    """
+    ss_type = row.get("nearby_ss_types", "")
+
+    def _p(col: str) -> float:
+        try:
+            return float(row.get(col, 0) or 0)
+        except (ValueError, TypeError):
+            return 0.0
+
+    if ss_type == "T5bSS":  # translocator is OM-only
+        dlp_pass = _p("outer_membrane_prob") >= conf_threshold
+    else:  # T5aSS / T5cSS: extracellular or outer-membrane
+        dlp_pass = max(_p("dlp_extracellular_prob"), _p("outer_membrane_prob")) >= conf_threshold
+    return dlp_pass or is_sec_signal_peptide(row.get("signalp_prediction", ""))
 
 
 def _run_localization_gate(
@@ -227,9 +256,18 @@ def main():
     filtered = []
     n_dse_mismatch_removed = 0
     n_gate_dropped = 0
+    n_t5_no_evidence_dropped = 0
     for s in substrates:
         ss_types = set(s.get("nearby_ss_types", "").split(","))
         ss_types.discard("")
+
+        # T5SS-self components must carry localization (DeepLocPro) or Sec-signal
+        # (SignalP) evidence to be called substrates; a detected T5 component with
+        # neither is dropped (previously every T5 component was kept
+        # unconditionally). openspec: signalp-t5ss-substrate-call.
+        if s.get("substrate_source") == "T5SS-self" and not _t5_self_has_evidence(s, args.dlp_confidence_threshold):
+            n_t5_no_evidence_dropped += 1
+            continue
 
         # Keep if any ss_type that's neither excluded nor gate-failed survives
         surviving = ss_types - excluded_or_failed
@@ -265,6 +303,12 @@ def main():
             "Localization gate removed %d substrate(s) tagged only with failed ss_types (%s)",
             n_gate_dropped,
             sorted(failed_types),
+        )
+    if n_t5_no_evidence_dropped:
+        logger.info(
+            "T5SS evidence gate removed %d T5 component(s) with neither DeepLocPro localization "
+            "nor a Sec signal peptide",
+            n_t5_no_evidence_dropped,
         )
 
     with open(args.out_filtered, "w", newline="") as f:

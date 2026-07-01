@@ -31,6 +31,17 @@ LANDED / DEFERRED items from figures-v2:
   via the new shared `constants.is_sec_signal_peptide` (also adopted by t5ss_handler). Unit + integration
   tests green (1410). **Only task left: 5.1 — validate on a real CX3 run** (single + multi-genome); then
   `/opsx:archive signalp-enrichment-track`.
+- **T5SS substrate gate LANDED 2026-07-01 (openspec `signalp-t5ss-substrate-call`, code+tests done).**
+  A trace found the T5 DLP rule (bug-fix #6) was **inert**: `t5ss_handler` emits every detected T5
+  component and `system_filtering` kept them all unconditionally; cross_validate's `is_secreted` is
+  never read for inclusion. Added a real gate in `system_filtering._t5_self_has_evidence`: a T5 component
+  is a substrate iff DeepLocPro localizes it (T5a/c ext-or-OM; T5b OM-only, preserving #6) OR SignalP
+  predicts a Sec signal (Sec-only; Tat excluded, literature-confirmed). Net: T5 counts DROP (evidence-less
+  components removed). 1413 unit tests green. **DEFERRED:** (1) regenerate the `t5ass_minimal` golden
+  fixture (its T5 substrate `dlp_extra=0.60`<0.8, `signalp=OTHER` is now correctly dropped), so the
+  frozen results changed (integration test skips locally w/o tools; regen per REGENERATE.md on a full
+  install). (2) benchmark before/after regression to quantify the T5 drop per genome. *Trigger:* the
+  planned CX3 rerun + a full-install run for the golden regen.
 - **Figure-02 SignalP fill uses a looser rule than the enrichment track (REVISIT, surfaced by simplify
   2026-06-30).** `generate_figures._signalp_positive` is a denylist (`_SIGNALP_NEGATIVE`) that counts
   TAT/TATLIPO/PILIN as "has signal", while the enrichment SignalP track + t5ss_handler use the strict

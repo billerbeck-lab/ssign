@@ -22,6 +22,9 @@ SUBSTRATE_FIELDS = [
     "tool",
     "nearby_ss_types",
     "dse_type_match",
+    "dlp_extracellular_prob",
+    "outer_membrane_prob",
+    "signalp_prediction",
 ]
 
 # valid_systems and predictions are required CLI args but the script doesn't
@@ -36,6 +39,9 @@ def _make_substrate(
     nearby_ss_types="T2SS",
     tool="DLP",
     dse_type_match="True",
+    dlp_extracellular_prob="",
+    outer_membrane_prob="",
+    signalp_prediction="",
 ):
     return {
         "locus_tag": locus_tag,
@@ -43,6 +49,9 @@ def _make_substrate(
         "tool": tool,
         "nearby_ss_types": nearby_ss_types,
         "dse_type_match": dse_type_match,
+        "dlp_extracellular_prob": dlp_extracellular_prob,
+        "outer_membrane_prob": outer_membrane_prob,
+        "signalp_prediction": signalp_prediction,
     }
 
 
@@ -158,16 +167,55 @@ class TestExclusionFilter:
         )
         assert {r["locus_tag"] for r in all_rows} == {"X"}
 
-    def test_t5ss_self_kept_despite_excluded_only(self, monkeypatch, tmp_dir):
-        # T5SS-self carve-out: even if nearby_ss_types is empty / fully
-        # excluded, T5SS substrates are kept (they ARE their own system).
+    def test_t5ss_self_with_evidence_kept_despite_excluded_only(self, monkeypatch, tmp_dir):
+        # T5SS-self carve-out: even if nearby_ss_types is empty / fully excluded, a
+        # T5SS substrate WITH evidence (here a Sec signal peptide) is kept (it IS
+        # its own system). openspec: signalp-t5ss-substrate-call.
         filtered, _ = _run_filter(
             monkeypatch,
             tmp_dir,
             [],
-            [_make_substrate("T5SS_1", nearby_ss_types="")],
+            [_make_substrate("T5SS_1", nearby_ss_types="", signalp_prediction="SP")],
         )
         assert {r["locus_tag"] for r in filtered} == {"T5SS_1"}
+
+    def test_t5ss_self_without_evidence_dropped(self, monkeypatch, tmp_dir):
+        # New evidence gate: a T5SS component with neither DeepLocPro localization
+        # nor a Sec signal peptide is dropped (previously kept unconditionally).
+        filtered, _ = _run_filter(
+            monkeypatch,
+            tmp_dir,
+            [],
+            [_make_substrate("T5SS_1", nearby_ss_types="T5aSS")],  # no DLP, no SignalP
+        )
+        assert filtered == []
+
+    def test_t5ss_self_kept_via_dlp_localization(self, monkeypatch, tmp_dir):
+        # The DeepLocPro path still calls a T5 component (extracellular/OM) with no
+        # signal peptide.
+        filtered, _ = _run_filter(
+            monkeypatch,
+            tmp_dir,
+            [],
+            [_make_substrate("T5SS_1", nearby_ss_types="T5aSS", outer_membrane_prob="0.95")],
+        )
+        assert {r["locus_tag"] for r in filtered} == {"T5SS_1"}
+
+    def test_t5bss_translocator_om_only_rule_preserved(self, monkeypatch, tmp_dir):
+        # Bug-fix #6: T5bSS translocator passes on outer-membrane only, never
+        # extracellular. A T5bSS row that is extracellular-high but OM-low and has
+        # no signal peptide must be dropped.
+        filtered, _ = _run_filter(
+            monkeypatch,
+            tmp_dir,
+            [],
+            [
+                _make_substrate(
+                    "T5B_1", nearby_ss_types="T5bSS", dlp_extracellular_prob="0.99", outer_membrane_prob="0.1"
+                )
+            ],
+        )
+        assert filtered == []
 
     def test_custom_excluded_systems_override(self, monkeypatch, tmp_dir):
         # User passes --excluded-systems="" → nothing excluded → Flagellum kept
