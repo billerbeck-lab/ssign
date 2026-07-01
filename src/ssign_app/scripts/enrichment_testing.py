@@ -54,6 +54,7 @@ from ssign_lib.constants import (  # noqa: E402
     ENRICH_COMBINED_TOOL,
     ENRICH_DSE_NO_WINDOW,
     ENRICH_MAX_NULL,
+    ENRICH_T5SS_TYPES,
     ENRICH_TOOLS,
     ENRICH_WINDOW_TYPES,
     PROXIMITY_WINDOW,
@@ -81,7 +82,7 @@ OUT_FIELDS = [
     "p_perm",
     "qvalue",
     "significant",
-    "n_rotations",
+    "n_null",
 ]
 
 
@@ -277,9 +278,10 @@ def single_test(pos_vec: np.ndarray, win_mask: np.ndarray, rng=None):
 
     Returns a dict with observed (c[0]), the null array (c[1:], optionally
     subsampled for storage when the genome is huge), null_mean, fold, exact
-    permutation p = (#{null >= observed} + 1)/(len(null)+1), and n_rotations."""
+    permutation p = (#{null >= observed} + 1)/(len(null)+1), and n_null (the
+    number of null values the p was computed against = the n-1 non-identity
+    rotations for one genome)."""
     c = rotation_counts(pos_vec, win_mask)
-    n = len(c)
     observed = int(c[0])
     null = c[1:]  # the n-1 non-identity rotations = the exact permutation null
     null_mean = float(null.mean()) if null.size else 0.0
@@ -296,7 +298,7 @@ def single_test(pos_vec: np.ndarray, win_mask: np.ndarray, rng=None):
         "null_mean": round(null_mean, 4),
         "fold": round(fold, 4) if fold != float("inf") else fold,
         "p_perm": round(float(p), 6),
-        "n_rotations": n,
+        "n_null": int(null.size),
     }
 
 
@@ -335,14 +337,13 @@ def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
                 continue
             r = single_test(tool_vec[tool], mask)
             rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": False, **r})
-        # Combined one-bar-per-type track: "DLP OR DSE" for window types (DSE
-        # dropped where unreliable, e.g. T3SS); SignalP-alone for autotransporters,
-        # whose passengers are Sec-exported. SignalP's low genome background makes
-        # its few-loci self-detection stronger and more specific than a 3-way union
-        # (which raises the background and weakens the fold/p). openspec:
-        # signalp-enrichment-track decision 4.
-        if is_auto:
-            combined_pos = vecs["signalp"]
+        # Combined one-bar-per-type track: a gene counts if EITHER of the type's
+        # two relevant predictors flags it. All T5SS subtypes are Sec-dependent
+        # (signal-peptide-bearing substrates), so they pair DLP with SignalP;
+        # DSE is unreliable for T5 and dropped. T3SS drops DSE too (DLP only).
+        # Every other type pairs DLP with DSE. openspec: signalp-enrichment-track.
+        if dt in ENRICH_T5SS_TYPES:
+            combined_pos = np.maximum(dlp_track, vecs["signalp"])
         elif dt in ENRICH_DSE_NO_WINDOW:
             combined_pos = dlp_track
         else:

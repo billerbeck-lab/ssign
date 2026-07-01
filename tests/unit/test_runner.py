@@ -1209,7 +1209,7 @@ class TestPoolEnrichmentStats:
     def _row(self, ss_type="T6SS", tool="DLP", observed=4, mode="window", n_mask=6):
         return {"ss_type": ss_type, "tool": tool, "mode": mode, "observed": observed, "n_mask": n_mask,
                 "null_mean": 1.0, "fold": float(observed), "p_perm": 0.01, "qvalue": 0.01,
-                "significant": True, "n_rotations": 100}  # fmt: skip
+                "significant": True, "n_null": 100}  # fmt: skip
 
     def test_pools_observed_and_null_across_genomes(self, tmp_path):
         import csv as _csv

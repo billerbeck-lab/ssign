@@ -33,10 +33,10 @@ The per-tool enrichment fold/significance figure SHALL show a SignalP bar per se
 - **WHEN** the per-tool enrichment figure is rendered for an enrichment-enabled run
 - **THEN** each secretion-system type SHALL show DeepLocPro, DeepSecE, and SignalP bars (a type with no valid predictor for one tool shows only the applicable bars)
 
-### Requirement: Combined bar uses SignalP for autotransporters
-The combined (one-bar-per-type) enrichment figure SHALL show, per secretion-system type, the DeepLocPro-or-DeepSecE combined score for window types, and the SignalP score alone for autotransporter types (T5aSS/T5cSS). The combined positivity for autotransporters SHALL NOT be a DLP-or-DSE-or-SignalP union: SignalP-alone has a lower genome background and so yields a stronger, more often significant bar over the few autotransporter loci, whereas the union raises the background and weakens it.
+### Requirement: Combined bar pairs DLP with SignalP for T5SS
+The combined (one-bar-per-type) enrichment figure SHALL show, per secretion-system type, a union of the two relevant predictors (a gene counts if either flags it, scored by the same permutation test): DeepLocPro-or-DeepSecE for non-T5 types, and DeepLocPro-or-SignalP for ALL T5SS subtypes (T5aSS, T5bSS, T5cSS). DeepSecE SHALL NOT contribute to the T5SS combined bar (it is unreliable for T5). The combined bar SHALL NOT be an average of the individual folds.
 
-#### Scenario: Autotransporter combined bar is the SignalP score
-- **WHEN** the combined enrichment figure is rendered for a run with T5aSS/T5cSS systems
-- **THEN** the combined bar for those types SHALL be the SignalP circular-shift score (self-detection), while window types SHALL show the DeepLocPro-or-DeepSecE combined score
-- **AND** the combined bar for autotransporters SHALL NOT be a three-way DLP-or-DSE-or-SignalP union
+#### Scenario: T5SS combined bar is DLP-or-SignalP
+- **WHEN** the combined enrichment figure is rendered for a run with T5SS systems
+- **THEN** the combined bar for every T5SS subtype SHALL be scored from the DeepLocPro-or-SignalP union (a locus counts if DeepLocPro OR SignalP is positive), while non-T5 types SHALL show the DeepLocPro-or-DeepSecE union
+- **AND** a T5 locus positive by only one of the two (e.g. SignalP-positive but DeepLocPro-negative) SHALL still count toward the combined bar

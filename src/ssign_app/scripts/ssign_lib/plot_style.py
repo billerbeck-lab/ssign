@@ -30,7 +30,6 @@ THEME = {
     "neutral_bar": "#6C8EAD",  # single-hue bars (no categorical meaning)
     "ref_line": "#444444",  # cutoff / zero reference lines
     "muted": "#B5B5B8",  # de-emphasised (non-significant) bars/elements
-    "muted_text": "#999999",  # de-emphasised annotation text (darker than muted for legibility)
     "caption": "#666666",  # sub-axis caption / annotation text
 }
 
@@ -76,6 +75,20 @@ def apply_house_style() -> None:
             "ytick.color": "#444444",
         }
     )
+
+
+def muted(hex_color: str, sat_scale: float = 0.4, val_boost: float = 1.1) -> tuple:
+    """Desaturated, slightly lightened version of a colour for de-emphasising a
+    non-significant bar while keeping its hue (so you can still tell which tool it
+    is, unlike a flat grey). Returns an RGB tuple for matplotlib.
+    """
+    import colorsys
+
+    import matplotlib.colors as mcolors
+
+    r, g, b = mcolors.to_rgb(hex_color)
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    return colorsys.hsv_to_rgb(h, s * sat_scale, min(1.0, v * val_boost))
 
 
 def ordered_ss_types(present) -> list:

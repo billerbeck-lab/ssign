@@ -3570,7 +3570,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
                 "null_mean": round(null_mean, 4),
                 "fold": fold,
                 "p_perm": round(p, 6),
-                "n_rotations": ENRICH_POOL_REPS,
+                "n_null": ENRICH_POOL_REPS,
             }
         )
         pooled_nulls[enrich_null_key(ss_type, tool)] = null_pool

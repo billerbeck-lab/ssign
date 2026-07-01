@@ -148,7 +148,7 @@ class TestSingleTest:
         r = single_test(pos, mask)
         assert r["observed"] == 6
         assert r["fold"] > 5
-        assert r["n_rotations"] == n
+        assert r["n_null"] == n - 1  # null size = the n-1 non-identity rotations
         assert r["null"].size == n - 1  # exact all-rotations except identity
 
     def test_no_positives_fold_zero(self):
@@ -206,10 +206,13 @@ def _build_genome(tmp_dir, n=120):
     )
     dlp_pos = {"g0019", "g0022"}  # flank the T6SS components
     dse_pos = {"g0019": "T6SS", "g0089": "T3SS"}  # one near T6SS; one is the T3SS comp (DSE excluded)
-    # SignalP Sec-signal calls: both autotransporter components plus two scattered
-    # background genes (LIPO is also a Sec signal). T5cSS (g0030) is SignalP-positive
-    # but DLP-self-negative, so its combined bar must equal the SignalP value, not DLP.
-    sp_pred = {"g0060": "SP", "g0030": "SP", "g0005": "SP", "g0110": "LIPO", "g0009": "TAT"}
+    # SignalP Sec-signal calls. The two autotransporters deliberately DISAGREE with
+    # DLP so the combined DLP-or-SignalP union is testable: T5aSS (g0060) is
+    # DLP-self-positive but SignalP-negative (combined must still fire via DLP);
+    # T5cSS (g0030) is SignalP-positive but DLP-self-negative (combined fires via
+    # SignalP). g0005/g0110 are scattered background Sec signals; g0009 is a TAT
+    # (non-Sec) negative control.
+    sp_pred = {"g0030": "SP", "g0005": "SP", "g0110": "LIPO", "g0009": "TAT"}
     dlp_rows, dse_rows, sp_rows = [], [], []
     for i in range(n):
         lt = f"g{i:04d}"
@@ -266,26 +269,32 @@ class TestRunEnrichmentAggregation:
         assert by[("T3SS", "DLP")]["skip"] is False  # DLP T3SS window still tested
 
         # SignalP is a full third predictor: emitted for every type incl. T3SS (no
-        # skip), self-detection for autotransporters.
+        # skip), self-detection for autotransporters. In this fixture T5aSS is
+        # SignalP-negative (only T5cSS carries the signal), so its self observed is 0.
         assert by[("T5aSS", "SignalP")]["mode"] == "self"
-        assert by[("T5aSS", "SignalP")]["observed"] == 1  # autotransporter carries a Sec signal
+        assert by[("T5aSS", "SignalP")]["observed"] == 0
+        assert by[("T5cSS", "SignalP")]["observed"] == 1  # autotransporter carries a Sec signal
         assert by[("T3SS", "SignalP")]["skip"] is False  # unlike DSE, SignalP IS tested for T3SS
         assert by[("T6SS", "SignalP")]["mode"] == "window"
 
-        # Combined DLP-or-DSE track for window types: one row per tested type; observed
-        # is the OR of the valid predictors, so >= each individual predictor.
+        # Combined non-T5 track = DLP-or-DSE: one row per tested type; observed is the
+        # OR of the valid predictors, so >= each individual predictor.
         assert by[("T6SS", "COMBINED")]["mode"] == "window"
         assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DLP")]["observed"]
         assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DSE")]["observed"]
         # T3SS combined uses DLP only (DSE invalid for T3SS).
         assert by[("T3SS", "COMBINED")]["skip"] is False
         assert by[("T3SS", "COMBINED")]["observed"] == by[("T3SS", "DLP")]["observed"]
-        # Autotransporter combined bar is the SignalP score, NOT DLP-or-DSE. T5cSS is
-        # SignalP-positive but DLP-self-negative, so combined must follow SignalP (1),
-        # not DLP (0) — this pins decision 4.
+        # All T5SS combined = DLP-or-SignalP union (NOT DLP-or-DSE, NOT SignalP-alone).
+        # The two autotransporters disagree, so the union is provable both ways:
+        #  - T5aSS: DLP-self=1, SignalP=0 -> combined follows DLP (1), so SignalP alone
+        #    (0) would be wrong.
+        assert by[("T5aSS", "DLP")]["observed"] == 1
+        assert by[("T5aSS", "COMBINED")]["observed"] == by[("T5aSS", "DLP")]["observed"]
+        #  - T5cSS: DLP-self=0, SignalP=1 -> combined follows SignalP (1), so DLP-or-DSE
+        #    (0) would be wrong (this is the SignalP rescue).
         assert by[("T5cSS", "DLP")]["observed"] == 0
-        assert by[("T5cSS", "SignalP")]["observed"] == 1
-        assert by[("T5cSS", "COMBINED")]["observed"] == by[("T5cSS", "SignalP")]["observed"]
+        assert by[("T5cSS", "COMBINED")]["observed"] == by[("T5cSS", "SignalP")]["observed"] == 1
 
 
 class TestCliDriver:

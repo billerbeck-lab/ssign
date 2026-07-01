@@ -112,20 +112,31 @@ Plain text concatenation of:
    contribution summary).
 2. The enrichment-analysis table (only with `--enrichment-stats`): one row per
    (SS type, predictor) with `mode` (window/self), `observed`, `n_mask`,
-   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`. This is the
-   circular-shift permutation test (see `explanation/design_decisions.md`).
+   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`, `n_null`. Predictors
+   are DeepLocPro, DeepSecE, and SignalP, plus a `COMBINED` row that pools the
+   two relevant predictors per type (DLP-or-DSE, or DLP-or-SignalP for T5SS).
+   `n_null` is the null sample size: the exact per-genome rotations (~one per
+   gene) for a single genome, or 10000 Monte-Carlo draws when pooled.
+
+> **Reading significance:** the test's power scales with how many genomes and
+> loci contribute. A **single-genome** run often shows `significant = False`
+> even for real, correctly-detected systems, simply because a few loci against a
+> whole-genome null can't reach q < 0.05. **A non-significant bar does not mean
+> the system is absent or wrong**: it just means there wasn't enough statistical
+> power. Pool several genomes (multi-genome run) for a powered test.
 
 With `--enrichment-stats` the run also writes
 `<sample-id>_enrichment_stats.tsv` (the table above),
-`<sample-id>_enrichment_nulls.npz` (per-type rotation nulls, used to pool the
-fold/p across genomes), and
-`figures/<sample-id>/<sample-id>_enrichment_fold.png`: a single bar chart of
-fold enrichment (observed / circular-shift null mean) per SS type for both
-predictors, annotated with BH q-value significance stars.
+`<sample-id>_enrichment_nulls.npz` (per-type nulls, used to pool the fold/p
+across genomes), and two bar charts under `figures/<sample-id>/`:
+`<sample-id>_enrichment_fold.png` (one bar per predictor per SS type) and
+`<sample-id>_enrichment_fold_combined.png` (one combined bar per type). Bars are
+fold enrichment (observed / expected) annotated with BH q-value significance
+stars; non-significant bars keep their colour but are faded.
 
 For a multi-genome run, the genomes' results are additionally pooled into
-`pooled_enrichment_stats.tsv` and the same combined bar chart at
-`figures/pooled_enrichment_fold.png`, computed over all genomes.
+`pooled_enrichment_stats.tsv` and the same charts at
+`figures/pooled_enrichment_fold[_combined].png`, computed over all genomes.
 
 ## `figures/<sample-id>/*.png`
 

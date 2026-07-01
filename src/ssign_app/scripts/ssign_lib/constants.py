@@ -49,6 +49,11 @@ ENRICH_MAX_NULL = 200_000
 # (e.g. Flagellum, Tad) is not an enrichment target and is skipped.
 ENRICH_WINDOW_TYPES = frozenset({"T1SS", "T2SS", "T3SS", "T4SS", "T5bSS", "T6SS"})
 ENRICH_AUTOTRANSPORTER_TYPES = frozenset({"T5aSS", "T5cSS"})
+# All T5SS subtypes. Their substrates are Sec-dependent (signal-peptide-bearing),
+# so the combined enrichment track pairs DLP with SignalP for these (not DSE, which
+# is unreliable for T5); every other type pairs DLP with DSE. openspec:
+# signalp-enrichment-track.
+ENRICH_T5SS_TYPES = frozenset({"T5aSS", "T5bSS", "T5cSS"})
 # DSE cannot call T3SS (DeepSecE T3SS unreliable, CLAUDE.md bug #4; mirrors DSE_NEGATIVE
 # in enrichment_testing.py), so T3SS gets no DSE test.
 ENRICH_DSE_NO_WINDOW = frozenset({"T3SS"})
