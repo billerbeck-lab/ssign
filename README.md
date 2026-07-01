@@ -99,14 +99,16 @@ Per genome, ssign writes to your `--outdir`:
 - `<sample-id>_results_raw.csv`: every column with no filtering.
 - `<sample-id>_summary.txt`: plain-text report and enrichment summary.
 - `figures/<sample-id>/*.png`: the curated summary set, numbered `01`–`07`
-  (secreted proteins per SS type, secretion-call support, localization
-  confidence, SignalP-positive fraction by type, annotation-tool coverage,
-  protein length, functional categories), plus the enrichment null-distribution
-  figure when `--enrichment-stats` is on.
+  (secreted proteins by SS type; autotransporter self-detection; size &
+  physicochemical properties; and four functional-category figures, COG / KEGG /
+  EggNOG / curated consensus, when annotation tools have run), plus the
+  enrichment fold/significance figures (per-tool and combined) when
+  `--enrichment-stats` is on.
 
 In multi-genome batches the GUI also writes combined `ssign_results.csv`,
-`ssign_results_raw.csv`, and `ssign_summary.txt` at the outdir root, plus pooled
-cross-genome figures `figures/P01`–`P03`.
+`ssign_results_raw.csv`, and `ssign_summary.txt` at the outdir root, plus the
+curated set computed over all genomes combined as `0N_pooled_*` (figure `01` is
+the cross-genome overview, one stacked bar per genome).
 
 Full column reference: [`docs/reference/output_files.md`](docs/reference/output_files.md).
 

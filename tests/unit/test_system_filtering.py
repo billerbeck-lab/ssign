@@ -179,6 +179,21 @@ class TestExclusionFilter:
         )
         assert {r["locus_tag"] for r in filtered} == {"X"}
 
+    def test_appendage_substrate_dropped_under_default_exclusions(self, monkeypatch, tmp_dir):
+        # The production default excludes non-secretion appendages: a protein whose
+        # only nearby system is a T4aP pilus must not be substrate-called.
+        from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS
+
+        default = ",".join(DEFAULT_EXCLUDED_SYSTEMS)
+        for appendage in ("T4aP", "T4bP", "MSH", "ComM", "Archaeal-T4P"):
+            filtered, _ = _run_filter(
+                monkeypatch,
+                tmp_dir,
+                [_make_substrate("X", nearby_ss_types=appendage)],
+                excluded_systems=default,
+            )
+            assert filtered == [], f"{appendage} substrate should be dropped by default"
+
 
 class TestDseTypeMismatchFilter:
     """--filter-dse-type-mismatch is opt-in; only affects DSE-only substrates."""

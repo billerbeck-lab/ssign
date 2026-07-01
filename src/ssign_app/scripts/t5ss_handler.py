@@ -58,7 +58,7 @@ if _scripts_dir not in _sys.path:
 from ssign_lib.constants import (  # noqa: E402
     LINKER_LENGTH,
     MIN_PASSENGER_LENGTH,
-    VALID_SEC_SIGNAL_TYPES,
+    is_sec_signal_peptide,
 )
 from ssign_lib.parsing import parse_int_or_none  # noqa: E402
 
@@ -188,7 +188,7 @@ def _apply_sec_signal_gate(existing_flag: str, signalp_prediction: str, signalp_
         return existing_flag
     if not signalp_prediction or signalp_prediction == "OTHER":
         return existing_flag
-    if signalp_prediction in VALID_SEC_SIGNAL_TYPES:
+    if is_sec_signal_peptide(signalp_prediction):
         return existing_flag
     return "no_sec_signal"
 
@@ -253,6 +253,11 @@ def main():
         except (ValueError, TypeError):
             dlp_prob = 0.0
 
+        try:
+            om_prob = float(pred.get("outer_membrane_prob", 0) or 0)
+        except (ValueError, TypeError):
+            om_prob = 0.0
+
         substrates.append(
             {
                 "locus_tag": locus,
@@ -261,6 +266,7 @@ def main():
                 "nearby_ss_types": ss_type,
                 "t5_quality_flag": quality_flag,
                 "dlp_extracellular_prob": dlp_prob,
+                "outer_membrane_prob": om_prob,
                 "predicted_localization": pred.get("predicted_localization", ""),
                 "dlp_max_localization": pred.get("dlp_max_localization", ""),
                 "dlp_max_probability": pred.get("dlp_max_probability", ""),
@@ -280,6 +286,7 @@ def main():
         "nearby_ss_types",
         "t5_quality_flag",
         "dlp_extracellular_prob",
+        "outer_membrane_prob",
         "predicted_localization",
         "dlp_max_localization",
         "dlp_max_probability",

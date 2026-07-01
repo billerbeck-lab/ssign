@@ -2,9 +2,9 @@
 
 Drives the per-genome circular-shift test (enrichment_testing.py) and the
 cross-genome pooler (pool_enrichment_stats) as subprocesses / calls against two
-synthetic two-contig genomes. Predictions (DLP/DSE) are hand-synthesised because
-the stats engine just consumes their TSV outputs -- the actual tool binaries
-aren't part of what's being tested here.
+synthetic two-contig genomes. Predictions (DLP/DSE/SignalP) are hand-synthesised
+because the stats engine just consumes their TSV outputs -- the actual tool
+binaries aren't part of what's being tested here.
 
 Mirrors the test_quick_scripts_integration.py style: small fixtures, no external
 binaries / databases, runs in well under a second.
@@ -67,7 +67,7 @@ def _build_genome(root: Path, prefix: str, positives_neigh: set):
         ],
     )
 
-    dlp_rows, dse_rows = [], []
+    dlp_rows, dse_rows, sp_rows = [], [], []
     for sid in loci:
         pos = sid in positives_neigh
         dlp_rows.append({"locus_tag": sid, "dlp_extracellular_prob": "0.95" if pos else "0.10"})
@@ -78,11 +78,22 @@ def _build_genome(root: Path, prefix: str, positives_neigh: set):
                 "dse_max_prob": "0.95" if pos else "0.10",
             }
         )
-    dlp_tsv, dse_tsv = root / "dlp.tsv", root / "dse.tsv"
+        # T2SS substrates are Sec-exported, so the planted neighbours carry a Sec
+        # signal peptide (SP); everything else is OTHER. Gives the SignalP track the
+        # same observed=2 enrichment as DLP/DSE.
+        sp_rows.append({"locus_tag": sid, "signalp_prediction": "SP" if pos else "OTHER"})
+    dlp_tsv, dse_tsv, sp_tsv = root / "dlp.tsv", root / "dse.tsv", root / "signalp.tsv"
     _write_tsv(dlp_tsv, ["locus_tag", "dlp_extracellular_prob"], dlp_rows)
     _write_tsv(dse_tsv, ["locus_tag", "dse_ss_type", "dse_max_prob"], dse_rows)
+    _write_tsv(sp_tsv, ["locus_tag", "signalp_prediction"], sp_rows)
 
-    return {"gene_order": gene_order, "ss_components": ss_components, "dlp": dlp_tsv, "dse": dse_tsv}
+    return {
+        "gene_order": gene_order,
+        "ss_components": ss_components,
+        "dlp": dlp_tsv,
+        "dse": dse_tsv,
+        "signalp": sp_tsv,
+    }
 
 
 class TestStatsEndToEnd:
@@ -104,6 +115,7 @@ class TestStatsEndToEnd:
                     "--gene-order", str(g["gene_order"]),
                     "--dlp", str(g["dlp"]),
                     "--dse", str(g["dse"]),
+                    "--signalp", str(g["signalp"]),
                     "--window", "3",
                     "--conf-threshold", "0.8",
                     "--sample", f"genome_{prefix}",
@@ -116,14 +128,16 @@ class TestStatsEndToEnd:
             per_genome_tsvs.append(out)
 
             rows = list(csv.DictReader(open(out), delimiter="\t"))
-            assert len(rows) == 2  # one T2SS type x 2 tools
-            assert {row["tool"] for row in rows} == {"DLP", "DSE"}
+            assert len(rows) == 4  # one T2SS type x (DLP, DSE, SignalP, COMBINED)
+            assert {row["tool"] for row in rows} == {"DLP", "DSE", "SignalP", "COMBINED"}
             assert {row["ss_type"] for row in rows} == {"T2SS"}
             assert {row["mode"] for row in rows} == {"window"}
-            assert all(int(row["observed"]) == 2 for row in rows)  # GA_0003 + GA_0004
+            obs = {row["tool"]: int(row["observed"]) for row in rows}
+            assert obs["DLP"] == 2 and obs["DSE"] == 2 and obs["SignalP"] == 2  # GA_0003 + GA_0004
+            assert obs["COMBINED"] >= 2  # DLP-or-DSE
             # npz carries a null array per (type, tool)
             with np.load(nulls) as npz:
-                assert {"T2SS__DLP", "T2SS__DSE"} <= set(npz.files)
+                assert {"T2SS__DLP", "T2SS__DSE", "T2SS__SignalP", "T2SS__COMBINED"} <= set(npz.files)
 
         # ── pool across the two genomes ──
         sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -134,21 +148,25 @@ class TestStatsEndToEnd:
         n_pooled = pool_enrichment_stats(
             [str(p) for p in per_genome_tsvs], str(pooled_path), nulls_output=str(pooled_nulls)
         )
-        assert n_pooled == 2  # (T2SS, DLP) and (T2SS, DSE)
+        assert n_pooled == 4  # (T2SS, {DLP, DSE, SignalP, COMBINED})
         assert pooled_nulls.exists()
 
         pooled = list(csv.DictReader(open(pooled_path), delimiter="\t"))
         assert {r["ss_type"] for r in pooled} == {"T2SS"}
+        assert {r["tool"] for r in pooled} == {"DLP", "DSE", "SignalP", "COMBINED"}
+        pooled_obs = {r["tool"]: int(r["observed"]) for r in pooled}
+        # 2 + 2 across the two genomes, for each per-tool track
+        assert pooled_obs["DLP"] == 4 and pooled_obs["DSE"] == 4 and pooled_obs["SignalP"] == 4
+        assert pooled_obs["COMBINED"] >= 4
         for r in pooled:
-            assert int(r["observed"]) == 4  # 2 + 2 across the two genomes
             assert r["mode"] == "window"
             assert float(r["fold"]) > 1.0  # both genomes planted enrichment
 
-        # ── combined pooled figure renders from the pooled TSV + nulls ──
-        pooled_png = tmp_path / "pooled_enrichment_null_distributions.png"
+        # ── combined pooled figure renders from the pooled TSV (fold bar chart) ──
+        pooled_png = tmp_path / "pooled_enrichment_fold.png"
         r = _run_script(
             "run_enrichment_figure.py",
-            ["--stats", str(pooled_path), "--nulls", str(pooled_nulls), "--out", str(pooled_png)],
+            ["--stats", str(pooled_path), "--out", str(pooled_png)],
         )
         assert r.returncode == 0, r.stderr
         assert pooled_png.exists() and pooled_png.stat().st_size > 0
@@ -167,6 +185,7 @@ class TestStatsEndToEnd:
         n = pool_and_plot_enrichment(
             [str(helper_dir / f"{p}_enrichment_stats.tsv") for p in ("A", "B")], str(helper_dir)
         )
-        assert n == 2
+        assert n == 4  # (T2SS, {DLP, DSE, SignalP, COMBINED})
         assert (helper_dir / "pooled_enrichment_stats.tsv").exists()
-        assert (helper_dir / "figures" / "pooled_enrichment_null_distributions.png").exists()
+        assert (helper_dir / "figures" / "pooled_enrichment_fold.png").exists()
+        assert (helper_dir / "figures" / "pooled_enrichment_fold_combined.png").exists()

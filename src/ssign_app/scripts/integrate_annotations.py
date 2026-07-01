@@ -86,6 +86,26 @@ def _compute_consensus(df):
     return df
 
 
+def _add_functional_names(df):
+    """Add human-readable COG/KEGG names next to the raw codes so each protein's
+    functional call is legible in the CSV (e.g. cog_category 'MU' ->
+    cog_category_name 'Cell wall...; Intracellular trafficking...'; kegg_ko
+    'ko:K10953' -> kegg_function 'RTX toxin RtxA'). No-op when the codes are absent
+    (no EggNOG run)."""
+    import sys as _sys
+
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in _sys.path:
+        _sys.path.insert(0, _here)
+    from ssign_lib.functional_vocab import cog_category_names, kegg_descriptions
+
+    if "cog_category" in df.columns:
+        df["cog_category_name"] = df["cog_category"].apply(lambda v: "; ".join(cog_category_names(v)))
+    if "kegg_ko" in df.columns:
+        df["kegg_function"] = df["kegg_ko"].apply(lambda v: "; ".join(kegg_descriptions(v)))
+    return df
+
+
 def main():
     parser = argparse.ArgumentParser(description="Integrate annotations")
     parser.add_argument("--substrates-filtered", required=True)
@@ -177,6 +197,9 @@ def main():
 
     # Compute annotation consensus across tools
     df = _compute_consensus(df)
+
+    # Surface readable COG/KEGG names per protein alongside the raw codes.
+    df = _add_functional_names(df)
 
     # Sort T5 flagged rows to the bottom: clean substrates first, then flagged
     # ones in worst → best order. The rank dict lives in ssign_lib.constants

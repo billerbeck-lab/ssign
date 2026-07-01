@@ -117,13 +117,15 @@ Plain text concatenation of:
 
 With `--enrichment-stats` the run also writes
 `<sample-id>_enrichment_stats.tsv` (the table above),
-`<sample-id>_enrichment_nulls.npz` (per-type rotation nulls, used by the figure),
-and `figures/<sample-id>/<sample-id>_enrichment_null_distributions.png` (one
-null-distribution panel per SS type × predictor).
+`<sample-id>_enrichment_nulls.npz` (per-type rotation nulls, used to pool the
+fold/p across genomes), and
+`figures/<sample-id>/<sample-id>_enrichment_fold.png`: a single bar chart of
+fold enrichment (observed / circular-shift null mean) per SS type for both
+predictors, annotated with BH q-value significance stars.
 
 For a multi-genome run, the genomes' results are additionally pooled into
-`pooled_enrichment_stats.tsv` (+ `pooled_enrichment_nulls.npz`) and a combined
-`figures/pooled_enrichment_null_distributions.png` in the same per-type style.
+`pooled_enrichment_stats.tsv` and the same combined bar chart at
+`figures/pooled_enrichment_fold.png`, computed over all genomes.
 
 ## `figures/<sample-id>/*.png`
 

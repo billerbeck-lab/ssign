@@ -35,7 +35,7 @@ def test_numbered_and_pooled_paths_zero_pad():
 
 def test_clear_figure_set_removes_owned_keeps_others(tmp_path):
     owned = ["fig1_old.png", "fig7_legacy.png", "01_new.png", "P02_pooled.png"]
-    kept = ["pao1_enrichment_null_distributions.png", "report.png", "notes.txt"]
+    kept = ["pao1_enrichment_fold.png", "report.png", "notes.txt"]
     for fn in owned + kept:
         (tmp_path / fn).write_text("x")
 

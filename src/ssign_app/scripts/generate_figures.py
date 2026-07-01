@@ -2,10 +2,22 @@
 """Generate publication-quality figures for ssign pipeline output.
 
 Two modes:
-- ``per_genome`` (default): the curated per-run figure set (``01_*`` ... ``07_*``),
+- ``per_genome`` (default): the curated per-run figure set (``01_*``-``07_*``),
   drawn from one genome's integrated substrate CSV.
-- ``pooled``: cross-genome figures (``P01_*`` ...) drawn from several genomes'
-  integrated CSVs; used by the multi-genome runner. No-op for a single genome.
+- ``pooled``: the same curated set computed over several genomes' integrated CSVs
+  and written as ``0N_pooled_*`` (used by the multi-genome runner). The ``01``
+  figure (secreted proteins per genome, stacked by SS type) is itself the
+  cross-genome overview. No-op for a single genome.
+
+Curated set:
+  01 secreted proteins by SS type (one bar per SS type for a single genome; one
+     stacked bar per genome for a group)
+  02 autotransporter (T5aSS/T5cSS) self-detection
+  03 size & physicochemical properties by SS type (length, MW, GRAVY, pI, ...)
+  04 COG functional category by SS type
+  05 KEGG function by SS type
+  06 EggNOG description by SS type
+  07 curated consensus function by SS type
 
 Style (theme, palette, numbering, figure index) comes from ``ssign_lib.plot_style``
 so the look never drifts from the enrichment figure. Every figure guards the
@@ -16,7 +28,6 @@ import argparse
 import logging
 import os
 import sys
-from collections import Counter
 
 import matplotlib
 
@@ -24,27 +35,54 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 import seaborn as sns  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import CONF_THRESHOLD, display_type  # noqa: E402  # display_type: collapse SS subtypes
+from ssign_lib.constants import (  # noqa: E402  # display_type: collapse SS subtypes
+    CONF_THRESHOLD,
+    ENRICH_AUTOTRANSPORTER_TYPES,
+    display_type,
+)
+from ssign_lib.functional_vocab import (  # noqa: E402
+    cog_category_names,
+    consensus_bucket,
+    is_missing,
+    kegg_descriptions,
+)
 from ssign_lib.plot_style import (  # noqa: E402
-    SEQUENTIAL_CMAP,
-    SS_TYPE_ORDER,
     THEME,
     apply_house_style,
     clear_figure_set,
     numbered_path,
-    pooled_path,
+    ordered_ss_types,
     print_figure_index,
     ss_type_palette,
 )
+
+# Autotransporters (T5aSS/T5cSS) are the substrate themselves; figure 02 is their
+# dedicated self-detection plot. Every other figure treats them as an ordinary
+# secretion-system type.
+AUTOTRANSPORTER_TYPES = ENRICH_AUTOTRANSPORTER_TYPES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 _SIGNALP_NEGATIVE = {"", "OTHER", "NO_SP", "NONE", "-", "NAN"}
+
+# Size + ProtParam properties (column, axis label), in reading order. Length leads
+# (it lives with the physicochemical panels rather than as its own figure).
+# Column-guarded per panel.
+_PHYSCHEM_PROPS = [
+    ("aa_length", "Length (aa)"),
+    ("mw_da", "Molecular weight (Da)"),
+    ("gravy", "GRAVY (hydropathy)"),
+    ("isoelectric_point", "Isoelectric point (pI)"),
+    ("instability_index", "Instability index"),
+    ("aromaticity", "Aromaticity"),
+    ("charge_ph7", "Charge at pH 7"),
+]
 
 
 def load_data(master_csvs):
@@ -60,12 +98,11 @@ def load_data(master_csvs):
     return pd.concat(dfs, ignore_index=True)
 
 
-def _ordered_types(types):
-    """Canonical SS-type order first, then any extras alphabetically."""
-    present = set(types)
-    known = [t for t in SS_TYPE_ORDER if t in present]
-    extra = sorted(t for t in present if t not in SS_TYPE_ORDER)
-    return known + extra
+def _sample_column(df):
+    for c in ["sample_id", "genome", "genome_id"]:
+        if c in df.columns:
+            return c
+    return None
 
 
 def _explode_ss_types(df, cols):
@@ -87,141 +124,131 @@ def _signalp_positive(v) -> bool:
     return str(v).strip().upper() not in _SIGNALP_NEGATIVE
 
 
-def _bar_counts(ax, labels, counts, colors, annotate=True):
-    bars = ax.bar(range(len(labels)), counts, color=colors)
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    if annotate:
-        for b, c in zip(bars, counts):
-            ax.text(b.get_x() + b.get_width() / 2, b.get_height(), str(int(c)), ha="center", va="bottom", fontsize=8)
-    return bars
-
-
-def _hbar_counts(ax, counts, xlabel, title):
-    """Horizontal count bars (counts = a value_counts Series), most-frequent on top."""
-    ax.barh(range(len(counts)), counts.values, color=THEME["neutral_bar"])
-    ax.set_yticks(range(len(counts)))
-    ax.set_yticklabels(counts.index, fontsize=9)
-    ax.invert_yaxis()
-    for i, c in enumerate(counts.values):
-        ax.text(c, i, f" {int(c)}", va="center", fontsize=8)
-    ax.set_xlabel(xlabel)
-    ax.set_title(title)
-
-
-# --- per-genome figures --------------------------------------------------------
-
-
-def fig01_substrates_per_type(df, outdir, dpi):
-    if "nearby_ss_types" not in df.columns:
-        logger.info("Skip 01 substrates-per-type: no nearby_ss_types")
-        return None
-    counts: Counter = Counter()
-    for val in df["nearby_ss_types"].dropna():
-        for ss in str(val).split(","):
-            ss = ss.strip()
-            if ss:
-                counts[display_type(ss)] += 1  # collapse subtypes to canonical labels
-    if not counts:
-        return None
-    types = _ordered_types(counts)
+def _stacked_by_type(ct, ax, types):
+    """Stacked bar of a (rows x ss_type) crosstab, using the stable SS-type palette."""
     pal = ss_type_palette(types)
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    _bar_counts(ax, types, [counts[t] for t in types], [pal[t] for t in types])
-    ax.set_xlabel("Secretion system type")
+    ct = ct.reindex(columns=types).fillna(0)
+    ct.plot(kind="bar", stacked=True, ax=ax, color=[pal[t] for t in ct.columns], width=0.8)
+    ax.legend(title="SS type", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
+    ax.tick_params(axis="x", rotation=45)
+    for lbl in ax.get_xticklabels():
+        lbl.set_ha("right")
+
+
+# --- curated figures -----------------------------------------------------------
+
+
+def fig01_secreted_by_genome(df, outdir, dpi):
+    """Secreted proteins by SS type. A single genome gets one bar per SS type; a
+    group gets one stacked bar per genome (the cross-genome overview)."""
+    if "nearby_ss_types" not in df.columns:
+        logger.info("Skip 01 secreted-by-genome: no nearby_ss_types")
+        return None
+    sample_col = _sample_column(df)
+    g = df[sample_col].astype(str) if sample_col else "genome"
+    long = _explode_ss_types(df.assign(_g=g), ["_g"])
+    if long.empty:
+        return None
+    types = ordered_ss_types(long["ss_type"].unique())
+    pal = ss_type_palette(types)
+
+    if long["_g"].nunique() < 2:
+        # Single genome: a plain count histogram, one bar per SS type.
+        counts = long["ss_type"].value_counts().reindex(types).fillna(0)
+        fig, ax = plt.subplots(figsize=(max(7, len(types) * 0.9 + 1), 5.5))
+        bars = ax.bar(range(len(types)), counts.values, color=[pal[t] for t in types])
+        ax.set_xticks(range(len(types)))
+        ax.set_xticklabels(types, rotation=45, ha="right")
+        for b, c in zip(bars, counts.values):
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height(), str(int(c)), ha="center", va="bottom", fontsize=8)
+    else:
+        # Group: one stacked bar per genome, coloured by SS type.
+        ct = pd.crosstab(long["_g"], long["ss_type"])
+        fig, ax = plt.subplots(figsize=(max(6, len(ct) * 0.6 + 2.5), 5.8))
+        _stacked_by_type(ct, ax, types)
+        ax.set_xlabel("Genome")
     ax.set_ylabel("Secreted proteins")
     ax.set_title("Secreted proteins by secretion-system type")
     fig.tight_layout()
-    out = numbered_path(outdir, 1, "substrates_per_type")
+    out = numbered_path(outdir, 1, "secreted_by_genome")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("01", os.path.basename(out), "secreted proteins per SS type")
+    return ("01", os.path.basename(out), "secreted proteins by SS type (per genome for a group)")
 
 
-def fig02_secretion_evidence(df, outdir, dpi):
-    """Which trusted predictor(s) flagged each protein (the `tool` column)."""
-    if "tool" not in df.columns or df["tool"].dropna().empty:
-        logger.info("Skip 02 secretion-evidence: no tool column")
+def fig02_autotransporter(df, outdir, dpi):
+    """T5aSS/T5cSS self-detection: DLP extracellular vs outer-membrane probability
+    per component, marked by SignalP call.
+
+    An autotransporter is its own substrate; it threads its passenger through an
+    integral outer-membrane beta-barrel, so DeepLocPro should call it extracellular
+    OR outer-membrane (the shaded pass region). Needs `outer_membrane_prob` in the
+    integrated CSV (carried from the DLP predictions)."""
+    long = _explode_ss_types(df, ["dlp_extracellular_prob", "outer_membrane_prob", "signalp_prediction"])
+    if long.empty:
+        logger.info("Skip 02 autotransporter: no nearby_ss_types")
         return None
-    counts = df["tool"].fillna("(none)").value_counts()
-    fig, ax = plt.subplots(figsize=(8, 5))
-    _hbar_counts(ax, counts, "Secreted proteins", "Secretion-call support (predictor / combination per protein)")
-    fig.tight_layout()
-    out = numbered_path(outdir, 2, "secretion_evidence")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("02", os.path.basename(out), "predictor support per secreted protein")
-
-
-def fig03_localization_confidence(df, outdir, dpi):
-    long = _explode_ss_types(df, ["dlp_extracellular_prob"])
-    if long.empty or "dlp_extracellular_prob" not in long.columns:
-        logger.info("Skip 03 localization-confidence: no dlp_extracellular_prob")
+    long = long[long["ss_type"].isin(AUTOTRANSPORTER_TYPES)]
+    if long.empty:
+        logger.info("Skip 02 autotransporter: no T5aSS/T5cSS components")
+        return None
+    if "dlp_extracellular_prob" not in long.columns or "outer_membrane_prob" not in long.columns:
+        logger.info("Skip 02 autotransporter: missing DLP extracellular/outer-membrane columns")
         return None
     long["dlp_extracellular_prob"] = pd.to_numeric(long["dlp_extracellular_prob"], errors="coerce")
-    long = long.dropna(subset=["dlp_extracellular_prob"])
+    long["outer_membrane_prob"] = pd.to_numeric(long["outer_membrane_prob"], errors="coerce")
+    long = long.dropna(subset=["dlp_extracellular_prob", "outer_membrane_prob"])
     if long.empty:
         return None
-    types = _ordered_types(long["ss_type"].unique())
-    pal = ss_type_palette(types)
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    sns.stripplot(
-        data=long,
-        x="ss_type",
-        y="dlp_extracellular_prob",
-        hue="ss_type",
-        order=types,
-        palette=pal,
-        legend=False,
-        ax=ax,
-        size=5,
-        jitter=0.25,
-        alpha=0.8,
+    long["sp_pos"] = (
+        long["signalp_prediction"].apply(_signalp_positive) if "signalp_prediction" in long.columns else False
     )
-    ax.axhline(
-        CONF_THRESHOLD, color=THEME["ref_line"], ls="--", lw=0.8, alpha=0.8, label=f"call threshold = {CONF_THRESHOLD}"
-    )
-    ax.set_ylim(-0.02, 1.02)
-    ax.set_xlabel("Secretion system type")
-    ax.set_ylabel("DeepLocPro extracellular probability")
-    ax.set_title("Localization confidence of secreted proteins by SS type")
-    ax.legend(frameon=False, fontsize=8, loc="lower right")
-    plt.xticks(rotation=45, ha="right")
-    fig.tight_layout()
-    out = numbered_path(outdir, 3, "localization_confidence")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("03", os.path.basename(out), "DLP extracellular probability by SS type")
 
-
-def fig04_signalp_by_type(df, outdir, dpi):
-    long = _explode_ss_types(df, ["signalp_prediction"])
-    if long.empty or "signalp_prediction" not in long.columns:
-        logger.info("Skip 04 signalp-by-type: no signalp_prediction")
-        return None
-    long["sp_pos"] = long["signalp_prediction"].apply(_signalp_positive)
-    types = _ordered_types(long["ss_type"].unique())
+    types = ordered_ss_types(long["ss_type"].unique())
     pal = ss_type_palette(types)
-    frac, ann = [], []
+    thr = CONF_THRESHOLD
+
+    fig, ax = plt.subplots(figsize=(7.5, 6.5))
+    # Shade the self-detected pass region (extracellular >= thr OR outer-membrane >= thr).
+    ax.axvspan(thr, 1.02, color=THEME["DLP"], alpha=0.06, zorder=0)
+    ax.axhspan(thr, 1.02, color=THEME["DLP"], alpha=0.06, zorder=0)
+    ax.axvline(thr, color=THEME["ref_line"], ls="--", lw=0.8, alpha=0.7)
+    ax.axhline(thr, color=THEME["ref_line"], ls="--", lw=0.8, alpha=0.7)
+
     for t in types:
         sub = long[long["ss_type"] == t]
-        f = sub["sp_pos"].mean() if len(sub) else 0.0
-        frac.append(f)
-        ann.append(f"{int(sub['sp_pos'].sum())}/{len(sub)}")
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    bars = ax.bar(range(len(types)), frac, color=[pal[t] for t in types])
-    ax.set_xticks(range(len(types)))
-    ax.set_xticklabels(types, rotation=45, ha="right")
-    for b, a in zip(bars, ann):
-        ax.text(b.get_x() + b.get_width() / 2, b.get_height(), a, ha="center", va="bottom", fontsize=8)
-    ax.set_ylim(0, 1.05)
-    ax.set_xlabel("Secretion system type")
-    ax.set_ylabel("Fraction with SignalP signal peptide")
-    ax.set_title("SignalP-positive fraction per SS type (predictor call)")
+        for sp_state in (True, False):  # SignalP+ filled, SignalP- open
+            s = sub[sub["sp_pos"] == sp_state]
+            if s.empty:
+                continue
+            ax.scatter(
+                s["dlp_extracellular_prob"],
+                s["outer_membrane_prob"],
+                s=70,
+                marker="o",
+                facecolors=pal[t] if sp_state else "none",
+                edgecolors=pal[t],
+                linewidths=1.4,
+                alpha=0.9,
+                zorder=3,
+            )
+
+    ax.set_xlim(-0.02, 1.02)
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_xlabel("DeepLocPro extracellular probability")
+    ax.set_ylabel("DeepLocPro outer-membrane probability")
+    ax.set_title(f"Autotransporter self-detection (T5aSS/T5cSS, n={len(long)} components)")
+
+    handles = [Line2D([], [], marker="o", ls="", mfc=pal[t], mec=pal[t], label=t) for t in types]
+    handles += [
+        Line2D([], [], marker="o", ls="", mfc="#555555", mec="#555555", label="SignalP +"),
+        Line2D([], [], marker="o", ls="", mfc="none", mec="#555555", label="SignalP -"),
+    ]
+    ax.legend(handles=handles, frameon=False, fontsize=8, loc="center left", bbox_to_anchor=(1.01, 0.5))
     ax.text(
         0.5,
-        -0.28,
-        "SignalP-negative is expected for injected types (T3SS/T6SS) and T1SS; positive for T2SS/T5SS.",
+        -0.12,
+        f"Shaded band = self-detected (extracellular OR outer-membrane >= {thr})",
         transform=ax.transAxes,
         ha="center",
         va="top",
@@ -229,216 +256,210 @@ def fig04_signalp_by_type(df, outdir, dpi):
         color=THEME["caption"],
     )
     fig.tight_layout()
-    out = numbered_path(outdir, 4, "signalp_by_type")
+    out = numbered_path(outdir, 2, "autotransporter_self_detection")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("04", os.path.basename(out), "SignalP-positive fraction per SS type")
+    return ("02", os.path.basename(out), "T5aSS/T5cSS autotransporter self-detection")
 
 
-def fig05_tool_coverage(df, outdir, dpi):
-    tool_prefixes = {
-        "BLASTp": "blastp_hit",
-        "InterProScan": "interpro_domains",
-        "HHpred Pfam": "pfam_top1",
-        "HHpred PDB": "pdb_top1",
-        "pLM-BLAST": "ecod_top1",
-        "SignalP": "signalp_prediction",
-    }
-    coverage = {}
-    for name, prefix in tool_prefixes.items():
-        cols = [c for c in df.columns if c.startswith(prefix)]
-        if cols:
-            coverage[name] = int(df[cols[0]].notna().sum())
-    if not coverage:
-        logger.info("Skip 05 tool-coverage: no annotation columns")
+def fig03_physicochemical(df, outdir, dpi):
+    """One violin-by-SS-type panel per size/physicochemical property (length, MW,
+    GRAVY, pI, instability, aromaticity, charge). Column-guarded per panel; emitted
+    when at least one property is present (length is always; the ProtParam columns
+    when ProtParam ran)."""
+    avail = [
+        (c, lbl)
+        for c, lbl in _PHYSCHEM_PROPS
+        if c in df.columns and pd.to_numeric(df[c], errors="coerce").notna().any()
+    ]
+    if not avail:
+        logger.info("Skip 03 physicochemical: no size/ProtParam columns")
         return None
-    tools = list(coverage.keys())
-    counts = [coverage[t] for t in tools]
-    total = len(df)
-    fig, ax = plt.subplots(figsize=(8, 5))
-    bars = ax.barh(tools, counts, color=THEME["neutral_bar"])
-    ax.set_xlabel(f"Proteins with a hit (of {total})")
-    ax.set_title("Annotation-tool coverage")
-    for b, c in zip(bars, counts):
-        ax.text(
-            b.get_width(), b.get_y() + b.get_height() / 2, f" {100 * c / max(total, 1):.0f}%", va="center", fontsize=9
-        )
-    fig.tight_layout()
-    out = numbered_path(outdir, 5, "tool_coverage")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("05", os.path.basename(out), "annotation-tool hit coverage")
-
-
-def fig06_protein_length(df, outdir, dpi):
-    long = _explode_ss_types(df, ["aa_length"])
-    if long.empty or "aa_length" not in long.columns:
-        logger.info("Skip 06 protein-length: no aa_length")
-        return None
-    long["aa_length"] = pd.to_numeric(long["aa_length"], errors="coerce")
-    long = long[long["aa_length"] > 0].dropna(subset=["aa_length"])
+    long = _explode_ss_types(df, [c for c, _ in avail])
     if long.empty:
         return None
-    types = _ordered_types(long["ss_type"].unique())
+    types = ordered_ss_types(long["ss_type"].unique())
     pal = ss_type_palette(types)
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    sns.violinplot(
-        data=long,
-        x="ss_type",
-        y="aa_length",
-        hue="ss_type",
-        order=types,
-        palette=pal,
-        legend=False,
-        ax=ax,
-        inner="box",
-        cut=0,
-    )
-    ax.set_xlabel("Secretion system type")
-    ax.set_ylabel("Protein length (aa)")
-    ax.set_title("Secreted-protein length by SS type")
-    plt.xticks(rotation=45, ha="right")
+    ncol = 2
+    nrow = (len(avail) + ncol - 1) // ncol
+    fig, axes = plt.subplots(nrow, ncol, figsize=(7 * ncol, 4.2 * nrow), squeeze=False)
+    for idx, (col, lbl) in enumerate(avail):
+        ax = axes[idx // ncol][idx % ncol]
+        sub = long[["ss_type", col]].copy()
+        sub[col] = pd.to_numeric(sub[col], errors="coerce")
+        sub = sub.dropna(subset=[col])
+        if sub.empty:
+            ax.axis("off")
+            continue
+        sns.violinplot(
+            data=sub,
+            x="ss_type",
+            y=col,
+            hue="ss_type",
+            order=types,
+            palette=pal,
+            legend=False,
+            ax=ax,
+            inner="box",
+            cut=0,
+        )
+        ax.set_title(lbl)
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        ax.tick_params(axis="x", rotation=45)
+        for t in ax.get_xticklabels():
+            t.set_ha("right")
+    for j in range(len(avail), nrow * ncol):  # hide unused panels
+        axes[j // ncol][j % ncol].axis("off")
+    fig.suptitle("Size & physicochemical properties of secreted proteins by SS type", y=1.0, fontweight="bold")
     fig.tight_layout()
-    out = numbered_path(outdir, 4, "protein_length")
+    out = numbered_path(outdir, 3, "physicochemical")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("04", os.path.basename(out), "protein length by SS type")
+    return ("03", os.path.basename(out), "size & physicochemical properties by SS type")
 
 
-def _category_column(df):
-    for c in ["broad_annotation", "broad_consensus_annotation", "functional_category"]:
+# --- functional-category figures (by SS type) ----------------------------------
+
+
+def _consensus_column(df):
+    for c in ("broad_annotation", "broad_consensus_annotation"):
         if c in df.columns:
             return c
     return None
 
 
-def fig07_functional_categories(df, outdir, dpi, top_n=8):
-    cat_col = _category_column(df)
-    if cat_col is None or "nearby_ss_types" not in df.columns:
-        logger.info("Skip 07 functional-categories: no annotation/ss column")
-        return None
-    long = _explode_ss_types(df, [cat_col])
+def _eggnog_desc(value) -> list:
+    """One `eggnog_description` cell -> [description] (truncated for the axis), or
+    [] when blank / `-`. High-cardinality free text; the top-N keeps it readable."""
+    if is_missing(value):
+        return []
+    s = str(value).strip()
+    return [s if len(s) <= 50 else s[:47] + "..."]
+
+
+# Cap how many categories each functional figure shows before the rest collapse
+# to a single grey "Other" bar, so the stacks stay readable and colours distinct.
+_FUNCTIONAL_TOP_N = 10
+
+
+def _functional_sources(df):
+    """Available (column, value_fn, slug, label, fig_number). `value_fn` maps one
+    cell to a list of category strings (multi-valued sources explode)."""
+    sources = []
+    if "cog_category" in df.columns:
+        sources.append(("cog_category", cog_category_names, "cog_category", "COG functional category", 4))
+    if "kegg_ko" in df.columns:
+        sources.append(("kegg_ko", kegg_descriptions, "kegg_function", "KEGG function", 5))
+    if "eggnog_description" in df.columns:
+        sources.append(("eggnog_description", _eggnog_desc, "eggnog_description", "EggNOG description", 6))
+    cons = _consensus_column(df)
+    if cons:
+        sources.append((cons, lambda v: [consensus_bucket(v)], "consensus_function", "Consensus function (curated)", 7))
+    return sources
+
+
+def _functional_by_type(df, col, value_fn):
+    """Long (ss_type, cat) rows for the stacked-by-SS-type scope."""
+    long = _explode_ss_types(df, [col])
+    if long.empty or col not in long.columns:
+        return pd.DataFrame(columns=["ss_type", "cat"])
+    long["cat"] = long[col].apply(value_fn)
+    long = long.explode("cat").dropna(subset=["cat"])
+    return long[["ss_type", "cat"]].reset_index(drop=True)  # explode dup'd the index; crosstab needs it unique
+
+
+def _plot_functional_by_type(long, outdir, n, slug, label, dpi):
     if long.empty:
         return None
-    long[cat_col] = long[cat_col].fillna("Unknown").replace("", "Unknown")
-    top = long[cat_col].value_counts().head(top_n).index
-    long["cat"] = long[cat_col].where(long[cat_col].isin(top), "Other")
-    types = _ordered_types(long["ss_type"].unique())
-    ct = pd.crosstab(long["ss_type"], long["cat"]).reindex(types).fillna(0)
-    cats = list(ct.columns)
-    palette = sns.color_palette("muted", len(cats))
+    top = long["cat"].value_counts().head(_FUNCTIONAL_TOP_N).index
+    long = long.assign(catg=long["cat"].where(long["cat"].isin(top), "Other"))
+    types = ordered_ss_types(long["ss_type"].unique())
+    ct = pd.crosstab(long["ss_type"], long["catg"]).reindex(types).fillna(0)
+    if ct.values.sum() == 0:
+        return None
+    # Columns most-common-first, "Other" last; distinct colours from tab20 with
+    # "Other" greyed out (so colours never repeat within the legend).
+    cats = [c for c in ct.sum().sort_values(ascending=False).index if c != "Other"]
+    if "Other" in ct.columns:
+        cats.append("Other")
+    ct = ct[cats]
+    base = sns.color_palette("tab20", max(1, sum(c != "Other" for c in cats)))
+    colors, bi = [], 0
+    for c in cats:
+        colors.append(THEME["muted"] if c == "Other" else base[bi])
+        bi += 0 if c == "Other" else 1
     fig, ax = plt.subplots(figsize=(11, 6.5))
-    ct.plot(kind="bar", stacked=True, ax=ax, color=palette, width=0.8)
+    ct.plot(kind="bar", stacked=True, ax=ax, color=colors, width=0.8)
     ax.set_xlabel("Secretion system type")
     ax.set_ylabel("Secreted proteins")
-    ax.set_title("Functional categories per SS type")
-    ax.legend(title="Category", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
+    ax.set_title(f"{label} by SS type")
+    ax.legend(title=label, bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
     plt.xticks(rotation=45, ha="right")
     fig.tight_layout()
-    out = numbered_path(outdir, 5, "functional_categories")
+    out = numbered_path(outdir, n, f"{slug}_by_sstype")
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
-    return ("05", os.path.basename(out), "functional categories per SS type")
+    return (f"{n:02d}", os.path.basename(out), f"{label}: by SS type")
 
 
-def fig_physicochemical(df, outdir, dpi):
-    """Opt-in only: needs ProtParam columns the standard CSV does not carry."""
-    props = ["gravy", "mw_da", "isoelectric_point", "instability_index"]
-    available = [p for p in props if p in df.columns and df[p].notna().any()]
-    if not available:
-        logger.info("Skip physicochemical: ProtParam columns absent")
-        return None
-    fig, axes = plt.subplots(1, len(available), figsize=(4 * len(available), 5.5))
-    if len(available) == 1:
-        axes = [axes]
-    for ax, prop in zip(axes, available):
-        data = pd.to_numeric(df[prop], errors="coerce").dropna()
-        if len(data):
-            sns.violinplot(y=data, ax=ax, color=THEME["neutral_bar"], inner="box", cut=0)
-            ax.set_title(prop.replace("_", " ").title())
-            ax.set_ylabel("")
-    fig.suptitle("Physicochemical properties of secreted proteins", y=1.02, fontweight="bold")
-    fig.tight_layout()
-    out = numbered_path(outdir, 8, "physicochemical")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("08", os.path.basename(out), "physicochemical properties (opt-in)")
+def fig_functional(df, outdir, dpi):
+    """Functional-category figures from controlled vocabularies (COG / KEGG /
+    EggNOG / curated consensus), stacked by SS type. Column-guarded per source;
+    returns a list of index entries."""
+    if "nearby_ss_types" not in df.columns:
+        logger.info("Skip functional figures: no nearby_ss_types")
+        return []
+    sources = _functional_sources(df)
+    if not sources:
+        logger.info(
+            "Skip functional figures: no functional source column "
+            "(cog_category / kegg_ko / eggnog_description / broad_annotation)"
+        )
+        return []
+    entries = []
+    for col, value_fn, slug, label, n in sources:
+        e = _plot_functional_by_type(_functional_by_type(df, col, value_fn), outdir, n, slug, label, dpi)
+        if e:
+            entries.append(e)
+    return entries
 
 
-# --- pooled cross-genome figures ----------------------------------------------
-
-
-def _sample_column(df):
-    for c in ["sample_id", "genome", "genome_id"]:
-        if c in df.columns:
-            return c
-    return None
-
-
-def pooled01_substrates_per_genome(df, outdir, dpi):
-    sample_col = _sample_column(df)
-    if sample_col is None:
-        logger.info("Skip P01 substrates-per-genome: no sample column")
-        return None
-    counts = df[sample_col].value_counts().sort_index()
-    fig, ax = plt.subplots(figsize=(max(8, len(counts) * 0.5), 5.5))
-    _bar_counts(ax, list(counts.index), list(counts.values), [THEME["neutral_bar"]] * len(counts))
-    ax.set_xlabel("Genome")
-    ax.set_ylabel("Secreted proteins")
-    ax.set_title("Secreted proteins per genome")
-    fig.tight_layout()
-    out = pooled_path(outdir, 1, "substrates_per_genome")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("P01", os.path.basename(out), "secreted proteins per genome")
-
-
-def pooled02_sstype_by_genome(df, outdir, dpi):
-    sample_col = _sample_column(df)
-    if sample_col is None or "nearby_ss_types" not in df.columns:
-        logger.info("Skip P02 sstype-by-genome: no sample/ss column")
-        return None
-    long = _explode_ss_types(df.assign(_g=df[sample_col]), ["_g"])
-    if long.empty:
-        return None
-    types = _ordered_types(long["ss_type"].unique())
-    ct = pd.crosstab(long["_g"], long["ss_type"]).reindex(columns=types).fillna(0).astype(int)
-    fig, ax = plt.subplots(figsize=(max(7, len(types) * 0.9), max(4, len(ct) * 0.6) + 1))
-    sns.heatmap(ct, annot=True, fmt="d", cmap=SEQUENTIAL_CMAP, ax=ax, cbar_kws={"label": "Secreted proteins"})
-    ax.set_xlabel("Secretion system type")
-    ax.set_ylabel("Genome")
-    ax.set_title("Secreted proteins: SS type x genome")
-    fig.tight_layout()
-    out = pooled_path(outdir, 2, "sstype_by_genome")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("P02", os.path.basename(out), "SS-type x genome substrate heatmap")
-
-
-def pooled03_evidence_basis(df, outdir, dpi):
-    if "tool" not in df.columns or df["tool"].dropna().empty:
-        logger.info("Skip P03 evidence-basis: no tool column")
-        return None
-    counts = df["tool"].fillna("(none)").value_counts()
-    fig, ax = plt.subplots(figsize=(8, 5))
-    _hbar_counts(ax, counts, "Secreted proteins (all genomes)", "Secretion-call support, pooled across genomes")
-    fig.tight_layout()
-    out = pooled_path(outdir, 3, "evidence_basis")
-    fig.savefig(out, dpi=dpi)
-    plt.close(fig)
-    return ("P03", os.path.basename(out), "pooled predictor support")
-
-
-# fig04 SignalP-by-type and fig05 tool-coverage intentionally dropped (Teo, 2026-06-23).
-# Functions kept below for reference but not registered, so they don't generate.
+# `func_summary` is the functional dispatcher: it emits up to four numbered
+# figures (04-07) and returns a list of index entries, so the runner handles a
+# list or a single tuple.
 PER_GENOME_FIGS = [
-    ("ss_comp", fig01_substrates_per_type),
-    ("evidence", fig02_secretion_evidence),
-    ("localization", fig03_localization_confidence),
-    ("length", fig06_protein_length),
-    ("func_summary", fig07_functional_categories),
+    ("ss_comp", fig01_secreted_by_genome),
+    ("autotransporter", fig02_autotransporter),
+    ("physicochemical", fig03_physicochemical),
+    ("func_summary", fig_functional),
 ]
-POOLED_FIGS = [pooled01_substrates_per_genome, pooled02_sstype_by_genome, pooled03_evidence_basis]
+
+
+def _run_per_genome_figs(df, outdir, dpi, skip):
+    """Run the curated per-genome figures, flattening list-returning fns (the
+    functional dispatcher). `skip` is a set of PER_GENOME_FIGS keys to omit."""
+    entries = []
+    for key, fn in PER_GENOME_FIGS:
+        if key in skip:
+            continue
+        e = fn(df, outdir, dpi)
+        if isinstance(e, list):
+            entries.extend(e)
+        elif e:
+            entries.append(e)
+    return entries
+
+
+def _emit_pooled_per_genome(df, outdir, dpi, skip):
+    """The curated set over the combined frame, renamed ``0N_pooled_<name>.png``
+    (the genome-group view; the 01 figure becomes the per-genome stacked overview)."""
+    entries = []
+    for label, fname, desc in _run_per_genome_figs(df, outdir, dpi, skip):
+        renamed = f"{label}_pooled_{fname.split('_', 1)[1]}"  # 01_x.png -> 01_pooled_x.png
+        os.replace(os.path.join(outdir, fname), os.path.join(outdir, renamed))
+        entries.append((label, renamed, f"pooled: {desc}"))
+    return entries
 
 
 def main():
@@ -447,15 +468,11 @@ def main():
     parser.add_argument("--outdir", required=True)
     parser.add_argument("--dpi", type=int, default=300)
     parser.add_argument("--mode", choices=["per_genome", "pooled"], default="per_genome")
-    # Per-figure toggles (default on except physicochemical).
+    # Per-figure toggles (all default on). Each PER_GENOME_FIGS key has a --no-<key>.
     parser.add_argument("--no-ss-comp", action="store_true")
-    parser.add_argument("--no-evidence", action="store_true")
-    parser.add_argument("--no-localization", action="store_true")
-    parser.add_argument("--no-signalp", action="store_true")
-    parser.add_argument("--no-tool-heatmap", action="store_true")
-    parser.add_argument("--no-length", action="store_true")
+    parser.add_argument("--no-autotransporter", action="store_true")
+    parser.add_argument("--no-physicochemical", action="store_true")
     parser.add_argument("--no-func-summary", action="store_true")
-    parser.add_argument("--physicochemical", action="store_true", help="Opt-in ProtParam figure (off by default).")
     args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -466,7 +483,7 @@ def main():
 
     apply_house_style()
     clear_figure_set(args.outdir)
-    entries = []
+    skip = {key for key, _ in PER_GENOME_FIGS if getattr(args, f"no_{key}", False)}
 
     if args.mode == "pooled":
         sample_col = _sample_column(df)
@@ -475,23 +492,11 @@ def main():
             logger.info("Pooled mode needs >=2 genomes; got %d. Nothing to plot.", n_genomes)
             return
         logger.info("Pooling %d substrates across %d genomes...", len(df), n_genomes)
-        for fn in POOLED_FIGS:
-            e = fn(df, args.outdir, args.dpi)
-            if e:
-                entries.append(e)
+        # The curated set over all genomes combined (01 = stacked per-genome overview).
+        entries = _emit_pooled_per_genome(df, args.outdir, args.dpi, skip)
     else:
         logger.info("Generating per-genome figures for %d secreted proteins...", len(df))
-        # Each PER_GENOME_FIGS key has a matching --no-<key> flag (dest no_<key>).
-        for key, fn in PER_GENOME_FIGS:
-            if getattr(args, f"no_{key}", False):
-                continue
-            e = fn(df, args.outdir, args.dpi)
-            if e:
-                entries.append(e)
-        if args.physicochemical:
-            e = fig_physicochemical(df, args.outdir, args.dpi)
-            if e:
-                entries.append(e)
+        entries = _run_per_genome_figs(df, args.outdir, args.dpi, skip)
 
     print_figure_index(entries, logger=logger)
     logger.info("Figures saved to %s", args.outdir)

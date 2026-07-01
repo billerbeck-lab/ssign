@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Render the per-SS-type circular-shift null-distribution figure.
+"""Render the circular-shift enrichment fold-enrichment bar chart.
 
-One panel per (SS type, predictor) cell: the circular-shift null histogram with
-the observed value, the null mean, and the fold + permutation p annotated. Rows
-are SS types, columns are DeepLocPro and DeepSecE. Window types show "secreted
-proteins near the system"; autotransporters (T5aSS/T5cSS) show "self-detection
-of the component". Consumes the stats TSV + null-array dump from
-enrichment_testing.py.
+Two figures share this script. The per-tool figure gives each secretion-system
+type three bars (DeepLocPro, DeepSecE, SignalP) of fold enrichment (observed /
+circular-shift null mean), annotated with the fold value and a BH q-value
+significance star. The combined figure (``--combined``) gives one bar per type:
+DLP-or-DSE for window types and SignalP-alone for autotransporters (drawn in the
+SignalP colour). Window types (T1/T2/T3/T4/T5b/T6) measure secreted-predicted
+proteins clustering near the system's components; autotransporters (T5aSS/T5cSS)
+measure self-detection of the component itself (tagged "(self)"). DeepSecE is not
+tested for T3SS. Non-significant bars (q >= 0.05) are muted so the eye lands on
+the real enrichments.
 
-Null counts are small integers, so each panel uses integer-aligned bins (one bar
-per achievable count). Non-significant panels (q >= 0.05) are visually muted so
-the eye lands on the significant cells; their statistics are still shown.
+Reads only the per-type stats TSV from enrichment_testing.py (fold + qvalue per
+row); the null arrays are no longer needed for the figure. Identical figure at
+single-genome and pooled (multi-genome) scale.
 
-    run_enrichment_figure.py --stats <sid>_enrichment_stats.tsv \
-        --nulls <sid>_enrichment_nulls.npz --out <sid>_enrichment_null_distributions.png
+    run_enrichment_figure.py --stats <sid>_enrichment_stats.tsv --out <sid>_enrichment_fold.png
 """
 
 import argparse
@@ -24,17 +27,15 @@ import sys
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 _scripts_dir = os.path.dirname(os.path.abspath(__file__))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import ENRICH_TOOLS, enrich_null_key  # noqa: E402
-from ssign_lib.plot_style import THEME, apply_house_style  # noqa: E402
-
-TOOL_LABEL = {"DLP": "DeepLocPro (extracellular)", "DSE": "DeepSecE (secreted type)"}
-_MUTED_RED = "#D9A6A0"  # observed line on a non-significant panel
+from ssign_lib.constants import ENRICH_COMBINED_TOOL, ENRICH_TOOLS  # noqa: E402
+from ssign_lib.plot_style import THEME, apply_house_style, ordered_ss_types  # noqa: E402
 
 apply_house_style()
 
@@ -55,69 +56,39 @@ def _fnum(v, default=float("nan")):
         return default
 
 
-def _integer_bins(null):
-    """Bin edges placing one bar per achievable integer count."""
-    lo = int(np.floor(null.min()))
-    hi = int(np.ceil(null.max()))
-    if hi <= lo:
-        hi = lo + 1
-    return np.arange(lo, hi + 2) - 0.5
-
-
-def draw_panel(ax, row, null, tool):
-    """One null-histogram panel; `row` may be None / skipped (renders an n/a note)."""
-    if row is None or row.get("observed", "").strip() == "" or null is None or null.size == 0:
-        ax.text(0.5, 0.5, "n/a", ha="center", va="center", transform=ax.transAxes, color="#999999")
-        ax.set_xticks([])
-        ax.set_yticks([])
-        return
-    observed = int(float(row["observed"]))
-    null_mean = _fnum(row.get("null_mean"))
-    fold = _fnum(row.get("fold"))
-    q = _fnum(row.get("qvalue"), 1.0)
-    sig = q < 0.05
-
-    hist_col = THEME[tool] if sig else THEME["muted"]
-    obs_col = THEME["observed"] if sig else _MUTED_RED
-    box_edge = THEME["observed"] if sig else THEME["muted"]
-    box_txt = THEME["observed"] if sig else "#8A8A8A"
-
-    ax.hist(
-        null, bins=_integer_bins(null), color=hist_col, alpha=0.65 if sig else 0.45, edgecolor="white", linewidth=0.4
-    )
-    ax.axvline(observed, color=obs_col, lw=2.2, label=f"observed = {observed}")
-    ax.axvline(null_mean, color=THEME["null_mean"], lw=1.3, ls="--", label=f"null mean = {null_mean:.1f}")
-    # Legend top-left, fold/significance box top-right: the observed line sits at
-    # the right (enrichment), so keeping the two corners apart avoids collisions.
-    ax.text(
-        0.97,
-        0.93,
-        f"{fold:.1f}x  {sig_stars(q)}",
-        transform=ax.transAxes,
-        ha="right",
-        va="top",
-        fontsize=9,
-        fontweight="bold",
-        color=box_txt,
-        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor=box_edge, alpha=0.9),
-    )
-    ax.legend(frameon=False, fontsize=7, loc="upper left")
-
-
 def main():
-    ap = argparse.ArgumentParser(description="Per-SS-type circular-shift null figure")
+    ap = argparse.ArgumentParser(description="Circular-shift fold-enrichment bar chart")
     ap.add_argument("--stats", required=True)
-    ap.add_argument("--nulls", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--dpi", type=int, default=200)
+    ap.add_argument("--title", default="")
+    ap.add_argument(
+        "--combined",
+        action="store_true",
+        help="Plot the single combined 'DLP or DSE' bar per type instead of the per-tool DLP+DSE bars.",
+    )
     args = ap.parse_args()
 
+    tools = [ENRICH_COMBINED_TOOL] if args.combined else list(ENRICH_TOOLS)
+    title = args.title or (
+        "Combined circular-shift enrichment by secretion-system type (DLP or DSE; SignalP for autotransporters)"
+        if args.combined
+        else "Circular-shift enrichment by secretion-system type"
+    )
+
     rows = load_stats(args.stats)
-    with np.load(args.nulls) as npz:
-        nulls = {k: npz[k] for k in npz.files}
-    by_key = {(r["ss_type"], r["tool"]): r for r in rows}
-    ss_types = sorted({r["ss_type"] for r in rows})
-    tools = list(ENRICH_TOOLS)
+    # Index by (ss_type, tool); keep only rows that actually carry an observed/fold
+    # (skipped rows like DSE-T3SS have an empty observed and get no bar) and only
+    # the tool(s) this figure plots.
+    by_key = {}
+    modes = {}
+    for r in rows:
+        if str(r.get("observed", "")).strip() == "" or r.get("tool") not in tools:
+            continue
+        by_key[(r["ss_type"], r["tool"])] = r
+        modes[r["ss_type"]] = r.get("mode", "")
+
+    ss_types = ordered_ss_types({k[0] for k in by_key})
 
     if not ss_types:
         fig, ax = plt.subplots(figsize=(6, 2))
@@ -128,28 +99,66 @@ def main():
         print(f"Saved (empty): {args.out}")
         return
 
-    nrow, ncol = len(ss_types), len(tools)
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5.2 * ncol, 2.6 * nrow), squeeze=False)
-    for i, st in enumerate(ss_types):
-        for j, tool in enumerate(tools):
-            ax = axes[i][j]
+    # Cap the display height of an infinite fold (null mean 0, observed > 0) at a
+    # little above the tallest finite bar, so it doesn't blow the axis; the exact
+    # fold is in the annotation. inf only happens at single-genome scale.
+    folds = [_fnum(r.get("fold")) for r in by_key.values()]
+    max_finite = max((f for f in folds if np.isfinite(f) and f > 0), default=1.0)
+    inf_cap = max_finite * 1.15
+
+    x = np.arange(len(ss_types))
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(max(8, 1.4 * len(ss_types) + 2), 5.8))
+
+    for i, tool in enumerate(tools):
+        offset = (i - (len(tools) - 1) / 2) * width
+        for xi, st in zip(x, ss_types):
             row = by_key.get((st, tool))
-            null = nulls.get(enrich_null_key(st, tool))
-            draw_panel(ax, row, null, tool)
-            if i == 0:
-                ax.set_title(TOOL_LABEL[tool])
-            if j == 0:
-                mode = (row or {}).get("mode", "")
-                tag = " (self)" if mode == "self" else ""
-                ax.set_ylabel(f"{st}{tag}\nfrequency", fontsize=9)
-            if i == nrow - 1:
-                ax.set_xlabel("count near SS components (per rotation)")
-    fig.suptitle(
-        "Circular-shift permutation enrichment (genome-structure-preserving null)",
-        fontsize=13,
-        fontweight="bold",
-        y=1.0,
-    )
+            if row is None:
+                continue
+            fold = _fnum(row.get("fold"))
+            if np.isnan(fold):
+                continue
+            q = _fnum(row.get("qvalue"), 1.0)
+            sig = q < 0.05
+            height = inf_cap if np.isinf(fold) else fold
+            # In the combined figure the autotransporter bar is the SignalP score
+            # (mode "self"), not DLP-or-DSE; colour it as SignalP so it reads true.
+            base = THEME["SignalP"] if (args.combined and modes.get(st) == "self") else THEME[tool]
+            color = base if sig else THEME["muted"]
+            ax.bar(xi + offset, height, width, color=color, zorder=3)
+            label = "∞" if np.isinf(fold) else f"{fold:.0f}x" if fold >= 10 else f"{fold:.1f}x"
+            ax.text(
+                xi + offset,
+                height,
+                f"{label}\n{sig_stars(q)}",
+                ha="center",
+                va="bottom",
+                fontsize=7.5,
+                fontweight="bold",
+                color=base if sig else THEME["muted_text"],
+            )
+
+    ax.axhline(1, color=THEME["ref_line"], ls="--", lw=1, alpha=0.7, zorder=1, label="no enrichment")
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{st}\n(self)" if modes.get(st) == "self" else st for st in ss_types])
+    ax.set_ylabel("fold enrichment (observed / circular-shift null mean)")
+    ax.set_ylim(0, inf_cap * 1.18)
+    ax.set_title(title)
+    if args.combined:
+        legend_handles = [
+            Patch(color=THEME["COMBINED"], label="DLP or DSE (sig.)"),
+            Patch(color=THEME["SignalP"], label="SignalP — autotransporters (sig.)"),
+            Patch(color=THEME["muted"], label="not significant"),
+        ]
+    else:
+        legend_handles = [
+            Patch(color=THEME["DLP"], label="DeepLocPro (sig.)"),
+            Patch(color=THEME["DSE"], label="DeepSecE (sig.)"),
+            Patch(color=THEME["SignalP"], label="SignalP (sig.)"),
+            Patch(color=THEME["muted"], label="not significant"),
+        ]
+    ax.legend(handles=legend_handles, frameon=False, fontsize=8, loc="upper right")
     fig.tight_layout()
     fig.savefig(args.out, dpi=args.dpi)
     plt.close(fig)

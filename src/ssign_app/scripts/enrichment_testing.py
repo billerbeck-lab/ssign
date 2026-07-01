@@ -9,20 +9,25 @@ n-1 genes and recount how many land in the type's windows. Offset 0 is the
 observed value. The full all-rotations count is the circular cross-correlation
 of the positivity vector and the window mask, computed in one FFT pass.
 
-Two type classes:
+Three predictors (DLP, DSE, SignalP) are tested per type. Two type classes:
   - window types (T1SS, T2SS, T3SS, T4SS, pT4SSt, T5bSS, T6SSi, T6SSii): the
     window mask marks genes within +/-W of any component of that type (minus
     the component positions themselves), and the positivity vector is the
-    standard secreted call (DLP extracellular, DSE secreted-type).
+    standard secreted call (DLP extracellular, DSE secreted-type, SignalP
+    Sec signal peptide).
   - autotransporter types (T5aSS, T5cSS): the component IS the substrate, so
     the mask marks the component positions themselves and the positivity vector
-    is self-detection (DLP outer-membrane-or-extracellular; DSE secreted-type).
-    "Observed = how many of this type's components are self-secreted."
+    is self-detection (DLP outer-membrane-or-extracellular; DSE secreted-type;
+    SignalP Sec signal peptide). "Observed = how many of this type's components
+    are self-secreted."
 
 Per type x tool emits fold = observed / null-mean and an exact permutation
 p-value; BH-corrects across the real (non-skipped) tests. DSE is not tested for
-T3SS. PLM-Effector is deliberately not an enrichment predictor (it over-predicts
-at genome scale). Replaces the earlier binomial test.
+T3SS; SignalP is tested for every type (its low fold on Sec-bypassing T3SS/T6SS
+effectors is an informative contrast, not a skip). A combined one-bar-per-type
+track is "DLP or DSE" for window types and SignalP-alone for autotransporters.
+PLM-Effector is deliberately not an enrichment predictor (it over-predicts at
+genome scale). Replaces the earlier binomial test.
 
 Approximation: multi-contig genomes are ordered contig-then-start and rotated as
 one circular replicon (a rotation can wrap across a contig junction).
@@ -46,6 +51,7 @@ from extract_neighborhood import load_gene_order  # noqa: E402
 from ssign_lib.constants import (  # noqa: E402
     CONF_THRESHOLD,
     ENRICH_AUTOTRANSPORTER_TYPES,
+    ENRICH_COMBINED_TOOL,
     ENRICH_DSE_NO_WINDOW,
     ENRICH_MAX_NULL,
     ENRICH_TOOLS,
@@ -53,6 +59,7 @@ from ssign_lib.constants import (  # noqa: E402
     PROXIMITY_WINDOW,
     display_type,
     enrich_null_key,
+    is_sec_signal_peptide,
 )
 from ssign_lib.tsv_io import load_tsv_by_key  # noqa: E402
 
@@ -122,6 +129,17 @@ def is_dse_positive(row: dict, conf: float) -> bool:
         return False
 
 
+def is_signalp_positive(row: dict) -> bool:
+    """Sec signal peptide present (shared rule: ``is_sec_signal_peptide``).
+
+    No probability threshold: SignalP's own class call is the decision, matching
+    the rest of the pipeline. Used in both the window (T2SS/T5bSS...) and
+    autotransporter self-detection modes; SignalP positivity is the same vector
+    either way (the mask differs, not the call).
+    """
+    return is_sec_signal_peptide(row.get("signalp_prediction", ""))
+
+
 def is_dlp_self_positive(row: dict, conf: float) -> bool:
     """Autotransporter self-detection: outer-membrane OR extracellular >= conf.
 
@@ -183,6 +201,16 @@ def bh_fdr(
         rows[orig_idx][sig_key] = q_adj[rank0] < alpha
 
 
+def bh_fdr_by_family(rows: list) -> None:
+    """BH-correct the per-tool (DLP/DSE) and combined (DLP-or-DSE) tests as two
+    separate multiple-testing families. The combined track is derived from the
+    per-tool vectors, so it gets its own BH rather than padding the per-tool
+    denominator. Mutates ``rows`` in place; shared by the single-genome test and
+    the cross-genome pooling so the family rule lives in one place."""
+    bh_fdr([r for r in rows if r["tool"] in ENRICH_TOOLS], pvalue_key="p_perm")
+    bh_fdr([r for r in rows if r["tool"] == ENRICH_COMBINED_TOOL], pvalue_key="p_perm")
+
+
 # ── circular-shift core ──
 
 
@@ -195,18 +223,24 @@ def gene_order_flat(gene_order_path: str) -> list:
     return order
 
 
-def positivity_vectors(order: list, dlp: dict, dse: dict, conf: float):
+def positivity_vectors(order: list, dlp: dict, dse: dict, signalp: dict, conf: float):
     """Per-protein positivity arrays over the whole genome in gene order.
 
-    Returns (idx, dlp_vec, dse_vec, dlp_self_vec) where idx maps locus_tag ->
-    ordinal. A locus absent from a prediction TSV scores 0 (treated negative);
-    whole-genome DLP/DSE (forced when enrichment is on) means that is rare.
+    Returns (idx, vecs) where idx maps locus_tag -> ordinal and vecs holds the
+    gene-ordered positivity arrays keyed "dlp"/"dse"/"dlp_self"/"signalp" (the keys
+    run_enrichment reads). A locus absent from a prediction TSV scores 0 (treated
+    negative); whole-genome DLP/DSE/SignalP (forced when enrichment is on) means
+    that is rare. SignalP uses one vector for both window and self modes (the
+    Sec-signal call is the same; only the mask differs).
     """
     idx = {lt: i for i, lt in enumerate(order)}
-    dlp_vec = np.array([is_dlp_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float)
-    dse_vec = np.array([is_dse_positive(dse.get(lt, {}), conf) for lt in order], dtype=float)
-    dlp_self = np.array([is_dlp_self_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float)
-    return idx, dlp_vec, dse_vec, dlp_self
+    vecs = {
+        "dlp": np.array([is_dlp_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float),
+        "dse": np.array([is_dse_positive(dse.get(lt, {}), conf) for lt in order], dtype=float),
+        "dlp_self": np.array([is_dlp_self_positive(dlp.get(lt, {}), conf) for lt in order], dtype=float),
+        "signalp": np.array([is_signalp_positive(signalp.get(lt, {})) for lt in order], dtype=float),
+    }
+    return idx, vecs
 
 
 def window_mask(comp_idx, n: int, w: int, exclude=()) -> np.ndarray:
@@ -291,14 +325,30 @@ def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
             continue
         mode = "self" if is_auto else "window"
         mask = self_mask(comp_idx, n) if is_auto else window_mask(comp_idx, n, window, exclude=all_comp_idx)
+        dlp_track = vecs["dlp_self"] if is_auto else vecs["dlp"]
+        # SignalP positivity is the same vector in both modes (the Sec-signal call
+        # doesn't change; only the mask does), so it needs no per-mode track.
+        tool_vec = {"DLP": dlp_track, "DSE": vecs["dse"], "SignalP": vecs["signalp"]}
         for tool in ENRICH_TOOLS:
             if tool == "DSE" and dt in ENRICH_DSE_NO_WINDOW:
                 rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": True})
                 continue
-            dlp_vec = vecs["dlp_self"] if is_auto else vecs["dlp"]
-            pos_vec = dlp_vec if tool == "DLP" else vecs["dse"]
-            r = single_test(pos_vec, mask)
+            r = single_test(tool_vec[tool], mask)
             rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": False, **r})
+        # Combined one-bar-per-type track: "DLP OR DSE" for window types (DSE
+        # dropped where unreliable, e.g. T3SS); SignalP-alone for autotransporters,
+        # whose passengers are Sec-exported. SignalP's low genome background makes
+        # its few-loci self-detection stronger and more specific than a 3-way union
+        # (which raises the background and weakens the fold/p). openspec:
+        # signalp-enrichment-track decision 4.
+        if is_auto:
+            combined_pos = vecs["signalp"]
+        elif dt in ENRICH_DSE_NO_WINDOW:
+            combined_pos = dlp_track
+        else:
+            combined_pos = np.maximum(dlp_track, vecs["dse"])
+        r = single_test(combined_pos, mask)
+        rows.append({"ss_type": dt, "tool": ENRICH_COMBINED_TOOL, "mode": mode, "skip": False, **r})
     return rows
 
 
@@ -325,6 +375,7 @@ def main():
     parser.add_argument("--gene-order", required=True)
     parser.add_argument("--dlp", required=True, help="DeepLocPro output TSV (whole-genome)")
     parser.add_argument("--dse", required=True, help="DeepSecE output TSV (whole-genome)")
+    parser.add_argument("--signalp", required=True, help="SignalP output TSV (whole-genome)")
     parser.add_argument("--window", type=int, default=PROXIMITY_WINDOW)
     parser.add_argument("--conf-threshold", type=float, default=CONF_THRESHOLD)
     parser.add_argument("--sample", required=True, help="Sample / genome ID")
@@ -334,6 +385,7 @@ def main():
 
     dlp = load_predictions_keyed(args.dlp)
     dse = load_predictions_keyed(args.dse)
+    signalp = load_predictions_keyed(args.signalp)
 
     systems, ss_type_of_sys = load_systems(args.ss_components)
     if not systems:
@@ -344,17 +396,16 @@ def main():
         return
 
     order = gene_order_flat(args.gene_order)
-    idx, dlp_vec, dse_vec, dlp_self = positivity_vectors(order, dlp, dse, args.conf_threshold)
-    vecs = {"dlp": dlp_vec, "dse": dse_vec, "dlp_self": dlp_self}
+    idx, vecs = positivity_vectors(order, dlp, dse, signalp, args.conf_threshold)
 
     by_type, all_components = components_by_display_type(systems, ss_type_of_sys)
     all_comp_idx = [idx[lt] for lt in all_components if lt in idx]
 
     rows = run_enrichment(order, idx, vecs, by_type, all_comp_idx, args.window)
 
-    # BH only over the real tests; skipped (T3SS-DSE) rows must not pad the denominator
+    # BH only over the real tests; skipped (T3SS-DSE) rows must not pad the denominator.
     real = [r for r in rows if not r["skip"]]
-    bh_fdr(real, pvalue_key="p_perm")
+    bh_fdr_by_family(real)
     for r in rows:
         if r["skip"]:
             r["qvalue"], r["significant"] = 1.0, False

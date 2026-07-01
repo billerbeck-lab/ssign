@@ -13,7 +13,13 @@ import io
 import logging
 import os
 import re
+import sys
 from typing import Any
+
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+from ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: E402,F401  (default for --excluded-systems)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,7 +43,11 @@ def parse_sys_id(sys_id: str, model_fqn: str = "") -> str:
 
     # MacSyFinder v2 format: repliconname_SStype_N
     # Match known SS type patterns
-    m = re.search(r"(T[1-9][a-z]*SS[a-z]*|Flagellum|Tad|Com|MSH|T4P|pT4SS[it])", sys_id, re.IGNORECASE)
+    m = re.search(
+        r"(T[1-9][a-z]*SS[a-z]*|pT4SS[it]|Archaeal-T4P|T4aP|T4bP|T4P|Flagellum|Tad|ComM|Com|MSH)",
+        sys_id,
+        re.IGNORECASE,
+    )
     if m:
         return m.group(1)
 
@@ -127,7 +137,11 @@ def main():
     parser.add_argument("--gene-info", required=True, help="Gene info TSV")
     parser.add_argument("--sample", required=True, help="Sample identifier")
     parser.add_argument("--wholeness-threshold", type=float, default=0.8)
-    parser.add_argument("--excluded-systems", default="Flagellum,Tad", help="Comma-separated system types to exclude")
+    parser.add_argument(
+        "--excluded-systems",
+        default=",".join(DEFAULT_EXCLUDED_SYSTEMS),
+        help="Comma-separated system types to exclude (default: non-secretion appendages).",
+    )
     parser.add_argument("--out-components", required=True)
     parser.add_argument("--out-systems", required=True)
     args = parser.parse_args()

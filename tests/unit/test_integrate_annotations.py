@@ -13,6 +13,7 @@ import pandas as pd
 from _helpers import run_script_main, write_tsv
 from integrate_annotations import (
     TOOL_HIT_COLUMNS,
+    _add_functional_names,
     _compute_consensus,
 )
 from integrate_annotations import main as integrate_main
@@ -41,6 +42,7 @@ def _run_integrate(
     tmp_dir,
     substrates,
     *,
+    fields=SUBSTRATE_FIELDS,
     gene_info_rows=None,
     gene_info_fields=None,
     proteins_fasta_content=None,
@@ -49,12 +51,12 @@ def _run_integrate(
     """Run integrate_annotations.main(); return the output dataframe."""
     sub_filtered = write_tsv(
         os.path.join(tmp_dir, "substrates_filtered.tsv"),
-        SUBSTRATE_FIELDS,
+        fields,
         substrates,
     )
     sub_all = write_tsv(
         os.path.join(tmp_dir, "substrates_all.tsv"),
-        SUBSTRATE_FIELDS,
+        fields,
         substrates,
     )
     out = os.path.join(tmp_dir, "master.csv")
@@ -97,6 +99,22 @@ class TestBaseLoad:
             [_substrate("GENE_001"), _substrate("GENE_002")],
         )
         assert set(df["locus_tag"]) == {"GENE_001", "GENE_002"}
+
+    def test_dlp_localization_probs_preserved(self, monkeypatch, tmp_dir):
+        # The substrate producers carry the DLP localization probs onto each
+        # substrate row; integrate's left-joins must not drop them (the
+        # autotransporter figure reads dlp_extracellular_prob + outer_membrane_prob).
+        sub = _substrate("GENE_001")
+        sub.update(dlp_extracellular_prob="0.91", outer_membrane_prob="0.88")
+        df = _run_integrate(
+            monkeypatch,
+            tmp_dir,
+            [sub],
+            fields=[*SUBSTRATE_FIELDS, "dlp_extracellular_prob", "outer_membrane_prob"],
+        )
+        row = df[df["locus_tag"] == "GENE_001"].iloc[0]
+        assert float(row["dlp_extracellular_prob"]) == 0.91
+        assert float(row["outer_membrane_prob"]) == 0.88
 
 
 class TestGbffAnnotation:
@@ -380,3 +398,28 @@ class TestT5QualityFlagSort:
             [_substrate("B"), _substrate("A"), _substrate("C")],
         )
         assert df["locus_tag"].tolist() == ["B", "A", "C"]
+
+
+class TestFunctionalNames:
+    def test_readable_cog_and_kegg_columns_added(self):
+        # Raw COG letters + KEGG KO IDs gain human-readable sibling columns.
+        df = pd.DataFrame(
+            {
+                "locus_tag": ["a", "b", "c"],
+                "cog_category": ["U", "MU", ""],
+                "kegg_ko": ["ko:K10953", "ko:K15125;ko:K12516", "-"],
+            }
+        )
+        out = _add_functional_names(df)
+        assert out.loc[0, "cog_category_name"] == "Intracellular trafficking, secretion, and vesicular transport"
+        assert "Cell wall/membrane/envelope biogenesis" in out.loc[1, "cog_category_name"]
+        assert out.loc[2, "cog_category_name"] == "Unannotated"
+        assert out.loc[0, "kegg_function"] == "RTX toxin RtxA"
+        assert out.loc[1, "kegg_function"] == "filamentous hemagglutinin; putative surface-exposed virulence protein"
+        assert out.loc[2, "kegg_function"] == ""
+
+    def test_no_op_without_cog_or_kegg(self):
+        df = pd.DataFrame({"locus_tag": ["a"]})
+        out = _add_functional_names(df)
+        assert "cog_category_name" not in out.columns
+        assert "kegg_function" not in out.columns

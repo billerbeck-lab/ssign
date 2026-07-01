@@ -57,9 +57,10 @@ class TestPipelineConfig:
         assert c.signalp_mode in ("local", "remote")
 
     def test_excluded_systems_default(self):
-        # T3SS is detected by default now (DeepSecE excluded for T3SS instead).
+        # Default excludes all non-secretion appendages; T3SS is detected by
+        # default (DeepSecE excluded for T3SS instead), so it must NOT be listed.
         c = PipelineConfig()
-        assert c.excluded_systems == ["Flagellum", "Tad"]
+        assert c.excluded_systems == ["Flagellum", "Tad", "T4aP", "T4bP", "MSH", "ComM", "Archaeal-T4P"]
         assert "T3SS" not in c.excluded_systems
 
     def test_excluded_systems_default_matches_constant(self):
@@ -67,8 +68,9 @@ class TestPipelineConfig:
         # and neither lists T3SS (it is detected by default now).
         from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS
 
-        assert DEFAULT_EXCLUDED_SYSTEMS == ["Flagellum", "Tad"]
+        assert DEFAULT_EXCLUDED_SYSTEMS == ["Flagellum", "Tad", "T4aP", "T4bP", "MSH", "ComM", "Archaeal-T4P"]
         assert PipelineConfig().excluded_systems == DEFAULT_EXCLUDED_SYSTEMS
+        assert "T3SS" not in DEFAULT_EXCLUDED_SYSTEMS
 
     def test_excluded_systems_isolated_per_instance(self):
         # Mutable defaults via field(default_factory=...) — each instance
@@ -127,13 +129,13 @@ class TestPipelineConfig:
 
     def test_enrichment_stats_forces_whole_genome_predictors(self):
         # The circular-shift null needs every gene's positivity in gene order,
-        # so --enrichment-stats couples whole-genome DLP + DSE.
+        # so --enrichment-stats couples whole-genome DLP + DSE + SignalP.
         c = PipelineConfig(enrichment_stats=True)
-        assert c.dlp_whole_genome is True and c.dse_whole_genome is True
+        assert c.dlp_whole_genome is True and c.dse_whole_genome is True and c.sp_whole_genome is True
 
     def test_no_enrichment_leaves_predictor_scope_default(self):
         c = PipelineConfig(enrichment_stats=False)
-        assert c.dlp_whole_genome is False and c.dse_whole_genome is False
+        assert c.dlp_whole_genome is False and c.dse_whole_genome is False and c.sp_whole_genome is False
 
     def test_skip_flags_extended_tier_enables_annotation_tools(self):
         # At tier='extended', EggNOG / IPS / pLM-BLAST come on because

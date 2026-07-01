@@ -34,7 +34,11 @@ PROXIMITY_WINDOW = 3  # +/- N genes per SS component
 # rotations of the predictor's gene-ordered positivity vector (offset 0 = observed),
 # so no Monte-Carlo sampling is needed for a single genome. Window size and the
 # positivity threshold reuse PROXIMITY_WINDOW / CONF_THRESHOLD (single source of truth).
-ENRICH_TOOLS = ("DLP", "DSE")  # the two enrichment predictors (PLM-Effector excluded)
+ENRICH_TOOLS = ("DLP", "DSE", "SignalP")  # the enrichment predictors (PLM-Effector excluded)
+# Pseudo-predictor: "secreted by DLP OR DSE" (only the valid predictors per type;
+# DSE dropped where unreliable). One combined fold/significance bar per SS type;
+# emitted alongside DLP/DSE in the stats TSV, BH-corrected as its own family.
+ENRICH_COMBINED_TOOL = "COMBINED"
 # Above this genome length, subsample rotation offsets for the stored null (the
 # fold + p stay exact; only the histogram dump is thinned). Bacterial genomes
 # (~5k genes) never hit this, so in practice the full exact null is always used.
@@ -182,10 +186,30 @@ T5_QUALITY_FLAG_RANK = {
 # that's what run_signalp.py passes through into signalp_prediction.
 VALID_SEC_SIGNAL_TYPES = ("SP", "LIPO")
 
+
+def is_sec_signal_peptide(prediction: str) -> bool:
+    """True iff a SignalP call is a Sec signal peptide (Sec/SPI or Sec/SPII).
+
+    Single source of truth for "this signal peptide supports Sec secretion", shared
+    by the T5SS Sec-signal gate (t5ss_handler) and the enrichment SignalP track.
+    Tat/TATLIPO/PILIN/OTHER are not Sec signals. SignalP 6 emits the short labels in
+    VALID_SEC_SIGNAL_TYPES; strip first so stray whitespace never flips the call.
+    """
+    return str(prediction).strip() in VALID_SEC_SIGNAL_TYPES
+
+
 # --- System filtering ---
-# T3SS is detected by default; DeepSecE is excluded from T3SS calls (see
-# cross_validate_predictions), so it is NOT in the default exclusion list.
-DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad"]
+# Default-excluded TXSScan models are surface/uptake appendages, NOT protein
+# secretion systems, so the proteins near them must not be substrate-called:
+#   Flagellum, Tad             - flagellum and tight-adherence pilus
+#   T4aP, T4bP, Archaeal-T4P   - type IV pili (a/b and archaeal)
+#   MSH                        - MSHA pilus
+#   ComM                       - DNA-uptake competence machinery
+# Genuine secretion systems stay: T1-T6SS, T9SS, pT4SSi, pT4SSt. Labels are the
+# TXSScan model_fqn names (the strings that reach `ss_type`). T3SS is detected by
+# default; DeepSecE is excluded from T3SS calls (see cross_validate_predictions),
+# so T3SS is NOT in this list.
+DEFAULT_EXCLUDED_SYSTEMS = ["Flagellum", "Tad", "T4aP", "T4bP", "MSH", "ComM", "Archaeal-T4P"]
 
 # --- T5SS per-component DLP rules ---
 # Per-component biology rationale lives in cross_validate_predictions.py's

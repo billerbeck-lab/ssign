@@ -19,6 +19,7 @@ _scripts_dir = _os.path.dirname(_os.path.abspath(__file__))
 if _scripts_dir not in _sys.path:
     _sys.path.insert(0, _scripts_dir)
 
+from ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: E402,F401  (default for --excluded-systems)
 from ssign_lib.localization_gate import (  # noqa: E402
     aggregate_failed_ss_types,
     default_localization_table_path,
@@ -133,7 +134,7 @@ def main():
     parser.add_argument("--ss-components", default="", help="ss_components TSV for the localization gate")
     parser.add_argument("--predictions", required=True)
     parser.add_argument("--sample", required=True)
-    parser.add_argument("--excluded-systems", default="Flagellum,Tad")
+    parser.add_argument("--excluded-systems", default=",".join(DEFAULT_EXCLUDED_SYSTEMS))
     parser.add_argument("--required-fraction-correct", type=float, default=0.8)
     parser.add_argument(
         "--dlp-confidence-threshold",

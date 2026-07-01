@@ -24,11 +24,21 @@ LANDED / DEFERRED items from figures-v2:
   match wins) plus the figure-side `consensus_bucket` (apparatus/Other routing). Teo wants a look at
   whether the keyword grouping is the right vocabulary / granularity. *Trigger:* a dedicated pass over
   CATEGORY_PATTERNS once the figure set is frozen.
-- **SignalP-as-enrichment-predictor for T5aSS/T5cSS (Teo's "do that in a second").** Add SignalP as a
-  measurable circular-shift enrichment predictor for autotransporter self-detection, alongside DLP/DSE.
-  *Why deferred:* needs whole-genome SignalP (today SignalP runs only on the ±3 neighborhood), so it
-  touches the prediction plumbing and the enrichment test; warrants its own openspec change. *Trigger:*
-  after figures-v2 is archived; discuss scope with Teo first.
+- **SignalP-as-enrichment-predictor — LANDED 2026-06-30 (openspec `signalp-enrichment-track`, 15/16).**
+  SignalP is now a third circular-shift predictor for all SS types: per-tool figure gets a 3rd bar;
+  combined figure uses SignalP-alone for T5a/c (decision 4, NOT a 3-way OR), DLP-or-DSE for window types.
+  `--enrichment-stats` forces whole-genome SignalP (local). SignalP-positive = `VALID_SEC_SIGNAL_TYPES`
+  via the new shared `constants.is_sec_signal_peptide` (also adopted by t5ss_handler). Unit + integration
+  tests green (1410). **Only task left: 5.1 — validate on a real CX3 run** (single + multi-genome); then
+  `/opsx:archive signalp-enrichment-track`.
+- **Figure-02 SignalP fill uses a looser rule than the enrichment track (REVISIT, surfaced by simplify
+  2026-06-30).** `generate_figures._signalp_positive` is a denylist (`_SIGNALP_NEGATIVE`) that counts
+  TAT/TATLIPO/PILIN as "has signal", while the enrichment SignalP track + t5ss_handler use the strict
+  allowlist SP/LIPO only (`is_sec_signal_peptide`). So a TAT-signal autotransporter shows filled in
+  figure 02 but counts negative in the enrichment stat. *Why deferred:* changing it shifts figures-v2
+  output (separate change); needs Teo's call on whether figure-02 fill means "any signal peptide" or
+  "Sec signal peptide". *Trigger:* decide alongside the figures-v2 figure-02 review; if aligning, point
+  `_signalp_positive` at `is_sec_signal_peptide`.
 - **Functional-candidate pruning (figures-v2 task 6.3).** `06`–`13` are over-produced on purpose. Teo
   reviews a real run, names the keep-set; delete the rejected figure functions in a follow-up.
 - **Pooled figures ignore per-figure toggles (minor).** `multi_runner.py`'s `generate_figures --mode pooled`

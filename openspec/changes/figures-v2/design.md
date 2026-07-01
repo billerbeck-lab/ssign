@@ -36,7 +36,7 @@ Builds on `figure-revamp` (shared `plot_style`, curated 01–07 set) and the CX3
 - `consensus` (`broad_consensus_annotation` / `broad_annotation`, possibly with revamped keyword matching)
 Each in BOTH scopes: overall (one bar chart over all secreted proteins, Xanthobacter `figure9` style) and stacked-by-SS-type. Machinery handling: secreted proteins whose consensus annotation IS a secretion-system/translocator are bucketed/flagged so the chart reflects cargo (decision point in impl: filter out vs labeled "apparatus-associated" bucket). *Note:* this is intentionally over-produced; the keep-set is decided after Teo reviews real output.
 
-**5. Enrichment redesign, split by scope.** A single genome's per-type null is inherently a low-count spike, so:
+**5. Enrichment redesign, split by scope.** *(Redirected 2026-06-24, Teo: collapse to ONE combined DLP+DSE fold/significance bar chart per SS type for both single-genome and pooled scale; the genome-wide pooled-null computation + smooth histogram below were DROPPED. See specs/enrichment-stats.)* A single genome's per-type null is inherently a low-count spike, so:
 - Per genome: `run_enrichment_figure` emits a per-type **fold bar chart** (fold = observed / null-mean, BH-q stars, DLP+DSE, autotransporters as self), not the histogram grid. The per-type stats already exist.
 - Genome group: `enrichment_testing` additionally computes a **genome-wide pooled null** (positivity near ANY window-type component, one mask, per tool), and `multi_runner` pools these across genomes into one smooth DLP + one DSE histogram (the `figure5` reproduction). *Alternative — keep per-type histograms:* rejected; uninformative at single-genome scale.
 

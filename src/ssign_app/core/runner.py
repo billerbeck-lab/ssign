@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from ssign_app.scripts.ssign_lib.constants import (
+    DEFAULT_EXCLUDED_SYSTEMS,
     DEFAULT_TIER,
     HHSUITE_MIN_PROB,
     TIER_TOOL_DEFAULTS,
@@ -175,7 +176,7 @@ class PipelineConfig:
     wholeness_threshold: float = 0.8
     # T3SS detected by default; DeepSecE is excluded from T3SS calls in
     # cross_validate_predictions (DSE unreliable on T3SS), so flagellar FPs stay out.
-    excluded_systems: list = field(default_factory=lambda: ["Flagellum", "Tad"])
+    excluded_systems: list = field(default_factory=lambda: list(DEFAULT_EXCLUDED_SYSTEMS))
     # MacSyFinder --db-type: "ordered_replicon" preserves gene-order signal
     # (more sensitive — recommended default). Switch to "unordered" for
     # highly fragmented assemblies where contig boundaries would otherwise
@@ -331,13 +332,10 @@ class PipelineConfig:
     # Figures (per-genome curated set; pooled cross-genome figures are emitted
     # automatically by the multi-genome runner)
     dpi: int = 300
-    fig_ss_comp: bool = True  # 01 substrates per SS type
-    fig_evidence: bool = True  # 02 secretion-call support
-    fig_localization: bool = True  # 03 DLP extracellular probability by type
-    fig_signalp: bool = True  # 04 SignalP-positive fraction by type
-    fig_tool_heatmap: bool = True  # 05 annotation-tool coverage
-    fig_length: bool = True  # 06 protein length by type
-    fig_func_summary: bool = True  # 07 functional categories by type
+    fig_ss_comp: bool = True  # 01 secreted proteins by SS type (per genome for a group)
+    fig_autotransporter: bool = True  # 02 T5aSS/T5cSS self-detection
+    fig_physicochemical: bool = True  # 03 size & physicochemical properties by type (incl. length)
+    fig_func_summary: bool = True  # 04-07 functional categories by type (COG/KEGG/EggNOG/consensus)
 
     # DeepSecE threshold
     deepsece_min_prob: float = 0.8
@@ -375,15 +373,17 @@ class PipelineConfig:
             self.bakta_threads = self.cpu_per_genome
 
         # Circular-shift enrichment needs every gene's positivity in gene order, so
-        # turning on --enrichment-stats forces whole-genome DLP/DSE. That is the
-        # runtime cost the flag warns about (~13 min/genome on a ~5k-gene proteome).
-        # openspec: enrichment-circular-shift-per-run.
-        if self.enrichment_stats and not (self.dlp_whole_genome and self.dse_whole_genome):
+        # turning on --enrichment-stats forces whole-genome DLP/DSE/SignalP. That is
+        # the runtime cost the flag warns about (~13 min/genome on a ~5k-gene
+        # proteome). SignalP runs locally; no webserver. openspec:
+        # enrichment-circular-shift-per-run, signalp-enrichment-track.
+        if self.enrichment_stats and not (self.dlp_whole_genome and self.dse_whole_genome and self.sp_whole_genome):
             self.dlp_whole_genome = True
             self.dse_whole_genome = True
+            self.sp_whole_genome = True
             logger.info(
-                "Enrichment stats on: running DeepLocPro + DeepSecE on the whole genome "
-                "(needed for the circular-shift null; adds ~13 min/genome)."
+                "Enrichment stats on: running DeepLocPro + DeepSecE + SignalP on the whole "
+                "genome (needed for the circular-shift null; adds ~13 min/genome)."
             )
 
         # Step A — env-var verbatim. Trust whatever path the user (or HPC
@@ -2663,11 +2663,13 @@ class PipelineRunner:
         gene_order = self.files.get("gene_order", "")
         dlp = self.files.get("deeplocpro", "")
         dse = self.files.get("deepsece", "")
+        signalp = self.files.get("signalp", "")
         for name, path in (
             ("ss_components", ss_components),
             ("gene_order", gene_order),
             ("dlp", dlp),
             ("dse", dse),
+            ("signalp", signalp),
         ):
             if not path or not os.path.exists(path):
                 return StepResult("enrichment", False, f"Missing upstream file for enrichment: {name}")
@@ -2683,6 +2685,8 @@ class PipelineRunner:
             dlp,
             "--dse",
             dse,
+            "--signalp",
+            signalp,
             "--window",
             str(self.config.proximity_window),
             "--conf-threshold",
@@ -2703,23 +2707,31 @@ class PipelineRunner:
         return StepResult("enrichment", False, stderr[:500])
 
     def _step_enrichment_figure(self) -> StepResult:
-        """Render the per-SS-type circular-shift null-distribution figure.
+        """Render the circular-shift fold-enrichment bar chart.
 
-        Optional step (gated on --enrichment-stats). Reads the enrichment stats
-        TSV + the null-array dump from _step_enrichment.
+        Optional step (gated on --enrichment-stats). Reads the per-type enrichment
+        stats TSV from _step_enrichment (the null-array dump is not needed here; it
+        is only used by the cross-genome pooling math).
         """
         stats = self.files.get("enrichment_stats", "")
-        nulls = self.files.get("enrichment_nulls", "")
-        if not stats or not os.path.exists(stats) or not nulls or not os.path.exists(nulls):
+        if not stats or not os.path.exists(stats):
             return StepResult("enrichment_figure", True, "Skipped (no enrichment output)")
 
         fig_dir = self._wf("figures")
         os.makedirs(fig_dir, exist_ok=True)
-        out_png = os.path.join(fig_dir, f"{self.config.sample_id}_enrichment_null_distributions.png")
+        # Two figures: per-tool (DLP + DSE bars) and the combined DLP-or-DSE bar.
+        out_png = os.path.join(fig_dir, f"{self.config.sample_id}_enrichment_fold.png")
+        combined_png = os.path.join(fig_dir, f"{self.config.sample_id}_enrichment_fold_combined.png")
         rc, _stdout, stderr = run_script(
             "run_enrichment_figure.py",
-            ["--stats", stats, "--nulls", nulls, "--out", out_png, "--dpi", str(self.config.dpi)],
+            ["--stats", stats, "--out", out_png, "--dpi", str(self.config.dpi)],
         )
+        rc_c, _o, err_c = run_script(
+            "run_enrichment_figure.py",
+            ["--stats", stats, "--out", combined_png, "--combined", "--dpi", str(self.config.dpi)],
+        )
+        if rc_c != 0:
+            logger.warning("combined enrichment figure skipped: %s", err_c[:160])
         if rc == 0:
             self.files["enrichment_figure"] = out_png
             return StepResult("enrichment_figure", True, "Enrichment figure generated")
@@ -2771,11 +2783,8 @@ class PipelineRunner:
         # Pass figure toggles (config field -> generate_figures --no-* flag)
         toggles = {
             "fig_ss_comp": "--no-ss-comp",
-            "fig_evidence": "--no-evidence",
-            "fig_localization": "--no-localization",
-            "fig_signalp": "--no-signalp",
-            "fig_tool_heatmap": "--no-tool-heatmap",
-            "fig_length": "--no-length",
+            "fig_autotransporter": "--no-autotransporter",
+            "fig_physicochemical": "--no-physicochemical",
             "fig_func_summary": "--no-func-summary",
         }
         for field, flag in toggles.items():
@@ -3510,7 +3519,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
     _scripts = os.path.join(os.path.dirname(__file__), "..", "scripts")
     if _scripts not in _sys.path:
         _sys.path.insert(0, _scripts)
-    from enrichment_testing import OUT_FIELDS, bh_fdr
+    from enrichment_testing import OUT_FIELDS, bh_fdr_by_family
 
     from ssign_app.scripts.ssign_lib.constants import ENRICH_POOL_REPS, ENRICH_POOL_SEED, enrich_null_key
 
@@ -3566,7 +3575,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
         )
         pooled_nulls[enrich_null_key(ss_type, tool)] = null_pool
 
-    bh_fdr(pooled, pvalue_key="p_perm")
+    bh_fdr_by_family(pooled)  # per-tool vs combined DLP-or-DSE families (shared rule)
 
     with open(output_tsv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=OUT_FIELDS, delimiter="\t", extrasaction="ignore")
@@ -3584,20 +3593,28 @@ def pool_and_plot_enrichment(per_genome_tsvs: list[str], out_dir: str) -> int:
     """Pool >=2 genomes' enrichment stats and render the combined figure.
 
     Shared by the CLI multi-genome path (MultiGenomeRunner) and the GUI so both
-    emit the same cross-genome view. Writes pooled_enrichment_stats.tsv +
-    pooled_enrichment_nulls.npz to out_dir and
-    figures/pooled_enrichment_null_distributions.png. No-op (returns 0) when fewer
-    than two genomes carry enrichment output. Each per-genome TSV must have its
-    sibling *_enrichment_nulls.npz (pool_enrichment_stats finds it by name)."""
+    emit the same cross-genome view. Writes pooled_enrichment_stats.tsv to out_dir
+    and figures/pooled_enrichment_fold.png (the same combined fold-enrichment bar
+    chart as a single genome, computed over all genomes' pooled per-type nulls).
+    No-op (returns 0) when fewer than two genomes carry enrichment output. Each
+    per-genome TSV must have its sibling *_enrichment_nulls.npz (pool_enrichment_stats
+    finds it by name to recompute the pooled fold/p)."""
     tsvs = [p for p in per_genome_tsvs if p and os.path.exists(p)]
     if len(tsvs) < 2:
         return 0
     pooled_tsv = os.path.join(out_dir, "pooled_enrichment_stats.tsv")
-    pooled_nulls = os.path.join(out_dir, "pooled_enrichment_nulls.npz")
-    n = pool_enrichment_stats(tsvs, pooled_tsv, nulls_output=pooled_nulls)
-    if n and os.path.exists(pooled_nulls):
+    n = pool_enrichment_stats(tsvs, pooled_tsv)
+    if n:
         fig_dir = os.path.join(out_dir, "figures")
         os.makedirs(fig_dir, exist_ok=True)
-        out_png = os.path.join(fig_dir, "pooled_enrichment_null_distributions.png")
-        run_script("run_enrichment_figure.py", ["--stats", pooled_tsv, "--nulls", pooled_nulls, "--out", out_png])
+        out_png = os.path.join(fig_dir, "pooled_enrichment_fold.png")
+        combined_png = os.path.join(fig_dir, "pooled_enrichment_fold_combined.png")
+        rc, _out, err = run_script("run_enrichment_figure.py", ["--stats", pooled_tsv, "--out", out_png])
+        if rc != 0:
+            logger.warning("pooled enrichment figure failed: %s", err[:160])
+        rc_c, _o, err_c = run_script(
+            "run_enrichment_figure.py", ["--stats", pooled_tsv, "--out", combined_png, "--combined"]
+        )
+        if rc_c != 0:
+            logger.warning("pooled combined enrichment figure failed: %s", err_c[:160])
     return n

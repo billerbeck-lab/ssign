@@ -1,21 +1,26 @@
 ## MODIFIED Requirements
 
-### Requirement: Per-type null-distribution figure
-An enrichment-enabled single-genome run SHALL emit a per-SS-type **fold-enrichment** figure: a bar chart of fold (observed / null-mean) per SS type for the DeepLocPro and DeepSecE predictors, annotated with BH q-value significance, with autotransporters shown by self-detection. The spiky per-type null *histogram* grid SHALL NOT be the per-genome presentation (a single genome's per-type count is a small integer, so its null is uninformative as a histogram). The underlying statistics (observed, null mean, fold, p, q) are unchanged.
+### Requirement: Enrichment fold/significance figures
+An enrichment-enabled run SHALL present its per-SS-type circular-shift results as fold-enrichment (observed / null-mean) bar charts with statistical significance. TWO figures SHALL be emitted: (a) a **per-tool** chart with a DeepLocPro and a DeepSecE bar per secretion-system type, and (b) a **combined** chart with a single "DLP or DSE" bar per type. The combined track is a third predictor in the stats: a protein is positive if EITHER valid predictor calls it secreted (DSE dropped where unreliable, e.g. T3SS), run through the same circular-shift test and BH-corrected as its own multiple-testing family. Non-significant bars SHALL be visually de-emphasized and significance SHALL be annotated from the BH q-value. Autotransporter types (T5aSS/T5cSS) SHALL be shown via their self-detection enrichment and labelled as such. The spiky per-type null *histogram grid* SHALL NOT be emitted. The DLP/DSE per-type statistics (observed, null mean, fold, p, q) are unchanged.
 
-#### Scenario: Per-genome fold bars
+A single-genome run SHALL emit both charts from its own stats; a multi-genome run SHALL emit pooled versions computed from the per-genome stats combined.
+
+#### Scenario: Per-genome per-tool and combined bars
 - **WHEN** an enrichment-enabled single-genome run completes
-- **THEN** the figures output SHALL contain a per-SS-type fold-enrichment bar chart (DLP and DSE), with non-significant types visually de-emphasized
+- **THEN** the figures output SHALL contain a per-tool fold-enrichment bar chart (DLP and DSE per SS type) AND a separate combined (DLP-or-DSE) fold-enrichment bar chart, both with non-significant types de-emphasized and significance annotated
 
-## ADDED Requirements
+#### Scenario: Combined track is its own BH family
+- **WHEN** the enrichment test runs
+- **THEN** the combined (DLP-or-DSE) tests SHALL be BH-corrected separately from the per-tool (DLP/DSE) tests, so the per-tool q-values are unaffected by the combined track
 
-### Requirement: Genome-wide pooled null for genome groups
-The enrichment test SHALL additionally compute a genome-wide pooled null per predictor: the count of positives within the configured window of ANY window-type secretion-system component, over all circular rotations (a single pooled mask, not per type). For a multi-genome run, these per-genome genome-wide nulls SHALL be pooled across all genomes and rendered as one smooth DeepLocPro and one DeepSecE null-distribution histogram with the observed value and fold. A single-genome run SHALL NOT require the pooled-group figure.
-
-#### Scenario: Group-level smooth null figure
+#### Scenario: Pooled fold/significance bars for a genome group
 - **WHEN** an enrichment-enabled run over two or more genomes completes
-- **THEN** the top-level figures output SHALL contain a genome-wide pooled circular-shift null figure (one DLP, one DSE histogram) summed across all genomes, with the observed count and fold annotated
+- **THEN** the top-level figures output SHALL contain pooled per-tool AND combined fold-enrichment bar charts combining the per-genome enrichment stats
 
-#### Scenario: Genome-wide null emitted alongside per-type stats
-- **WHEN** the enrichment test runs on a genome
-- **THEN** it SHALL emit, in addition to the per-SS-type stats, a genome-wide pooled null (positives near any window-type component) for each predictor
+<!-- Dropped from this change (Teo, 2026-06-24): the planned "Genome-wide pooled
+null for genome groups" ADDED requirement (a smooth per-predictor circular-shift
+null histogram pooled across genomes). Superseded by the combined fold/significance
+bar chart above, which carries the same signal at both single-genome and group
+scale without the extra genome-wide-null computation, npz, or histogram. No
+genome-wide pooled-null is computed; enrichment_testing keeps its per-(SS-type)
+circular-shift stats unchanged. -->

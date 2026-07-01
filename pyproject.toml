@@ -168,7 +168,7 @@ Changelog = "https://github.com/billerbeck-lab/ssign/blob/main/CHANGELOG.md"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "shims/*.py", ".streamlit/*", "data/t5aSS/*.hmm"]
+ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "scripts/ssign_lib/data/*.tsv.gz", "shims/*.py", ".streamlit/*", "data/t5aSS/*.hmm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]

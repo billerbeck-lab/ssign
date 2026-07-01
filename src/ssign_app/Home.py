@@ -13,6 +13,7 @@ from pathlib import Path
 import streamlit as st
 
 from ssign_app.core.runner import PipelineConfig, PipelineRunner, StepResult
+from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: F401  (multiselect default below)
 
 # ─────────────────────────────────────────────────────────────────────
 # Page config
@@ -787,17 +788,25 @@ with tab_pipeline:
                 "T6SSii",
                 "T6SSiii",
                 "T9SS",
+                "pT4SSi",
+                "pT4SSt",
+                # Non-secretion appendages (excluded by default):
                 "Flagellum",
                 "Tad",
-                "pT4SSt",
+                "T4aP",
+                "T4bP",
+                "MSH",
+                "ComM",
+                "Archaeal-T4P",
             ]
             st.multiselect(
                 "Exclude these system types",
                 all_system_types,
-                default=["Flagellum", "Tad"],
+                default=list(DEFAULT_EXCLUDED_SYSTEMS),
                 key="excluded",
-                help="Flagellum and Tad are excluded because they are not true secretion "
-                "systems. T3SS is detected by default; DeepSecE is never trusted for "
+                help="The defaults (flagellum, Tad, type-IV pili, MSH, ComM) are surface/uptake "
+                "appendages, not protein secretion systems, so proteins near them are not "
+                "substrate-called. T3SS is detected by default; DeepSecE is never trusted for "
                 "T3SS calls (its T3SS predictions are mostly flagellar misclassification), "
                 "so T3SS relies on MacSyFinder detection + DeepLocPro + proximity. "
                 "Add T3SS here to exclude it entirely.",
@@ -1324,14 +1333,11 @@ with tab_pipeline:
         st.markdown("**Figures:**")
         fc1, fc2 = st.columns(2)
         with fc1:
-            st.checkbox("Secreted proteins per SS type", value=True, key="fig_ss_comp")
-            st.checkbox("Secretion-call support", value=True, key="fig_evidence")
-            st.checkbox("Localization confidence", value=True, key="fig_localization")
-            st.checkbox("SignalP positive by type", value=True, key="fig_signalp")
+            st.checkbox("Secreted proteins by SS type", value=True, key="fig_ss_comp")
+            st.checkbox("Autotransporter self-detection", value=True, key="fig_autotransporter")
         with fc2:
-            st.checkbox("Tool coverage heatmap", value=True, key="fig_tool_heatmap")
-            st.checkbox("Protein length by type", value=True, key="fig_length")
-            st.checkbox("Functional categories", value=True, key="fig_func_summary")
+            st.checkbox("Size & physicochemical properties by type", value=True, key="fig_physicochemical")
+            st.checkbox("Functional categories (COG/KEGG/EggNOG/consensus)", value=True, key="fig_func_summary")
 
         st.markdown("---")
 
@@ -1651,7 +1657,7 @@ with tab_run:
                     bakta_db=st.session_state.get("bakta_db_path", ""),
                     use_input_annotations=st.session_state.get("use_input_annotations", False),
                     wholeness_threshold=st.session_state.get("wholeness", 0.8),
-                    excluded_systems=st.session_state.get("excluded", ["Flagellum", "Tad"]),
+                    excluded_systems=st.session_state.get("excluded", list(DEFAULT_EXCLUDED_SYSTEMS)),
                     conf_threshold=st.session_state.get("conf", 0.8),
                     proximity_window=st.session_state.get("window", 3),
                     required_fraction_correct=st.session_state.get("frac", 0.8),
@@ -1684,11 +1690,8 @@ with tab_run:
                     plmblast_db=st.session_state.get("plm_db", ""),
                     skip_protparam=not st.session_state.get("run_pp", True),
                     fig_ss_comp=st.session_state.get("fig_ss_comp", True),
-                    fig_evidence=st.session_state.get("fig_evidence", True),
-                    fig_localization=st.session_state.get("fig_localization", True),
-                    fig_signalp=st.session_state.get("fig_signalp", True),
-                    fig_tool_heatmap=st.session_state.get("fig_tool_heatmap", True),
-                    fig_length=st.session_state.get("fig_length", True),
+                    fig_autotransporter=st.session_state.get("fig_autotransporter", True),
+                    fig_physicochemical=st.session_state.get("fig_physicochemical", True),
                     fig_func_summary=st.session_state.get("fig_func_summary", True),
                     interproscan_min_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
                     deepsece_min_prob=float(st.session_state.get("dse_min_prob", 0.8)),

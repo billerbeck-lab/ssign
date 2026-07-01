@@ -253,8 +253,9 @@ class MultiGenomeRunner:
             except Exception as e:
                 logger.warning("pooled enrichment failed: %s", str(e)[:160])
 
-        # Pooled cross-genome regular figures (P01-P03) from every genome's
-        # integrated CSV. generate_figures.py's pooled mode no-ops for <2 genomes;
+        # Pooled figures from every genome's integrated CSV: the cross-genome
+        # P01-P03 plus the curated per-genome set over all genomes combined
+        # (0N_pooled_*). generate_figures.py's pooled mode no-ops for <2 genomes;
         # gate here too to skip a needless subprocess.
         integrated_csvs = [r.files.get("integrated", "") for r in runners.values()]
         integrated_csvs = [p for p in integrated_csvs if p and os.path.exists(p)]

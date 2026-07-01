@@ -150,6 +150,11 @@ def main():
             except (ValueError, TypeError):
                 dlp_ext_prob = 0.0
 
+            try:
+                om_prob = float(pred.get("outer_membrane_prob", 0) or 0)
+            except (ValueError, TypeError):
+                om_prob = 0.0
+
             is_dlp = dlp_ext_prob >= args.conf_threshold
 
             # Check DeepSecE
@@ -205,6 +210,7 @@ def main():
                         "tool": set(tool),
                         "nearby_ss_types": {ss_type},
                         "dlp_extracellular_prob": dlp_ext_prob,
+                        "outer_membrane_prob": om_prob,
                         "predicted_localization": pred.get("predicted_localization", ""),
                         "dlp_max_localization": pred.get("dlp_max_localization", ""),
                         "dlp_max_probability": pred.get("dlp_max_probability", ""),
@@ -257,6 +263,7 @@ def main():
         "tool",
         "nearby_ss_types",
         "dlp_extracellular_prob",
+        "outer_membrane_prob",
         "predicted_localization",
         "dlp_max_localization",
         "dlp_max_probability",

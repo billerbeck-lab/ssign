@@ -28,6 +28,8 @@ import sys
 import threading
 from typing import TYPE_CHECKING
 
+from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: F401  (argparse default below)
+
 if TYPE_CHECKING:
     from ssign_app.core.runner import PipelineConfig
 
@@ -155,10 +157,11 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g.add_argument(
         "--excluded-systems",
         nargs="+",
-        default=["Flagellum", "Tad"],
-        help="Secretion-system models to exclude (default: Flagellum Tad). "
+        default=list(DEFAULT_EXCLUDED_SYSTEMS),
+        help=f"TXSScan models to exclude (default: {' '.join(DEFAULT_EXCLUDED_SYSTEMS)}). "
+        "These are surface/uptake appendages, not protein secretion systems. "
         "T3SS is detected by default; DeepSecE is never trusted for T3SS calls. "
-        "Pass 'Flagellum Tad T3SS' to restore the old T3SS-excluded behaviour.",
+        "Append 'T3SS' to restore the old T3SS-excluded behaviour.",
     )
     g.add_argument(
         "--macsyfinder-db-type",
@@ -220,10 +223,10 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         default=False,
         help=(
             "Per-SS-type circular-shift enrichment test: emits fold (enrichment) + "
-            "permutation p + BH q per system type, plus a per-type null-distribution "
-            "figure. Forces whole-genome DeepLocPro + DeepSecE (the rotation null needs "
-            "every gene's positivity in gene order), which adds ~13 min/genome. "
-            "Off by default."
+            "permutation p + BH q per system type for DeepLocPro, DeepSecE, and SignalP, "
+            "plus enrichment figures. Forces whole-genome DeepLocPro + DeepSecE + SignalP "
+            "(local; the rotation null needs every gene's positivity in gene order), which "
+            "adds ~13 min/genome. Off by default."
         ),
     )
 
@@ -500,37 +503,28 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g = p.add_argument_group("figures")
     g.add_argument("--dpi", type=int, default=300, help="Figure DPI (default: 300).")
     g.add_argument(
-        "--fig-ss-comp", action=argparse.BooleanOptionalAction, default=True, help="01 secreted proteins per SS type."
-    )
-    g.add_argument(
-        "--fig-evidence",
+        "--fig-ss-comp",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="02 secretion-call support per protein.",
+        help="01 secreted proteins per genome, stacked by SS type.",
     )
     g.add_argument(
-        "--fig-localization",
+        "--fig-autotransporter",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="03 DeepLocPro extracellular probability by SS type.",
+        help="02 T5aSS/T5cSS autotransporter self-detection.",
     )
     g.add_argument(
-        "--fig-signalp",
+        "--fig-physicochemical",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="04 SignalP-positive fraction by SS type.",
-    )
-    g.add_argument(
-        "--fig-tool-heatmap", action=argparse.BooleanOptionalAction, default=True, help="05 annotation-tool coverage."
-    )
-    g.add_argument(
-        "--fig-length", action=argparse.BooleanOptionalAction, default=True, help="06 protein length by SS type."
+        help="03 size & physicochemical properties by SS type (length + ProtParam when present).",
     )
     g.add_argument(
         "--fig-func-summary",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="07 functional categories by SS type.",
+        help="04-07 functional categories by SS type (COG/KEGG/EggNOG/consensus).",
     )
 
 
@@ -613,11 +607,8 @@ def _config_from_args(
         "ortholog_min_qcov": args.ortholog_min_qcov,
         "dpi": args.dpi,
         "fig_ss_comp": args.fig_ss_comp,
-        "fig_evidence": args.fig_evidence,
-        "fig_localization": args.fig_localization,
-        "fig_signalp": args.fig_signalp,
-        "fig_tool_heatmap": args.fig_tool_heatmap,
-        "fig_length": args.fig_length,
+        "fig_autotransporter": args.fig_autotransporter,
+        "fig_physicochemical": args.fig_physicochemical,
         "fig_func_summary": args.fig_func_summary,
     }
     # hhsuite_min_prob is the only field with a non-trivial default

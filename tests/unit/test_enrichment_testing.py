@@ -21,6 +21,7 @@ from enrichment_testing import (
     is_dlp_positive,
     is_dlp_self_positive,
     is_dse_positive,
+    is_signalp_positive,
     load_systems,
     positivity_vectors,
     rotation_counts,
@@ -82,6 +83,24 @@ class TestPositivity:
 
     def test_self_negative_when_both_low(self):
         assert not is_dlp_self_positive({"outer_membrane_prob": "0.3", "dlp_extracellular_prob": "0.3"}, 0.8)
+
+    @pytest.mark.parametrize(
+        "pred,expected",
+        [
+            ("SP", True),  # Sec/SPI
+            ("LIPO", True),  # Sec/SPII
+            ("TAT", False),  # Tat/SPI — different export route
+            ("TATLIPO", False),
+            ("PILIN", False),  # pilus marker, not a secretion signal
+            ("OTHER", False),
+            ("", False),
+        ],
+    )
+    def test_signalp_sec_class_rule(self, pred, expected):
+        assert is_signalp_positive({"signalp_prediction": pred}) is expected
+
+    def test_signalp_missing_row_negative(self):
+        assert not is_signalp_positive({})
 
 
 class TestRotationCounts:
@@ -160,8 +179,10 @@ class TestBinomRetained:
 
 
 def _build_genome(tmp_dir, n=120):
-    """Synthetic whole-genome fixture: one T6SSi system, one T5aSS autotransporter,
-    one T3SS system, with planted positives. Returns the four input paths."""
+    """Synthetic whole-genome fixture: one T6SSi system, one T5aSS autotransporter
+    (DLP-self + SignalP positive), one T5cSS autotransporter (SignalP positive but
+    DLP-self negative, to pin the combined-uses-SignalP rule), one T3SS system, with
+    planted positives. Returns the five input paths (incl. signalp)."""
     gene_order = os.path.join(tmp_dir, "gene_order.tsv")
     write_tsv(
         gene_order,
@@ -176,6 +197,7 @@ def _build_genome(tmp_dir, n=120):
         [
             {"locus_tag": "g0020", "ss_type": "T6SSi", "sys_id": "sA", "excluded": "False"},
             {"locus_tag": "g0021", "ss_type": "T6SSi", "sys_id": "sA", "excluded": "False"},
+            {"locus_tag": "g0030", "ss_type": "T5cSS", "sys_id": "sD", "excluded": "False"},
             {"locus_tag": "g0060", "ss_type": "T5aSS", "sys_id": "sB", "excluded": "False"},
             {"locus_tag": "g0090", "ss_type": "T3SS", "sys_id": "sC", "excluded": "False"},
             {"locus_tag": "g0091", "ss_type": "T3SS", "sys_id": "sC", "excluded": "False"},
@@ -184,18 +206,23 @@ def _build_genome(tmp_dir, n=120):
     )
     dlp_pos = {"g0019", "g0022"}  # flank the T6SS components
     dse_pos = {"g0019": "T6SS", "g0089": "T3SS"}  # one near T6SS; one is the T3SS comp (DSE excluded)
-    dlp_rows, dse_rows = [], []
+    # SignalP Sec-signal calls: both autotransporter components plus two scattered
+    # background genes (LIPO is also a Sec signal). T5cSS (g0030) is SignalP-positive
+    # but DLP-self-negative, so its combined bar must equal the SignalP value, not DLP.
+    sp_pred = {"g0060": "SP", "g0030": "SP", "g0005": "SP", "g0110": "LIPO", "g0009": "TAT"}
+    dlp_rows, dse_rows, sp_rows = [], [], []
     for i in range(n):
         lt = f"g{i:04d}"
         dlp_rows.append(
             {
                 "locus_tag": lt,
                 "dlp_extracellular_prob": "0.95" if lt in dlp_pos else "0.05",
-                "outer_membrane_prob": "0.95" if lt == "g0060" else "0.05",  # autotransporter self
+                "outer_membrane_prob": "0.95" if lt == "g0060" else "0.05",  # only T5aSS is DLP-self positive
             }
         )
         ty = dse_pos.get(lt, "Non-secreted")
         dse_rows.append({"locus_tag": lt, "dse_ss_type": ty, "dse_max_prob": "0.95" if lt in dse_pos else "0.1"})
+        sp_rows.append({"locus_tag": lt, "signalp_prediction": sp_pred.get(lt, "OTHER")})
     dlp = write_tsv(
         os.path.join(tmp_dir, "dlp.tsv"),
         ["locus_tag", "dlp_extracellular_prob", "outer_membrane_prob"],
@@ -205,7 +232,10 @@ def _build_genome(tmp_dir, n=120):
     dse = write_tsv(
         os.path.join(tmp_dir, "dse.tsv"), ["locus_tag", "dse_ss_type", "dse_max_prob"], dse_rows, delimiter="\t"
     )
-    return {"ss": ss, "gene_order": gene_order, "dlp": dlp, "dse": dse}
+    signalp = write_tsv(
+        os.path.join(tmp_dir, "signalp.tsv"), ["locus_tag", "signalp_prediction"], sp_rows, delimiter="\t"
+    )
+    return {"ss": ss, "gene_order": gene_order, "dlp": dlp, "dse": dse, "signalp": signalp}
 
 
 class TestRunEnrichmentAggregation:
@@ -213,13 +243,13 @@ class TestRunEnrichmentAggregation:
         fx = _build_genome(tmp_dir)
         dlp = {r["locus_tag"]: r for r in csv.DictReader(open(fx["dlp"]), delimiter="\t")}
         dse = {r["locus_tag"]: r for r in csv.DictReader(open(fx["dse"]), delimiter="\t")}
+        signalp = {r["locus_tag"]: r for r in csv.DictReader(open(fx["signalp"]), delimiter="\t")}
         systems, ss_type_of_sys = load_systems(fx["ss"])
         # order
         from enrichment_testing import gene_order_flat
 
         order = gene_order_flat(fx["gene_order"])
-        idx, dlp_vec, dse_vec, dlp_self = positivity_vectors(order, dlp, dse, 0.8)
-        vecs = {"dlp": dlp_vec, "dse": dse_vec, "dlp_self": dlp_self}
+        idx, vecs = positivity_vectors(order, dlp, dse, signalp, 0.8)
         by_type, all_components = components_by_display_type(systems, ss_type_of_sys)
         all_comp_idx = [idx[lt] for lt in all_components if lt in idx]
         rows = run_enrichment(order, idx, vecs, by_type, all_comp_idx, window=3)
@@ -235,6 +265,28 @@ class TestRunEnrichmentAggregation:
         assert by[("T3SS", "DSE")]["skip"] is True
         assert by[("T3SS", "DLP")]["skip"] is False  # DLP T3SS window still tested
 
+        # SignalP is a full third predictor: emitted for every type incl. T3SS (no
+        # skip), self-detection for autotransporters.
+        assert by[("T5aSS", "SignalP")]["mode"] == "self"
+        assert by[("T5aSS", "SignalP")]["observed"] == 1  # autotransporter carries a Sec signal
+        assert by[("T3SS", "SignalP")]["skip"] is False  # unlike DSE, SignalP IS tested for T3SS
+        assert by[("T6SS", "SignalP")]["mode"] == "window"
+
+        # Combined DLP-or-DSE track for window types: one row per tested type; observed
+        # is the OR of the valid predictors, so >= each individual predictor.
+        assert by[("T6SS", "COMBINED")]["mode"] == "window"
+        assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DLP")]["observed"]
+        assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DSE")]["observed"]
+        # T3SS combined uses DLP only (DSE invalid for T3SS).
+        assert by[("T3SS", "COMBINED")]["skip"] is False
+        assert by[("T3SS", "COMBINED")]["observed"] == by[("T3SS", "DLP")]["observed"]
+        # Autotransporter combined bar is the SignalP score, NOT DLP-or-DSE. T5cSS is
+        # SignalP-positive but DLP-self-negative, so combined must follow SignalP (1),
+        # not DLP (0) — this pins decision 4.
+        assert by[("T5cSS", "DLP")]["observed"] == 0
+        assert by[("T5cSS", "SignalP")]["observed"] == 1
+        assert by[("T5cSS", "COMBINED")]["observed"] == by[("T5cSS", "SignalP")]["observed"]
+
 
 class TestCliDriver:
     def test_end_to_end_schema_and_npz(self, monkeypatch, tmp_dir):
@@ -247,6 +299,7 @@ class TestCliDriver:
             "--gene-order", fx["gene_order"],
             "--dlp", fx["dlp"],
             "--dse", fx["dse"],
+            "--signalp", fx["signalp"],
             "--window", "3",
             "--conf-threshold", "0.8",
             "--sample", "test",
@@ -261,10 +314,18 @@ class TestCliDriver:
         # T3SS-DSE row present but blank/insignificant
         t3_dse = next(r for r in rows if r["ss_type"] == "T3SS" and r["tool"] == "DSE")
         assert t3_dse["observed"] == "" and t3_dse["significant"] == "False"
-        # npz dumped with a key per real (type, tool)
+        # SignalP rows emitted (third predictor); it joins the per-tool BH family so its
+        # rows carry a qvalue, and it is present even for T3SS (not skipped).
+        sp_rows = [r for r in rows if r["tool"] == "SignalP"]
+        assert sp_rows and all(r["qvalue"] != "" for r in sp_rows)
+        assert any(r["ss_type"] == "T3SS" for r in sp_rows)
+        # Combined DLP-or-DSE rows emitted (one per tested type) for the combined figure
+        assert any(r["tool"] == "COMBINED" for r in rows)
+        # npz dumped with a key per real (type, tool), SignalP included
         assert os.path.exists(nulls)
         with np.load(nulls) as npz:
             assert "T6SS__DLP" in npz.files
+            assert "T5aSS__SignalP" in npz.files
 
     def test_no_components_header_only(self, monkeypatch, tmp_dir):
         fx = _build_genome(tmp_dir)
@@ -278,6 +339,7 @@ class TestCliDriver:
             "--gene-order", fx["gene_order"],
             "--dlp", fx["dlp"],
             "--dse", fx["dse"],
+            "--signalp", fx["signalp"],
             "--sample", "test",
             "--out", out,
         ]  # fmt: skip

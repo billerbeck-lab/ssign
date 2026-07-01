@@ -23,15 +23,16 @@ from .constants import SS_TYPE_DISPLAY_ORDER, display_type  # noqa: E402
 THEME = {
     "DLP": "#3F8E8C",  # DeepLocPro (teal)
     "DSE": "#E0884B",  # DeepSecE (amber)
+    "SignalP": "#9B5DA0",  # SignalP (magenta-purple)
+    "COMBINED": "#7E6BA8",  # DLP-or-DSE combined predictor (muted purple)
     "observed": "#C0392B",  # observed-value line
     "null_mean": "#333333",  # null-mean reference line
     "neutral_bar": "#6C8EAD",  # single-hue bars (no categorical meaning)
     "ref_line": "#444444",  # cutoff / zero reference lines
-    "muted": "#B5B5B8",  # de-emphasised (non-significant) elements
+    "muted": "#B5B5B8",  # de-emphasised (non-significant) bars/elements
+    "muted_text": "#999999",  # de-emphasised annotation text (darker than muted for legibility)
     "caption": "#666666",  # sub-axis caption / annotation text
 }
-
-SEQUENTIAL_CMAP = "viridis"  # counts, intensities
 
 # Canonical SS-type order comes from constants (single source of truth). A type
 # keeps its colour across every figure and every run, whichever subset is present;
@@ -52,7 +53,7 @@ _FALLBACK_CYCLE = ["#9C755F", "#BAB0AC", "#86BCB6", "#D37295", "#A0CBE8"]
 
 # Regular-figure PNGs this pipeline owns: legacy fig<N>_ plus current 0N_ / P0N_.
 # Used by clear_figure_set to wipe a stale set without touching the enrichment
-# figure (*_enrichment_null_distributions.png) or any foreign PNG.
+# figure (*_enrichment_fold.png) or any foreign PNG.
 _OWNED_FIG_RE = re.compile(r"^(fig\d+_|\d{2}_|P\d{2}_).*\.png$")
 
 
@@ -75,6 +76,14 @@ def apply_house_style() -> None:
             "ytick.color": "#444444",
         }
     )
+
+
+def ordered_ss_types(present) -> list:
+    """Canonical SS-type display order first, then any extras alphabetically."""
+    present = set(present)
+    known = [t for t in SS_TYPE_ORDER if t in present]
+    extra = sorted(t for t in present if t not in SS_TYPE_ORDER)
+    return known + extra
 
 
 def ss_type_palette(types) -> dict:
