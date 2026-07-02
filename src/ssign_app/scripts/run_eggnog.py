@@ -273,6 +273,7 @@ def run_emapper(
     sensmode="sensitive",
     dbmem=None,
     local_cache_dir=None,
+    timeout=TOOL_TIMEOUT_S,
 ):
     """Run emapper.py on a protein FASTA file.
 
@@ -332,7 +333,7 @@ def run_emapper(
     # biopython==1.76 conflicts with bakta>=1.78. Users install it
     # separately. See docs/how-to/install.md § EggNOG-mapper.
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"emapper.py binary not found: {e}\n"
@@ -505,6 +506,12 @@ def main():
         ),
     )
     parser.add_argument("--out", required=True, help="Output annotations TSV (ssign format)")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=TOOL_TIMEOUT_S,
+        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the flat floor)",
+    )
     args = parser.parse_args()
 
     substrate_ids = load_substrate_ids(args.substrates)
@@ -534,6 +541,7 @@ def main():
             sensmode=args.sensmode,
             dbmem=args.dbmem,
             local_cache_dir=args.local_cache_dir,
+            timeout=args.timeout,
         )
         entries = parse_eggnog_annotations(annotations_path)
 

@@ -183,6 +183,7 @@ def _embed_query_fasta(
     out_base: str,
     embedder: str = "pt",
     failure_log_dir: str = "",
+    timeout: int = PLMBLAST_TIMEOUT_S,
 ) -> None:
     """Run pLM-BLAST's embeddings.py to embed a FASTA, producing a
     single pooled `<base>.pt` file plus a sibling `<base>.csv` index.
@@ -230,7 +231,7 @@ def _embed_query_fasta(
         logger.info("pLM-BLAST embedding: running on CPU (~100x slower than GPU)")
     logger.info(f"Embedding query: embeddings.py start {proteins_fasta} {pt_path} -embedder {embedder}")
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=PLMBLAST_TIMEOUT_S)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"pLM-BLAST embeddings.py not runnable: {e}\n"
@@ -251,7 +252,7 @@ def _embed_query_fasta(
                 "    - Or unset SSIGN_PLMBLAST_FORCE_CPU if it's overriding auto-detect"
             )
         raise RuntimeError(
-            f"pLM-BLAST embedding timed out after 4 hours: {e}\n  How to fix:\n    - Reduce query size\n{gpu_hint}"
+            f"pLM-BLAST embedding timed out after {timeout}s: {e}\n  How to fix:\n    - Reduce query size\n{gpu_hint}"
         ) from e
     if result.returncode != 0:
         # out_base lives in a TemporaryDirectory the parent will nuke
@@ -277,6 +278,7 @@ def run_plmblast(
     cpc: int = 70,
     threads: int | None = None,
     failure_log_dir: str = "",
+    timeout: int = PLMBLAST_TIMEOUT_S,
 ) -> str:
     """Run pLM-BLAST against the ECOD DB and return the CSV output path.
 
@@ -295,6 +297,7 @@ def run_plmblast(
             proteins_fasta,
             query_emb_base,
             failure_log_dir=failure_log_dir,
+            timeout=timeout,
         )
 
         # plmblast.py uses single-dash long flags (`-cpc`, `-workers`)
@@ -326,7 +329,7 @@ def run_plmblast(
         # on PATH, or set SSIGN_PLMBLAST_SCRIPT to its absolute path.
         # If this breaks: pip install git+https://github.com/labstructbioinf/pLM-BLAST.git
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=PLMBLAST_TIMEOUT_S, env=env)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
         except FileNotFoundError as e:
             raise RuntimeError(
                 f"pLM-BLAST script not found: {e}\n"
@@ -530,6 +533,12 @@ def main() -> int:
             "wrapper inside one."
         ),
     )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=PLMBLAST_TIMEOUT_S,
+        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the pLM-BLAST 24h floor)",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.substrates):
@@ -585,6 +594,7 @@ def main() -> int:
                 cpc=args.cpc,
                 threads=args.threads,
                 failure_log_dir=os.path.dirname(os.path.abspath(args.out)),
+                timeout=args.timeout,
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)

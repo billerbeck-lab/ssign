@@ -31,6 +31,10 @@ PBS_SCRIPT="$SCRIPT_DIR/run_batched_multi.pbs"
 test -f "$PBS_SCRIPT" || { echo "FATAL: $PBS_SCRIPT not found"; exit 1; }
 
 GPU="RTX6000"
+# Per-tool timeouts now scale with input size (openspec size-aware-tool-timeouts): a large
+# multi-genome --enrichment-stats run pools whole-genome predictions (e.g. ~160k proteins ->
+# ~11h DLP cap), so the PBS walltime is the binding limit. Pass --walltime 24:00:00 (or more)
+# for a full panel; the 8h default only fits a handful of genomes.
 WALLTIME="8:00:00"
 USE_TUTORIAL_ALL="0"
 NCPUS="64"

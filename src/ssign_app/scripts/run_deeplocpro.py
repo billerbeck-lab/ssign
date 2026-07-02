@@ -113,7 +113,7 @@ def _use_cuda_for_deeplocpro() -> bool:
         return False
 
 
-def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gram-"):
+def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gram-", timeout=TOOL_TIMEOUT_S):
     """Run DeepLocPro CLI locally and return path to results file."""
     # Handle 0-sequence input gracefully: write empty output and return
     n_seqs = count_sequences(input_fasta)
@@ -171,7 +171,7 @@ def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gra
     # FRAGILE: subprocess call requires DeepLocPro binary on PATH or at deeplocpro_path
     # If this breaks: install DeepLocPro locally or switch to --mode remote
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S, env=env)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"DeepLocPro binary not found: {e}\n"
@@ -184,7 +184,7 @@ def run_local_deeplocpro(input_fasta, deeplocpro_path, output_dir, organism="gra
         ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(
-            f"DeepLocPro timed out after 4 hours: {e}\n"
+            f"DeepLocPro timed out after {timeout}s: {e}\n"
             f"  How to fix:\n"
             f"    - Reduce the number of input sequences\n"
             f"    - Or use --mode remote to offload computation to DTU servers"
@@ -503,6 +503,12 @@ def main():
     parser.add_argument("--deeplocpro-path", default="", help="Path to DeepLocPro install (local mode)")
     parser.add_argument("--conf-threshold", type=float, default=0.8)
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=TOOL_TIMEOUT_S,
+        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the flat floor)",
+    )
     args = parser.parse_args()
 
     try:
@@ -525,7 +531,7 @@ def main():
                 kept_fasta = os.path.join(tmpdir, "deeplocpro_input.faa")
                 write_fasta(kept, kept_fasta)
                 if args.mode == "local":
-                    results_path = run_local_deeplocpro(kept_fasta, args.deeplocpro_path, tmpdir)
+                    results_path = run_local_deeplocpro(kept_fasta, args.deeplocpro_path, tmpdir, timeout=args.timeout)
                 else:
                     results_path = run_remote_deeplocpro(kept_fasta, tmpdir)
                 entries = parse_deeplocpro_output(results_path)

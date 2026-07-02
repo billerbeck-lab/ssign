@@ -19,14 +19,19 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
+from ssign_app.runtime import resolve_regime, scaled_timeout
 from ssign_app.scripts.ssign_lib.constants import (
     DEFAULT_EXCLUDED_SYSTEMS,
     DEFAULT_TIER,
     HHSUITE_MIN_PROB,
+    PLMBLAST_TIMEOUT_S,
     TIER_TOOL_DEFAULTS,
+    TOOL_TIMEOUT_S,
 )
 from ssign_app.scripts.ssign_lib.dependency_manifest import DATABASE_PATHS
+from ssign_app.scripts.ssign_lib.fasta_io import count_sequences
 from ssign_app.scripts.ssign_lib.resources import effective_cpu_count
+from ssign_app.scripts.ssign_lib.substrates import load_substrate_ids
 
 logger = logging.getLogger(__name__)
 
@@ -549,7 +554,13 @@ def run_script(
             _log_nonzero_exit(script_name, result.returncode, result.stdout, result.stderr)
         return (result.returncode, result.stdout, result.stderr)
     except subprocess.TimeoutExpired:
-        return (-1, "", f"Timeout after {timeout}s")
+        logger.warning(
+            "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
+            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            script_name,
+            timeout,
+        )
+        return (-1, "", f"Timeout after {timeout}s (killed {script_name})")
     except Exception as e:
         # Log the traceback so the underlying cause (PermissionError, OSError,
         # encoding glitches in subprocess output) is recoverable from the log
@@ -625,7 +636,13 @@ def _run_script_streaming(cmd: list, script_name: str, timeout: int) -> tuple:
         proc.wait()
         t_out.join(timeout=1)
         t_err.join(timeout=1)
-        return (-1, "".join(stdout_chunks), f"Timeout after {timeout}s")
+        logger.warning(
+            "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
+            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            script_name,
+            timeout,
+        )
+        return (-1, "".join(stdout_chunks), f"Timeout after {timeout}s (killed {script_name})")
 
     t_out.join()
     t_err.join()
@@ -1676,6 +1693,37 @@ class PipelineRunner:
             raise RuntimeError("No neighborhood or proteins FASTA staged; input-processing step must run first")
         return chosen
 
+    def _scaled_tool_timeout(
+        self, tool: str, size: int, *, whole_genome: bool = False, floor: int = TOOL_TIMEOUT_S
+    ) -> int:
+        """Size-aware subprocess timeout (seconds) for `tool`, from the effort model.
+
+        `size` is the sequence count of what the tool actually processes (the
+        proteome for predictors, the substrate count for annotation). Scales the
+        cap so large inputs (e.g. a pooled 160k-protein whole-genome prediction)
+        aren't killed by the flat 4h floor; unmodelled tools / unknown size fall
+        back to `floor`. openspec: size-aware-tool-timeouts.
+        """
+        regime = resolve_regime(tool, whole_genome=whole_genome)
+        if regime is None or size is None or size < 0:
+            return floor
+        return scaled_timeout(tool, size, regime, floor=floor)
+
+    def _substrate_count(self) -> int:
+        """Number of filtered substrates staged for this runner (0 if none/unreadable).
+
+        This is the effort-model `size` axis for the substrate-scoped annotation
+        tools; in a batched run the pool runner stages the pooled substrate set
+        here, so the cap scales with the whole panel's substrate load.
+        """
+        path = self.files.get("substrates_filtered", "")
+        if not path:
+            return 0
+        try:
+            return len(load_substrate_ids(path))
+        except (OSError, ValueError):
+            return 0
+
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")
 
@@ -1709,8 +1757,12 @@ class PipelineRunner:
                     "rate-limit hold; expect possible API throttling.",
                     DTU_SEMAPHORE_TIMEOUT_S,
                 )
+        timeout_s = self._scaled_tool_timeout(
+            "deeplocpro", count_sequences(input_proteins), whole_genome=self.config.dlp_whole_genome
+        )
+        args.extend(["--timeout", str(timeout_s)])
         try:
-            rc, stdout, stderr = run_script("run_deeplocpro.py", args, timeout=14400)
+            rc, stdout, stderr = run_script("run_deeplocpro.py", args, timeout=timeout_s)
         finally:
             if held:
                 sem.release()
@@ -1734,7 +1786,9 @@ class PipelineRunner:
                 "--output",
                 output,
             ],
-            timeout=14400,
+            timeout=self._scaled_tool_timeout(
+                "deepsece", count_sequences(input_proteins), whole_genome=self.config.dse_whole_genome
+            ),
         )
 
         if rc == 0:
@@ -1772,8 +1826,12 @@ class PipelineRunner:
                     "rate-limit hold; expect possible API throttling.",
                     DTU_SEMAPHORE_TIMEOUT_S,
                 )
+        timeout_s = self._scaled_tool_timeout(
+            "signalp", count_sequences(input_proteins), whole_genome=self.config.sp_whole_genome
+        )
+        args.extend(["--timeout", str(timeout_s)])
         try:
-            rc, stdout, stderr = run_script("run_signalp.py", args, timeout=14400)
+            rc, stdout, stderr = run_script("run_signalp.py", args, timeout=timeout_s)
         finally:
             if held:
                 sem.release()
@@ -2161,7 +2219,9 @@ class PipelineRunner:
         if cache:
             args.extend(["--local-cache-dir", cache])
 
-        rc, stdout, stderr = run_script("run_interproscan.py", args, timeout=7200)
+        timeout_s = self._scaled_tool_timeout("interproscan", self._substrate_count())
+        args.extend(["--timeout", str(timeout_s)])
+        rc, stdout, stderr = run_script("run_interproscan.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["interproscan"] = output
             return StepResult("interproscan", True, "InterProScan complete")
@@ -2185,6 +2245,7 @@ class PipelineRunner:
                 "--output",
                 output,
             ],
+            timeout=self._scaled_tool_timeout("protparam", self._substrate_count()),
         )
 
         if rc == 0:
@@ -2232,7 +2293,9 @@ class PipelineRunner:
             cache_dir = os.environ.get("TMPDIR", "")
         if cache_dir and cache_dir != "off":
             args.extend(["--local-cache-dir", cache_dir])
-        rc, stdout, stderr = run_script("run_eggnog.py", args, timeout=14400)
+        timeout_s = self._scaled_tool_timeout("eggnog", self._substrate_count())
+        args.extend(["--timeout", str(timeout_s)])
+        rc, stdout, stderr = run_script("run_eggnog.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["eggnog"] = output
             return StepResult("eggnog", True, "EggNOG-mapper complete")
@@ -2278,7 +2341,9 @@ class PipelineRunner:
         if cache:
             args.extend(["--local-cache-dir", cache])
 
-        rc, stdout, stderr = run_script("run_plm_blast.py", args, timeout=14400)
+        timeout_s = self._scaled_tool_timeout("plm_blast", self._substrate_count(), floor=PLMBLAST_TIMEOUT_S)
+        args.extend(["--timeout", str(timeout_s)])
+        rc, stdout, stderr = run_script("run_plm_blast.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["plm_blast"] = output
             return StepResult("plm_blast", True, "pLM-BLAST complete")
@@ -2331,7 +2396,9 @@ class PipelineRunner:
         rc, stdout, stderr = run_script(
             "run_plm_effector.py",
             args,
-            timeout=14400,
+            timeout=self._scaled_tool_timeout(
+                "plm_effector", count_sequences(input_proteins), whole_genome=self.config.plme_whole_genome
+            ),
             stream_stderr=True,
         )
         if rc != 0:

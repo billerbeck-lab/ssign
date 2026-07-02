@@ -91,6 +91,7 @@ def run_local_interproscan(
     applications="",
     offline=False,
     cpu=None,
+    timeout=TOOL_TIMEOUT_S,
 ):
     """Run InterProScan locally and return path to the TSV output.
 
@@ -163,7 +164,7 @@ def run_local_interproscan(
     logger.info("InterProScan _JAVA_OPTIONS=%s", env["_JAVA_OPTIONS"])
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S, env=env)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"InterProScan (interproscan.sh) not found: {e}\n"
@@ -291,6 +292,12 @@ def main():
             "sequential, but ProSiteProfiles + CDD do random reads."
         ),
     )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=TOOL_TIMEOUT_S,
+        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the flat floor)",
+    )
     args = parser.parse_args()
 
     # Short-circuit on empty substrate input BEFORE the DB stage. Reduced-
@@ -330,6 +337,7 @@ def main():
             applications=args.applications,
             offline=args.offline,
             cpu=args.cpu,
+            timeout=args.timeout,
         )
         results_unique = parse_interproscan_tsv(tsv_path, set(unique_seqs.keys()))
 

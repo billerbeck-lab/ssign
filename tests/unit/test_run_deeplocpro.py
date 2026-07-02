@@ -404,7 +404,7 @@ class TestMainLengthGuard:
     def _fake_local(self, seen):
         import run_deeplocpro as rdp
 
-        def fake(input_fasta, deeplocpro_path, output_dir, organism="gram-"):
+        def fake(input_fasta, deeplocpro_path, output_dir, organism="gram-", timeout=None):
             seen["ids"] = list(rdp.read_fasta(input_fasta).keys())
             res = os.path.join(output_dir, "results.csv")
             with open(res, "w") as fh:

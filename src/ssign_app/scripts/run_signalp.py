@@ -51,7 +51,7 @@ DTU_POLL_INTERVAL = 5
 # ── Local mode ──
 
 
-def run_local_signalp(input_fasta, signalp_path, output_dir):
+def run_local_signalp(input_fasta, signalp_path, output_dir, timeout=TOOL_TIMEOUT_S):
     """Run SignalP 6.0 CLI locally."""
     # Handle 0-sequence input gracefully: write empty output and return
     n_seqs = count_sequences(input_fasta)
@@ -91,7 +91,7 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
     # FRAGILE: subprocess call requires signalp6 binary on PATH or at signalp_path
     # If this breaks: install SignalP 6.0 locally or switch to --mode remote
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"SignalP binary (signalp6) not found: {e}\n"
@@ -104,7 +104,7 @@ def run_local_signalp(input_fasta, signalp_path, output_dir):
         ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(
-            f"SignalP timed out after 4 hours: {e}\n"
+            f"SignalP timed out after {timeout}s: {e}\n"
             f"  How to fix:\n"
             f"    - Reduce the number of input sequences\n"
             f"    - Or use --mode remote to offload computation to DTU servers"
@@ -407,12 +407,18 @@ def main():
     )
     parser.add_argument("--signalp-path", default="", help="Path to SignalP install (local mode)")
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=TOOL_TIMEOUT_S,
+        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the flat floor)",
+    )
     args = parser.parse_args()
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             if args.mode == "local":
-                results_path = run_local_signalp(args.input, args.signalp_path, tmpdir)
+                results_path = run_local_signalp(args.input, args.signalp_path, tmpdir, timeout=args.timeout)
             else:
                 results_path = run_remote_signalp(args.input, tmpdir)
 
