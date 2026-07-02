@@ -5,21 +5,21 @@ import os
 import pandas as pd
 from _helpers import run_script_main
 
+from ssign_app.scripts.generate_figures import _explode_ss_types
 from ssign_app.scripts.generate_figures import main as gen_main
 
 _TYPES = ["T1SS", "T2SS", "T3SS", "T5aSS", "T6SS"]
 
-# Functional figures (04-07), by-SS-type only, fixed numbers per source.
+# Functional figures (03-06), by-SS-type only, fixed numbers per source.
 _FUNCTIONAL = [
-    "04_cog_category_by_sstype.png",
-    "05_kegg_function_by_sstype.png",
-    "06_eggnog_description_by_sstype.png",
-    "07_consensus_function_by_sstype.png",
+    "03_cog_category_by_sstype.png",
+    "04_kegg_function_by_sstype.png",
+    "05_eggnog_description_by_sstype.png",
+    "06_consensus_function_by_sstype.png",
 ]
 _PER_GENOME = [
     "01_secreted_by_genome.png",
-    "02_autotransporter_self_detection.png",
-    "03_physicochemical.png",
+    "02_physicochemical.png",
     *_FUNCTIONAL,
 ]
 _PHYSCHEM_COLS = ["aa_length", "gravy", "mw_da", "isoelectric_point", "instability_index", "aromaticity", "charge_ph7"]
@@ -82,7 +82,7 @@ def test_per_genome_emits_numbered_set(monkeypatch, tmp_path):
 def test_physicochemical_skipped_when_all_size_columns_absent(monkeypatch, tmp_path):
     df = _make_df().drop(columns=_PHYSCHEM_COLS)
     produced = _run(monkeypatch, df, tmp_path / "figs")
-    assert "03_physicochemical.png" not in produced
+    assert "02_physicochemical.png" not in produced
     assert "01_secreted_by_genome.png" in produced
     for f in _FUNCTIONAL:
         assert f in produced
@@ -92,13 +92,7 @@ def test_physicochemical_emitted_with_only_length(monkeypatch, tmp_path):
     # Length lives in the physicochemical figure, so length alone still emits it.
     df = _make_df().drop(columns=[c for c in _PHYSCHEM_COLS if c != "aa_length"])
     produced = _run(monkeypatch, df, tmp_path / "figs")
-    assert "03_physicochemical.png" in produced
-
-
-def test_autotransporter_skipped_without_om_column(monkeypatch, tmp_path):
-    df = _make_df().drop(columns=["outer_membrane_prob"])
-    produced = _run(monkeypatch, df, tmp_path / "figs")
-    assert "02_autotransporter_self_detection.png" not in produced
+    assert "02_physicochemical.png" in produced
 
 
 def test_pooled_mode_two_genomes(monkeypatch, tmp_path):
@@ -142,10 +136,9 @@ def test_pooled_mode_single_genome_noop(monkeypatch, tmp_path):
 
 def test_toggle_skips_named_figures(monkeypatch, tmp_path):
     produced = _run(monkeypatch, _make_df(), tmp_path / "figs", extra=["--no-physicochemical", "--no-func-summary"])
-    assert "03_physicochemical.png" not in produced
+    assert "02_physicochemical.png" not in produced
     assert not any(f in produced for f in _FUNCTIONAL)
     assert "01_secreted_by_genome.png" in produced
-    assert "02_autotransporter_self_detection.png" in produced
 
 
 def test_no_functional_source_columns_skips_block(monkeypatch, tmp_path):
@@ -156,9 +149,23 @@ def test_no_functional_source_columns_skips_block(monkeypatch, tmp_path):
 
 
 def test_functional_numbers_are_fixed_per_source(monkeypatch, tmp_path):
-    # Dropping COG removes only 04; KEGG/EggNOG/consensus keep their fixed numbers.
+    # Dropping COG removes only 03; KEGG/EggNOG/consensus keep their fixed numbers.
     df = _make_df().drop(columns=["cog_category"])
     produced = _run(monkeypatch, df, tmp_path / "figs")
-    assert "04_cog_category_by_sstype.png" not in produced
-    assert "05_kegg_function_by_sstype.png" in produced
-    assert "07_consensus_function_by_sstype.png" in produced
+    assert "03_cog_category_by_sstype.png" not in produced
+    assert "04_kegg_function_by_sstype.png" in produced
+    assert "06_consensus_function_by_sstype.png" in produced
+
+
+def test_explode_splits_t5a_self_vs_hitchhiker():
+    # A T5aSS self component and a T5aSS proximity neighbour become distinct
+    # categories; a non-autotransporter type passes through unchanged.
+    df = pd.DataFrame(
+        [
+            {"nearby_ss_types": "T5aSS", "substrate_source": "T5SS-self", "x": 1},
+            {"nearby_ss_types": "T5aSS", "substrate_source": "proximity", "x": 2},
+            {"nearby_ss_types": "T1SS", "substrate_source": "proximity", "x": 3},
+        ]
+    )
+    labels = set(_explode_ss_types(df, ["x"])["ss_type"])
+    assert {"T5aSS (self)", "T5aSS (hitch)", "T1SS"} <= labels

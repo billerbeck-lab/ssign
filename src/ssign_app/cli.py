@@ -509,22 +509,16 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         help="01 secreted proteins per genome, stacked by SS type.",
     )
     g.add_argument(
-        "--fig-autotransporter",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="02 T5aSS/T5cSS autotransporter self-detection.",
-    )
-    g.add_argument(
         "--fig-physicochemical",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="03 size & physicochemical properties by SS type (length + ProtParam when present).",
+        help="02 size & physicochemical properties by SS type (length + ProtParam when present).",
     )
     g.add_argument(
         "--fig-func-summary",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="04-07 functional categories by SS type (COG/KEGG/EggNOG/consensus).",
+        help="03-06 functional categories by SS type (COG/KEGG/EggNOG/consensus).",
     )
 
 
@@ -607,7 +601,6 @@ def _config_from_args(
         "ortholog_min_qcov": args.ortholog_min_qcov,
         "dpi": args.dpi,
         "fig_ss_comp": args.fig_ss_comp,
-        "fig_autotransporter": args.fig_autotransporter,
         "fig_physicochemical": args.fig_physicochemical,
         "fig_func_summary": args.fig_func_summary,
     }

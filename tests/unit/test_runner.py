@@ -1190,7 +1190,7 @@ class TestPoolEnrichmentStats:
     arrays (dumped next to each stats TSV as *_enrichment_nulls.npz)."""
 
     def _write_genome(self, tmp_path, stem, rows, nulls):
-        """rows: new-schema dicts; nulls: {f'{ss}__{tool}': np.array}."""
+        """rows: new-schema dicts; nulls: {f'{ss}__{tool}__{mode}': np.array}."""
         import csv as _csv
 
         import numpy as np
@@ -1220,8 +1220,8 @@ class TestPoolEnrichmentStats:
 
         # Two genomes, same (T6SS, DLP) cell. Constant null arrays (all ones) make
         # the pooled null deterministic: every replicate sums to 1 + 1 = 2.
-        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP": np.ones(50, dtype=int)})
-        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP": np.ones(50, dtype=int)})
+        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP__window": np.ones(50, dtype=int)})
+        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP__window": np.ones(50, dtype=int)})
 
         out = tmp_path / "pooled.tsv"
         n = pool_enrichment_stats([str(a), str(b)], str(out))
@@ -1238,7 +1238,7 @@ class TestPoolEnrichmentStats:
         from ssign_app.core.runner import pool_and_plot_enrichment
 
         # One genome only -> nothing to pool, no files written.
-        a = self._write_genome(tmp_path, "a", [self._row()], {"T6SS__DLP": np.ones(20, dtype=int)})
+        a = self._write_genome(tmp_path, "a", [self._row()], {"T6SS__DLP__window": np.ones(20, dtype=int)})
         assert pool_and_plot_enrichment([str(a)], str(tmp_path)) == 0
         assert not (tmp_path / "pooled_enrichment_stats.tsv").exists()
 
@@ -1248,15 +1248,15 @@ class TestPoolEnrichmentStats:
         from ssign_app.core.runner import pool_enrichment_stats
         from ssign_app.scripts.ssign_lib.constants import ENRICH_POOL_REPS
 
-        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP": np.ones(50, dtype=int)})
-        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP": np.ones(50, dtype=int)})
+        a = self._write_genome(tmp_path, "a", [self._row(observed=4)], {"T6SS__DLP__window": np.ones(50, dtype=int)})
+        b = self._write_genome(tmp_path, "b", [self._row(observed=2)], {"T6SS__DLP__window": np.ones(50, dtype=int)})
         out = tmp_path / "pooled.tsv"
         npz_out = tmp_path / "pooled_nulls.npz"
         pool_enrichment_stats([str(a), str(b)], str(out), nulls_output=str(npz_out))
         assert npz_out.exists()
         with np.load(npz_out) as npz:
-            assert "T6SS__DLP" in npz.files  # enrich_null_key scheme, shared with the figure
-            assert npz["T6SS__DLP"].shape == (ENRICH_POOL_REPS,)
+            assert "T6SS__DLP__window" in npz.files  # enrich_null_key scheme, shared with the figure
+            assert npz["T6SS__DLP__window"].shape == (ENRICH_POOL_REPS,)
 
     def test_separate_types_pool_separately(self, tmp_path):
         import csv as _csv
@@ -1269,7 +1269,7 @@ class TestPoolEnrichmentStats:
             tmp_path,
             "a",
             [self._row(ss_type="T6SS"), self._row(ss_type="T1SS")],
-            {"T6SS__DLP": np.ones(40, dtype=int), "T1SS__DLP": np.ones(40, dtype=int)},
+            {"T6SS__DLP__window": np.ones(40, dtype=int), "T1SS__DLP__window": np.ones(40, dtype=int)},
         )
         out = tmp_path / "pooled.tsv"
         n = pool_enrichment_stats([str(a)], str(out))
@@ -1287,7 +1287,7 @@ class TestPoolEnrichmentStats:
         # Genome A: a real T6SS row (with null) + a skipped DSE-T3SS row (blank observed).
         skip = {"ss_type": "T3SS", "tool": "DSE", "mode": "window", "observed": "",
                 "qvalue": 1.0, "significant": False}  # fmt: skip
-        a = self._write_genome(tmp_path, "a", [self._row(), skip], {"T6SS__DLP": np.ones(30, dtype=int)})
+        a = self._write_genome(tmp_path, "a", [self._row(), skip], {"T6SS__DLP__window": np.ones(30, dtype=int)})
         # Genome B has a row but NO npz key for it -> contributes nothing.
         b = self._write_genome(tmp_path, "b", [self._row(ss_type="T2SS")], {})
 
@@ -1302,7 +1302,7 @@ class TestPoolEnrichmentStats:
 
         from ssign_app.core.runner import pool_enrichment_stats
 
-        present = self._write_genome(tmp_path, "present", [self._row()], {"T6SS__DLP": np.ones(30, dtype=int)})
+        present = self._write_genome(tmp_path, "present", [self._row()], {"T6SS__DLP__window": np.ones(30, dtype=int)})
         out = tmp_path / "pooled.tsv"
         n = pool_enrichment_stats([str(present), str(tmp_path / "nope_enrichment_stats.tsv")], str(out))
         assert n == 1

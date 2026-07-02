@@ -117,12 +117,25 @@ Plain text concatenation of:
 1. The HTML report's text version (substrate counts, per-SS breakdowns, tool
    contribution summary).
 2. The enrichment-analysis table (only with `--enrichment-stats`): one row per
-   (SS type, predictor) with `mode` (window/self), `observed`, `n_mask`,
-   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`, `n_null`. Predictors
-   are DeepLocPro, DeepSecE, and SignalP, plus a `COMBINED` row that pools the
-   two relevant predictors per type (DLP-or-DSE, or DLP-or-SignalP for T5SS).
+   (SS type, predictor, `mode`) with `observed`, `n_mask`, `null_mean`, `fold`,
+   `p_perm`, `qvalue`, `significant`, `n_null`. `mode` is `window` for ordinary
+   types (secreted-predicted proteins clustering near the components) or `self`
+   for autotransporter self-detection. **T5aSS/T5cSS emit two results**: a `self`
+   row-set (the autotransporter component detecting itself) AND a `window`
+   "hitchhiker" row-set (secreted-predicted neighbours that may piggyback through
+   the T5 pore; see `docs/explanation/design_decisions.md` § 5.2). Predictors are
+   DeepLocPro, DeepSecE, and SignalP, plus a `COMBINED` row that pools the two
+   relevant predictors per type: DLP-or-SignalP for the Sec-dependent T5 results
+   (autotransporter self + T5bSS), DLP-or-DSE for every other window (including
+   the T5a/c hitchhiker window), DLP-only for T3SS.
    `n_null` is the null sample size: the exact per-genome rotations (~one per
-   gene) for a single genome, or 10000 Monte-Carlo draws when pooled.
+   gene) for a single genome, or 10000 Monte-Carlo draws when pooled. A single
+   genome enumerates every rotation (n genes -> n-1 offsets) exactly. Pooling
+   cannot: the pooled null would be every joint combination of per-genome
+   offsets, a product ((n1-1) x (n2-1) x ...) that is astronomically large, so
+   it is estimated by drawing 10000 random joint rotations (one random rotation
+   per genome, summed) instead of enumerating them. Each genome still
+   contributes its own exact rotation set; only the join is sampled.
 
 > **Reading significance:** the test's power scales with how many genomes and
 > loci contribute. A **single-genome** run often shows `significant = False`

@@ -205,7 +205,10 @@ def _build_genome(tmp_dir, n=120):
         delimiter="\t",
     )
     dlp_pos = {"g0019", "g0022"}  # flank the T6SS components
-    dse_pos = {"g0019": "T6SS", "g0089": "T3SS"}  # one near T6SS; one is the T3SS comp (DSE excluded)
+    # one near T6SS; one is the T3SS comp (DSE excluded); g0058 is a DSE-positive,
+    # SignalP-negative neighbour of the T5aSS component (g0060) so the T5a/c
+    # hitchhiker(window) combined is provably DLP-or-DSE, not DLP-or-SignalP.
+    dse_pos = {"g0019": "T6SS", "g0089": "T3SS", "g0058": "T2SS"}
     # SignalP Sec-signal calls. The two autotransporters deliberately DISAGREE with
     # DLP so the combined DLP-or-SignalP union is testable: T5aSS (g0060) is
     # DLP-self-positive but SignalP-negative (combined must still fire via DLP);
@@ -257,44 +260,50 @@ class TestRunEnrichmentAggregation:
         all_comp_idx = [idx[lt] for lt in all_components if lt in idx]
         rows = run_enrichment(order, idx, vecs, by_type, all_comp_idx, window=3)
 
-        by = {(r["ss_type"], r["tool"]): r for r in rows}
+        by = {(r["ss_type"], r["tool"], r["mode"]): r for r in rows}
         # T6SS window: two flanking positives counted (components excluded)
-        assert by[("T6SS", "DLP")]["mode"] == "window"
-        assert by[("T6SS", "DLP")]["observed"] == 2
+        assert by[("T6SS", "DLP", "window")]["observed"] == 2
         # T5aSS self-detection: the component itself is OM-positive
-        assert by[("T5aSS", "DLP")]["mode"] == "self"
-        assert by[("T5aSS", "DLP")]["observed"] == 1
+        assert by[("T5aSS", "DLP", "self")]["observed"] == 1
         # DSE on T3SS is skipped (DSE can't call T3SS)
-        assert by[("T3SS", "DSE")]["skip"] is True
-        assert by[("T3SS", "DLP")]["skip"] is False  # DLP T3SS window still tested
+        assert by[("T3SS", "DSE", "window")]["skip"] is True
+        assert by[("T3SS", "DLP", "window")]["skip"] is False  # DLP T3SS window still tested
 
         # SignalP is a full third predictor: emitted for every type incl. T3SS (no
         # skip), self-detection for autotransporters. In this fixture T5aSS is
         # SignalP-negative (only T5cSS carries the signal), so its self observed is 0.
-        assert by[("T5aSS", "SignalP")]["mode"] == "self"
-        assert by[("T5aSS", "SignalP")]["observed"] == 0
-        assert by[("T5cSS", "SignalP")]["observed"] == 1  # autotransporter carries a Sec signal
-        assert by[("T3SS", "SignalP")]["skip"] is False  # unlike DSE, SignalP IS tested for T3SS
-        assert by[("T6SS", "SignalP")]["mode"] == "window"
+        assert by[("T5aSS", "SignalP", "self")]["observed"] == 0
+        assert by[("T5cSS", "SignalP", "self")]["observed"] == 1  # autotransporter carries a Sec signal
+        assert by[("T3SS", "SignalP", "window")]["skip"] is False  # unlike DSE, SignalP IS tested for T3SS
+
+        # Autotransporters emit BOTH a self and a hitchhiker(window) result per tool.
+        assert ("T5aSS", "DLP", "self") in by and ("T5aSS", "DLP", "window") in by
+        assert ("T5cSS", "DLP", "self") in by and ("T5cSS", "DLP", "window") in by
 
         # Combined non-T5 track = DLP-or-DSE: one row per tested type; observed is the
         # OR of the valid predictors, so >= each individual predictor.
-        assert by[("T6SS", "COMBINED")]["mode"] == "window"
-        assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DLP")]["observed"]
-        assert by[("T6SS", "COMBINED")]["observed"] >= by[("T6SS", "DSE")]["observed"]
+        assert by[("T6SS", "COMBINED", "window")]["observed"] >= by[("T6SS", "DLP", "window")]["observed"]
+        assert by[("T6SS", "COMBINED", "window")]["observed"] >= by[("T6SS", "DSE", "window")]["observed"]
         # T3SS combined uses DLP only (DSE invalid for T3SS).
-        assert by[("T3SS", "COMBINED")]["skip"] is False
-        assert by[("T3SS", "COMBINED")]["observed"] == by[("T3SS", "DLP")]["observed"]
-        # All T5SS combined = DLP-or-SignalP union (NOT DLP-or-DSE, NOT SignalP-alone).
+        assert by[("T3SS", "COMBINED", "window")]["skip"] is False
+        assert by[("T3SS", "COMBINED", "window")]["observed"] == by[("T3SS", "DLP", "window")]["observed"]
+        # T5a/c SELF combined = DLP-or-SignalP union (NOT DLP-or-DSE, NOT SignalP-alone).
         # The two autotransporters disagree, so the union is provable both ways:
         #  - T5aSS: DLP-self=1, SignalP=0 -> combined follows DLP (1), so SignalP alone
         #    (0) would be wrong.
-        assert by[("T5aSS", "DLP")]["observed"] == 1
-        assert by[("T5aSS", "COMBINED")]["observed"] == by[("T5aSS", "DLP")]["observed"]
+        assert by[("T5aSS", "COMBINED", "self")]["observed"] == by[("T5aSS", "DLP", "self")]["observed"] == 1
         #  - T5cSS: DLP-self=0, SignalP=1 -> combined follows SignalP (1), so DLP-or-DSE
         #    (0) would be wrong (this is the SignalP rescue).
-        assert by[("T5cSS", "DLP")]["observed"] == 0
-        assert by[("T5cSS", "COMBINED")]["observed"] == by[("T5cSS", "SignalP")]["observed"] == 1
+        assert by[("T5cSS", "DLP", "self")]["observed"] == 0
+        assert by[("T5cSS", "COMBINED", "self")]["observed"] == by[("T5cSS", "SignalP", "self")]["observed"] == 1
+
+        # T5a/c HITCHHIKER (window) combined = DLP-or-DSE, the ordinary window rule
+        # (NOT DLP-or-SignalP). g0058 is DSE-positive + SignalP-negative in the T5aSS
+        # window: DLP-window=0, DSE-window=1, SignalP-window=0. So the DLP-or-DSE union
+        # is 1; a wrong DLP-or-SignalP rule would give 0.
+        assert by[("T5aSS", "DSE", "window")]["observed"] == 1
+        assert by[("T5aSS", "SignalP", "window")]["observed"] == 0
+        assert by[("T5aSS", "COMBINED", "window")]["observed"] == 1
 
 
 class TestCliDriver:
@@ -330,11 +339,13 @@ class TestCliDriver:
         assert any(r["ss_type"] == "T3SS" for r in sp_rows)
         # Combined DLP-or-DSE rows emitted (one per tested type) for the combined figure
         assert any(r["tool"] == "COMBINED" for r in rows)
-        # npz dumped with a key per real (type, tool), SignalP included
+        # npz dumped with a key per real (type, tool, mode), SignalP included; the
+        # mode suffix keeps a T5a/c self and hitchhiker(window) null distinct.
         assert os.path.exists(nulls)
         with np.load(nulls) as npz:
-            assert "T6SS__DLP" in npz.files
-            assert "T5aSS__SignalP" in npz.files
+            assert "T6SS__DLP__window" in npz.files
+            assert "T5aSS__SignalP__self" in npz.files
+            assert "T5aSS__SignalP__window" in npz.files  # the hitchhiker null
 
     def test_no_components_header_only(self, monkeypatch, tmp_dir):
         fx = _build_genome(tmp_dir)

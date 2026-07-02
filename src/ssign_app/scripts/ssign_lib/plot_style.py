@@ -17,7 +17,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from .constants import SS_TYPE_DISPLAY_ORDER, display_type  # noqa: E402
+from .constants import SS_TYPE_DISPLAY_ORDER, T5_HITCH_TAG, T5_SELF_TAG, display_type  # noqa: E402
 
 # Semantic theme keys. Figure scripts read colours from here, never inline.
 THEME = {
@@ -91,12 +91,35 @@ def muted(hex_color: str, sat_scale: float = 0.4, val_boost: float = 1.1) -> tup
     return colorsys.hsv_to_rgb(h, s * sat_scale, min(1.0, v * val_boost))
 
 
+def _split_base(t: str) -> str:
+    """Strip a `(self)`/`(hitch)` autotransporter-split suffix, if present. Robust to
+    either separator: producers use a space (`T5aSS (self)`, annotation figures) or a
+    newline (`T5aSS\n(self)`, enrichment tick labels). No SS-type name contains `(`."""
+    return t.split("(", 1)[0].rstrip()
+
+
 def ordered_ss_types(present) -> list:
-    """Canonical SS-type display order first, then any extras alphabetically."""
-    present = set(present)
-    known = [t for t in SS_TYPE_ORDER if t in present]
-    extra = sorted(t for t in present if t not in SS_TYPE_ORDER)
-    return known + extra
+    """Canonical SS-type display order first, then any extras alphabetically.
+
+    Autotransporter self/hitchhiker split labels (`T5aSS (self)` / `T5aSS (hitch)`)
+    are grouped under their base type's slot, self before hitch, so the two columns
+    sit adjacent.
+    """
+    present = list(dict.fromkeys(present))
+
+    def rank(t: str) -> int:
+        if t.endswith(T5_SELF_TAG):
+            return 1
+        if t.endswith(T5_HITCH_TAG):
+            return 2
+        return 0
+
+    ordered = []
+    for canon in SS_TYPE_ORDER:
+        variants = [t for t in present if _split_base(t) == canon]
+        ordered.extend(sorted(variants, key=lambda t: (rank(t), t)))
+    extra = sorted(t for t in present if _split_base(t) not in SS_TYPE_ORDER)
+    return ordered + extra
 
 
 def ss_type_palette(types) -> dict:
@@ -109,9 +132,12 @@ def ss_type_palette(types) -> dict:
     palette: dict[str, str] = {}
     unknown: list[str] = []
     for t in types:
-        base = display_type(t)  # collapse pT4SSt/T6SSi.. -> parent; keep T5 subtypes
+        base = display_type(_split_base(t))  # strip self/hitch, collapse pT4SSt/T6SSi.. -> parent
         if base in _SS_TYPE_COLORS:
-            palette[t] = _SS_TYPE_COLORS[base]
+            color = _SS_TYPE_COLORS[base]
+            # A `(hitch)` autotransporter column shares its type's hue but muted, so
+            # self vs hitchhiker are distinguishable while reading as the same type.
+            palette[t] = muted(color) if t.endswith(T5_HITCH_TAG) else color
         elif t not in palette:
             unknown.append(t)
     for i, t in enumerate(sorted(dict.fromkeys(unknown))):

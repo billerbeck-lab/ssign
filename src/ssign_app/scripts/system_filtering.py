@@ -21,6 +21,7 @@ if _scripts_dir not in _sys.path:
 
 from ssign_lib.constants import (  # noqa: E402
     DEFAULT_EXCLUDED_SYSTEMS,  # noqa: F401  (default for --excluded-systems)
+    SUBSTRATE_SOURCE_T5_SELF,
     is_sec_signal_peptide,
 )
 from ssign_lib.localization_gate import (  # noqa: E402
@@ -229,7 +230,7 @@ def main():
     # Load T5SS substrates
     with open(args.t5ss_substrates) as f:
         for row in csv.DictReader(f, delimiter="\t"):
-            row["substrate_source"] = "T5SS-self"
+            row["substrate_source"] = SUBSTRATE_SOURCE_T5_SELF
             substrates.append(row)
 
     # Write unfiltered (all substrates before exclusion). Union keys across
@@ -265,13 +266,15 @@ def main():
         # (SignalP) evidence to be called substrates; a detected T5 component with
         # neither is dropped (previously every T5 component was kept
         # unconditionally). openspec: signalp-t5ss-substrate-call.
-        if s.get("substrate_source") == "T5SS-self" and not _t5_self_has_evidence(s, args.dlp_confidence_threshold):
+        if s.get("substrate_source") == SUBSTRATE_SOURCE_T5_SELF and not _t5_self_has_evidence(
+            s, args.dlp_confidence_threshold
+        ):
             n_t5_no_evidence_dropped += 1
             continue
 
         # Keep if any ss_type that's neither excluded nor gate-failed survives
         surviving = ss_types - excluded_or_failed
-        if surviving or s.get("substrate_source") == "T5SS-self":
+        if surviving or s.get("substrate_source") == SUBSTRATE_SOURCE_T5_SELF:
             # Trim the displayed nearby_ss_types to the surviving set
             if surviving:
                 s["nearby_ss_types"] = ",".join(sorted(surviving))

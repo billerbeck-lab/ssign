@@ -15,17 +15,20 @@ Three predictors (DLP, DSE, SignalP) are tested per type. Two type classes:
     the component positions themselves), and the positivity vector is the
     standard secreted call (DLP extracellular, DSE secreted-type, SignalP
     Sec signal peptide).
-  - autotransporter types (T5aSS, T5cSS): the component IS the substrate, so
-    the mask marks the component positions themselves and the positivity vector
-    is self-detection (DLP outer-membrane-or-extracellular; DSE secreted-type;
-    SignalP Sec signal peptide). "Observed = how many of this type's components
-    are self-secreted."
+  - autotransporter types (T5aSS, T5cSS): emit TWO results, tagged by the `mode`
+    column. mode=self: the component IS the substrate, the mask marks the
+    component positions and the vector is self-detection (DLP outer-membrane-or-
+    extracellular; DSE secreted-type; SignalP Sec signal). mode=window
+    ("hitchhiker"): the same +/-W neighbour window as other window types, testing
+    whether secreted-predicted neighbours cluster around the T5 pore.
 
-Per type x tool emits fold = observed / null-mean and an exact permutation
+Per (type, tool, mode) emits fold = observed / null-mean and an exact permutation
 p-value; BH-corrects across the real (non-skipped) tests. DSE is not tested for
 T3SS; SignalP is tested for every type (its low fold on Sec-bypassing T3SS/T6SS
 effectors is an informative contrast, not a skip). A combined one-bar-per-type
-track is "DLP or DSE" for window types and SignalP-alone for autotransporters.
+track is a per-type union re-test: "DLP or SignalP" for Sec-dependent T5 results
+(autotransporter self-detection and T5bSS), "DLP or DSE" for other window types
+including the T5a/c hitchhiker window, and DLP-only for T3SS.
 PLM-Effector is deliberately not an enrichment predictor (it over-predicts at
 genome scale). Replaces the earlier binomial test.
 
@@ -54,11 +57,13 @@ from ssign_lib.constants import (  # noqa: E402
     ENRICH_COMBINED_TOOL,
     ENRICH_DSE_NO_WINDOW,
     ENRICH_MAX_NULL,
-    ENRICH_T5SS_TYPES,
+    ENRICH_MODE_SELF,
+    ENRICH_MODE_WINDOW,
     ENRICH_TOOLS,
     ENRICH_WINDOW_TYPES,
     PROXIMITY_WINDOW,
     display_type,
+    enrich_combined_uses_signalp,
     enrich_null_key,
     is_sec_signal_peptide,
 )
@@ -315,7 +320,13 @@ def components_by_display_type(systems: dict, ss_type_of_sys: dict):
 
 
 def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
-    """Build one row per (display type, tool); returns the rows list (pre-BH)."""
+    """Build one row per (display type, tool, mode); returns the rows list (pre-BH).
+
+    Window types emit a single window-mode result. Autotransporter types (T5aSS/
+    T5cSS) emit TWO: a self-detection result (mode=self, the component itself is
+    the substrate) and a proximity-window "hitchhiker" result (mode=window,
+    secreted-predicted neighbours hypothesized to piggyback through the T5 pore).
+    """
     n = len(order)
     rows = []
     for dt in sorted(by_type):
@@ -325,31 +336,36 @@ def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
         comp_idx = [idx[lt] for lt in by_type[dt] if lt in idx]
         if not comp_idx:
             continue
-        mode = "self" if is_auto else "window"
-        mask = self_mask(comp_idx, n) if is_auto else window_mask(comp_idx, n, window, exclude=all_comp_idx)
-        dlp_track = vecs["dlp_self"] if is_auto else vecs["dlp"]
-        # SignalP positivity is the same vector in both modes (the Sec-signal call
-        # doesn't change; only the mask does), so it needs no per-mode track.
-        tool_vec = {"DLP": dlp_track, "DSE": vecs["dse"], "SignalP": vecs["signalp"]}
-        for tool in ENRICH_TOOLS:
-            if tool == "DSE" and dt in ENRICH_DSE_NO_WINDOW:
-                rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": True})
-                continue
-            r = single_test(tool_vec[tool], mask)
-            rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": False, **r})
-        # Combined one-bar-per-type track: a gene counts if EITHER of the type's
-        # two relevant predictors flags it. All T5SS subtypes are Sec-dependent
-        # (signal-peptide-bearing substrates), so they pair DLP with SignalP;
-        # DSE is unreliable for T5 and dropped. T3SS drops DSE too (DLP only).
-        # Every other type pairs DLP with DSE. openspec: signalp-enrichment-track.
-        if dt in ENRICH_T5SS_TYPES:
-            combined_pos = np.maximum(dlp_track, vecs["signalp"])
-        elif dt in ENRICH_DSE_NO_WINDOW:
-            combined_pos = dlp_track
-        else:
-            combined_pos = np.maximum(dlp_track, vecs["dse"])
-        r = single_test(combined_pos, mask)
-        rows.append({"ss_type": dt, "tool": ENRICH_COMBINED_TOOL, "mode": mode, "skip": False, **r})
+        modes = (ENRICH_MODE_SELF, ENRICH_MODE_WINDOW) if is_auto else (ENRICH_MODE_WINDOW,)
+        for mode in modes:
+            if mode == ENRICH_MODE_SELF:
+                mask = self_mask(comp_idx, n)
+                dlp_track = vecs["dlp_self"]
+            else:
+                mask = window_mask(comp_idx, n, window, exclude=all_comp_idx)
+                dlp_track = vecs["dlp"]
+            # SignalP positivity is the same vector in both modes (the Sec-signal
+            # call doesn't change; only the mask does), so it needs no per-mode track.
+            tool_vec = {"DLP": dlp_track, "DSE": vecs["dse"], "SignalP": vecs["signalp"]}
+            for tool in ENRICH_TOOLS:
+                if tool == "DSE" and dt in ENRICH_DSE_NO_WINDOW:
+                    rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": True})
+                    continue
+                r = single_test(tool_vec[tool], mask)
+                rows.append({"ss_type": dt, "tool": tool, "mode": mode, "skip": False, **r})
+            # Combined one-bar-per-type track: a gene counts if EITHER of the type's
+            # two relevant predictors flags it. `enrich_combined_uses_signalp` is the
+            # shared rule (Sec-dependent DLP-or-SignalP for autotransporter self +
+            # T5bSS; DLP-or-DSE for other windows incl. the T5a/c hitchhiker); T3SS
+            # drops DSE. openspec: signalp-enrichment-track, t5-hitchhiker-enrichment.
+            if enrich_combined_uses_signalp(dt, mode):
+                combined_pos = np.maximum(dlp_track, vecs["signalp"])
+            elif dt in ENRICH_DSE_NO_WINDOW:
+                combined_pos = dlp_track
+            else:
+                combined_pos = np.maximum(dlp_track, vecs["dse"])
+            r = single_test(combined_pos, mask)
+            rows.append({"ss_type": dt, "tool": ENRICH_COMBINED_TOOL, "mode": mode, "skip": False, **r})
     return rows
 
 
@@ -362,10 +378,13 @@ def write_rows(path: str, sample_id: str, rows: list) -> None:
 
 
 def write_nulls(path: str, rows: list) -> None:
-    """Dump the per-(type,tool) null arrays for the figure step, keyed by
-    ``enrich_null_key`` (shared with the pooling + figure readers)."""
+    """Dump the per-(type,tool,mode) null arrays for the figure step, keyed by
+    ``enrich_null_key`` (shared with the pooling + figure readers). The mode key
+    keeps a T5a/c self and hitchhiker(window) null from colliding."""
     arrays = {
-        enrich_null_key(r["ss_type"], r["tool"]): r["null"] for r in rows if not r["skip"] and r.get("null") is not None
+        enrich_null_key(r["ss_type"], r["tool"], r.get("mode", "window")): r["null"]
+        for r in rows
+        if not r["skip"] and r.get("null") is not None
     }
     np.savez_compressed(path, **arrays)
 

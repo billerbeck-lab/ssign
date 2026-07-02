@@ -58,6 +58,31 @@ ENRICH_T5SS_TYPES = frozenset({"T5aSS", "T5bSS", "T5cSS"})
 # in enrichment_testing.py), so T3SS gets no DSE test.
 ENRICH_DSE_NO_WINDOW = frozenset({"T3SS"})
 
+# `substrate_source` value marking a T5SS component called as its own substrate
+# (autotransporter self-detection), vs "proximity" for neighbour/hitchhiker calls.
+# Written in system_filtering; read by the figures to split self vs hitchhiker.
+SUBSTRATE_SOURCE_T5_SELF = "T5SS-self"
+
+# Enrichment mode tokens (the `mode` column): ordinary neighbour window vs
+# autotransporter self-detection. Autotransporters (T5a/c) emit both.
+ENRICH_MODE_SELF = "self"
+ENRICH_MODE_WINDOW = "window"
+# Suffix tokens that split a T5a/c substrate/enrichment label into its self-component
+# vs proximity-"hitchhiker" categories. Shared so the producers (figures) and the
+# palette/order parser can't drift; the space-vs-newline separator is chosen per site.
+T5_SELF_TAG = "(self)"
+T5_HITCH_TAG = "(hitch)"
+
+
+def enrich_combined_uses_signalp(ss_type: str, mode: str = ENRICH_MODE_WINDOW) -> bool:
+    """Whether the COMBINED enrichment union for (ss_type, mode) is the Sec-dependent
+    DLP-or-SignalP pair (autotransporter self-detection + T5bSS) rather than the
+    ordinary DLP-or-DSE pair (which covers the T5a/c hitchhiker window). Single source
+    of truth for both the union computation (enrichment_testing) and the bar colour
+    (run_enrichment_figure), so the stat and the figure can't drift."""
+    return ss_type in ENRICH_T5SS_TYPES and not (ss_type in ENRICH_AUTOTRANSPORTER_TYPES and mode == ENRICH_MODE_WINDOW)
+
+
 # Canonical display-type order (after subtype collapse). The single source of truth
 # for "which SS types exist" used by the enrichment test and the figures; must equal
 # the union of the window + autotransporter sets above.
@@ -81,13 +106,15 @@ ENRICH_POOL_REPS = 10_000
 ENRICH_POOL_SEED = 42
 
 
-def enrich_null_key(ss_type: str, tool: str) -> str:
-    """Key for a (SS type, predictor) rotation-null array in *_enrichment_nulls.npz.
+def enrich_null_key(ss_type: str, tool: str, mode: str = "window") -> str:
+    """Key for a (SS type, predictor, mode) rotation-null array in *_enrichment_nulls.npz.
 
     Shared by the writer (enrichment_testing) and the readers (cross-genome pooling +
     the figure) so the format can't drift across files. Must stay a valid identifier
-    because np.savez takes it as a kwarg name."""
-    return f"{ss_type}__{tool}"
+    because np.savez takes it as a kwarg name. `mode` disambiguates the two results a
+    T5aSS/T5cSS type emits (self-detection vs the proximity-window "hitchhiker" test);
+    every other type has a single window mode."""
+    return f"{ss_type}__{tool}__{mode}"
 
 
 # --- Structure quality ---

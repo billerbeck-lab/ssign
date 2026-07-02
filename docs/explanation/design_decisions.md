@@ -449,6 +449,29 @@ Entries are organised by pipeline stage. Each has three parts:
   boundaries. For fragmented assemblies this prevents proteins on
   different contigs from appearing as "neighbours" of an SS component.
 
+### 5.2 T5aSS/T5cSS "hitchhikers"
+
+- **What:** A classical or trimeric autotransporter (T5aSS/T5cSS) is a
+  single self-contained polypeptide: its passenger threads through its
+  own outer-membrane β-barrel, so the component *is* the substrate (the
+  "self" signal). Separately, secreted-predicted proteins are found
+  significantly enriched in the ±3-gene window around T5a/c components.
+  We call these neighbours **hitchhikers**, on the hypothesis that they
+  may piggyback out through the shared T5 pore rather than encoding their
+  own machinery.
+
+- **How it surfaces:** Because proximity runs its ±3 window around every
+  SS component (§ 5.1), T5a/c neighbours are already substrate-called
+  (`substrate_source == "proximity"`, `nearby_ss_types` = the T5 type).
+  The enrichment test (`--enrichment-stats`) reports the hitchhiker
+  signal as a separate `mode=window` result for T5aSS/T5cSS, alongside
+  the `mode=self` autotransporter test (DLP-or-DSE for the hitchhiker
+  window, DLP-or-SignalP for self). Figures show the two populations as
+  distinct `(self)` / `(hitch)` categories.
+
+- **Status:** The hitchhiker enrichment is descriptive (it quantifies the
+  clustering); the pore-sharing mechanism is a hypothesis, not a claim.
+
 ---
 
 ## 6. Pipeline architecture decisions

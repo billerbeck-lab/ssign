@@ -333,9 +333,8 @@ class PipelineConfig:
     # automatically by the multi-genome runner)
     dpi: int = 300
     fig_ss_comp: bool = True  # 01 secreted proteins by SS type (per genome for a group)
-    fig_autotransporter: bool = True  # 02 T5aSS/T5cSS self-detection
-    fig_physicochemical: bool = True  # 03 size & physicochemical properties by type (incl. length)
-    fig_func_summary: bool = True  # 04-07 functional categories by type (COG/KEGG/EggNOG/consensus)
+    fig_physicochemical: bool = True  # 02 size & physicochemical properties by type (incl. length)
+    fig_func_summary: bool = True  # 03-06 functional categories by type (COG/KEGG/EggNOG/consensus)
 
     # DeepSecE threshold
     deepsece_min_prob: float = 0.8
@@ -2783,7 +2782,6 @@ class PipelineRunner:
         # Pass figure toggles (config field -> generate_figures --no-* flag)
         toggles = {
             "fig_ss_comp": "--no-ss-comp",
-            "fig_autotransporter": "--no-autotransporter",
             "fig_physicochemical": "--no-physicochemical",
             "fig_func_summary": "--no-func-summary",
         }
@@ -3523,8 +3521,9 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
 
     from ssign_app.scripts.ssign_lib.constants import ENRICH_POOL_REPS, ENRICH_POOL_SEED, enrich_null_key
 
-    # (ss_type, tool) -> {observed, n_mask, mode, nulls: [array, ...]}
-    accum: dict[tuple[str, str], dict] = {}
+    # (ss_type, tool, mode) -> {observed, n_mask, nulls: [array, ...]}. Mode keeps a
+    # T5a/c self and hitchhiker(window) result pooled separately, not merged.
+    accum: dict[tuple[str, str, str], dict] = {}
     for tsv in per_genome_tsvs:
         if not tsv or not os.path.exists(tsv):
             continue
@@ -3537,12 +3536,13 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
         with open(tsv) as f:
             for row in csv.DictReader(f, delimiter="\t"):
                 ss_type, tool = row.get("ss_type", ""), row.get("tool", "")
-                key_npz = enrich_null_key(ss_type, tool)
+                mode = row.get("mode", "window") or "window"
+                key_npz = enrich_null_key(ss_type, tool, mode)
                 if not row.get("observed", "").strip() or key_npz not in nulls:
                     continue  # skipped row (e.g. DSE-T3SS) or no null to pool
                 slot = accum.setdefault(
-                    (ss_type, tool),
-                    {"observed": 0, "n_mask": 0, "mode": row.get("mode", ""), "nulls": []},
+                    (ss_type, tool, mode),
+                    {"observed": 0, "n_mask": 0, "nulls": []},
                 )
                 slot["observed"] += int(row["observed"])
                 slot["n_mask"] += int(row.get("n_mask") or 0)
@@ -3551,7 +3551,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
     rng = np.random.default_rng(ENRICH_POOL_SEED)
     pooled = []
     pooled_nulls: dict[str, np.ndarray] = {}
-    for (ss_type, tool), s in accum.items():
+    for (ss_type, tool, mode), s in accum.items():
         null_pool = np.zeros(ENRICH_POOL_REPS, dtype=np.int64)
         for arr in s["nulls"]:
             if arr.size:
@@ -3564,7 +3564,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
             {
                 "ss_type": ss_type,
                 "tool": tool,
-                "mode": s["mode"],
+                "mode": mode,
                 "observed": obs,
                 "n_mask": s["n_mask"],
                 "null_mean": round(null_mean, 4),
@@ -3573,7 +3573,7 @@ def pool_enrichment_stats(per_genome_tsvs: list[str], output_tsv: str, nulls_out
                 "n_null": ENRICH_POOL_REPS,
             }
         )
-        pooled_nulls[enrich_null_key(ss_type, tool)] = null_pool
+        pooled_nulls[enrich_null_key(ss_type, tool, mode)] = null_pool
 
     bh_fdr_by_family(pooled)  # per-tool vs combined DLP-or-DSE families (shared rule)
 

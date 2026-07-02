@@ -1334,7 +1334,6 @@ with tab_pipeline:
         fc1, fc2 = st.columns(2)
         with fc1:
             st.checkbox("Secreted proteins by SS type", value=True, key="fig_ss_comp")
-            st.checkbox("Autotransporter self-detection", value=True, key="fig_autotransporter")
         with fc2:
             st.checkbox("Size & physicochemical properties by type", value=True, key="fig_physicochemical")
             st.checkbox("Functional categories (COG/KEGG/EggNOG/consensus)", value=True, key="fig_func_summary")
@@ -1690,7 +1689,6 @@ with tab_run:
                     plmblast_db=st.session_state.get("plm_db", ""),
                     skip_protparam=not st.session_state.get("run_pp", True),
                     fig_ss_comp=st.session_state.get("fig_ss_comp", True),
-                    fig_autotransporter=st.session_state.get("fig_autotransporter", True),
                     fig_physicochemical=st.session_state.get("fig_physicochemical", True),
                     fig_func_summary=st.session_state.get("fig_func_summary", True),
                     interproscan_min_evalue=float(st.session_state.get("iprs_evalue", 1e-5)),
