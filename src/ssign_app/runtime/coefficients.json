@@ -10,7 +10,8 @@
     "n_cpu_runs_excluded": 3,
     "n_raw_rows": 893,
     "reference_machine": "CX3-A40",
-    "units": "reference-machine seconds; effort = a*size + b"
+    "units": "reference-machine seconds; effort = a*size + b",
+    "manual_overrides": "2026-07-03: signalp.whole_genome was method=mean (a=0, n=4, size<=5572) -> floored large runs at the 4h TOOL_TIMEOUT_S and killed the 160,831-protein pooled SignalP (run 3165431). Proxied to deeplocpro.whole_genome rate (a=0.1214, b=28.9) since both are transformers on the same input and SignalP was killed incomplete (true time unmeasured; concurrent DLP took 5.56h). low_confidence kept True -> 3x margin -> ~16h cap. Refit officially once the rerun measures SignalP directly. See openspec/changes/size-aware-tool-timeouts/calibration_observations.md."
   },
   "models": {
     "bakta": {
@@ -189,12 +190,12 @@
         "size_min": 0
       },
       "whole_genome": {
-        "a": 0.0,
-        "b": 758.25,
+        "a": 0.121425,
+        "b": 28.914,
         "loo_med_abs_s": 879.7,
         "loo_med_pct": 663.5,
         "low_confidence": true,
-        "method": "mean",
+        "method": "proxy_deeplocpro",
         "n": 4,
         "size_max": 5572,
         "size_min": 4290

@@ -22,10 +22,10 @@
 
 ## 5. Validation
 
-- [ ] 5.1 Re-run the 52-genome single job (`submit_batched_overnight.sh --enrichment-stats --walltime 24:00:00`), confirm non-zero emissions across all genomes and no prediction-step timeout.
-- [ ] 5.2 Record real vs predicted per-tool wall-clock from that run; confirm the scaled caps had margin; note any tool whose real time exceeded its cap.
-- [ ] 5.3 Verify EggNOG pooled-substrate timing (predicted ≈4.4h at 819 substrates) completed within its scaled cap; if it was close, widen its margin or add calibration points.
-- [ ] 5.4 Firm up thin/low-confidence whole_genome fits (signalp n=4, plm_effector n=3, deepsece where thin) by appending the 5.1 run's timings to `calibration/` and refitting, or document that margin+floor cover them.
+- [~] 5.1 Run 3165431 (2026-07-02): 51/52 genomes emitted substrates, but SignalP hit the 4h floor (its `a=0` fit) and was killed → T5SS undercounted. DLP/DSE + all annotation succeeded (fix validated). **A clean rerun is still needed** after the 5.4 SignalP patch.
+- [x] 5.2 Real timings recorded in `calibration_observations.md`: DLP 5.56h (pred 5.43h), DSE 5.17h (4.97h), pLM-BLAST 7.6h (8.83h), IPS 81m (95m), EggNOG 22m (4.47h) — all on the pooled 160k/819 sets. DLP/DSE fits validated to <4%.
+- [x] 5.3 EggNOG pooled-substrate real = 22min (819 subs); fit predicted 4.47h → **12× over** (safe/loose, fixed-cost-dominated small-N fit). Flagged for official refit, not blocking.
+- [~] 5.4 SignalP `whole_genome` (`method=mean`, a=0, killed the run) **patched to the measured DLP rate** (a=0.1214, `method=proxy_deeplocpro`, low_confidence) → 16.3h cap; unit test updated. EggNOG + plm_effector fits recorded for the official `calibration/fit.py` refit (separate repo). SignalP's true rate lands from the rerun.
 
 ## 6. Docs
 

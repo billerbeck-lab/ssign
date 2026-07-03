@@ -64,9 +64,12 @@ def test_low_confidence_fit_uses_wider_margin():
 
 
 def test_degenerate_low_fit_protected_by_floor():
-    # SignalP whole_genome is a garbage flat fit (~13 min) but SignalP is fast,
-    # so the floor keeps its cap safe rather than the tiny prediction.
-    out = scaled_timeout("signalp", 160_831, "whole_genome")
+    # plm_effector whole_genome is a degenerate flat fit (a=0, n=3); the margin
+    # times its tiny prediction stays below the floor, so scaled_timeout returns
+    # the floor unchanged. (SignalP whole_genome used to be this example; it was
+    # proxied to the DeepLocPro rate on 2026-07-03 after the pooled 160k run
+    # showed its a=0 fit floored SignalP at 4h and killed it.)
+    out = scaled_timeout("plm_effector", 160_831, "whole_genome")
     assert out == TOOL_TIMEOUT_S
 
 
