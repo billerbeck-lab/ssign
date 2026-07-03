@@ -71,7 +71,7 @@ ENRICH_MODE_WINDOW = "window"
 # vs proximity-"hitchhiker" categories. Shared so the producers (figures) and the
 # palette/order parser can't drift; the space-vs-newline separator is chosen per site.
 T5_SELF_TAG = "(self)"
-T5_HITCH_TAG = "(hitch)"
+T5_HITCH_TAG = "(hitchhiker)"
 
 
 def enrich_combined_uses_signalp(ss_type: str, mode: str = ENRICH_MODE_WINDOW) -> bool:

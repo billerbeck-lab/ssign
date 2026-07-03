@@ -20,7 +20,7 @@ Curated set:
 
 Autotransporter (T5aSS/T5cSS) self-detection is not a standalone figure; the
 signal is carried by the enrichment self-mode result. T5a/c substrates are split
-into ``(self)`` (the component) and ``(hitch)`` (proximity "hitchhiker"
+into ``(self)`` (the component) and ``(hitchhiker)`` (proximity "hitchhiker"
 neighbours) categories in the count and functional figures.
 
 Style (theme, palette, numbering, figure index) comes from ``ssign_lib.plot_style``
@@ -67,7 +67,7 @@ from ssign_lib.plot_style import (  # noqa: E402
 )
 
 # Autotransporters (T5aSS/T5cSS) are the substrate themselves; their rows are split
-# into (self) vs (hitch) categories in the curated figures (see _t5_split_label).
+# into (self) vs (hitchhiker) categories in the curated figures (see _t5_split_label).
 AUTOTRANSPORTER_TYPES = ENRICH_AUTOTRANSPORTER_TYPES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -110,7 +110,7 @@ def _sample_column(df):
 def _t5_split_label(ss_type: str, substrate_source) -> str:
     """Split autotransporter (T5aSS/T5cSS) rows into self vs hitchhiker categories:
     the component itself (`substrate_source == "T5SS-self"`) is `T5aSS (self)`, a
-    secreted-predicted proximity neighbour is `T5aSS (hitch)`. Other types pass
+    secreted-predicted proximity neighbour is `T5aSS (hitchhiker)`. Other types pass
     through unchanged."""
     if ss_type in AUTOTRANSPORTER_TYPES:
         is_self = str(substrate_source) == SUBSTRATE_SOURCE_T5_SELF
@@ -120,7 +120,7 @@ def _t5_split_label(ss_type: str, substrate_source) -> str:
 
 def _explode_ss_types(df, cols):
     """Long frame with one row per (substrate, SS type) carrying `cols`. T5a/c rows
-    are split into `(self)` / `(hitch)` categories via `substrate_source`."""
+    are split into `(self)` / `(hitchhiker)` categories via `substrate_source`."""
     keep = [c for c in cols if c in df.columns]
     if "nearby_ss_types" not in df.columns:
         return pd.DataFrame(columns=["ss_type", *keep])
@@ -272,18 +272,41 @@ _FUNCTIONAL_TOP_N = 10
 
 
 def _functional_sources(df):
-    """Available (column, value_fn, slug, label, fig_number). `value_fn` maps one
-    cell to a list of category strings (multi-valued sources explode)."""
+    """Available (column, value_fn, slug, label, fig_number, ylabel). `value_fn` maps
+    one cell to a list of category strings (multi-valued sources explode). `ylabel`
+    tells the truth about the unit: COG/KEGG count annotation entries (a protein with
+    a multi-letter COG or several KOs contributes to several bars), so their y-axis is
+    NOT a protein headcount; EggNOG/consensus are one bucket per protein."""
     sources = []
     if "cog_category" in df.columns:
-        sources.append(("cog_category", cog_category_names, "cog_category", "COG functional category", 3))
+        sources.append(
+            (
+                "cog_category",
+                cog_category_names,
+                "cog_category",
+                "COG functional category",
+                3,
+                "COG category assignments",
+            )
+        )
     if "kegg_ko" in df.columns:
-        sources.append(("kegg_ko", kegg_descriptions, "kegg_function", "KEGG function", 4))
+        sources.append(("kegg_ko", kegg_descriptions, "kegg_function", "KEGG function", 4, "KEGG KO annotations"))
     if "eggnog_description" in df.columns:
-        sources.append(("eggnog_description", _eggnog_desc, "eggnog_description", "EggNOG description", 5))
+        sources.append(
+            ("eggnog_description", _eggnog_desc, "eggnog_description", "EggNOG description", 5, "Secreted proteins")
+        )
     cons = _consensus_column(df)
     if cons:
-        sources.append((cons, lambda v: [consensus_bucket(v)], "consensus_function", "Consensus function (curated)", 6))
+        sources.append(
+            (
+                cons,
+                lambda v: [consensus_bucket(v)],
+                "consensus_function",
+                "Consensus function (curated)",
+                6,
+                "Secreted proteins",
+            )
+        )
     return sources
 
 
@@ -297,7 +320,7 @@ def _functional_by_type(df, col, value_fn):
     return long[["ss_type", "cat"]].reset_index(drop=True)  # explode dup'd the index; crosstab needs it unique
 
 
-def _plot_functional_by_type(long, outdir, n, slug, label, dpi):
+def _plot_functional_by_type(long, outdir, n, slug, label, dpi, ylabel="Secreted proteins"):
     if long.empty:
         return None
     top = long["cat"].value_counts().head(_FUNCTIONAL_TOP_N).index
@@ -320,7 +343,7 @@ def _plot_functional_by_type(long, outdir, n, slug, label, dpi):
     fig, ax = plt.subplots(figsize=(11, 6.5))
     ct.plot(kind="bar", stacked=True, ax=ax, color=colors, width=0.8)
     ax.set_xlabel("Secretion system type")
-    ax.set_ylabel("Secreted proteins")
+    ax.set_ylabel(ylabel)
     ax.set_title(f"{label} by SS type")
     ax.legend(title=label, bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
     plt.xticks(rotation=45, ha="right")
@@ -346,8 +369,8 @@ def fig_functional(df, outdir, dpi):
         )
         return []
     entries = []
-    for col, value_fn, slug, label, n in sources:
-        e = _plot_functional_by_type(_functional_by_type(df, col, value_fn), outdir, n, slug, label, dpi)
+    for col, value_fn, slug, label, n, ylabel in sources:
+        e = _plot_functional_by_type(_functional_by_type(df, col, value_fn), outdir, n, slug, label, dpi, ylabel)
         if e:
             entries.append(e)
     return entries

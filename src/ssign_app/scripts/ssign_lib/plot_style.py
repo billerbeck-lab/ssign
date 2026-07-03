@@ -92,7 +92,7 @@ def muted(hex_color: str, sat_scale: float = 0.4, val_boost: float = 1.1) -> tup
 
 
 def _split_base(t: str) -> str:
-    """Strip a `(self)`/`(hitch)` autotransporter-split suffix, if present. Robust to
+    """Strip a `(self)`/`(hitchhiker)` autotransporter-split suffix, if present. Robust to
     either separator: producers use a space (`T5aSS (self)`, annotation figures) or a
     newline (`T5aSS\n(self)`, enrichment tick labels). No SS-type name contains `(`."""
     return t.split("(", 1)[0].rstrip()
@@ -101,7 +101,7 @@ def _split_base(t: str) -> str:
 def ordered_ss_types(present) -> list:
     """Canonical SS-type display order first, then any extras alphabetically.
 
-    Autotransporter self/hitchhiker split labels (`T5aSS (self)` / `T5aSS (hitch)`)
+    Autotransporter self/hitchhiker split labels (`T5aSS (self)` / `T5aSS (hitchhiker)`)
     are grouped under their base type's slot, self before hitch, so the two columns
     sit adjacent.
     """
@@ -135,7 +135,7 @@ def ss_type_palette(types) -> dict:
         base = display_type(_split_base(t))  # strip self/hitch, collapse pT4SSt/T6SSi.. -> parent
         if base in _SS_TYPE_COLORS:
             color = _SS_TYPE_COLORS[base]
-            # A `(hitch)` autotransporter column shares its type's hue but muted, so
+            # A `(hitchhiker)` autotransporter column shares its type's hue but muted, so
             # self vs hitchhiker are distinguishable while reading as the same type.
             palette[t] = muted(color) if t.endswith(T5_HITCH_TAG) else color
         elif t not in palette:

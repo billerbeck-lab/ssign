@@ -9,7 +9,7 @@ window types and DLP-or-SignalP for the Sec-dependent T5 results (autotransporte
 self-detection + T5bSS, drawn in the SignalP colour). Window types
 (T1/T2/T3/T4/T5b/T6) measure secreted-predicted proteins clustering near the
 system's components. Autotransporters (T5aSS/T5cSS) render TWO adjacent x-groups:
-"(self)" (the component detecting itself) and "(hitch)" (the hitchhiker window,
+"(self)" (the component detecting itself) and "(hitchhiker)" (the hitchhiker window,
 secreted-predicted neighbours that may piggyback through the T5 pore, scored like
 any window type: DLP-or-DSE combined). DeepSecE is not tested for T3SS.
 Non-significant bars (q >= 0.05) keep their colour but are faded so the eye lands

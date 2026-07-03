@@ -80,6 +80,6 @@ def test_build_columns_splits_autotransporter_into_two_groups():
     assert cols == [
         ("T1SS", "window", "T1SS"),
         ("T5aSS", "self", "T5aSS\n(self)"),
-        ("T5aSS", "window", "T5aSS\n(hitch)"),
+        ("T5aSS", "window", "T5aSS\n(hitchhiker)"),
         ("T5cSS", "self", "T5cSS\n(self)"),
     ]

@@ -168,4 +168,4 @@ def test_explode_splits_t5a_self_vs_hitchhiker():
         ]
     )
     labels = set(_explode_ss_types(df, ["x"])["ss_type"])
-    assert {"T5aSS (self)", "T5aSS (hitch)", "T1SS"} <= labels
+    assert {"T5aSS (self)", "T5aSS (hitchhiker)", "T1SS"} <= labels

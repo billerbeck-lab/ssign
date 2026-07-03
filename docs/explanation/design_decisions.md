@@ -467,7 +467,7 @@ Entries are organised by pipeline stage. Each has three parts:
   signal as a separate `mode=window` result for T5aSS/T5cSS, alongside
   the `mode=self` autotransporter test (DLP-or-DSE for the hitchhiker
   window, DLP-or-SignalP for self). Figures show the two populations as
-  distinct `(self)` / `(hitch)` categories.
+  distinct `(self)` / `(hitchhiker)` categories.
 
 - **Status:** The hitchhiker enrichment is descriptive (it quantifies the
   clustering); the pore-sharing mechanism is a hypothesis, not a claim.
