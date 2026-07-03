@@ -27,4 +27,4 @@
 
 ## 5. Validation
 
-- [ ] 5.1 Validate on a CX3 single-genome + multi-genome enrichment run: SignalP fold high for Sec-using types (T2SS/T5SS), near/below 1 for Sec-bypassing types (T3SS/T6SS); per-tool figure shows three bars; pooled SignalP renders.
+- [x] 5.1 Validate on a CX3 single-genome + multi-genome enrichment run: SignalP fold high for Sec-using types (T2SS/T5SS), near/below 1 for Sec-bypassing types (T3SS/T6SS); per-tool figure shows three bars; pooled SignalP renders.

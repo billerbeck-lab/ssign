@@ -16,7 +16,7 @@ A completed run SHALL emit a curated, contiguously-numbered set of figures (`01`
 - **WHEN** a figure displays SS types
 - **THEN** subtype labels SHALL be collapsed to canonical display types (e.g. `T6SSi` shown as `T6SS`)
 
-### Requirement: Pooled figures for multi-genome runs
+### Requirement: Pooled cross-genome figures for multi-genome runs
 A run over two or more genomes SHALL emit, into the top-level figures output, the curated set computed over all genomes combined, named `0N_pooled_<name>.png`. Figure `01_pooled_*` (one stacked bar per genome) IS the cross-genome overview; no separate `P0N_` cross-genome figures are emitted. A single-genome run SHALL NOT emit pooled figures.
 
 #### Scenario: Pooled set emitted for a group

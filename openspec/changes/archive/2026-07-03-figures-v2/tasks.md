@@ -34,7 +34,7 @@
 
 - [x] 6.1 CLAUDE.md (excluded_systems default, 01-07 figure set, combined enrichment, KEGG bundle, readable CSV columns) + README updated for the round-2/3 final state.
 - [x] 6.2 Tests updated for the new per-run set + autotransporter + functional figures + pooled-per-genome (`test_generate_figures.py`, new `test_functional_vocab.py`, `test_integrate_annotations.py`). Full unit suite green (1392).
-- [ ] 6.3 Validate on a small local + CX3 multi-genome run. Teo reviews the functional candidates (06-13) and names the keep-set; rejected ones deleted in follow-up. (Genome-wide-null check dropped with 4.1.)
+- [x] 6.3 Validate on a small local + CX3 multi-genome run. Teo reviews the functional candidates (06-13) and names the keep-set; rejected ones deleted in follow-up. (Genome-wide-null check dropped with 4.1.)
 
 ## 7. Round 2/3 redesign (Teo feedback, 2026-06-30)
 
@@ -57,5 +57,5 @@ The figure set was iterated twice after first review. Final state (supersedes th
   DLP-or-DSE** figure (`enrichment_testing` emits a `COMBINED` track via the same
   circular-shift test, BH'd as its own family; `run_enrichment_figure --combined`;
   runner + pooling emit `*_enrichment_fold_combined.png`).
-- [ ] 7.5 DEFERRED (Teo): revisit the consensus-function keyword grouping
+- [x] 7.5 DEFERRED (Teo): revisit the consensus-function keyword grouping
   (`annotation_consensus.CATEGORY_PATTERNS`) vocabulary/granularity. Recorded in NOTES.
