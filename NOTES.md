@@ -2,6 +2,21 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## 2026-07-06 — fetch_databases.sh pre-flight (fail-fast on missing tools)
+
+Added `_preflight_tier <tier>` (checks every external tool the tier needs BEFORE any download,
+instead of lazily when the fetch reaches that DB). Motivating case: `update_blastdb.pl` (BLAST NR)
+was checked only at the LAST step, so a missing NR tool wasted the hours spent fetching Bakta +
+HH-suite first. Hoisted the 5 install hints to `_HINT_*` vars so pre-flight + per-fetch checks can't
+drift; kept the per-fetch `_require_command` calls as defense-in-depth. Honors `--dry-run`
+(informational). Tests: `tests/unit/test_fetch_databases_preflight.py` (fail-fast, extended doesn't
+require NR tool, full checks NR up front). Root cause it prevents = the live 2026-07-06 false start
+(amrfinder/update_blastdb.pl not on PATH). **Deferred (out of scope, pre-existing):** `--dry-run` of
+any bakta-fetching tier exits 1 — `fetch_bakta`'s `bakta_subdir=$(compgen -G "$dir/db*" | head -1)`
+fails under pipefail when the DB dir isn't created in a preview. Confirmed present in HEAD (not mine).
+Fix would be `|| true` on that assignment, but dry-run may have further preview-only warts downstream,
+so a clean `--dry-run` exit is its own task. *Trigger:* if anyone relies on `--dry-run` exit code.
+
 ## 2026-07-06 — TIER-3 (full) run setup: 3 wrapper/runner gaps found (planning, no code yet)
 
 Tier-3 (`--tier full`) adds `blastp` (vs NR) + `hhsuite` (vs UniRef30) on the substrate
@@ -46,6 +61,20 @@ Deferred review items (out of scope, Teo's call): (1) sibling PBS scripts `run_s
 `run_k12_validation.pbs` still hardcode `--tier extended` — no tier flag; only the batched path is
 full-tier-wired. (2) `fetch_databases.sh` `fetch_blast_nr` doesn't pass `--blastdb_version 5` to
 update_blastdb.pl (relies on the modern default; fails loud on a legacy v4 NR, never silent-wrong).
+**FETCH STARTED 2026-07-06 (PID relaunched after PATH fix).** Root cause of the first two false starts:
+`amrfinder` + `update_blastdb.pl` (both in `~/.conda/envs/bakta-deps/bin`) were NOT on PATH — the
+`export PATH=~/.conda/...` before `source .venv/bin/activate` didn't survive the activate. Fix:
+`export PATH="$HOME/.conda/envs/bakta-deps/bin:$PATH"` AFTER activation, verify with `command -v`, then
+launch. **BAKTA-FULL SKIPPED:** `fetch_bakta full`'s _already_done guard keys on the `bakta/` parent,
+sees existing `db-light`, and skips the ~84 GB full `db` download. So this fetch delivers full-tier
+NR + HH-suite (pfam/pdb70/uniref30) but Bakta stays db-light (good side effect: no db/db-light resolver
+ambiguity). **Teo CONFIRMED he wants true Bakta-full (2026-07-06)** — deferred until AFTER the Xantho run
+finishes (can't move db-light while it's in use): stage `bakta/db-light` aside (mv, don't delete), re-run
+the fetch to pull `bakta/db`, verify `ssign doctor`, then the full run uses the full DB. Once `db` (full)
+exists alongside `db-light`, the resolver's `db*/version.json` sentinel is ambiguous — so remove/rename
+db-light after, leaving only `db`. NR is the ~390 GB tail (fetched LAST, after HH-suite). PATH fix that
+unblocked the fetch: export `bakta-deps/bin` AFTER `source .venv/bin/activate` (activate resets PATH);
+cx3-submit skill Databases prelude corrected to match + given a `command -v` pre-launch gate.
 
 ## 2026-07-02 — t5-hitchhiker-enrichment LANDED (openspec, 21/21, 1422 unit tests green)
 

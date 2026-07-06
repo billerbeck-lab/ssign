@@ -128,6 +128,15 @@ _run() {
     fi
 }
 
+# Install hints for the external tools a fetch needs. Defined once so the
+# up-front pre-flight (_preflight_tier) and the per-fetch _require_command
+# calls quote the same fix-it text and can't drift.
+_HINT_BAKTA_DB="pip install ssign[bakta]"
+_HINT_AMRFINDER="mamba install -c bioconda ncbi-amrfinderplus  (or 'mamba create -n bakta-deps -c bioconda ncbi-amrfinderplus -y' then 'export PATH=~/.conda/envs/bakta-deps/bin:\$PATH')"
+_HINT_HF="pip install 'huggingface_hub[cli]'"
+_HINT_UNZIP="OS package: unzip"
+_HINT_UPDATE_BLASTDB="sudo apt install ncbi-blast+ (or brew/conda)"
+
 _require_command() {
     # Require a command on PATH; print a fix-it message if missing.
     # In dry-run mode this is informational rather than fatal, so the user
@@ -257,6 +266,30 @@ _external_db_exists() {
     return 0
 }
 
+_preflight_tier() {
+    # Fail fast on missing external tools BEFORE any (possibly hours-long)
+    # download starts, instead of only when the fetch reaches that DB's step.
+    # Motivating case: update_blastdb.pl (BLAST NR) is checked at the LAST
+    # step, so without this a full-tier fetch would pull Bakta + all HH-suite
+    # (~135 GB, hours) and only THEN die on a missing NR tool. This mirrors the
+    # per-fetch _require_command checks exactly (same tools, same guards), so
+    # it never fails on a tool the actual fetch wouldn't have needed. Honors
+    # DRY_RUN via _require_command (informational, not fatal).
+    local tier="$1"
+    # Bakta (every tier fetches it) — skipped when an external Bakta DB is set.
+    if ! _external_db_exists BAKTA_DB "db*/version.json"; then
+        _require_command bakta_db "$_HINT_BAKTA_DB"
+        _require_command amrfinder "$_HINT_AMRFINDER"
+    fi
+    # PLM-Effector weights (every tier).
+    _require_command hf "$_HINT_HF"
+    _require_command unzip "$_HINT_UNZIP"
+    # BLAST NR (full tier only).
+    if [[ "$tier" == "full" ]]; then
+        _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
+    fi
+}
+
 fetch_taxdump() {
     _log "==> NCBI taxdump (~1.5 GB)"
     local dir="$TARGET/taxdump"
@@ -287,15 +320,14 @@ fetch_bakta() {
     # bakta_db CLI installed just to run this fetcher for OTHER databases.
     _external_db_exists BAKTA_DB "db*/version.json" && return 0
 
-    _require_command bakta_db "pip install ssign[bakta]"
+    _require_command bakta_db "$_HINT_BAKTA_DB"
     # bakta_db's startup runs the same dependency check as `bakta` itself,
     # which fails fast if AMRFinderPlus is not on PATH — even though the
     # tool isn't actually needed for downloading the DB. `pip install
     # ssign[bakta]` only pulls the Python wrapper; AMRFinderPlus is a
     # separate NCBI binary. Catch it here with a useful pointer instead
     # of letting bakta_db crash mid-run.
-    _require_command amrfinder \
-        "mamba install -c bioconda ncbi-amrfinderplus  (or 'mamba create -n bakta-deps -c bioconda ncbi-amrfinderplus -y' then 'export PATH=~/.conda/envs/bakta-deps/bin:\$PATH')"
+    _require_command amrfinder "$_HINT_AMRFINDER"
 
     local dir="$TARGET/bakta"
     # bakta_db creates either db/ or db-light/ inside --output depending on
@@ -431,8 +463,8 @@ fetch_plm_effector_weights() {
     # SSIGN_PLM_EFFECTOR_WEIGHTS. GPU strongly recommended at runtime
     # (~100x speedup over CPU).
     _log "==> PLM-Effector weights (~19 GB total; mgc.ac.cn + HuggingFace)"
-    _require_command hf "pip install 'huggingface_hub[cli]'"
-    _require_command unzip "OS package: unzip"
+    _require_command hf "$_HINT_HF"
+    _require_command unzip "$_HINT_UNZIP"
 
     local dir="$TARGET/plm_effector_weights"
     local hf_dir="$dir/transformers_pretrained"
@@ -484,7 +516,7 @@ fetch_plm_effector_weights() {
 
 fetch_blast_nr() {
     _log "==> BLAST NR (~390 GB; via update_blastdb.pl)"
-    _require_command update_blastdb.pl "sudo apt install ncbi-blast+ (or brew/conda)"
+    _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
 
     local dir="$TARGET/blast_nr"
     _run mkdir -p "$dir"
@@ -540,6 +572,10 @@ _require_command tar  "OS package: tar"
 _log "Tier:   $TIER"
 _log "Target: $TARGET"
 [[ "$DRY_RUN" -eq 1 ]] && _log "(DRY-RUN; no downloads will occur)"
+
+# Check every external tool this tier needs up front, so a missing one fails
+# now rather than after hours of downloading (see _preflight_tier).
+_preflight_tier "$TIER"
 
 _run mkdir -p "$TARGET"
 
