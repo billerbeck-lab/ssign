@@ -22,10 +22,10 @@
 
 ## 5. Validation
 
-- [~] 5.1 Run 3165431 (2026-07-02): 51/52 genomes emitted substrates, but SignalP hit the 4h floor (its `a=0` fit) and was killed → T5SS undercounted. DLP/DSE + all annotation succeeded (fix validated). **A clean rerun is still needed** after the 5.4 SignalP patch.
+- [x] 5.1 Run 3169556 (2026-07-03, post-SignalP-patch): **52/52 genomes 17/17**, SignalP `-> OK`, no prediction timeout, full enrichment (39 pooled rows). Recall recomputed = **38/85**, 0 flips vs baseline. (Prior run 3165431 was the SignalP-floored 16/17 that motivated the 5.4 patch.)
 - [x] 5.2 Real timings recorded in `calibration_observations.md`: DLP 5.56h (pred 5.43h), DSE 5.17h (4.97h), pLM-BLAST 7.6h (8.83h), IPS 81m (95m), EggNOG 22m (4.47h) — all on the pooled 160k/819 sets. DLP/DSE fits validated to <4%.
 - [x] 5.3 EggNOG pooled-substrate real = 22min (819 subs); fit predicted 4.47h → **12× over** (safe/loose, fixed-cost-dominated small-N fit). Flagged for official refit, not blocking.
-- [~] 5.4 SignalP `whole_genome` (`method=mean`, a=0, killed the run) **patched to the measured DLP rate** (a=0.1214, `method=proxy_deeplocpro`, low_confidence) → 16.3h cap; unit test updated. EggNOG + plm_effector fits recorded for the official `calibration/fit.py` refit (separate repo). SignalP's true rate lands from the rerun.
+- [x] 5.4 SignalP `whole_genome` patched to the DLP proxy → 16.3h cap; **rerun measured its true time = 36076s (10.0h) on 160k, a≈0.224 s/protein (~1.8× DLP)** — proxy under-predicted (0.54×) but the 3× low-confidence margin held. Real value recorded in `calibration_observations.md` for the official `calibration/fit.py` refit, alongside EggNOG (12× over) + plm_effector (a=0, off by default).
 
 ## 6. Docs
 

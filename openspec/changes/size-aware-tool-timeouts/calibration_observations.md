@@ -10,7 +10,7 @@ per-machine rate factor applies (RTX6000 ≈ A40 here — DLP/DSE landed within 
 |---|---|---|---|---|---|---|
 | deeplocpro | whole_genome | 160831 | 20024 | 19558 | 0.98 | fit excellent — keep |
 | deepsece | whole_genome | 160831 | 18600 | 17886 | 0.96 | fit excellent — keep |
-| signalp | whole_genome | 160831 | **>14400 (killed)** | 758 (a=0, mean) | — | **broken; proxied to DLP rate**, true time still unmeasured |
+| signalp | whole_genome | 160831 | **36076** (run 3169556) | 758 (a=0, mean) → 19558 (DLP proxy) | 0.54 | **measured**: real a ≈ 0.224 s/protein (~1.8× DLP); proxy under-predicted but 3×-margin cap (16.3h) held |
 | plm_blast | substrates | 819 | 27342 | 31784 | 1.16 | conservative — keep (also has 24h floor) |
 | interproscan | substrates | 819 | 4860 | 5687 | 1.17 | good — keep |
 | eggnog | substrates | 819 | 1333 | 16096 | **12.08** | over-predicts 12× (fixed-cost-dominated small-N fit); safe (loose cap) but refit needed. real ≈ 1.63 s/sub |
