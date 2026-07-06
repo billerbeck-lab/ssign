@@ -34,4 +34,4 @@
 
 ## 7. Stretch (separable, not blocking)
 
-- [ ] 7.1 DeepSecE `batch_size=1` → VRAM-auto batching by reusing `auto_batch_size_from_vram` (the slowest predictor at batch=1); guard memory and keep batch=1 as the CPU/low-VRAM fallback.
+- [x] 7.1 DeepSecE now defaults `--batch-size auto` → `auto_batch_size_from_vram(default_when_no_gpu=1)`; the inference loop halves the batch on CUDA OOM down to 1 (safe fallback, since DSE batches by sequence-count not tokens). Wrapper-only change; the runner gets it via the `auto` default. 25 DSE tests pass.

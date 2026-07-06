@@ -397,37 +397,46 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
     logger.info(f"Loading sequences from {input_fasta}...")
     dataset = FastaBatchedDataset.from_file(input_fasta)
     alphabet = Alphabet.from_architecture("roberta_large")
-    loader = DataLoader(
-        dataset,
-        collate_fn=alphabet.get_batch_converter(),
-        batch_size=batch_size,
-        num_workers=0,  # 0 for Windows/WSL compatibility
-    )
+    conv = alphabet.get_batch_converter()
 
-    # Run inference
-    logger.info(f"Running predictions on {len(dataset)} proteins...")
-    all_names: list[str] = []
-    prob_batches: list[np.ndarray] = []
-    pred_batches: list[np.ndarray] = []
-    all_lengths: list[int] = []
+    # Run inference. DeepSecE batches by SEQUENCE COUNT (not token count), so a
+    # batch of several long proteins can OOM the GPU — hence the halving fallback
+    # down to batch_size=1 (the always-safe rate). openspec: size-aware-tool-timeouts (7.1).
+    def _infer_at(bs):
+        loader = DataLoader(dataset, collate_fn=conv, batch_size=bs, num_workers=0)
+        names: list[str] = []
+        probs: list[np.ndarray] = []
+        preds: list[np.ndarray] = []
+        lengths: list[int] = []
+        with torch.no_grad():
+            for batch_idx, (labels, strs, toks) in enumerate(loader):
+                toks = toks.to(device)
+                out = model(strs, toks)
+                prob = torch.softmax(out, dim=1)
+                _, pred = torch.max(prob, 1)
+                probs.append(prob.cpu().numpy())
+                preds.append(pred.cpu().numpy())
+                for i, s in enumerate(strs):
+                    names.append(labels[i].split()[0])
+                    lengths.append(len(s))
+                if (batch_idx + 1) % 100 == 0:
+                    logger.info(f"  Processed {batch_idx + 1} batches (batch_size={bs})...")
+        return names, probs, preds, lengths
 
-    with torch.no_grad():
-        for batch_idx, (labels, strs, toks) in enumerate(loader):
-            toks = toks.to(device)
-            out = model(strs, toks)
-            prob = torch.softmax(out, dim=1)
-            _, pred = torch.max(prob, 1)
-
-            prob_batches.append(prob.cpu().numpy())
-            pred_batches.append(pred.cpu().numpy())
-
-            for i, s in enumerate(strs):
-                name = labels[i].split()[0]
-                all_names.append(name)
-                all_lengths.append(len(s))
-
-            if (batch_idx + 1) % 100 == 0:
-                logger.info(f"  Processed {batch_idx + 1} batches...")
+    bs = max(1, int(batch_size))
+    logger.info(f"Running predictions on {len(dataset)} proteins (batch_size={bs})...")
+    while True:
+        try:
+            all_names, prob_batches, pred_batches, all_lengths = _infer_at(bs)
+            break
+        except RuntimeError as e:
+            # CUDA OOM surfaces as RuntimeError ("out of memory"); halve and retry.
+            if "out of memory" not in str(e).lower() or bs == 1:
+                raise
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            bs = max(1, bs // 2)
+            logger.warning("DeepSecE hit CUDA OOM; retrying at batch_size=%d", bs)
 
     all_probs = np.concatenate(prob_batches)
     all_preds = np.concatenate(pred_batches)
@@ -518,6 +527,11 @@ def main():
     parser.add_argument("--sample", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--checkpoint", default="", help="Path to checkpoint.pt")
+    parser.add_argument(
+        "--batch-size",
+        default="auto",
+        help="Inference batch size. 'auto' (default) picks from GPU VRAM (1 on CPU/no-GPU); a CUDA OOM halves it back toward 1.",
+    )
     args = parser.parse_args()
 
     # Empty-input short-circuit. An empty neighborhood.faa (e.g. when
@@ -541,18 +555,22 @@ def main():
     # prediction group. parallel_share_cpus returns the full allocation
     # when DSE runs standalone.
     import torch
-    from ssign_lib.resources import parallel_share_cpus
+    from ssign_lib.resources import auto_batch_size_from_vram, parallel_share_cpus
 
     _cap = parallel_share_cpus()
     os.environ["OMP_NUM_THREADS"] = str(_cap)
     os.environ["MKL_NUM_THREADS"] = str(_cap)
     torch.set_num_threads(_cap)
 
+    # 'auto' -> VRAM tier (1 on CPU/no-GPU); the inference loop halves on OOM.
+    bs = auto_batch_size_from_vram(default_when_no_gpu=1) if args.batch_size == "auto" else max(1, int(args.batch_size))
+
     with tempfile.TemporaryDirectory() as tmpdir:
         results_path = run_deepsece(
             args.input,
             tmpdir,
             checkpoint_path=args.checkpoint if args.checkpoint else None,
+            batch_size=bs,
         )
         entries = parse_deepsece_output(results_path)
 
