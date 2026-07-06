@@ -255,6 +255,22 @@ A typical extended-tier run on a single bacterial genome fits in 4-6 h.
 Cohorts spanning hundreds of genomes need a job array (one job per
 genome) rather than a single long job.
 
+**Full tier (`--tier full`) needs more walltime headroom.** It adds
+BLASTp-vs-NR and HH-suite-vs-UniRef30 on the substrate set. Unlike the
+predictors, these two tools are **not** in the runtime effort model, so the
+size-aware timeouts do not scale them: BLASTp uses the 4 h floor and HH-suite
+a per-protein cap (1 h hhblits + 30 min hhsearch). HH-suite runs one MSA per
+substrate through a thread pool, so on a large pooled cohort (hundreds to a
+thousand-plus substrates) it is the tail. Size `--walltime` to 24 h+ for a
+full-tier panel, and validate on a 2-4 genome smoke test first to measure the
+real per-protein HH-suite time before committing a long job.
+
+Full tier also needs its databases present: NR at `<db_root>/blast_nr/`
+(sets `SSIGN_BLAST_NR`) and UniRef30 at `<db_root>/hhsuite/uniref30/` (sets
+`SSIGN_HHSUITE_UNICLUST`). With both present, ssign resolves BLASTp's `-db`
+and HH-suite's UniRef30 automatically, no `--blastp-db` / `--hhsuite-uniclust-db`
+flags needed.
+
 ## 6. Cohort runs as a job array
 
 ```bash

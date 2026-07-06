@@ -29,6 +29,10 @@ for g in "${GENOME_LIST[@]}"; do
 done
 
 : "${GPU_TYPE:=L40S}"
+# Install tier (base|extended|full). full turns on BLASTp-vs-NR + HH-suite-vs-
+# UniRef30; the DB block below exports SSIGN_BLAST_NR + SSIGN_HHSUITE_UNICLUST
+# so they resolve without per-run flags. Default extended = prior behaviour.
+: "${TIER:=extended}"
 # Include PBS_JOBID so simultaneously-released jobs in the same second
 # don't collide on the same RUN_DIR and clobber each other's outputs.
 # Without it, an overnight batch where N jobs land in <1s gives N-K
@@ -71,12 +75,16 @@ DBROOT="$EPHEMERAL/ssign-databases"
 _ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1); [ -n "$_ECOD" ] && export SSIGN_ECOD_DB="$_ECOD"
 [ -d "$DBROOT/hhsuite/pfam" ]           && export SSIGN_HHSUITE_PFAM="$DBROOT/hhsuite/pfam"
 [ -d "$DBROOT/hhsuite/pdb70" ]          && export SSIGN_HHSUITE_PDB70="$DBROOT/hhsuite/pdb70"
+# --tier full extras: UniRef30 (HH-suite hhblits MSA) + BLAST NR (BLASTp).
+[ -d "$DBROOT/hhsuite/uniref30" ]       && export SSIGN_HHSUITE_UNICLUST="$DBROOT/hhsuite/uniref30"
+[ -d "$DBROOT/blast_nr" ]               && export SSIGN_BLAST_NR="$DBROOT/blast_nr"
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1)
 [ -n "$_IPS" ]                          && export SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$HOME/.conda/envs/deeplocpro/bin" ] && export SSIGN_DEEPLOCPRO_PATH="$HOME/.conda/envs/deeplocpro/bin"
 [ -d "$HOME/.conda/envs/signalp6/bin" ]   && export SSIGN_SIGNALP_PATH="$HOME/.conda/envs/signalp6/bin"
 echo "  BAKTA_DB=${BAKTA_DB:-<unset: Bakta will fail unless --use-input-annotations>}"
 echo "  local predictors: DLP=${SSIGN_DEEPLOCPRO_PATH:-remote} SignalP=${SSIGN_SIGNALP_PATH:-remote}"
+echo "  tier=$TIER  NR=${SSIGN_BLAST_NR:-<unset>} UniRef30=${SSIGN_HHSUITE_UNICLUST:-<unset>}"
 
 echo "===== ssign run START $(date -Is) ====="
 # SSIGN_EXTRA_ARGS appends additional ssign flags. Word-splits on
@@ -86,7 +94,7 @@ echo "===== ssign run START $(date -Is) ====="
 echo "extra args: $SSIGN_EXTRA_ARGS"
 ssign run "${GENOME_LIST[@]}" \
     --outdir "$RUN_DIR" \
-    --tier extended \
+    --tier "$TIER" \
     $SSIGN_EXTRA_ARGS \
     2>&1 | tee "$RUN_DIR/ssign.run.log"
 SSIGN_RC=${PIPESTATUS[0]}

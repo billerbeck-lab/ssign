@@ -2,6 +2,183 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## 2026-07-06 — TIER-3 (full) run setup: 3 wrapper/runner gaps found (planning, no code yet)
+
+Tier-3 (`--tier full`) adds `blastp` (vs NR) + `hhsuite` (vs UniRef30) on the substrate
+set only. Auditing the CX3 wrapper + runner against `--tier full` surfaced 3 gaps that
+would silently fail a full-tier run if we only changed the tier flag:
+1. **`run_batched_multi.pbs:89` hardcodes `--tier extended`.** SSIGN_EXTRA_ARGS is appended
+   AFTER it, so `SSIGN_EXTRA_ARGS="--tier full"` works (argparse last-wins), but that path
+   is fragile (spaces in the PBS `-v` value). Clean fix: a `--tier` flag on
+   `submit_batched_overnight.sh` → `TIER` env → `--tier $TIER` in the PBS (default extended).
+2. **PBS wrapper never exports `SSIGN_HHSUITE_UNICLUST` (UniRef30).** It exports pfam+pdb70
+   only (lines 72-73). The runner DOES read `SSIGN_HHSUITE_UNICLUST` (runner.py:403,432), so
+   HH-suite just needs the export added: `[ -d "$DBROOT/hhsuite/uniref30" ] && export
+   SSIGN_HHSUITE_UNICLUST="$DBROOT/hhsuite/uniref30"`.
+3. **BLASTp NR does NOT auto-resolve — real inconsistency.** The manifest defines
+   `SSIGN_BLAST_NR` (subpath `blast_nr`, sentinel `nr.pdb`) but the runner's config
+   resolution (Steps A+B, runner.py:399-448) omits `blastp_db`, so exporting `SSIGN_BLAST_NR`
+   does nothing and the run dies at runner.py:2099 "BLASTp requires a local database". Two
+   fixes: (a) quick — append `--blastp-db $DBROOT/blast_nr/nr` in the wrapper; (b) proper —
+   add `("blastp_db","SSIGN_BLAST_NR")` to the runner's Step-A tuple so NR behaves like every
+   other DB (then wrapper just exports `SSIGN_BLAST_NR`). Recommend (b); it's a genuine gap.
+**Runtime caveat (load-bearing):** blastp + hhsuite are NOT in the effort model, so
+size-aware timeouts don't scale them — fixed caps only (BLASTp = TOOL_TIMEOUT_S 4h floor;
+HH-suite = HHBLITS_TIMEOUT_S 1h + HHSEARCH_TIMEOUT_S 30min PER PROTEIN). HH-suite runs
+per-substrate via ThreadPoolExecutor (cpu_per_job=2 → ~32 parallel on 64c). Benchmark pooled
+substrate set was ~819; a 74-genome Xantho panel likely ~1000-1200 substrates → HH-suite is
+the tail, plan --walltime 24h+ (realistic hhblits ~2-10 min/protein vs UniRef30). DB fetch
+(`fetch_databases.sh --tier full`) is ~700 GB total: NR ~390 GB (needs `update_blastdb.pl`
+from ncbi-blast+), UniRef30 ~25 GB (GWDG only), Bakta full upgrade. *Trigger:* when Teo OKs
+the tier-3 run — propose the wrapper+runner change via /opsx:propose, fetch DBs on $EPHEMERAL,
+verify with `ssign doctor --tier full`, then submit.
+
+**IMPLEMENTED 2026-07-06 (openspec `full-tier-cx3-wiring`, 13/16 tasks, 1426 unit tests green).** Runner
+auto-resolves NR from `SSIGN_BLAST_NR` via the shared `find_db_by_env_var` helper (dir→`/nr` prefix);
+`submit_batched_overnight.sh --tier <t>` + PBS `TIER` var + UniRef30/NR exports. 4-agent simplify review
+clean; only fix applied = use `find_db_by_env_var` at both runner lookup sites instead of inline `next()`.
+Third-party review confirmed `<dir>/nr` is the correct BLAST+ `-db` value (v5 NR `nr.pal`/`nr.pdb` alias).
+Remaining tasks 5.1-5.3 = CX3-user-driven validation (fetch + smoke test + record wallclock).
+**CX3 DB STATE (checked 2026-07-06):** extended DBs all present (bakta db-light, eggnog, IPS, ECOD30,
+plm_effector, taxdump); ALL 4 full-tier DBs MISSING (NR + hhsuite pfam/pdb70/uniref30). `--tier full`
+fetch pulls ~555 GB NEW incl an unwanted Bakta-full swap (db-light works; doctor accepts it).
+Deferred review items (out of scope, Teo's call): (1) sibling PBS scripts `run_serial_genomes.pbs` +
+`run_k12_validation.pbs` still hardcode `--tier extended` — no tier flag; only the batched path is
+full-tier-wired. (2) `fetch_databases.sh` `fetch_blast_nr` doesn't pass `--blastdb_version 5` to
+update_blastdb.pl (relies on the modern default; fails loud on a legacy v4 NR, never silent-wrong).
+
+## 2026-07-02 — t5-hitchhiker-enrichment LANDED (openspec, 21/21, 1422 unit tests green)
+
+T5aSS/T5cSS autotransporters now emit TWO enrichment results (`mode` column): `self`
+(autotransporter self-detection, COMBINED=DLP-or-SignalP) + `window` **hitchhiker**
+(secreted-predicted ±3 neighbours that may piggyback the T5 pore, COMBINED=DLP-or-DSE).
+Enrichment figure draws them as two adjacent `(self)`/`(hitch)` x-groups; annotation
+figures split T5a/c by `substrate_source`. Deleted fig-02 (autotransporter scatter),
+renumbered curated set `01`–`06`, removed `fig_autotransporter` toggle, removed fig-01
+single-genome bar labels. Hitchhiker concept documented (design_decisions § 5.2).
+Null key gained `mode` (`enrich_null_key(ss, tool, mode)`) to stop self/window collision.
+Simplify pass (4 agents): promoted shared `constants.enrich_combined_uses_signalp` +
+`T5_SELF_TAG`/`T5_HITCH_TAG`/`ENRICH_MODE_*`/`SUBSTRATE_SOURCE_T5_SELF` constants (killed
+a stat-vs-figure drift trap); correctness review found no bugs.
+Committed + pushed `3490de3` (partial-staged runner.py to exclude the parallel
+size-aware-timeouts work). **CX3-VALIDATED 2026-07-03** (5-genome pooled job 3165435 +
+single E. coli 3165443): pooled T5aSS emits self (DLP 7.0×✱✱, COMBINED 5.1×✱✱✱) AND
+hitchhiker window (DLP 3.1×, COMBINED 2.0×, DLP-or-DSE confirmed — SignalP-window obs 13
+ignored); figures render the two adjacent `(self)`/`(hitch)` groups (self=SignalP hue,
+hitch=DLP-or-DSE hue), single-genome path works (E. coli T5aSS self DLP 7.3×✱, hitch
+4.4× faded), annotation `01` shows the split with muted-hitch colour. Hitchhiker signal
+is real (E. coli's 7 T5aSS neighbours). **ONLY REMAINING:** archival order — archive
+`figures-v2` + `signalp-enrichment-track` BEFORE this change (its run-figures/enrichment
+deltas supersede theirs). *Trigger:* finish + archive the two predecessors, then archive
+`t5-hitchhiker-enrichment`.
+
+## ⭐⭐ 2026-07-06 — BENCHMARK DONE: run 3169556 clean, recall 38/85 (44.7%).
+
+**FINAL RESULT (run 3169556, 2026-07-03, final code):** 52/52 genomes 17/17; SignalP succeeded (real 36076s=10.0h
+on 160k, ~1.8× DLP; 16.3h proxy cap held). Recall **38/85 = 44.7%** (T1 16/18, T2 1/8, T3 5/19, T4 0/8, T5 10/19,
+T6 6/13), **0 flips** vs the prior baseline → the ca18322 T5SS gate is recall-neutral on gold (drops only FP T5).
+All 85 molecules reconciled. Recall recomputed via `RerunIndex.emitted_overlap`; recall figures regenerated
+(scripts 27/32/52 → `data/phase2/figures/{,summary/}`); pooled auto-figures in the tarball. Gallery artifact:
+https://claude.ai/code/artifact/9109aac0-04c5-4215-91ab-f4778a189e07 . New rerun reshaped into
+`rerun/<unit>/results/`; old 2026-06-25 preserved as `rerun.stale_20260625/`.
+**⚠️ FULLASM CAVEAT:** the 4 full-assembly T1SS genomes (NZ_CP031766.1/CBDBTK/JABJZG/JBCGCZ) are still served from
+the OLD `rerun_fullasm/` (2026-06-25); the override is LOAD-BEARING (+3: Serralysin/apxIA/hlyA only recoverable
+from the full assembly — fragment inputs cut the gene). T1SS is unaffected by recent changes so 38/85 is very
+likely final, but for single-code-version rigor re-run those 4 on new code from `inputs_gb_fullasm/` (small, ~1-2h).
+**NEXT / status (2026-07-06):** (b) `size-aware-tool-timeouts` ARCHIVED (specs synced; DeepSecE VRAM-auto batch
+added, task 7.1, commit f353593); (c) benchmark docs DONE = `validation_sweeps/benchmark/docs/phase2_recall_results.md`
+(commit 6b5df1a; tasks 4.4/4.5 closed). (a) fullasm 4-genome rerun command handed to Teo (uses `inputs_gb_fullasm/`
+on CX3, --walltime 12h) — pending his run. **Xanthobacter panel run — SUBMITTED + RUNNING (2026-07-06).**
+74 Bakta `.gbff` from `/home/teo/Desktop/Billerbeck - SS Identification/all_Xantho_incl_SpringerLab/Annotations/bakta/gbff/`,
+rsync'd to CX3 `~/xantho_gbff/`, single full tier-2 MultiGenome job, `--enrichment-stats --walltime 72:00:00`, default
+Bakta re-annotation (no `--use-input-annotations`). Estimate ~40h wall (~400k pooled proteins; SignalP tail ~25h real vs
+~40h proxy cap). Run dir on CX3: `~/runs/batched_RTX6000_<ts>_<jobid>/`. *Next:* retrieve + inspect when it lands
+(~2026-07-08) — confirm 74/74 at 17/17, record real per-tool wallclocks for the effort-model calibration.
+
+## (history) 2026-07-03 — run 3165431 = 16/17 (SignalP-only fail); SignalP coeff PATCHED; RERUN READY.
+
+**Outcome of run 3165431 (2026-07-02):** timeout fix VALIDATED — DLP 5.56h (pred 5.43h), DSE 5.17h (4.97h),
+EggNOG/IPS/pLM-BLAST all OK on the pooled 160k/819 sets. **Only SignalP failed:** its `whole_genome` fit was
+`method=mean` (a=0, n=4, size<=5572) → floored at 4h → killed at 14400s. Every genome 16/17 (SignalP the only
+miss); substrates DID emit (DLP succeeded) so non-T5 recall is valid but T5SS is undercounted + SignalP enrichment
+empty → **not usable as the final benchmark; must rerun.** Real timings + fit validation saved in
+`openspec/changes/size-aware-tool-timeouts/calibration_observations.md`. **FIX applied + committed:** SignalP
+`whole_genome` proxied to DLP rate (a=0.1214, method=proxy_deeplocpro, low_confidence) → scaled cap 4h→16.3h;
+SignalP true time still unmeasured (killed) but concurrent DLP=5.56h implies ~6h → 16.3h is safe. EggNOG 12×-over
++ plm_effector a=0 recorded for the official calibration refit (safe/loose, non-blocking). Local run copy +
+extract: `validation_sweeps/benchmark/bench_rerun2.tgz` + scratchpad `rerun2/`.
+**RERUN COMMAND (after git pull on CX3):** `bash scripts/cx3/submit_batched_overnight.sh --enrichment-stats
+--walltime 72:00:00 $(sed "s#^#$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb/#" validation_sweeps/benchmark/data/phase2/rerun_inputs.txt)`.
+Expect ~15h wall (segment B ~6h + segment D pLM-BLAST tail 7.6h + A ~1.7h). Then reshape + recompute recall.
+
+## (history) 2026-07-02 — CX3 VALIDATION RUN HANDED OFF (single-job, timeout-fixed).
+
+Committed+pushed `4a510bd` (size-aware-tool-timeouts) on top of figures `3490de3`, branch
+`enrichment-circular-shift-per-run`. Handed Teo the **single-job** CX3 submit (the path that failed before,
+so it validates the fix AND gives gold-list recall in one go):
+`bash scripts/cx3/submit_batched_overnight.sh --enrichment-stats --walltime 72:00:00 $(sed "s#^#$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb/#" validation_sweeps/benchmark/data/phase2/rerun_inputs.txt)`
+after `cd ~/blastp_t5a/ssign && git pull`. Config verified = gold-list baseline: DLP/DSE/SignalP + IPS/EggNOG/
+pLM-BLAST/ProtParam ON, PLM-E/BLASTp/HH OFF, Bakta reannotate (use_input_annotations=False). Lands in
+`~/runs/batched_RTX6000_<ts>_<jobid>/<genome>/<genome>_results{,_raw}.csv` (FLAT, no results/ subdir).
+**WHEN IT LANDS:** (1) tar the per-genome `_results{,_raw}.csv` + enrichment + ssign.run.log; scp down;
+(2) **RESHAPE** into `validation_sweeps/benchmark/rerun/<unit>/results/` (the layout RerunIndex reads —
+insert the `results/` level); (3) recompute recall under ca18322 T5SS gate (expect T5SS 10/19 -> lower);
+(4) group-5 validation: confirm `[_pool]` predictions OK (not `Timeout after 14400s`) + record real-vs-predicted
+per-tool wallclock. Health markers: `[_pool] ... -> OK`, each genome `N/N steps succeeded`.
+
+## ⚠️ 2026-07-02 — single-job 52-genome rerun FAILED (pooled-prediction timeout); redo via HARNESS
+
+The ca18322 benchmark rerun submitted via `submit_batched_overnight.sh` (single MultiGenomeRunner job,
+`batched_RTX6000_20260701_154401_3156011`) is a **total loss: 0 secreted proteins emitted for all 52
+genomes**. Cause: MultiGenomeRunner **pools every genome's whole proteome into one prediction call** —
+here a 53 MB / **160,831-protein** FASTA (`_pool/pooled_whole_genome.faa`) — and `--enrichment-stats`
+forces whole-genome DLP+DSE+SignalP on it. All three hit `TOOL_TIMEOUT_S=14400` (4h) and FAILED, so every
+genome's cross-validate died with "No DeepLocPro output". The ~5h wall was 3 tools grinding to the timeout.
+- **Fix / redo:** use the per-genome benchmark **harness** `scripts/cx3/SUBMIT_rerun.sh` (12 batch jobs,
+  each genome a separate ssign run, whole-genome preds ~13 min/genome, no pooling). Same full-standards
+  config (`REANNOTATE=1,INCLUDE_T3SS=1,WHOLE_GENOME=1,ENRICH=1,ANNOT=1`). This is the path that produced
+  the working 2026-06-25 results and lands in `rerun/<unit>/results/` (the layout RerunIndex reads). Also
+  submit `SUBMIT_rerun_fullasm.sh` for the 4 full-assembly T1SS genomes (needs `inputs_gb_fullasm/` on CX3).
+- **DEFERRED (real bug, design decision pending Teo):** `MultiGenomeRunner` segment B (predictions
+  DLP/DSE/SignalP/PLM-E) pools ALL genomes into ONE call; with `--enrichment-stats` that pool is the whole
+  proteome, so at 52 genomes it's 160k proteins in one `subprocess.run(timeout=4h)` per tool → all three
+  killed at 4h. Verified specifics:
+    * Scope: only the **segment-B predictors in whole-genome mode** hit this (DLP, DSE, SignalP; PLM-E
+      structurally but off fleet-wide). **Segment-D annotation** (EggNOG/IPS/pLM-BLAST/BLASTp/HH) pools over
+      **substrates only** (small), so it's safe at panel scale (pLM-BLAST already has a 24h cap).
+    * It's a **TIME wall, not memory**: all three stream in batches (DLP withholds mega-proteins via
+      `partition_by_length`; SignalP `--mode fast`; DSE `DataLoader`). Raising the timeout WOULD let it finish
+      (no OOM) but gives a monolithic multi-hour call with no checkpointing.
+    * **Efficiency find:** DSE runs `batch_size=1` (run_deepsece.py:212), never overridden — slowest of the
+      three. PLM-E already has `auto_batch_size_from_vram` + `--chunk-size`; DSE should reuse that.
+  - **Recommended fix = MINIMAL (revised 2026-07-02 after measuring throughput; Teo pushed back on the big
+    rework, correctly).** The 4h cap was just ~10–30% too short, not a structural pooling flaw. Measured on the
+    successful harness K-12 run (4,314 proteins, same 3 tools, same 1-GPU sharing): SignalP 1.5min, DSE 8.4min,
+    DLP 9min (concurrent → ~9min group wall). Scaled to the 160,831-protein pool (one amortized model load):
+    parallel group ≈ **~4.5–6h**, DLP-dominated. The tools write output only at the end, so the failed run's
+    "0 output at 4h" = ~90% done, not stuck. **Fix: make the timeout size-aware** in the 3 prediction wrappers
+    — `timeout = max(4h, n_proteins/rate × margin)` (wrappers already call `count_sequences`); ~400 prot/min ×2
+    → 160k ≈ 13h cap (real work fits, a hung DTU call still dies). Scale, don't delete (delete loses the
+    hung-tool guardrail; fine for local-only but strictly worse). **Also raise PBS walltime**: wrapper default is
+    8h, a full panel needs ~8–12h → re-run `submit_batched_overnight.sh --walltime 24:00:00` (48h first time).
+    Optional speedup (not required): DSE `batch_size=1` → reuse PLM-E `auto_batch_size_from_vram`.
+  - **REJECTED (over-scoped):** per-genome segment-B rework / chunking `multi_runner`. Not needed — only segment
+    B (whole-genome, 160k) hits the cap; segment D pools just **819** substrates (measured), nowhere near it.
+  - **IMPLEMENTED 2026-07-02 (groups 1-4 + 6; `/opsx:apply size-aware-tool-timeouts`).** New `runtime/timeouts.py`
+    `scaled_timeout(tool,size,regime)=max(floor, margin×effort)` (margin 2, low-confidence 3); runner
+    `_scaled_tool_timeout`+`_substrate_count` wired at 8 sites (DLP/DSE/SignalP/plm_effector + IPS/EggNOG/plm_blast/
+    protparam); `--timeout` threaded to 5 wrappers; both `run_script` timeout handlers fail loud. bakta/macsyfinder/
+    extract_proteins stay flat (size unknown pre-run / never pooled). Verified: DLP 160k→10.9h, EggNOG 819→13.4h,
+    small runs→4h floor; 199 dedicated tests green (scaled_timeout 8 + 5 wrapper suites + runtime 191). **Deferred:**
+    group 5 (CX3 validation re-run — needs the user) + group 7 (DSE VRAM batch, stretch). **⚠️ COMMIT NOTE:**
+    `core/runner.py` is shared — it also carries the parallel session's uncommitted `fig_*` config lines, so a
+    path-scoped commit of runner.py would sweep those in; coordinate before committing (let figures session commit first).
+  - **PROPOSAL WRITTEN 2026-07-02:** openspec `size-aware-tool-timeouts` (4/4 artifacts, validates). Generalized
+    per Teo to ALL 11 modelled tools (not just whole-genome predictors): `scaled_timeout = max(4h floor,
+    2×effort-model prediction)`, wider margin for low-confidence fits, computed in the runner + threaded to
+    wrappers via `--timeout`. Walltime stays manual (out of scope). Next: `/opsx:apply` to implement.
+  *Decision pending:* implement the fix now (then re-run single job with `--walltime 24:00:00`) vs harness-now-fix-later.
+
 ## 2026-06-30 — figures-v2 (parallel figures session, separate from the gold-list work below)
 
 Done + tested this session (full unit suite green, 1392): enrichment figure → single combined
@@ -24,24 +201,35 @@ LANDED / DEFERRED items from figures-v2:
   match wins) plus the figure-side `consensus_bucket` (apparatus/Other routing). Teo wants a look at
   whether the keyword grouping is the right vocabulary / granularity. *Trigger:* a dedicated pass over
   CATEGORY_PATTERNS once the figure set is frozen.
-- **SignalP-as-enrichment-predictor — LANDED 2026-06-30 (openspec `signalp-enrichment-track`, 15/16).**
+- **SignalP-as-enrichment-predictor — LANDED 2026-06-30, VALIDATED 2026-07-01 (openspec `signalp-enrichment-track`, 15/16).**
   SignalP is now a third circular-shift predictor for all SS types: per-tool figure gets a 3rd bar;
-  combined figure uses SignalP-alone for T5a/c (decision 4, NOT a 3-way OR), DLP-or-DSE for window types.
+  combined figure uses **DLP-or-SignalP for ALL T5 (a/b/c)** (reversed from the initial SignalP-alone
+  decision, per Teo), DLP-or-DSE for window types, DLP-only for T3SS.
   `--enrichment-stats` forces whole-genome SignalP (local). SignalP-positive = `VALID_SEC_SIGNAL_TYPES`
   via the new shared `constants.is_sec_signal_peptide` (also adopted by t5ss_handler). Unit + integration
-  tests green (1410). **Only task left: 5.1 — validate on a real CX3 run** (single + multi-genome); then
-  `/opsx:archive signalp-enrichment-track`.
+  tests green (1410). **Task 5.1 CX3 validation DONE** (single PAO1 + 5-genome pooled, 2026-07-01,
+  `~/Desktop/cx3_runs/batched_RTX6000_20260701_1602*`): SignalP row on every type; T3SS has no DSE row;
+  T5 combined = union re-test (T5aSS 5.1×***, T5bSS 2.3×**, T5cSS 5.7× rescued by SignalP alone, DLP=DSE=0);
+  faded-not-grey n.s. bars; titles say "significance"; `n_null` = 5679 (single, exact rotations) vs 10000
+  (pooled MC). **Ready to `/opsx:archive signalp-enrichment-track`.**
 - **T5SS substrate gate LANDED 2026-07-01 (openspec `signalp-t5ss-substrate-call`, code+tests done).**
   A trace found the T5 DLP rule (bug-fix #6) was **inert**: `t5ss_handler` emits every detected T5
   component and `system_filtering` kept them all unconditionally; cross_validate's `is_secreted` is
   never read for inclusion. Added a real gate in `system_filtering._t5_self_has_evidence`: a T5 component
   is a substrate iff DeepLocPro localizes it (T5a/c ext-or-OM; T5b OM-only, preserving #6) OR SignalP
   predicts a Sec signal (Sec-only; Tat excluded, literature-confirmed). Net: T5 counts DROP (evidence-less
-  components removed). 1413 unit tests green. **DEFERRED:** (1) regenerate the `t5ass_minimal` golden
-  fixture (its T5 substrate `dlp_extra=0.60`<0.8, `signalp=OTHER` is now correctly dropped), so the
-  frozen results changed (integration test skips locally w/o tools; regen per REGENERATE.md on a full
-  install). (2) benchmark before/after regression to quantify the T5 drop per genome. *Trigger:* the
-  planned CX3 rerun + a full-install run for the golden regen.
+  components removed). 1413 unit tests green. **CX3 rerun 2026-07-01 confirmed the gate WORKS and DROPS:**
+  enrichment self-mask detected 18 T5aSS + 3 T5cSS components; only 12 + 2 retained as substrates, so
+  the gate **dropped 7 autotransporters (6 T5a + 1 T5c)** that had neither DLP OM/ext ≥0.8 nor a Sec
+  signal. (Correction: an earlier note in this session said "0 dropped" — that was wrong; it was based
+  on "0 leaks among *retained* rows", which can't see dropped rows.) All retained T5SS-self rows carry
+  evidence, 0 leaks; none of the drops leaked back via proximity (the 7 T5aSS-proximity rows are
+  disjoint, strongly-extracellular *neighbors*, not the dropped components). **DEFERRED:**
+  (1) regenerate the `t5ass_minimal` golden fixture (its T5 substrate `dlp_extra=0.60`<0.8,
+  `signalp=OTHER` is now correctly dropped), so the frozen results changed (integration test skips
+  locally w/o tools; regen per REGENERATE.md on a full install). (2) 52-genome benchmark for the drop
+  *magnitude* per genome (the 5-genome run already shows the drop exists; the stalled 52-genome CX3
+  batch would quantify it at scale). *Trigger:* full-install run for the golden regen; 52-genome CX3 batch.
 - **Figure-02 SignalP fill uses a looser rule than the enrichment track (REVISIT, surfaced by simplify
   2026-06-30).** `generate_figures._signalp_positive` is a denylist (`_SIGNALP_NEGATIVE`) that counts
   TAT/TATLIPO/PILIN as "has signal", while the enrichment SignalP track + t5ss_handler use the strict

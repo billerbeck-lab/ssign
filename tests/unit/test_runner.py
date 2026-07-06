@@ -268,9 +268,11 @@ class TestPipelineConfigMarkerFallback:
         (root / "hhsuite" / "pfam" / "PfamA_v38_2").mkdir(parents=True)
         (root / "plm_blast" / "ECOD30").mkdir(parents=True)
         (root / "plm_effector_weights").mkdir(parents=True)
+        (root / "blast_nr").mkdir(parents=True)
         (root / "bakta" / "db-light" / "version.json").touch()
         (root / "hhsuite" / "pfam" / "PfamA_v38_2" / "PfamA_v38_2_a3m.ffdata").touch()
         (root / "plm_blast" / "ECOD30" / "0.emb").touch()
+        (root / "blast_nr" / "nr.pdb").touch()
         home = tmp_path / "fake-home"
         (home / ".ssign").mkdir(parents=True)
         (home / ".ssign" / "db_root").write_text(str(root))
@@ -296,6 +298,13 @@ class TestPipelineConfigMarkerFallback:
         root = self._stage_dbs(tmp_path, monkeypatch)
         c = PipelineConfig(input_path="x.gbff")
         assert c.plm_effector_weights_dir == str(root / "plm_effector_weights")
+
+    def test_marker_resolves_blast_nr_to_name_prefix(self, tmp_path, monkeypatch):
+        # BLAST+ wants the DB name prefix, not the dir the sentinel lives in:
+        # <root>/blast_nr (dir, holds nr.pdb) -> blastp_db=<root>/blast_nr/nr.
+        root = self._stage_dbs(tmp_path, monkeypatch)
+        c = PipelineConfig(input_path="x.gbff")
+        assert c.blastp_db == str(root / "blast_nr" / "nr")
 
     def test_env_var_wins_over_marker(self, tmp_path, monkeypatch):
         # Env var pointing at a valid alternate layout wins. Lay down a
@@ -376,6 +385,46 @@ class TestPipelineConfigHHsuiteEnvFallback:
         with caplog.at_level("INFO", logger="ssign_app.core.runner"):
             PipelineConfig()
         assert any("hhsuite_pfam_db" in rec.message and "/tmp/fake_pfam" in rec.message for rec in caplog.records)
+
+
+class TestPipelineConfigBlastNRResolution:
+    """blastp_db auto-resolves from SSIGN_BLAST_NR / marker root, bridging the
+    NR *directory* (what resolve_path returns) to the BLAST+ *name prefix*
+    (.../blast_nr/nr) BLASTp needs. Explicit --blastp-db always wins.
+    """
+
+    def _isolate_home(self, tmp_path, monkeypatch):
+        # Empty HOME so no stray ~/.ssign/db_root marker or default DB layout
+        # resolves NR behind the test's back.
+        home = tmp_path / "empty-home"
+        home.mkdir()
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.delenv("SSIGN_BLAST_NR", raising=False)
+
+    def test_env_var_resolves_to_name_prefix(self, tmp_path, monkeypatch):
+        self._isolate_home(tmp_path, monkeypatch)
+        nrdir = tmp_path / "nrdb"
+        nrdir.mkdir()
+        (nrdir / "nr.pdb").touch()
+        monkeypatch.setenv("SSIGN_BLAST_NR", str(nrdir))
+        c = PipelineConfig(input_path="x.gbff")
+        assert c.blastp_db == str(nrdir / "nr")
+
+    def test_explicit_blastp_db_wins(self, tmp_path, monkeypatch):
+        self._isolate_home(tmp_path, monkeypatch)
+        nrdir = tmp_path / "nrdb"
+        nrdir.mkdir()
+        (nrdir / "nr.pdb").touch()
+        monkeypatch.setenv("SSIGN_BLAST_NR", str(nrdir))
+        c = PipelineConfig(input_path="x.gbff", blastp_db="/explicit/swissprot")
+        assert c.blastp_db == "/explicit/swissprot"
+
+    def test_no_nr_keeps_blastp_db_empty(self, tmp_path, monkeypatch):
+        # Error path intact: unresolved blastp_db stays "" so the step returns
+        # the definitive "BLASTp requires a local database" error, not a crash.
+        self._isolate_home(tmp_path, monkeypatch)
+        c = PipelineConfig(input_path="x.gbff")
+        assert c.blastp_db == ""
 
 
 # ---------------------------------------------------------------------------

@@ -28,7 +28,7 @@ from ssign_app.scripts.ssign_lib.constants import (
     TIER_TOOL_DEFAULTS,
     TOOL_TIMEOUT_S,
 )
-from ssign_app.scripts.ssign_lib.dependency_manifest import DATABASE_PATHS
+from ssign_app.scripts.ssign_lib.dependency_manifest import find_db_by_env_var
 from ssign_app.scripts.ssign_lib.fasta_io import count_sequences
 from ssign_app.scripts.ssign_lib.resources import effective_cpu_count
 from ssign_app.scripts.ssign_lib.substrates import load_substrate_ids
@@ -434,7 +434,7 @@ class PipelineConfig:
             ("eggnog_db", "SSIGN_EGGNOG_DB"),
             ("plmblast_db", "SSIGN_ECOD_DB"),
         ):
-            entry = next((d for d in DATABASE_PATHS if d.env_var == manifest_env_var), None)
+            entry = find_db_by_env_var(manifest_env_var)
             if entry is None:
                 continue
             current = getattr(self, attr)
@@ -446,6 +446,20 @@ class PipelineConfig:
                     logger.info("Normalized %s: %s → %s", attr, current, resolved)
                 else:
                     logger.info("Resolved %s → %s", attr, resolved)
+
+        # BLAST NR is the one database where the tool wants a name *prefix*
+        # (blastp -db .../blast_nr/nr) rather than the directory resolve_path
+        # returns (.../blast_nr). Resolve the directory the normal way (via
+        # SSIGN_BLAST_NR or the marker root), then append the `nr` basename.
+        # `nr` is the only BLAST DB fetch_databases.sh --tier full installs
+        # here; a user wanting Swiss-Prot / a custom DB passes --blastp-db,
+        # which wins because this only fills an unset blastp_db.
+        if not self.blastp_db:
+            nr_entry = find_db_by_env_var("SSIGN_BLAST_NR")
+            nr_dir = nr_entry.resolve_path(db_root) if nr_entry else None
+            if nr_dir:
+                self.blastp_db = os.path.join(nr_dir, "nr")
+                logger.info("Resolved blastp_db → %s", self.blastp_db)
 
         # PLM-Effector weights also live under db_root when the user used
         # fetch_databases.sh's default layout. ModelWeights entry with

@@ -41,11 +41,16 @@ NCPUS="64"
 MEM="120gb"
 DRY="0"
 EXTRA="${SSIGN_EXTRA_ARGS:-}"
+# Install tier the run targets. full adds BLASTp-vs-NR + HH-suite-vs-UniRef30
+# (the PBS wrapper exports SSIGN_BLAST_NR + SSIGN_HHSUITE_UNICLUST for those).
+# Default extended keeps every existing submit unchanged.
+TIER="extended"
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --gpu) GPU="$2"; shift 2 ;;
         --walltime) WALLTIME="$2"; shift 2 ;;
+        --tier) TIER="$2"; shift 2 ;;
         --tutorial-all) USE_TUTORIAL_ALL="1"; shift ;;
         # 32c/64gb places more easily than the 64c/120gb default when the big
         # nodes are busy; enough for the extended tier on one genome at a time.
@@ -103,10 +108,10 @@ QSUB_ARGS=(
     -l "select=1:ncpus=${NCPUS}:mem=${MEM}:ngpus=1:gpu_type=$GPU"
     -l "walltime=$WALLTIME"
     -N "ssign_batched_${#GENOMES[@]}genomes"
-    -v "INPUT_GBFFS=${GBFFS},GPU_TYPE=${GPU},SSIGN_EXTRA_ARGS=${EXTRA}"
+    -v "INPUT_GBFFS=${GBFFS},GPU_TYPE=${GPU},TIER=${TIER},SSIGN_EXTRA_ARGS=${EXTRA}"
     "$PBS_SCRIPT"
 )
-echo "  ncpus=$NCPUS mem=$MEM  extra-args: ${EXTRA:-(none)}"
+echo "  ncpus=$NCPUS mem=$MEM  tier=$TIER  extra-args: ${EXTRA:-(none)}"
 echo
 if [ "$DRY" = "1" ]; then
     printf 'DRY RUN — would submit:\n  qsub'
