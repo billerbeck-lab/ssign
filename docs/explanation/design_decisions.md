@@ -154,8 +154,10 @@ Entries are organised by pipeline stage. Each has three parts:
 
 - **Decision:** Secretion systems are detected using MacSyFinder v2
   with the TXSScan HMM profile models. Only systems with a
-  `wholeness_score ≥ 0.8` are accepted as valid. Flagellum, Tad, and
-  T3SS are excluded from substrate identification by default.
+  `wholeness_score ≥ 0.8` are accepted as valid. Flagellum and Tad (and
+  the type-IV pili / uptake appendages) are excluded from substrate
+  identification by default. T3SS is detected and substrate-called by
+  default; DeepSecE is gated for it instead (see §3.3).
 
 - **Rationale:**
   - MacSyFinder v2 is the current community standard for
@@ -173,8 +175,10 @@ Entries are organised by pipeline stage. Each has three parts:
       lists with flagellar proteins.
     - _Tad pilus:_ similar reasoning — its cargo is structural, not
       secreted effectors.
-    - _T3SS:_ excluded due to the DeepSecE-DSE reliability issue
-      documented below (§3.3).
+    (T3SS is **not** in the default excluded set — it is detected and
+    substrate-called by default. The DeepSecE reliability issue below
+    (§3.3) is handled by gating DeepSecE for T3SS, not by excluding the
+    system.)
 
 - **Citations:**
   - [Neron et al. (2023). _Peer Community Journal_ 3:e28](https://doi.org/10.24072/pcjournal.250) — MacSyFinder v2.
@@ -259,14 +263,17 @@ Entries are organised by pipeline stage. Each has three parts:
 - **Citations:**
   - [Teufel et al. (2022). _Nature Biotechnology_ 40(7):1023–1025](https://doi.org/10.1038/s41587-021-01156-3) — SignalP 6.0.
 
-### 3.3 T3SS excluded by default (DeepSecE reliability guard)
+### 3.3 T3SS: DeepSecE not trusted (flagellar-misclassification guard)
 
 - **Decision:** T3SS predictions from DeepSecE are flagged
-  (`dse_T3SS_flagged=True`) and excluded from the trigger count
-  unless MacSyFinder independently validates a T3SS in the same
-  genome. Additionally, T3SS appears in `excluded_systems` by
-  default, so T3SS-associated substrates are dropped from the
-  default output.
+  (`dse_T3SS_flagged=True`) and excluded from the secretion-evidence
+  count **unconditionally** — independent of genome content, because a
+  genome-content condition would re-admit the flagellar false positives.
+  T3SS itself is **detected and substrate-called by default** (it is
+  _not_ in `excluded_systems`); its substrate calls rely on
+  MacSyFinder/TXSScan detection + DeepLocPro + proximity, not DeepSecE.
+  (Earlier versions excluded T3SS entirely by default; that was changed
+  once TXSScan detection proved reliable — openspec `t3ss-detection`.)
 
 - **Rationale (internal benchmark):** In a 74-genome _Xanthomonas_
   benchmark, MacSyFinder found **0 T3SS systems** while DeepSecE

@@ -97,8 +97,9 @@ Columns mirror MacSyFinder's output table with two added at the front:
 | `sample_id` | Genome ID. |
 | `ss_type`, `wholeness_score`, `model_fqn`, `replicon`, `genes` etc. | MacSyFinder columns; see [MacSyFinder docs](https://macsyfinder.readthedocs.io/) for the full list. |
 
-Excluded systems (default: Flagellum, Tad, T3SS) and their components do not
-appear in either chunk.
+Excluded systems (default: Flagellum, Tad, and the type-IV pili / uptake
+appendages T4aP, T4bP, MSH, ComM, Archaeal-T4P) and their components do not
+appear in either chunk. T3SS is not excluded by default, so it does appear.
 
 ## `<sample-id>_results_raw.csv` (full annotations)
 

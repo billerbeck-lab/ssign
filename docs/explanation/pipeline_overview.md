@@ -55,8 +55,8 @@ Two outputs:
 
 A genome can carry several systems of the same type (e.g. two T6SSs),
 and they get distinguished by their component locations. Flagella, Tad
-pili, and T3SS are excluded by default at the next phase, not here;
-detection itself is unconditional.
+pili, and the type-IV pili are excluded by default at the next phase, not
+here (T3SS is not excluded); detection itself is unconditional.
 
 ## Phase 3: secreted-protein prediction
 

@@ -118,7 +118,7 @@ Full column reference: [`docs/reference/output_files.md`](docs/reference/output_
 
 | Parameter             | Default              | Meaning |
 | --------------------- | -------------------- | ------- |
-| `excluded_systems`    | `Flagellum Tad` | System types to skip. T3SS is detected by default; DeepSecE is never trusted for T3SS (it over-calls flagellar proteins), so T3SS relies on MacSyFinder + DeepLocPro + proximity. Add `T3SS` to exclude it entirely. |
+| `excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default (not protein secretion systems). T3SS is detected by default; DeepSecE is never trusted for T3SS (it over-calls flagellar proteins), so T3SS relies on MacSyFinder + DeepLocPro + proximity. Add `T3SS` to exclude it entirely. |
 | `conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability. |
 | `proximity_window`    | `3`                  | +/-N genes around each SS component (same contig only). |
 | `wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |

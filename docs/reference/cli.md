@@ -36,7 +36,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--wholeness-threshold` | float | `0.8` | Minimum MacSyFinder system completeness. |
-| `--excluded-systems` | list | `Flagellum Tad T3SS` | Space-separated SS types to exclude. |
+| `--excluded-systems` | list | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Space-separated SS types to exclude from substrate calling. T3SS is NOT excluded by default. |
 | `--macsyfinder-db-type` | choice | `ordered_replicon` | MacSyFinder `--db-type`. Choices: `ordered_replicon`, `unordered`. |
 | `--cpu-per-genome` | int | CPU count | CPUs available to per-genome subtools (passed as `-w` to MacSyFinder, `-num_threads` to BLAST, etc.). |
 

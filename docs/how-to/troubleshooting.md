@@ -211,9 +211,11 @@ gates. Common causes:
   `<sample-id>_results.csv`). MacSyFinder requires a complete machinery
   signature; partial systems below `--wholeness-threshold` (default
   0.8) are not scored.
-- T3SS-only genome and you ran with the default `--excluded-systems
-  Flagellum Tad T3SS`. Override the exclusion: `--excluded-systems
-  Flagellum Tad`.
+- The genome's only detected systems are default-excluded appendages
+  (Flagellum, Tad, or the type-IV pili), so their neighbouring proteins
+  aren't substrate-called. T3SS is *not* excluded by default; if you added
+  it to `--excluded-systems` yourself, drop it. To include an excluded
+  appendage, pass a reduced `--excluded-systems` list.
 - Too aggressive `--conf-threshold` (default 0.8). Lower it to 0.5 to
   see weaker DLP hits and decide if any look like real substrates.
 

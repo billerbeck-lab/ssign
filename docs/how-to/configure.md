@@ -73,24 +73,29 @@ matching columns in the output.
 
 ## Filtering or including secretion-system types
 
-By default, Flagellum, Tad, and T3SS are excluded from substrate
-identification. Override with a different list (space-separated):
+By default, Flagellum, Tad, and the type-IV pili / uptake appendages
+(T4aP, T4bP, MSH, ComM, Archaeal-T4P) are excluded from substrate
+identification. T3SS is **not** excluded (it is detected and
+substrate-called by default). Override with a different list
+(space-separated):
+
+```bash
+# the default set, written out explicitly:
+ssign run input.gbff --outdir results \
+    --excluded-systems Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P
+```
+
+To also exclude T3SS (restore the pre-2026 behaviour), append it:
 
 ```bash
 ssign run input.gbff --outdir results \
-    --excluded-systems Flagellum Tad T3SS
+    --excluded-systems Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P T3SS
 ```
 
-To include T3SS (e.g. when running on an organism known to carry it):
-
-```bash
-ssign run input.gbff --outdir results \
-    --excluded-systems Flagellum Tad
-```
-
-T3SS is excluded by default because DeepSecE produces a high false-positive
-rate for it (mostly flagellar misclassifications). The full rationale,
-including the 74-genome benchmark behind the decision, is in
+T3SS is included by default, but DeepSecE is never trusted for it (it
+produces a high false-positive rate, mostly flagellar misclassifications);
+T3SS calls rely on TXSScan detection + DeepLocPro + proximity instead. The
+full rationale, including the 74-genome benchmark behind the decision, is in
 [`explanation/design_decisions.md`](../explanation/design_decisions.md) § 2.1
 and § 3.3.
 
