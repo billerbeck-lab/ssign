@@ -275,6 +275,15 @@ Entries are organised by pipeline stage. Each has three parts:
   (Earlier versions excluded T3SS entirely by default; that was changed
   once TXSScan detection proved reliable — openspec `t3ss-detection`.)
 
+- **Why flagellar proteins specifically:** DeepSecE has no flagellum
+  output class — its classes are non-secreted, T1SE, T2SE, T3SE, T4SE,
+  T6SE (`run_deepsece.py` `PREDICTED_LABELS`). The flagellar export
+  apparatus is an evolutionary T3SS homolog, so flagellar proteins share
+  sequence features with injectisome effectors and, having no flagellum
+  bin to land in, get funneled into T3SE. That is why the false
+  positives concentrate in T3SS rather than the other effector types,
+  and why the guard is T3SS-specific.
+
 - **Rationale (internal benchmark):** In a 74-genome _Xanthomonas_
   benchmark, MacSyFinder found **0 T3SS systems** while DeepSecE
   predicted **1,808 T3SS substrate candidates** across the same
