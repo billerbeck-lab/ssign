@@ -2,6 +2,25 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## ⭐ RESUME AFTER COMPACT (2026-07-08)
+
+**State:** full-tier (tier-3) is code-complete + reviewed + pushed on branch `enrichment-circular-shift-per-run`
+(HEAD e62bc60). HH-suite dir→prefix bug fixed (98b2f5f); BLASTp switched NR→Swiss-Prot (74829d6) + review
+cleanup (e62bc60). Full unit suite 1434 green. Xanthobacter 74-genome extended panel = DONE + clean +
+inspected (T1/T4/T5a/T5b/T5c/T6, zero T3SS = real Xanthobacter biology; result in ~/Desktop/cx3_runs).
+**IN FLIGHT (Teo-driven CX3):**
+1. **Full-tier smoke-test RE-VALIDATION** — Teo ran git pull + Swiss-Prot fetch + doctor + resubmitted the
+   2-genome `--tier full` smoke test. *Pending:* retrieve + confirm HH-suite completes and Swiss-Prot BLASTp
+   finishes in minutes (both were the smoke-test failures now fixed). Retrieve via cx3-retrieve skill.
+2. **Bakta-full fetch (task #7, IN PROGRESS)** — Xantho done, so db-light is free. Commands handed to Teo
+   (move db-light OUT of bakta/ so the `db*/version.json` skip-guard doesn't fire, then fetch --tier full →
+   pulls bakta/db ~84GB, everything else skipped). *Pending:* Teo runs it; then doctor + delete the db-light
+   backup so only bakta/db (full) remains (deterministic resolution).
+**OPEN DECISIONS:** task #8 (un-gate DeepSecE for T3SS? — recommend keep gate) — Teo undecided.
+**NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).
+Next likely: retrieve re-validation smoke test → if green, a real full-tier panel; close full-tier-cx3-wiring
+openspec change (13/16) + signalp-t5ss (task #4).
+
 ## 2026-07-08 — Full-tier smoke-test bugs FIXED (HH-suite prefix + BLASTp→Swiss-Prot)
 
 Both full-tier smoke-test bugs fixed (full suite 1434 green). **#9 HH-suite:** `_resolve_ffindex_prefix`
@@ -14,7 +33,9 @@ fetch_databases.sh (run_full fetches swissprot, NOT nr — nr fn kept for manual
 runner resolves blastp_db from SSIGN_BLAST_SWISSPROT → `<dir>/swissprot` (NR no longer auto-resolved, opt-in
 via --blastp-db); PBS exports SSIGN_BLAST_SWISSPROT; timeout 7200→TOOL_TIMEOUT_S (4h). Docs synced across
 env_vars, run_on_hpc, install, README, design_decisions (+ new §3.5), cx3-submit skill. Tests swapped
-NR→Swiss-Prot. **NOT yet committed** (this block) — commit pending. **NOTE:** Teo's CX3 install has the
+NR→Swiss-Prot. **Committed 74829d6 + e62bc60** (2-agent simplify review passed: `-db swissprot` and the
+ffindex-prefix derivation both verified correct upstream; review-flagged stale NR strings in cli/Home/
+constants/run_blastp/pbs/preflight all fixed in e62bc60). **NOTE:** Teo's CX3 install has the
 822GB NR on disk from the earlier fetch; it's now unused-by-default (harmless; usable via --blastp-db, or
 delete to reclaim). A fresh --tier full fetch would pull Swiss-Prot (~300MB) + skip nr. **RE-VALIDATE:**
 re-run the full-tier smoke test after `git pull` to confirm both fixes (HH-suite completes, Swiss-Prot
