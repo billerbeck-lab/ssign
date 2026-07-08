@@ -2,6 +2,60 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## 2026-07-08 — Retrieved + inspected: Xantho panel (CLEAN) + full-tier smoke test (2 bugs)
+
+Both runs retrieved to `~/Desktop/cx3_runs/`. **Xanthobacter panel (extended tier, run 3232160): CLEAN
++ good science.** 74/74 genomes at 17/17, no failures, pooled enrichment = 32 cross-genome rows, ~593
+substrates. Pooled enrichment is biologically correct: T1SS strongly enriched (DLP 8.9× q3e-4, DSE 5.5×,
+SignalP 0.5× NOT — Sec-bypassing C-terminal signal ✓), T5aSS-self very strong (DLP 27.7×, SignalP 7.6×
+✓ Sec-dependent), T5bSS strong (DLP 36.9×, COMBINED 2.4×), T6SS sig via DSE (5.0× q0.017, SignalP 0.16×
+NOT ✓ injected). **NO T3SS row + no T2SS** → Xanthobacter (environmental) has no injectisome, confirms
+the "0-T3SS fits Xanthobacter not Xanthomonas" suspicion from the §3.3 genus flag. This is a valid,
+publication-relevant result. (Real per-tool wallclocks for calibration/runs.jsonl still TODO from the log.)
+**Full-tier smoke test (run 3238415, 2 Roseixanthobacter genomes, ~24 substrates): did its job, caught 2
+real bugs.** My NR + UniRef30 RESOLUTION wiring WORKED (both DBs found, tools started against them). Both
+new tools then failed (optional → run still completed 17/17 without them): (1) **HH-suite crashed** =
+task #9 (dir→ffindex-prefix bug, resources.py:453). (2) **BLASTp timed out** at the hardcoded 7200s =
+task #10 (24 substrates >2h vs 822GB NR; scales badly — real panel could be a day+). IPS/EggNOG/pLM-BLAST/
+physicochem all OK at full tier. So full-tier plumbing is ~validated; the 2 heavy homology tools need
+fixes (#9 code, #10 timeout + a design call on NR-vs-smaller-DB) before a real full-tier panel.
+
+## 2026-07-07 — OPEN DECISION: un-gate DeepSecE for T3SS? (task #8, Teo undecided)
+
+Teo floated: when Flagellum is purposefully included in a run, also allow DeepSecE to call
+flagellum/T3SS (or even un-gate in general). Undecided; parked as task #8 (blocked on the Xantho
+retrieve for real numbers). Mechanism (confirmed): DeepSecE has NO flagellum class
+(`run_deepsece.py` PREDICTED_LABELS = non-secreted/T1/T2/T3/T4/T6SE); flagellum is a T3SS homolog,
+so flagellar proteins funnel into T3SE. Current gate = `_dse_flag` unconditional
+(`cross_validate_predictions.py:149`). **Claude's recommendation: keep the gate, don't couple it** -
+because (1) DeepSecE can't emit "flagellum", un-gating only re-admits undifferentiated T3SS labels;
+(2) including Flagellum ALREADY finds flagellar substrates via DLP-extracellular + proximity
+(DeepSecE adds only mislabeling); (3) genomes with flagellum + a real injectisome (common) get their
+real T3SS list contaminated; (4) coupling to Flagellum-inclusion is arbitrary (contamination is
+T3SS-proximity-driven); (5) T3SS already has 2 reliable signals (MacSyFinder + DLP 71% ext on real
+effectors). Honest alt if we want DeepSecE's flagellar signal: RELABEL a DeepSecE-T3SE call inside a
+flagellum window as flagellar-associated (deliberate feature, arguably out of ssign's remit).
+Added the "no flagellum class" mechanism to design_decisions §3.3 (commit 15a9a48). *Trigger:* after
+Xantho run retrieved, recount DeepSecE-T3SS vs flagellar annotation, then Teo decides. **Also
+outstanding:** genus label in §3.3 ("Xanthomonas") likely wrong - 0-injectisome fits Xanthobacter.
+
+## 2026-07-07 — T3SS/flagellum doc drift fixed; one spec discrepancy left for Teo
+
+Verified (for Teo): ssign DOES distinguish T3SS injectisome from flagellum. TXSScan 1.1.4 ships
+separate `Flagellum.xml` + `T3SS.xml` models (T3SS built from injectisome `sct*` incl. the OM secretin
+`sctC` the flagellum lacks); ssign reads the type from `model_fqn`. Flagellum is in the default excluded
+set (dropped at substrate-calling, `system_filtering.py:276`); T3SS is NOT excluded (detected +
+substrate-called). DeepSecE can't tell them apart, so it's flagged unconditionally for T3SS
+(`t3ss-detection` spec). Fixed stale "T3SS excluded by default" claims across 7 docs (commit 0e3da7a):
+design_decisions §2.1+§3.3, pipeline_overview, configure, troubleshooting, cli.md, output_files, README;
+also corrected §3.3's wrong "flagged only if MacSyFinder validates T3SS" (it's unconditional) and the
+default excluded VALUE (real set = Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P, docs had shown 2-3).
+**DEFERRED (spec-vs-code, Teo's call):** `openspec/specs/t3ss-detection/spec.md:10` still says the default
+`excluded_systems` SHALL be `[Flagellum, Tad]`, but the constant + the authoritative `secretion-system-scope`
+spec have all 7 appendages. The `t3ss-detection` req over-specifies the full list (its real concern is only
+"SHALL NOT contain T3SS"). Fix = reword line 10 to defer the full list to secretion-system-scope. Didn't
+edit unprompted (synced contract spec). *Trigger:* next time the t3ss-detection spec is touched, or Teo OKs.
+
 ## 2026-07-06 — fetch_databases.sh pre-flight (fail-fast on missing tools)
 
 Added `_preflight_tier <tier>` (checks every external tool the tier needs BEFORE any download,

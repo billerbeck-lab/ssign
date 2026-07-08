@@ -138,11 +138,13 @@ def _dse_flag(dse_row: dict) -> tuple:
     """(is_secreted_by_dse, dse_ss_type, dse_max_prob, t3ss_flagged).
 
     T3SS flagging is UNCONDITIONAL: DeepSecE cannot distinguish injectisome
-    from flagellar T3SS (across a 74-genome fleet MacSyFinder validated 0 T3SS
-    while DeepSecE predicted 1,808, mostly flagellar), so every DeepSecE T3SS
-    call is flagged unreliable and excluded from the trigger count regardless of
-    whether the genome has a validated T3SS. With T3SS now detected by default,
-    a genome-content condition would re-admit those flagellar false positives.
+    from flagellar T3SS (it has no flagellum output class, so flagellar
+    proteins — T3SS homologs — funnel into its T3SS bin; on injectisome-free
+    genomes MacSyFinder validates 0 T3SS while DeepSecE still emits T3SS calls),
+    so every DeepSecE T3SS call is flagged unreliable and excluded from the
+    trigger count regardless of whether the genome has a validated T3SS. With
+    T3SS now detected by default, a genome-content condition would re-admit
+    those flagellar false positives.
     """
     dse_type = dse_row.get("dse_ss_type", "Non-secreted") if dse_row else "Non-secreted"
     dse_max = _float_or_zero(dse_row.get("dse_max_prob", 0)) if dse_row else 0.0

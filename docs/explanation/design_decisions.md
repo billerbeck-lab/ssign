@@ -284,19 +284,22 @@ Entries are organised by pipeline stage. Each has three parts:
   positives concentrate in T3SS rather than the other effector types,
   and why the guard is T3SS-specific.
 
-- **Rationale (internal benchmark):** In a 74-genome _Xanthomonas_
-  benchmark, MacSyFinder found **0 T3SS systems** while DeepSecE
-  predicted **1,808 T3SS substrate candidates** across the same
-  cohort — mostly hypothetical proteins and flagellar-protein
-  misclassifications. This false-positive rate is too high to accept
-  uncritically; gating DSE T3SS calls on MacSyFinder validation
-  prevents large-scale over-calling. The reliability issue is T3SS-
+- **Rationale:** DeepSecE over-predicts T3SS at genome scale, dominated
+  by flagellar homologs (see the mechanism above) plus hypothetical
+  proteins. A 74-genome _Xanthobacter_ panel (2026-07-08 run) found **0
+  validated T3SS systems** — expected for an environmental non-pathogen
+  with no injectisome — yet DeepSecE still emits T3SS calls on such genomes.
+  Gating DSE T3SS on MacSyFinder validation prevents large-scale over-calling
+  where there is no injectisome at all. The reliability issue is T3SS-
   specific; DSE calls for T1SS/T2SS/T4SS/T6SS are not gated.
 
-- **Note for paper:** The 74-genome benchmark is internal. Either
-  include these numbers as supplementary data (lab-generated,
-  citable as Reid et al., in preparation), or replicate on a
-  published _Xanthomonas_ set before submission.
+- **Provenance note:** an earlier draft of this section cited a specific
+  over-call count ("1,808 across a 74-genome _Xanthomonas_ set"). That
+  provenance is wrong — no _Xanthomonas_ panel was ever run — so treat the
+  magnitude as unverified. Re-derive it from a whole-genome DeepSecE pass (the
+  74-genome _Xanthobacter_ run is the natural source: count DeepSecE `T3SS`
+  calls vs the 0 MacSyFinder-validated injectisomes) before using a number in
+  the paper.
 
 ### 3.4 Why PLM-Effector is vendored
 

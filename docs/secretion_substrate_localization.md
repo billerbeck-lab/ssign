@@ -70,7 +70,8 @@ them extracellular regardless of the injection nuance. This means:
   mismatch. (T4SS is the one type that empirically looks cytoplasmic — but n=1 here,
   so it is unverified; T4SS deserves its own whole-genome check.)
 - DeepSecE's sequence classifier independently flags T1/T6 well, and T3SS too — but
-  T3SS-DSE is the flagellar-false-positive source (1,808 calls / mostly flagellar),
+  T3SS-DSE is the flagellar-false-positive source (DeepSecE has no flagellum class, so
+  flagellar proteins — T3SS homologs — funnel into its T3SS bin and over-call it),
   so ssign deliberately excludes DeepSecE for T3SS and relies on DLP + proximity.
 
 ## Implications for ssign
