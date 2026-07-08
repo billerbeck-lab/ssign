@@ -246,7 +246,7 @@ node:
 | DeepSecE (GPU / 16-core CPU / 1-core throttled) | seconds / ~10 min / ~90 min |
 | HH-suite (Pfam + PDB70) | 10-30 min |
 | InterProScan | 5-15 min |
-| BLASTp NR | 30-90 min depending on n_proteins and NR vintage |
+| BLASTp Swiss-Prot | a few min (full-tier default; NR opt-in is far slower) |
 | EggNOG-mapper | 5-15 min |
 | pLM-BLAST (GPU) | 5-15 min |
 | Reporting | 1-2 min |
@@ -256,20 +256,23 @@ Cohorts spanning hundreds of genomes need a job array (one job per
 genome) rather than a single long job.
 
 **Full tier (`--tier full`) needs more walltime headroom.** It adds
-BLASTp-vs-NR and HH-suite-vs-UniRef30 on the substrate set. Unlike the
+BLASTp-vs-Swiss-Prot and HH-suite-vs-UniRef30 on the substrate set. Unlike the
 predictors, these two tools are **not** in the runtime effort model, so the
 size-aware timeouts do not scale them: BLASTp uses the 4 h floor and HH-suite
 a per-protein cap (1 h hhblits + 30 min hhsearch). HH-suite runs one MSA per
 substrate through a thread pool, so on a large pooled cohort (hundreds to a
-thousand-plus substrates) it is the tail. Size `--walltime` to 24 h+ for a
-full-tier panel, and validate on a 2-4 genome smoke test first to measure the
-real per-protein HH-suite time before committing a long job.
+thousand-plus substrates) it is the tail (Swiss-Prot BLASTp finishes in
+minutes). Size `--walltime` to 24 h+ for a full-tier panel, and validate on a
+2-4 genome smoke test first to measure the real per-protein HH-suite time
+before committing a long job.
 
-Full tier also needs its databases present: NR at `<db_root>/blast_nr/`
-(sets `SSIGN_BLAST_NR`) and UniRef30 at `<db_root>/hhsuite/uniref30/` (sets
-`SSIGN_HHSUITE_UNICLUST`). With both present, ssign resolves BLASTp's `-db`
-and HH-suite's UniRef30 automatically, no `--blastp-db` / `--hhsuite-uniclust-db`
-flags needed.
+Full tier also needs its databases present: Swiss-Prot at
+`<db_root>/blast_swissprot/` (sets `SSIGN_BLAST_SWISSPROT`) and UniRef30 at
+`<db_root>/hhsuite/uniref30/` (sets `SSIGN_HHSUITE_UNICLUST`). With both
+present, ssign resolves BLASTp's `-db` and HH-suite's UniRef30 automatically,
+no `--blastp-db` / `--hhsuite-uniclust-db` flags needed. Swiss-Prot is the
+default because full NR (~800 GB) is impractically slow to blast a real
+substrate set; to use NR instead, fetch it and pass `--blastp-db <nr-dir>/nr`.
 
 ## 6. Cohort runs as a job array
 

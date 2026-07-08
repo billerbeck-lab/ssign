@@ -447,18 +447,18 @@ class PipelineConfig:
                 else:
                     logger.info("Resolved %s → %s", attr, resolved)
 
-        # BLAST NR is the one database where the tool wants a name *prefix*
-        # (blastp -db .../blast_nr/nr) rather than the directory resolve_path
-        # returns (.../blast_nr). Resolve the directory the normal way (via
-        # SSIGN_BLAST_NR or the marker root), then append the `nr` basename.
-        # `nr` is the only BLAST DB fetch_databases.sh --tier full installs
-        # here; a user wanting Swiss-Prot / a custom DB passes --blastp-db,
-        # which wins because this only fills an unset blastp_db.
+        # BLASTp's DB is addressed by a name *prefix* (blastp -db
+        # .../blast_swissprot/swissprot), not the directory resolve_path
+        # returns. Resolve the Swiss-Prot dir (via SSIGN_BLAST_SWISSPROT or the
+        # marker root) and append the `swissprot` basename. Swiss-Prot is the
+        # full-tier default (curated + fast); NR — too slow on a real substrate
+        # set — or any custom DB is opt-in via --blastp-db, which wins because
+        # this only fills an unset blastp_db.
         if not self.blastp_db:
-            nr_entry = find_db_by_env_var("SSIGN_BLAST_NR")
-            nr_dir = nr_entry.resolve_path(db_root) if nr_entry else None
-            if nr_dir:
-                self.blastp_db = os.path.join(nr_dir, "nr")
+            sp_entry = find_db_by_env_var("SSIGN_BLAST_SWISSPROT")
+            sp_dir = sp_entry.resolve_path(db_root) if sp_entry else None
+            if sp_dir:
+                self.blastp_db = os.path.join(sp_dir, "swissprot")
                 logger.info("Resolved blastp_db → %s", self.blastp_db)
 
         # PLM-Effector weights also live under db_root when the user used
@@ -2140,7 +2140,10 @@ class PipelineRunner:
             args.extend(["--exclude-taxid", self.config.blastp_exclude_taxid])
         args.extend(["--threads", str(self._annotation_cpu_budget())])
 
-        rc, stdout, stderr = run_script("run_blastp.py", args, timeout=7200)
+        # Swiss-Prot (the full-tier default) finishes in minutes; TOOL_TIMEOUT_S
+        # (4h) is generous for it and gives headroom for an opt-in --blastp-db NR
+        # run (the old hardcoded 7200s killed NR mid-search — full-tier smoke test).
+        rc, stdout, stderr = run_script("run_blastp.py", args, timeout=TOOL_TIMEOUT_S)
         if rc == 0:
             self.files["blastp"] = output
             return StepResult("blastp", True, "BLASTp complete")

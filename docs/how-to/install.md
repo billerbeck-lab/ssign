@@ -29,9 +29,9 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases on Imper
 |---|---|---|
 | base | ~2 GB | DeepSecE checkpoint |
 | extended | ~125 GB | + Bakta light DB (4 GB), EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB), PLM-Effector weights (26 GB) |
-| full | ~1.3 TB | + HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLAST nr (802 GB) |
+| full | ~500 GB | + Bakta full DB (84 GB), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
-BLAST nr is the long pole for full-tier disk; if you don't need cross-genome BLASTp, sticking with extended saves ~1.2 TB.
+HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
 
 If a tier doesn't fit your storage budget, pick individual tools below.
 
@@ -574,7 +574,7 @@ ssign run input.gbff --outdir results
 That's it. `fetch_databases.sh` records the tier at `~/.ssign/tier`; ssign
 reads it and enables exactly the tools the extended bundle ships (EggNOG,
 InterProScan, pLM-BLAST, PLM-Effector) while leaving BLASTp and HH-suite
-off — BLAST NR (~390 GB) and HH-suite UniRef30 are full-tier only.
+off — BLASTp-vs-Swiss-Prot and HH-suite UniRef30 are full-tier only.
 The database paths come from `~/.ssign/db_root` (also written by
 `fetch_databases.sh`) — no per-DB env var exports needed for the
 common case.

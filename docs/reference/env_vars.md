@@ -13,7 +13,7 @@ These are the env vars ssign actually consults during a pipeline run:
 | `SSIGN_HHSUITE_PFAM` | Path to HH-suite Pfam database. Fallback for `--hhsuite-pfam-db`. |
 | `SSIGN_HHSUITE_PDB70` | Same, for PDB70. Fallback for `--hhsuite-pdb70-db`. |
 | `SSIGN_HHSUITE_UNICLUST` | Same, for UniRef30 / UniClust30. Fallback for `--hhsuite-uniclust-db`. |
-| `SSIGN_BLAST_NR` | Directory holding the BLAST NR database (contains `nr.pdb`). When `--blastp-db` is unset, ssign resolves the BLASTp `-db` prefix as `<this dir>/nr`. Fallback for `--blastp-db`; the flag wins. |
+| `SSIGN_BLAST_SWISSPROT` | Directory holding the BLAST Swiss-Prot database (contains `swissprot.pdb`) — the full-tier default BLASTp DB. When `--blastp-db` is unset, ssign resolves the `-db` prefix as `<this dir>/swissprot`. Fallback for `--blastp-db`; the flag wins. NR is opt-in: fetch it and pass `--blastp-db <nr-dir>/nr` (there is no auto-resolution for NR). |
 | `SSIGN_DEEPSECE_CHECKPOINT_URL` | Replace the canonical DeepSecE checkpoint URL with an institutional mirror. Useful inside firewalled networks. |
 | `SSIGN_PLMBLAST_SCRIPT` | Path to the upstream `plmblast.py` script (clone of `labstructbioinf/pLM-BLAST`). |
 | `SSIGN_TAXDUMP_DIR` | NCBI taxdump directory used by `resolve_taxonomy.py`. Defaults to a bundled snapshot if unset. |

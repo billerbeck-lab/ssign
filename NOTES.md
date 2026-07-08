@@ -2,6 +2,24 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## 2026-07-08 — Full-tier smoke-test bugs FIXED (HH-suite prefix + BLASTp→Swiss-Prot)
+
+Both full-tier smoke-test bugs fixed (full suite 1434 green). **#9 HH-suite:** `_resolve_ffindex_prefix`
+in run_hhsuite.py converts the resolved DB dir → ffindex prefix (`.../UniRef30_2023_02`) so hhblits gets
+a prefix not a dir (was IsADirectoryError in the SSD stager); +5 tests. Commit 98b2f5f. **#10 BLASTp:**
+Teo chose Swiss-Prot over NR. Full-tier BLASTp now defaults to **Swiss-Prot** (curated, ~300 MB, minutes)
+not NR (~800 GB, >2h for 24 substrates → days on a panel). Changes: `fetch_blast_swissprot` in
+fetch_databases.sh (run_full fetches swissprot, NOT nr — nr fn kept for manual opt-in); manifest NR entry
+→ Swiss-Prot (SSIGN_BLAST_SWISSPROT / blast_swissprot / swissprot.pdb) so doctor checks the right DB;
+runner resolves blastp_db from SSIGN_BLAST_SWISSPROT → `<dir>/swissprot` (NR no longer auto-resolved, opt-in
+via --blastp-db); PBS exports SSIGN_BLAST_SWISSPROT; timeout 7200→TOOL_TIMEOUT_S (4h). Docs synced across
+env_vars, run_on_hpc, install, README, design_decisions (+ new §3.5), cx3-submit skill. Tests swapped
+NR→Swiss-Prot. **NOT yet committed** (this block) — commit pending. **NOTE:** Teo's CX3 install has the
+822GB NR on disk from the earlier fetch; it's now unused-by-default (harmless; usable via --blastp-db, or
+delete to reclaim). A fresh --tier full fetch would pull Swiss-Prot (~300MB) + skip nr. **RE-VALIDATE:**
+re-run the full-tier smoke test after `git pull` to confirm both fixes (HH-suite completes, Swiss-Prot
+BLASTp completes in minutes) before a real full-tier panel.
+
 ## 2026-07-08 — Retrieved + inspected: Xantho panel (CLEAN) + full-tier smoke test (2 bugs)
 
 Both runs retrieved to `~/Desktop/cx3_runs/`. **Xanthobacter panel (extended tier, run 3232160): CLEAN

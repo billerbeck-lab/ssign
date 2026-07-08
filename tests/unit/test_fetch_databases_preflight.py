@@ -1,11 +1,11 @@
 """Pre-flight tool checks in scripts/fetch_databases.sh.
 
 The script requires each external tool only when it reaches that tool's DB
-step, and BLAST NR's `update_blastdb.pl` is the LAST step — so before the
-pre-flight, a full-tier fetch with a missing NR tool would download Bakta +
-all HH-suite (~135 GB, hours) and only then fail. `_preflight_tier` checks
-every tool the tier needs up front. These tests drive the real script via
-subprocess with stubbed tools.
+step, and `update_blastdb.pl` (BLAST Swiss-Prot, the last DB fetched) is the
+LAST step — so before the pre-flight, a full-tier fetch with a missing
+update_blastdb.pl would download Bakta + all HH-suite (hours) and only then
+fail. `_preflight_tier` checks every tool the tier needs up front. These tests
+drive the real script via subprocess with stubbed tools.
 """
 
 from __future__ import annotations

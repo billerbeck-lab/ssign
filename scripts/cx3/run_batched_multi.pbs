@@ -75,16 +75,18 @@ DBROOT="$EPHEMERAL/ssign-databases"
 _ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1); [ -n "$_ECOD" ] && export SSIGN_ECOD_DB="$_ECOD"
 [ -d "$DBROOT/hhsuite/pfam" ]           && export SSIGN_HHSUITE_PFAM="$DBROOT/hhsuite/pfam"
 [ -d "$DBROOT/hhsuite/pdb70" ]          && export SSIGN_HHSUITE_PDB70="$DBROOT/hhsuite/pdb70"
-# --tier full extras: UniRef30 (HH-suite hhblits MSA) + BLAST NR (BLASTp).
+# --tier full extras: UniRef30 (HH-suite hhblits MSA) + Swiss-Prot (BLASTp
+# default). For the opt-in NR path, export SSIGN_BLAST_NR yourself + pass
+# --blastp-db "$DBROOT/blast_nr/nr" via SSIGN_EXTRA_ARGS.
 [ -d "$DBROOT/hhsuite/uniref30" ]       && export SSIGN_HHSUITE_UNICLUST="$DBROOT/hhsuite/uniref30"
-[ -d "$DBROOT/blast_nr" ]               && export SSIGN_BLAST_NR="$DBROOT/blast_nr"
+[ -d "$DBROOT/blast_swissprot" ]        && export SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1)
 [ -n "$_IPS" ]                          && export SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$HOME/.conda/envs/deeplocpro/bin" ] && export SSIGN_DEEPLOCPRO_PATH="$HOME/.conda/envs/deeplocpro/bin"
 [ -d "$HOME/.conda/envs/signalp6/bin" ]   && export SSIGN_SIGNALP_PATH="$HOME/.conda/envs/signalp6/bin"
 echo "  BAKTA_DB=${BAKTA_DB:-<unset: Bakta will fail unless --use-input-annotations>}"
 echo "  local predictors: DLP=${SSIGN_DEEPLOCPRO_PATH:-remote} SignalP=${SSIGN_SIGNALP_PATH:-remote}"
-echo "  tier=$TIER  NR=${SSIGN_BLAST_NR:-<unset>} UniRef30=${SSIGN_HHSUITE_UNICLUST:-<unset>}"
+echo "  tier=$TIER  SwissProt=${SSIGN_BLAST_SWISSPROT:-<unset>} UniRef30=${SSIGN_HHSUITE_UNICLUST:-<unset>}"
 
 echo "===== ssign run START $(date -Is) ====="
 # SSIGN_EXTRA_ARGS appends additional ssign flags. Word-splits on

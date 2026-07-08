@@ -137,7 +137,7 @@ Upgrade later by re-running the database fetcher with a new `--tier`.
 | ------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
 | **base**     | ~22 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
 | **extended** | ~115 GB | base + EggNOG\* + InterProScan + pLM-BLAST                                                        | `pip install ssign[extended]` |
-| **full**     | ~700 GB | extended + BLAST NR + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30)                          | `pip install ssign[full]`     |
+| **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot (NR opt-in)   | `pip install ssign[full]`     |
 
 Disk sizes above cover databases pulled by `fetch_databases.sh`. Add ~18 GB
 of model weights (downloaded once by `fetch_weights.sh`, shared across

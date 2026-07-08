@@ -323,6 +323,23 @@ Entries are organised by pipeline stage. Each has three parts:
     preserve via `src/ssign_app/scripts/plm_effector/LICENSE` and a
     citation entry in `CITATION.cff`.
 
+### 3.5 Full-tier BLASTp searches Swiss-Prot, not NR (default)
+
+- **Decision:** At the full tier, BLASTp annotates substrates against
+  **Swiss-Prot** by default, not NR. NR remains available but opt-in (fetch it
+  manually, pass `--blastp-db <nr-dir>/nr`).
+
+- **Rationale:** The full-tier smoke test (2 genomes, ~24 substrates) measured
+  BLASTp-vs-NR at **>2 h and rising** — NR is ~800 GB (~700M sequences), and
+  search time scales with query count, so a real panel (~hundreds of
+  substrates) would run for a day or more. Swiss-Prot is ~570k **curated,
+  reviewed** sequences (~300 MB): it searches in minutes, and its reviewed
+  function names are usually *more* useful for "what is this substrate" than
+  NR's redundant, often-hypothetical hits. HH-suite (profile) + InterProScan +
+  EggNOG + pLM-BLAST already cover deeper/remote homology, so NR's marginal
+  value did not justify the day-plus runtime. `blastp_db` auto-resolves from
+  `SSIGN_BLAST_SWISSPROT`; NR is never auto-resolved.
+
 ---
 
 ## 4. Annotation consensus
@@ -514,12 +531,15 @@ Entries are organised by pipeline stage. Each has three parts:
     Bakta light
   - **extended** (~130 GB): + EggNOG + HH-suite (Pfam + PDB70) +
     InterProScan + pLM-BLAST
-  - **full** (~630 GB): + BLAST NR + Bakta full DB + HH-suite UniRef30
+  - **full** (~500 GB): + Bakta full DB + HH-suite UniRef30 +
+    BLASTp-vs-Swiss-Prot (NR opt-in, not fetched by default)
 
-- **Rationale:** Lab researchers rarely need BLAST NR (390 GB). Tier-
-  aware distribution keeps the minimum-useful install under 20 GB
-  while still offering the full reproducibility bundle for users who
-  need it.
+- **Rationale:** Tier-aware distribution keeps the minimum-useful install
+  under 20 GB while still offering the full reproducibility bundle. Full-tier
+  BLASTp defaults to Swiss-Prot (curated, ~300 MB, fast, reviewed function
+  names); full NR (~800 GB) is opt-in only because it is impractically slow to
+  blast a real substrate set (the full-tier smoke test measured >2 h for ~24
+  substrates, which scales to days on a panel — see §3.5).
 
 ### 6.3 Nextflow "power mode" deprecated
 

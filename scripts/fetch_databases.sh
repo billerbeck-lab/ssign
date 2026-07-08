@@ -7,7 +7,8 @@
 # Tier sizes (post-extraction):
 #   base       ~22 GB   NCBI taxdump + Bakta light + PLM-Effector weights
 #   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
-#   full       ~700 GB  + BLAST NR + Bakta full + HH-suite (Pfam + PDB70 + UniRef30)
+#   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
+#              (HH-suite extracted dominates; NR is opt-in, not fetched by default — see fetch_blast_nr)
 # (sizes above are rough — see task #221 for the audit.)
 #
 # Default target: ~/.ssign/databases (override with --target /path).
@@ -88,7 +89,7 @@ Usage:
 Tier sizes (post-extraction):
   base       ~22 GB   NCBI taxdump + Bakta light + PLM-Effector weights
   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
-  full       ~700 GB  + BLAST NR + Bakta full + HH-suite (Pfam + PDB70 + UniRef30)
+  full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 
 Default target: ~/.ssign/databases (override with --target /path).
 Resumes interrupted downloads (wget -c). Skips items already extracted.
@@ -514,8 +515,26 @@ fetch_plm_effector_weights() {
     _log "OK — set SSIGN_PLM_EFFECTOR_WEIGHTS=$dir"
 }
 
+fetch_blast_swissprot() {
+    # Swiss-Prot is the full-tier default BLASTp DB: ~300 MB curated, each
+    # entry carrying a reviewed function name — far more useful for "what is
+    # this substrate" than NR's redundant hits, and it searches in minutes
+    # instead of the day+ full NR takes on a real substrate set. NR remains
+    # available for the exhaustive case via `fetch_blast_nr` + `--blastp-db`.
+    _log "==> BLAST Swiss-Prot (~300 MB; via update_blastdb.pl)"
+    _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
+
+    local dir="$TARGET/blast_swissprot"
+    _run mkdir -p "$dir"
+    _run bash -c "cd \"$dir\" && update_blastdb.pl --decompress swissprot"
+    _log "OK — BLAST Swiss-Prot at $dir"
+}
+
 fetch_blast_nr() {
-    _log "==> BLAST NR (~390 GB; via update_blastdb.pl)"
+    # NOT fetched by any tier by default (see fetch_blast_swissprot). Kept for
+    # the operator who wants exhaustive NR homology: run this function's body
+    # manually, then pass `--blastp-db <dir>/nr`. ~800 GB decompressed.
+    _log "==> BLAST NR (~800 GB; via update_blastdb.pl)"
     _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
 
     local dir="$TARGET/blast_nr"
@@ -546,10 +565,11 @@ run_extended() {
 }
 
 run_full() {
-    # Full = extended set, plus the big-three: NR, Bakta full, UniRef30.
-    # We start with base + the extended additions, then the full additions.
-    # Note: full uses Bakta full instead of Bakta light, so we don't call
-    # run_extended directly.
+    # Full = extended set + Bakta full + HH-suite (Pfam/PDB70/UniRef30) +
+    # BLASTp-vs-Swiss-Prot. NR is deliberately NOT fetched here (it's ~800 GB
+    # and too slow to blast a real substrate set — see fetch_blast_swissprot);
+    # the operator opts into NR manually. full uses Bakta full instead of
+    # light, so we don't call run_extended directly.
     fetch_taxdump
     fetch_bakta full
     fetch_plm_effector_weights
@@ -559,7 +579,7 @@ run_full() {
     fetch_hhsuite_uniref30
     fetch_interproscan
     fetch_ecod
-    fetch_blast_nr
+    fetch_blast_swissprot
 }
 
 # ---------------------------------------------------------------------------

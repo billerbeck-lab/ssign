@@ -346,10 +346,14 @@ DATABASE_PATHS: tuple[DatabasePath, ...] = (
         tool="pLM-BLAST",
     ),
     DatabasePath(
-        "BLAST NR",
-        "SSIGN_BLAST_NR",
-        "blast_nr",
-        "nr.pdb",
+        # Full-tier default BLASTp DB. NR (SSIGN_BLAST_NR / blast_nr) is opt-in
+        # only — too slow to blast a real substrate set — so it is intentionally
+        # not a manifest entry: doctor doesn't require it, and an operator who
+        # wants it passes --blastp-db <dir>/nr explicitly.
+        "BLAST Swiss-Prot",
+        "SSIGN_BLAST_SWISSPROT",
+        "blast_swissprot",
+        "swissprot.pdb",
         "bash scripts/fetch_databases.sh --tier full",
         tier="full",
         tool="BLAST+",
