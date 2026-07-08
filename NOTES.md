@@ -8,14 +8,14 @@ Tracks items skipped during tasks. One bullet per item: what, why, trigger to re
 (HEAD e62bc60). HH-suite dir→prefix bug fixed (98b2f5f); BLASTp switched NR→Swiss-Prot (74829d6) + review
 cleanup (e62bc60). Full unit suite 1434 green. Xanthobacter 74-genome extended panel = DONE + clean +
 inspected (T1/T4/T5a/T5b/T5c/T6, zero T3SS = real Xanthobacter biology; result in ~/Desktop/cx3_runs).
-**IN FLIGHT (Teo-driven CX3):**
-1. **Full-tier smoke-test RE-VALIDATION** — Teo ran git pull + Swiss-Prot fetch + doctor + resubmitted the
-   2-genome `--tier full` smoke test. *Pending:* retrieve + confirm HH-suite completes and Swiss-Prot BLASTp
-   finishes in minutes (both were the smoke-test failures now fixed). Retrieve via cx3-retrieve skill.
-2. **Bakta-full fetch (task #7, IN PROGRESS)** — Xantho done, so db-light is free. Commands handed to Teo
-   (move db-light OUT of bakta/ so the `db*/version.json` skip-guard doesn't fire, then fetch --tier full →
-   pulls bakta/db ~84GB, everything else skipped). *Pending:* Teo runs it; then doctor + delete the db-light
-   backup so only bakta/db (full) remains (deterministic resolution).
+**IN FLIGHT (Teo-driven CX3, node login-ai):**
+1. **Swiss-Prot fetch = DONE** (2026-07-08, `blast_swissprot/` present). **Bakta-full fetch = RUNNING**
+   (db-light moved to `$EPHEMERAL/ssign-databases/bakta_db_light_backup`; `bakta_db download --type full`
+   downloading `bakta/db` ~84GB, log `$EPHEMERAL/fetch_baktafull.log`). *When done:* `ssign doctor --tier full`,
+   confirm only `bakta/db` remains, `rm -rf bakta_db_light_backup`. Full-tier DB install then complete.
+2. **Full-tier smoke-test RE-VALIDATION = NOT yet submitted.** After Bakta-full lands, resubmit the 2-genome
+   `--tier full` smoke test (`ls $HOME/xantho_gbff/*.gbff | head -2`), retrieve, confirm HH-suite completes +
+   Swiss-Prot BLASTp finishes in minutes (both were the fixed smoke-test failures). Then a real full-tier panel.
 **OPEN DECISIONS:** task #8 (un-gate DeepSecE for T3SS? — recommend keep gate) — Teo undecided.
 **NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).
 Next likely: retrieve re-validation smoke test → if green, a real full-tier panel; close full-tier-cx3-wiring
