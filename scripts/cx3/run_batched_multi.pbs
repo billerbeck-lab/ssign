@@ -29,9 +29,10 @@ for g in "${GENOME_LIST[@]}"; do
 done
 
 : "${GPU_TYPE:=L40S}"
-# Install tier (base|extended|full). full turns on BLASTp-vs-NR + HH-suite-vs-
-# UniRef30; the DB block below exports SSIGN_BLAST_NR + SSIGN_HHSUITE_UNICLUST
-# so they resolve without per-run flags. Default extended = prior behaviour.
+# Install tier (base|extended|full). full turns on BLASTp-vs-Swiss-Prot +
+# HH-suite-vs-UniRef30; the DB block below exports SSIGN_BLAST_SWISSPROT +
+# SSIGN_HHSUITE_UNICLUST so they resolve without per-run flags. Default
+# extended = prior behaviour.
 : "${TIER:=extended}"
 # Include PBS_JOBID so simultaneously-released jobs in the same second
 # don't collide on the same RUN_DIR and clobber each other's outputs.

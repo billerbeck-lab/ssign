@@ -351,7 +351,7 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "--skip-blastp",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help="Skip BLASTp (overrides --tier default; on at tier=full only because NR is ~390 GB).",
+        help="Skip BLASTp (overrides --tier default; on at tier=full only, defaults to Swiss-Prot).",
     )
     g.add_argument("--blastp-db", default="", help="Path to BLAST database (NR or Swiss-Prot).")
     g.add_argument("--blastp-exclude-taxid", default="", help="Comma-separated taxid(s) to exclude from BLASTp hits.")

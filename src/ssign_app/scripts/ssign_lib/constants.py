@@ -297,7 +297,7 @@ PLME_TO_MACSYFINDER = {
 #     Pfam + PDB70 also get fetched, but HH-suite stays default-off (see
 #     _EXTENDED_ADDS comment) until the wrapper degrades gracefully
 #     without UniRef30.
-#   - full: adds BLAST NR (390 GB) + HH-suite UniRef30 → BLASTp and
+#   - full: adds BLAST Swiss-Prot + HH-suite UniRef30 → BLASTp and
 #     HH-suite default on at the full tier.
 #
 # `run_bakta` is governed by --use-input-annotations + Bakta-DB-present

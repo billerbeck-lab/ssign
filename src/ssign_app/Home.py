@@ -396,7 +396,8 @@ with st.sidebar:
         "Annotation tools run locally against databases fetched from Zenodo "
         "(see `scripts/fetch_databases.sh`). Pick an install tier — **base** "
         "(~17 GB) for prediction only, **extended** (~130 GB) adds EggNOG + "
-        "HH-suite + InterProScan + pLM-BLAST, **full** (~630 GB) adds BLAST NR. "
+        "HH-suite + InterProScan + pLM-BLAST, **full** (~500 GB) adds Bakta full "
+        "+ BLASTp-vs-Swiss-Prot. "
         "See the README for details."
     )
 

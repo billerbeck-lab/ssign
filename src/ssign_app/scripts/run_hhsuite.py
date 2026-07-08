@@ -239,7 +239,7 @@ def _resolve_ffindex_prefix(path: str) -> str:
         # No ffindex inside; hand back the dir and let hhblits emit its own
         # clear "database not found" error rather than guessing.
         return path
-    stem = os.path.basename(matches[0])[: -len("_a3m.ffdata")]
+    stem = os.path.basename(matches[0]).removesuffix("_a3m.ffdata")
     return os.path.join(path, stem)
 
 

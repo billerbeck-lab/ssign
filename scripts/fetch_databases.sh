@@ -270,9 +270,9 @@ _external_db_exists() {
 _preflight_tier() {
     # Fail fast on missing external tools BEFORE any (possibly hours-long)
     # download starts, instead of only when the fetch reaches that DB's step.
-    # Motivating case: update_blastdb.pl (BLAST NR) is checked at the LAST
-    # step, so without this a full-tier fetch would pull Bakta + all HH-suite
-    # (~135 GB, hours) and only THEN die on a missing NR tool. This mirrors the
+    # Motivating case: update_blastdb.pl (BLAST Swiss-Prot, the last DB) is
+    # checked at the LAST step, so without this a full-tier fetch would pull
+    # Bakta + all HH-suite (hours) and only THEN die on a missing tool. Mirrors the
     # per-fetch _require_command checks exactly (same tools, same guards), so
     # it never fails on a tool the actual fetch wouldn't have needed. Honors
     # DRY_RUN via _require_command (informational, not fatal).
@@ -285,7 +285,7 @@ _preflight_tier() {
     # PLM-Effector weights (every tier).
     _require_command hf "$_HINT_HF"
     _require_command unzip "$_HINT_UNZIP"
-    # BLAST NR (full tier only).
+    # BLASTp DB — Swiss-Prot (full tier only; NR opt-in uses the same tool).
     if [[ "$tier" == "full" ]]; then
         _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
     fi
