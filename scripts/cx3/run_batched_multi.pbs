@@ -58,6 +58,16 @@ command -v ssign >/dev/null || { echo "FATAL: ssign not on PATH after venv activ
 echo "  ssign -> $(command -v ssign)"
 
 export PATH="$PATH:$HOME/.conda/envs/bakta-deps/bin"
+# HH-suite (hhblits/hhsearch) for the full-tier homology step. Put it on PATH
+# here so the job is self-contained instead of depending on the submitting
+# user's ~/.bashrc (which does NOT export it). Keep an existing on-PATH copy
+# (module/manual install); otherwise auto-detect any conda env that ships
+# hhblits. Harmless when absent — HH-suite is optional and doctor flags it.
+if ! command -v hhblits >/dev/null 2>&1; then
+    _HHBIN=$(ls -d "$HOME"/.conda/envs/*/bin/hhblits 2>/dev/null | head -1)
+    [ -n "$_HHBIN" ] && export PATH="$PATH:$(dirname "$_HHBIN")"
+fi
+echo "  hhblits -> $(command -v hhblits || echo '<not found: HH-suite step will be skipped>')"
 export SSIGN_PLMBLAST_SCRIPT="$HOME/tools/pLM-BLAST/scripts/plmblast.py"
 test -f "$SSIGN_PLMBLAST_SCRIPT" || { echo "FATAL: SSIGN_PLMBLAST_SCRIPT not found at $SSIGN_PLMBLAST_SCRIPT"; exit 1; }
 

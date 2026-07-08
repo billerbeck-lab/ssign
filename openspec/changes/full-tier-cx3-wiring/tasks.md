@@ -26,5 +26,17 @@
 ## 5. CX3 validation (user-driven, gates the large panel)
 
 - [ ] 5.1 On CX3: `fetch_databases.sh --tier full` onto `$EPHEMERAL`; `ssign doctor --tier full` reports NR + UniRef30 present.
-- [ ] 5.2 Smoke test: `submit_batched_overnight.sh --tier full --tutorial-all` (or 2 genomes); confirm BLASTp + HH-suite steps complete (`N/N steps succeeded`) and record real per-tool wallclock.
+- [ ] 5.2 Smoke test: `submit_batched_overnight.sh --tier full` (2 genomes); confirm BLASTp (Swiss-Prot) + HH-suite steps complete (`N/N steps succeeded`) and record real per-tool wallclock.
 - [ ] 5.3 Append the measured blastp/hhsuite wallclock to `memory/calibration/runs.jsonl` and size the panel `--walltime` from it.
+
+## 6. Post-smoke-test robustness fixes (defects the first full-tier smoke test surfaced)
+
+The first full-tier smoke test (run 3238415) exposed three real defects a new-lab / non-CX3
+user would also hit. NR was additionally replaced by Swiss-Prot as the full-tier BLASTp default
+(curated, minutes vs NR's hours on a substrate set), so tasks 1.x/2.3/3.x now target
+`SSIGN_BLAST_SWISSPROT` + `<dir>/swissprot`, not NR.
+
+- [x] 6.1 HH-suite DB dir→ffindex-prefix: `run_hhsuite.py` `_resolve_ffindex_prefix` converts the resolved DB dir to the ffindex prefix hhblits/hhsearch expect (was IsADirectoryError). Commit 98b2f5f.
+- [x] 6.2 BLASTp default NR→Swiss-Prot: fetch/manifest/runner/PBS/docs target Swiss-Prot; NR opt-in via `--blastp-db`. Commits 74829d6, e62bc60.
+- [x] 6.3 HH-suite not on PATH in PBS runs: `run_batched_multi.pbs` + `run_k12_validation.pbs` relied on the submitter's `~/.bashrc`, which does NOT export `hhblits`. Both now put HH-suite on PATH self-containedly (keep any existing copy, else auto-detect the conda env shipping `hhblits`).
+- [ ] 6.4 Bakta full/light `db*` glob collision (fetch skip + runner resolve) — task #11; do after smoke-test-2.

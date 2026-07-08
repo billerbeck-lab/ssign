@@ -66,6 +66,12 @@ echo "  ssign -> $(command -v ssign)"
 
 # bakta-deps conda env on PATH for tRNAscan-SE, etc.
 export PATH="$PATH:$HOME/.conda/envs/bakta-deps/bin"
+# HH-suite on PATH self-containedly (the submitting user's ~/.bashrc does NOT
+# export it). Keep an existing copy; else auto-detect the conda env shipping it.
+if ! command -v hhblits >/dev/null 2>&1; then
+    _HHBIN=$(ls -d "$HOME"/.conda/envs/*/bin/hhblits 2>/dev/null | head -1)
+    [ -n "$_HHBIN" ] && export PATH="$PATH:$(dirname "$_HHBIN")"
+fi
 
 # pLM-BLAST script path. Set on 2026-06-03 install.
 export SSIGN_PLMBLAST_SCRIPT="$HOME/tools/pLM-BLAST/scripts/plmblast.py"

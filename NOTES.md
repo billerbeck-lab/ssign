@@ -9,17 +9,22 @@ Tracks items skipped during tasks. One bullet per item: what, why, trigger to re
 cleanup (e62bc60). Full unit suite 1434 green. Xanthobacter 74-genome extended panel = DONE + clean +
 inspected (T1/T4/T5a/T5b/T5c/T6, zero T3SS = real Xanthobacter biology; result in ~/Desktop/cx3_runs).
 **IN FLIGHT (Teo-driven CX3, node login-ai):**
-1. **Swiss-Prot fetch = DONE** (2026-07-08, `blast_swissprot/` present). **Bakta-full fetch = RUNNING**
-   (db-light moved to `$EPHEMERAL/ssign-databases/bakta_db_light_backup`; `bakta_db download --type full`
-   downloading `bakta/db` ~84GB, log `$EPHEMERAL/fetch_baktafull.log`). *When done:* `ssign doctor --tier full`,
-   confirm only `bakta/db` remains, `rm -rf bakta_db_light_backup`. Full-tier DB install then complete.
-2. **Full-tier smoke-test RE-VALIDATION = NOT yet submitted.** After Bakta-full lands, resubmit the 2-genome
-   `--tier full` smoke test (`ls $HOME/xantho_gbff/*.gbff | head -2`), retrieve, confirm HH-suite completes +
-   Swiss-Prot BLASTp finishes in minutes (both were the fixed smoke-test failures). Then a real full-tier panel.
-**OPEN DECISIONS:** task #8 (un-gate DeepSecE for T3SS? — recommend keep gate) — Teo undecided.
+1. **Full-tier DB install = COMPLETE** (2026-07-08). Swiss-Prot + Bakta-full both fetched; `ssign doctor
+   --tier full` = 8/8 databases OK (Bakta `bakta/db` full 84G, Swiss-Prot, UniRef30 all green), 2/2 weights,
+   31/31 py. db-light still parked at `$EPHEMERAL/ssign-databases/bakta_db_light_backup` — reclaim with
+   `rm -rf` once smoke-test-2 passes. (doctor's only 2 FAILs when run by hand = hhsearch/hhblits not on the
+   login shell's PATH; cosmetic — real runs self-supply it via the fix below.)
+2. **HH-suite PATH fix (NEW, this commit).** `hhblits` lives in `~/.conda/envs/hhsuite/bin` but `~/.bashrc`
+   does NOT export it, so PBS runs never had it on PATH (why smoke-test-1's HH-suite failed before the prefix
+   fix could even run). `run_batched_multi.pbs` + `run_k12_validation.pbs` now auto-detect + PATH-add it.
+3. **Full-tier smoke-test-2 = READY to submit** (unblocked by 1+2). On CX3: `git pull`, then
+   `submit_batched_overnight.sh --tier full --walltime 24:00:00` on 2 xantho genomes. Retrieve, confirm
+   HH-suite completes (prefix fix) + Swiss-Prot BLASTp finishes in minutes. Then a real full-tier panel.
+**OPEN:** task #8 (un-gate DeepSecE for T3SS? — recommend keep gate) undecided; task #11 (Bakta `db*` glob
+collision: fetch-skip + resolve — do after smoke-test-2).
 **NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).
-Next likely: retrieve re-validation smoke test → if green, a real full-tier panel; close full-tier-cx3-wiring
-openspec change (13/16) + signalp-t5ss (task #4).
+Next likely: retrieve smoke-test-2 → if green, a real full-tier panel; close full-tier-cx3-wiring
+openspec change + signalp-t5ss (task #4).
 
 ## 2026-07-08 — Full-tier smoke-test bugs FIXED (HH-suite prefix + BLASTp→Swiss-Prot)
 
