@@ -10,7 +10,7 @@ the file is missing, empty, or below threshold.
 import os
 
 import pytest
-from run_hhsuite import _HHR_HIT_RE, parse_hhr
+from run_hhsuite import _HHR_HIT_RE, _resolve_ffindex_prefix, parse_hhr
 
 _HHR_HEADER = """Query         test_protein
 Match_columns 200
@@ -209,3 +209,39 @@ class TestDefaultMinProb:
         path = _hhr_fixture([_PFAM_TOP_HIT], os.path.join(tmp_dir, "test.hhr"))
         result = parse_hhr(path, db_prefix="pfam")
         assert result["pfam_top1_id"] == "PF00012.21"
+
+
+class TestResolveFfindexPrefix:
+    """The runner/doctor resolve HH-suite DBs to a directory, but hhblits
+    needs the ffindex prefix. _resolve_ffindex_prefix bridges dir -> prefix,
+    fixing the IsADirectoryError the full-tier smoke test hit on UniRef30.
+    """
+
+    def _stage(self, tmp_dir, name):
+        d = os.path.join(tmp_dir, name)
+        os.makedirs(d)
+        return d
+
+    def test_dir_resolves_to_versioned_prefix(self, tmp_dir):
+        d = self._stage(tmp_dir, "uniref30")
+        for suf in ("_a3m.ffdata", "_a3m.ffindex", "_hhm.ffdata"):
+            open(os.path.join(d, "UniRef30_2023_02" + suf), "w").close()
+        assert _resolve_ffindex_prefix(d) == os.path.join(d, "UniRef30_2023_02")
+
+    def test_pfam_style_stem(self, tmp_dir):
+        d = self._stage(tmp_dir, "pfam")
+        open(os.path.join(d, "PfamA_v38_2_a3m.ffdata"), "w").close()
+        assert _resolve_ffindex_prefix(d) == os.path.join(d, "PfamA_v38_2")
+
+    def test_non_dir_path_unchanged(self, tmp_dir):
+        # An already-a-prefix (non-directory) path is returned as-is.
+        assert _resolve_ffindex_prefix("/db/uniref30/UniRef30_2023_02") == "/db/uniref30/UniRef30_2023_02"
+
+    def test_empty_stays_empty(self):
+        assert _resolve_ffindex_prefix("") == ""
+
+    def test_dir_without_ffindex_returned_unchanged(self, tmp_dir):
+        # No *_a3m.ffdata inside → hand back the dir; hhblits emits its own
+        # clear "database not found" rather than us guessing a bad prefix.
+        d = self._stage(tmp_dir, "empty")
+        assert _resolve_ffindex_prefix(d) == d

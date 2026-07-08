@@ -218,6 +218,31 @@ def parse_hhr(hhr_path, db_prefix, min_prob=HHSUITE_MIN_PROB):
     return {}
 
 
+def _resolve_ffindex_prefix(path: str) -> str:
+    """Return the ffindex DB *prefix* hhblits/hhsearch expect.
+
+    HH-suite DBs are addressed by an ffindex prefix (e.g.
+    ``.../uniref30/UniRef30_2023_02``), but the runner / doctor resolve them
+    to the containing *directory* (``.../uniref30``) via the shared
+    DatabasePath resolver. Passing the directory makes the prefix-glob stager
+    match the dir itself and crash copying it (IsADirectoryError). When given
+    a directory, derive the prefix from a representative ``*_a3m.ffdata`` file
+    inside it — the version-stamped stem (``UniRef30_2023_02``, ``PfamA_v38_2``)
+    can't be hardcoded. A path that is already a prefix is returned unchanged.
+    """
+    if not path or not os.path.isdir(path):
+        return path
+    import glob
+
+    matches = sorted(glob.glob(os.path.join(path, "*_a3m.ffdata")))
+    if not matches:
+        # No ffindex inside; hand back the dir and let hhblits emit its own
+        # clear "database not found" error rather than guessing.
+        return path
+    stem = os.path.basename(matches[0])[: -len("_a3m.ffdata")]
+    return os.path.join(path, stem)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run HH-suite locally")
     parser.add_argument("--substrates", required=True)
@@ -275,6 +300,12 @@ def main():
 
     if not args.pfam_db and not args.pdb70_db:
         parser.error("At least one of --pfam-db or --pdb70-db must be provided")
+
+    # DBs arrive as directories (runner/doctor resolve them that way); hhblits
+    # needs the ffindex prefix. Convert before staging OR searching.
+    args.uniclust_db = _resolve_ffindex_prefix(args.uniclust_db)
+    args.pfam_db = _resolve_ffindex_prefix(args.pfam_db)
+    args.pdb70_db = _resolve_ffindex_prefix(args.pdb70_db)
 
     # Stage each HH-suite DB to local SSD if the source is on a network
     # filesystem. The arg values are ffindex *prefixes* (e.g. /rds/.../
