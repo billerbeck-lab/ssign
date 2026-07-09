@@ -25,9 +25,9 @@
 
 ## 5. CX3 validation (user-driven, gates the large panel)
 
-- [ ] 5.1 On CX3: `fetch_databases.sh --tier full` onto `$EPHEMERAL`; `ssign doctor --tier full` reports NR + UniRef30 present.
-- [ ] 5.2 Smoke test: `submit_batched_overnight.sh --tier full` (2 genomes); confirm BLASTp (Swiss-Prot) + HH-suite steps complete (`N/N steps succeeded`) and record real per-tool wallclock.
-- [ ] 5.3 Append the measured blastp/hhsuite wallclock to `memory/calibration/runs.jsonl` and size the panel `--walltime` from it.
+- [x] 5.1 On CX3: `fetch_databases.sh --tier full` onto `$EPHEMERAL` + Bakta-full; `ssign doctor --tier full` = 8/8 databases OK (Bakta db, Swiss-Prot, UniRef30 all present). 2026-07-08.
+- [x] 5.2 Smoke test: `submit_batched_overnight.sh --tier full` (2 xantho genomes). **3 runs**: smoke-test-1 (3238415) found the HH-suite + BLASTp bugs; smoke-test-2 (3252429) validated those fixes, found the EggNOG OOM; smoke-test-3 (3256040, 2026-07-09) **PASSED clean** — HH-suite + BLASTp (Swiss-Prot) + EggNOG all `-> OK`, 16/16 both genomes. All four full-tier fixes confirmed.
+- [ ] 5.3 Append the measured blastp/hhsuite wallclock to `memory/calibration/runs.jsonl` and size the panel `--walltime` from it. **Blocked on clean per-tool timings**: the smoke-test-3 `ssign.run.log` collapsed the live `elapsed` fields (terminal redraws in the tee), so per-tool HH-suite/BLASTp wallclocks need the PBS `.o` log or a re-timed run. Panel `--walltime 24:00:00` is a safe interim.
 
 ## 6. Post-smoke-test robustness fixes (defects the first full-tier smoke test surfaced)
 
