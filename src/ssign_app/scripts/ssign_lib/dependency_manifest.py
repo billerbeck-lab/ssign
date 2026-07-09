@@ -102,7 +102,8 @@ class DatabasePath:
           3. ``<db_root>/<default_subpath>``.
 
         For each candidate, ``glob.glob(<cand>/<sentinel_file>)`` runs and
-        the dirname of the first match is returned. This handles two cases
+        the dirname of the greatest match (deterministic; prefers the
+        full/newest when several match) is returned. This handles two cases
         in one pass:
 
           - sentinel is a flat filename → match.dirname == cand → cand is
@@ -121,7 +122,15 @@ class DatabasePath:
                 continue
             matches = glob.glob(os.path.join(cand, self.sentinel_file))
             if matches:
-                return os.path.dirname(matches[0])
+                # glob order is filesystem-arbitrary; take the
+                # lexicographically-greatest match for a deterministic pick that
+                # prefers the fuller/newer candidate when a `db*/`-style sentinel
+                # matches more than one. Relies on the sentinel's fixed trailing
+                # component (`/version.json`): Bakta `db/` beats `db-light/`
+                # ('/' > '-'); newest `interproscan-<ver>/` wins. It's a string
+                # sort, not semver — a 1-digit IPS minor (5.9 vs 5.10) would
+                # mis-order, harmless for the >=2-digit minors IPS ships.
+                return os.path.dirname(max(matches))
         return None
 
 

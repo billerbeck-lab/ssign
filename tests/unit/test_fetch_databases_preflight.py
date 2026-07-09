@@ -75,3 +75,32 @@ class TestPreflight:
         out = r.stdout + r.stderr
         assert "update_blastdb.pl" in out
         assert out.index("update_blastdb.pl") < out.index("==> NCBI taxdump")
+
+
+class TestBaktaVariantSkipGuard:
+    """fetch_bakta keys its skip on the EXACT variant subdir (db/ for full,
+    db-light/ for light), not db*. The old db* glob matched db-light during a
+    --tier full fetch, so an extended→full upgrade silently kept the light DB."""
+
+    def _seed_bakta(self, tmp_path, subdir):
+        d = tmp_path / "dbs" / "bakta" / subdir
+        d.mkdir(parents=True)
+        (d / "version.json").write_text("{}")
+
+    def _full_stubs(self, tmp_path):
+        return _stub_bin(tmp_path, ["bakta_db", "amrfinder", "hf", "unzip", "update_blastdb.pl"])
+
+    def test_full_not_skipped_when_only_db_light_present(self, tmp_path):
+        self._seed_bakta(tmp_path, "db-light")
+        r = _run(tmp_path, self._full_stubs(tmp_path), "--tier", "full", "--dry-run")
+        out = r.stdout + r.stderr
+        assert "bakta_db download" in out and "--type full" in out, (
+            "extended→full upgrade wrongly skipped the full Bakta download"
+        )
+        assert "Skipping (Bakta full DB" not in out
+
+    def test_full_skipped_when_db_full_already_present(self, tmp_path):
+        self._seed_bakta(tmp_path, "db")
+        r = _run(tmp_path, self._full_stubs(tmp_path), "--tier", "full", "--dry-run")
+        out = r.stdout + r.stderr
+        assert "Skipping (Bakta full DB" in out

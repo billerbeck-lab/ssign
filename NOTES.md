@@ -17,13 +17,27 @@ inspected (T1/T4/T5a/T5b/T5c/T6, zero T3SS = real Xanthobacter biology; result i
 2. **HH-suite PATH fix (NEW, this commit).** `hhblits` lives in `~/.conda/envs/hhsuite/bin` but `~/.bashrc`
    does NOT export it, so PBS runs never had it on PATH (why smoke-test-1's HH-suite failed before the prefix
    fix could even run). `run_batched_multi.pbs` + `run_k12_validation.pbs` now auto-detect + PATH-add it.
-3. **Full-tier smoke-test-2 = READY to submit** (unblocked by 1+2). On CX3: `git pull`, then
-   `submit_batched_overnight.sh --tier full --walltime 24:00:00` on 2 xantho genomes. Retrieve, confirm
-   HH-suite completes (prefix fix) + Swiss-Prot BLASTp finishes in minutes. Then a real full-tier panel.
-**OPEN:** task #8 (un-gate DeepSecE for T3SS? — recommend keep gate) undecided; task #11 (Bakta `db*` glob
-collision: fetch-skip + resolve — do after smoke-test-2).
+3. **Full-tier smoke-test-2 = DONE + PASS for HH-suite/BLASTp** (run 3252429, 2 Roseixanthobacter, HEAD
+   aa1c936, in `~/Desktop/cx3_runs/batched_RTX6000_20260708_194046_3252429`). HH-suite → OK (PATH fix +
+   prefix fix both validated), BLASTp → OK (Swiss-Prot), 16/16 both genomes, 24 substrates. BUT **EggNOG
+   FAILED** = task #12: diamond exit 1 / empty stderr = OOM. `run_eggnog.py` sizes `--dbmem` (~44GB) +
+   `--block_size 8` (~48GB) ≈ 92GB from full-node `effective_ram_gb()`, but runs in a 6-tool parallel group
+   → overcommits the 120GB node → diamond OOM-killed. Nondeterministic (passed smoke-1 by luck). Optional so
+   run still hit 16/16, but a PANEL hits it every genome / could OOM a core tool. Fix: budget EggNOG RAM ÷
+   parallel-group concurrency (same pattern resolve_threads uses for threads). GATES the full-tier panel.
+4. **#11 + #12 both FIXED (2026-07-09, committed + 4-agent simplify-reviewed, 1444 unit tests green).**
+   #12 EggNOG OOM (commit 1e20f66): new `parallel_share_ram_gb()` in resources.py (RAM analogue of
+   `parallel_share_cpus`, via shared `_parallel_group_size()`); EggNOG's 3 autodetect fns budget --dbmem/
+   --block_size/--index_chunks off the group RAM share → on 120GB/6-tool group share=20GB → --dbmem off,
+   no overcommit. #11 Bakta `db*` glob (next commit): fetch_databases.sh keys skip-guard on exact variant
+   subdir (db/ vs db-light/) so extended→full re-downloads; dependency_manifest resolve_path returns
+   `dirname(max(matches))` so db/ (full) beats db-light/. **NEXT: rerun the full-tier smoke test** (git pull
+   → `submit_batched_overnight.sh --tier full --walltime 24:00:00` on 2 xantho genomes) to confirm EggNOG
+   now completes; then reclaim bakta_db_light_backup + a real full-tier panel.
+**OPEN:** #8 (un-gate DeepSecE for T3SS? — recommend keep gate) undecided. db-light still parked at
+bakta_db_light_backup (reclaim after smoke-test-3 confirms the resolve fix uses db/).
 **NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).
-Next likely: retrieve smoke-test-2 → if green, a real full-tier panel; close full-tier-cx3-wiring
+Next likely: rerun smoke test → if EggNOG green, a real full-tier panel; close full-tier-cx3-wiring
 openspec change + signalp-t5ss (task #4).
 
 ## 2026-07-08 — Full-tier smoke-test bugs FIXED (HH-suite prefix + BLASTp→Swiss-Prot)

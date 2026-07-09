@@ -176,3 +176,36 @@ class TestCheckExternalBinaryDbRootFallback:
         monkeypatch.setenv("PATH", "")
         result = check_external_binary(self._ips_binary())
         assert not result.ok
+
+
+class TestDatabasePathResolvePrefersFull:
+    """resolve_path with a `db*/version.json` sentinel (Bakta) must return the
+    full `db/` over `db-light/` deterministically. glob order is filesystem-
+    arbitrary, so a naive matches[0] could hand a full-tier run the light DB
+    when a user upgraded extended→full and both subdirs are present."""
+
+    def _bakta_db(self):
+        from ssign_app.scripts.ssign_lib.dependency_manifest import find_db_by_env_var
+
+        return find_db_by_env_var("SSIGN_BAKTA_DB")
+
+    def _clear_env(self, monkeypatch):
+        monkeypatch.delenv("SSIGN_BAKTA_DB", raising=False)
+        monkeypatch.delenv("BAKTA_DB", raising=False)
+
+    def test_prefers_db_full_over_db_light(self, tmp_path, monkeypatch):
+        self._clear_env(monkeypatch)
+        bakta = tmp_path / "bakta"
+        for sub in ("db", "db-light"):
+            (bakta / sub).mkdir(parents=True)
+            (bakta / sub / "version.json").write_text("{}")
+        resolved = self._bakta_db().resolve_path(str(tmp_path))
+        assert resolved == str(bakta / "db"), f"expected full db/, got {resolved}"
+
+    def test_light_only_still_resolves(self, tmp_path, monkeypatch):
+        self._clear_env(monkeypatch)
+        light = tmp_path / "bakta" / "db-light"
+        light.mkdir(parents=True)
+        (light / "version.json").write_text("{}")
+        resolved = self._bakta_db().resolve_path(str(tmp_path))
+        assert resolved == str(light), f"expected db-light/, got {resolved}"

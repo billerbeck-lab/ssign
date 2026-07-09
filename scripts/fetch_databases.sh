@@ -331,22 +331,20 @@ fetch_bakta() {
     _require_command amrfinder "$_HINT_AMRFINDER"
 
     local dir="$TARGET/bakta"
-    # bakta_db creates either db/ or db-light/ inside --output depending on
-    # version + --type. Glob both rather than guessing the exact convention.
-    if compgen -G "$dir/db*/version.json" >/dev/null; then
-        _log "Skipping (Bakta DB already at $dir)"
+    # bakta_db writes db/ for --type full and db-light/ for --type light.
+    # Check the EXACT variant subdir, NOT db* — a db* glob matches db-light
+    # when we asked for full, so an extended→full upgrade (db-light already
+    # present) would wrongly "Skip" and never download the 84 GB full DB.
+    local subdir
+    if [[ "$variant" == "light" ]]; then subdir="db-light"; else subdir="db"; fi
+    if compgen -G "$dir/$subdir/version.json" >/dev/null; then
+        _log "Skipping (Bakta $variant DB already at $dir/$subdir)"
         return 0
     fi
 
     _run mkdir -p "$dir"
     _run bakta_db download --output "$dir" --type "$variant"
-    # bakta_db creates `db/` (full) or `db-light/` (light) inside --output.
-    # Glob both rather than guessing; fall back to a sensible default if the
-    # glob comes up empty so the log line doesn't print `BAKTA_DB=`.
-    local bakta_subdir
-    bakta_subdir=$(compgen -G "$dir/db*" | head -n 1)
-    : "${bakta_subdir:=$dir/db-${variant}}"
-    _log "OK — Bakta $variant DB ready (set BAKTA_DB=$bakta_subdir)"
+    _log "OK — Bakta $variant DB ready (set BAKTA_DB=$dir/$subdir)"
 }
 
 fetch_eggnog() {
