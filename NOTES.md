@@ -337,11 +337,16 @@ LANDED / DEFERRED items from figures-v2:
   ComM / archaeal pilus are no longer substrate-called. They were never real secreted effectors, so
   recall on the gold list should be unaffected (it removes false positives), but if you recompute
   found/total against a fresh run, expect fewer total substrate calls.
-- **Consensus-function keyword grouping — REVISIT (Teo, 2026-06-30).** The `broad_annotation` /
-  consensus figure groups by `annotation_consensus.CATEGORY_PATTERNS` (16 regex keyword rules, first
-  match wins) plus the figure-side `consensus_bucket` (apparatus/Other routing). Teo wants a look at
-  whether the keyword grouping is the right vocabulary / granularity. *Trigger:* a dedicated pass over
-  CATEGORY_PATTERNS once the figure set is frozen.
+- **Consensus-function keyword grouping — AUDITED 2026-07-09** (was REVISIT flag from 2026-06-30).
+  Full audit in `docs/development/consensus_annotation_audit.md` (graded against Xantho 593 + benchmark
+  55-gold accuracy sheet + lit). **Grade C-.** Key defects: 3 over-broad rules (Autotransporter/
+  Structural/Transporter) win 60% of calls; `t[1-9]ss` in the "Secretion system" rule hijacks effectors
+  → Apparatus (Tae amidases, many T3SS effectors); classify returns ALL matches → 809 vote-splits;
+  Hypothetical + title-case fallback are winnable (28/593 noise); `fli[a-z]` matches "flippase"/"conflict";
+  13/55 gold land outside vocab (RTX toxins→Protease, TPS adhesins→Nuclease, S-layer→Protease).
+  **Proposed v2 in the report** (one-vote-per-tool + specificity rank; Hypothetical/Other as floors;
+  drop fallback minting; machinery-by-component-identity not keyword; lit-grounded 2-level taxonomy).
+  Grading script: `docs/development/grade_consensus.py`. **NEXT (gated on Teo review): implement v2 (task #15).**
 - **SignalP-as-enrichment-predictor — LANDED 2026-06-30, VALIDATED 2026-07-01 (openspec `signalp-enrichment-track`, 15/16).**
   SignalP is now a third circular-shift predictor for all SS types: per-tool figure gets a 3rd bar;
   combined figure uses **DLP-or-SignalP for ALL T5 (a/b/c)** (reversed from the initial SignalP-alone
