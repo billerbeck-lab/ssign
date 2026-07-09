@@ -20,13 +20,22 @@ from __future__ import annotations
 import functools
 import gzip
 import os
+import sys
 
-# Reuse the live consensus keyword vocabulary (single source of truth) so the
-# figure's curated buckets track any category the consensus voter gains/renames.
-try:  # ssign_lib is top-level when the script runs (scripts dir on sys.path)...
-    from annotation_consensus import CATEGORY_PATTERNS
-except ImportError:  # ...and a subpackage when imported as ssign_app.scripts.*
-    from ssign_app.scripts.annotation_consensus import CATEGORY_PATTERNS
+# Reuse the live consensus category set (single source of truth) so the figure's
+# curated buckets track any category the consensus voter gains/renames.
+# CATEGORY_NAMES are the labels classify_description can emit (including
+# "Apparatus-associated"); "Unclassified" is NOT among them — it is the voter's
+# no-functional-call floor and collapses to "Other" for a functional chart.
+# The scripts dir (this file's grandparent) is put on sys.path so the top-level
+# `annotation_consensus` import resolves whether ssign_lib is imported as a
+# subpackage (ssign_app.scripts.*) or the script dir is already on the path. A
+# single import (not a try/except dual-branch) is used so the auto-formatter
+# can't strip the fallback as a duplicate binding.
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from annotation_consensus import APPARATUS, CATEGORY_NAMES  # noqa: E402
 
 # Tokens that mean "no value" across the integrated CSV (EggNOG uses "-").
 _MISSING = ("", "-", "nan", "none")
@@ -154,12 +163,12 @@ def kegg_descriptions(value) -> list:
     return out
 
 
-# The consensus voter's "Secretion system" / "Flagellar" categories are the
-# secretion/uptake machinery itself, not cargo: in a secreted-protein functional
-# chart they are routed to one labelled bucket rather than read as a function.
-_APPARATUS_CATEGORIES = frozenset({"Secretion system", "Flagellar"})
-_KNOWN_CATEGORIES = frozenset(name for name, _ in CATEGORY_PATTERNS)
-APPARATUS_BUCKET = "Apparatus-associated"
+# The voter emits "Apparatus-associated" directly for secretion/uptake machinery,
+# so it passes through like any other known category. "Unclassified" (the voter's
+# no-functional-call floor) is deliberately NOT known -> it collapses to "Other"
+# with blanks, giving a single catch-all in the functional chart.
+_KNOWN_CATEGORIES = frozenset(CATEGORY_NAMES)
+APPARATUS_BUCKET = APPARATUS  # sourced from the constant so the two can't drift
 _OTHER_BUCKET = "Other"
 
 
@@ -167,13 +176,10 @@ def consensus_bucket(value) -> str:
     """Collapse a ``broad_annotation`` / ``broad_consensus_annotation`` value to a
     curated functional bucket.
 
-    Known consensus categories pass through; machinery (``Secretion system`` /
-    ``Flagellar``) -> ``"Apparatus-associated"``; blanks and the voter's
-    first-3-words fallback noise (anything not a known category) -> ``"Other"``.
+    Known consensus categories (incl. ``Apparatus-associated``) pass through;
+    blanks, ``Unclassified``, and anything unrecognised -> ``"Other"``.
     """
     if is_missing(value):
         return _OTHER_BUCKET
     cat = str(value).strip().split(" (", 1)[0].strip()  # drop the "(Tool1, Tool2)" consensus suffix
-    if cat in _APPARATUS_CATEGORIES:
-        return APPARATUS_BUCKET
     return cat if cat in _KNOWN_CATEGORIES else _OTHER_BUCKET

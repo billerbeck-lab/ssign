@@ -3,6 +3,18 @@
 When an intentional pipeline change alters one or more outputs, follow these
 steps to refresh the frozen reference files.
 
+> **2026-07-09 — consensus-annotation-v2 vocabulary change.** The tool-weighted
+> consensus (openspec `consensus-annotation-v2`) renamed the broad categories.
+> The golden run drives consensus from GBFF only (every annotation tool is
+> disabled), so the sole affected cells are the consensus columns of the one
+> substrate row in `_integrated.csv` and `_results_raw.csv`
+> (`Autotransporter` → `Autotransporter passenger`, and the matching
+> `_consensus_annotation` / `evidence_keywords`). Because those columns are a
+> pure deterministic function of `gbff_annotation`, they were regenerated
+> surgically (verified equal to `annotation_consensus.compute_consensus`) rather
+> than by re-running DeepLocPro. A full DeepLocPro-enabled regen reproduces the
+> identical bytes. No other output changed.
+
 ## 1. Confirm the diff is intentional
 
 Run the golden-output test and read the diff carefully:

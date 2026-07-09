@@ -39,4 +39,4 @@
 
 ## Open Questions
 
-- Do the run figures want autotransporters split by passenger *function* (espP → Protease) vs the *structural* class? The prototype reports passenger function; confirm this is the desired figure behaviour when regenerating the golden outputs.
+- ~~Do the run figures want autotransporters split by passenger *function* (espP → Protease) vs the *structural* class?~~ **Resolved (passenger function).** The ordered rule set places specific-activity patterns before the generic `Autotransporter passenger` rule, so an autotransporter classifies by what its passenger *does* when the annotation says so (55-gold: espP → Protease/Peptidase, flu/cdrA → Adhesin) and falls back to `Autotransporter passenger` only when the description carries no more-specific function (icsA). This is the desired functional-figure behaviour and matches the regenerated golden output (the golden's bare "Autotransporter domain-containing protein" → `Autotransporter passenger`).

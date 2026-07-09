@@ -41,12 +41,14 @@ def test_kegg_blank_returns_empty():
 
 def test_consensus_known_category_passes_through():
     assert consensus_bucket("Nuclease (InterProScan)") == "Nuclease"  # suffix stripped
-    assert consensus_bucket("Autotransporter") == "Autotransporter"
+    assert consensus_bucket("Autotransporter passenger") == "Autotransporter passenger"
+    assert consensus_bucket("Protease/Peptidase (Bakta, EggNOG)") == "Protease/Peptidase"
 
 
-def test_consensus_machinery_routed_to_apparatus_bucket():
-    assert consensus_bucket("Secretion system") == APPARATUS_BUCKET
-    assert consensus_bucket("Flagellar") == APPARATUS_BUCKET
+def test_consensus_apparatus_passes_through():
+    # The v2 voter emits "Apparatus-associated" directly for machinery.
+    assert consensus_bucket("Apparatus-associated") == APPARATUS_BUCKET
+    assert consensus_bucket("Apparatus-associated (EggNOG)") == APPARATUS_BUCKET
 
 
 def test_kegg_ko_name_from_bundled_table():
@@ -65,8 +67,10 @@ def test_kegg_descriptions_maps_and_dedupes():
     assert kegg_descriptions("-") == []
 
 
-def test_consensus_noise_and_blank_become_other():
-    # The voter's first-3-words fallback (not a known category) and blanks -> Other.
+def test_consensus_noise_blank_and_unclassified_become_other():
+    # Unrecognised strings, blanks, and the voter's honest "Unclassified" floor
+    # all collapse to a single "Other" catch-all in the functional chart.
     assert consensus_bucket("Low Calcium Response") == "Other"
+    assert consensus_bucket("Unclassified") == "Other"
     assert consensus_bucket("") == "Other"
     assert consensus_bucket(None) == "Other"

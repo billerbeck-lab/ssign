@@ -43,6 +43,31 @@ bakta_db_light_backup (reclaim after smoke-test-3 confirms the resolve fix uses 
 Next likely: rerun smoke test → if EggNOG green, a real full-tier panel; close full-tier-cx3-wiring
 openspec change + signalp-t5ss (task #4).
 
+## 2026-07-09 — consensus-annotation-v2 LANDED (tool-weighted voter); CX3 full-tier reruns NEXT
+
+**State:** consensus-annotation-v2 openspec change APPLIED (15/15 tasks). `annotation_consensus.py` +
+`functional_vocab.py` rewritten to the tool-weighted voter (port of `docs/development/v2lib.py`). Gate
+(`docs/development/regrade.py`) PASSED: port-fidelity 672/672, Xantho top-cat 39% (<42%), fallback-noise
+0 (was 37), 55-gold outside-vocab 13→3, full-tier fold-name false calls fixed. 1449 unit tests green.
+Golden fixture regenerated (surgical, GBFF-only). Change is ready for `/opsx:archive` after the reruns confirm.
+
+**NEXT (Teo-driven CX3): rerun BOTH genome sets through the REAL full tier** so the paper's functional
+figures use the v2 consensus. Xantho 74 at `~/xantho_gbff/`; benchmark 75 at
+`$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb/`. Commands in the chat / cx3-submit skill.
+Prereq: CX3 `git pull` this branch; `ssign doctor --tier full` 8/8. Runtime caveat: 75 benchmark genomes at
+full tier is multi-day (per-substrate HH-suite over UniRef30) — may exceed the 72h PBS cap; consider splitting.
+
+Deferred from the v2 apply (revisit triggers noted):
+- **Numeric-suffix machinery miss.** `_MACH` uses strict word boundaries, so `Hcp1`/`VgrG1`/`Tae2` (digit
+  suffix) don't match → those components fall to `Unclassified` instead of `Apparatus-associated`. Faithful to
+  the validated prototype; not a mislabel (honest Unclassified), just a lost Apparatus signal. Revisit if the
+  figures show Apparatus under-counting, or fold into the curated-override follow-on.
+- **Garbage-in residuals** (Tde1→Phage, VasX→Oxidoreductase, apxIIIA→Protease): tools carry no correct call.
+  Explicitly out of scope here → the curated effector-family override follow-on change.
+- **TOOL_WEIGHT + tier cutoffs live inline in `annotation_consensus.py`**, not `ssign_lib/constants.py`
+  (the stated thresholds SSOT). Kept inline: no other consumer, and moving adds an import layer. Revisit if a
+  future webserver UI needs them user-tunable (see memory feedback_user_controllable_thresholds).
+
 ## 2026-07-08 — Full-tier smoke-test bugs FIXED (HH-suite prefix + BLASTp→Swiss-Prot)
 
 Both full-tier smoke-test bugs fixed (full suite 1434 green). **#9 HH-suite:** `_resolve_ffindex_prefix`
