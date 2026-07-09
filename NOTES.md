@@ -31,9 +31,12 @@ inspected (T1/T4/T5a/T5b/T5c/T6, zero T3SS = real Xanthobacter biology; result i
    --block_size/--index_chunks off the group RAM share → on 120GB/6-tool group share=20GB → --dbmem off,
    no overcommit. #11 Bakta `db*` glob (next commit): fetch_databases.sh keys skip-guard on exact variant
    subdir (db/ vs db-light/) so extended→full re-downloads; dependency_manifest resolve_path returns
-   `dirname(max(matches))` so db/ (full) beats db-light/. **NEXT: rerun the full-tier smoke test** (git pull
-   → `submit_batched_overnight.sh --tier full --walltime 24:00:00` on 2 xantho genomes) to confirm EggNOG
-   now completes; then reclaim bakta_db_light_backup + a real full-tier panel.
+   `dirname(max(matches))` so db/ (full) beats db-light/. **VALIDATED: full-tier smoke-test-3 PASSED
+   2026-07-09** (run 3256040, 2 xantho genomes): EggNOG-mapper -> OK (the fix worked, no OOM), HH-suite +
+   BLASTp OK, 16/16 both genomes. All 4 full-tier fixes confirmed end-to-end. **NEXT: retrieve smoke-test-3
+   (confirm emapper --block_size 2 + pull HH-suite/BLASTp strings for the consensus tool-weighting design);
+   reclaim bakta_db_light_backup; run a real full-tier panel; close full-tier-cx3-wiring openspec (validation
+   tasks 5.1-5.3 now satisfiable).**
 **OPEN:** #8 (un-gate DeepSecE for T3SS? — recommend keep gate) undecided. db-light still parked at
 bakta_db_light_backup (reclaim after smoke-test-3 confirms the resolve fix uses db/).
 **NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).

@@ -125,6 +125,44 @@ Re-run this audit's grading script against v2 and require: (a) no single categor
 
 ---
 
+## Proposed v2 — prototyped + measured (2026-07-09)
+
+The v2 above was prototyped (`docs/development/v2lib.py`) and graded head-to-head with v1 on the Xantho 593, the 55-gold accuracy sheet, and the full-tier smoke-test-3 24-substrate set (`docs/development/regrade.py`). One finding reshaped it.
+
+### The deepest finding: two of the tools report *structure*, not *function*
+
+Feeding structural/fold annotations into a functional keyword matcher is the dominant error source. Evidence:
+- **pLM-BLAST/ECOD** returns fold codes ("β-helix", "α+β") — pure structure.
+- **HHpred_PDB** returns PDB titles that are misleading: the same GDSL lipase whose Pfam says `Lipase_GDSL_lke` gets PDB `Thermolabile hemolysin` (a structural homolog). Matching "hemolysin" → toxin is wrong.
+- **InterProScan** mixes real domains (`Peptidase_S6`) with fold-superfamily names (`pectate lyase C-like domain superfamily`, `Haem peroxidase domain superfamily`) that trigger enzyme keywords for proteins with no such activity (autotransporter β-helix → "Glycoside hydrolase"; VasX toxin → "Oxidoreductase").
+- **EggNOG, Bakta product, BLASTp/Swiss-Prot, GBFF** are the genuinely functional annotators. (Note: BLASTp/Swiss-Prot returned *nothing* on the environmental Roseixanthobacter substrates — too distant from Swiss-Prot's model organisms; relevant caveat for the paper.)
+
+### v2 mechanism (as prototyped)
+
+1. **One weighted vote per tool**, deduped by identical string. Tool credibility tiers: **3** = BLASTp/Swiss-Prot, EggNOG, Bakta, GBFF · **2** = HHpred_Pfam, InterProScan · **1** = pLM-BLAST/ECOD, HHpred_PDB.
+2. **Fold-name down-weight**: any description that IS a structural fold name ("… superfamily", "…-like domain", "β-helix/barrel/propeller", "TIM barrel") is capped to weight 1, so a fold can't outvote a real functional call regardless of source tool.
+3. **Specificity-ordered single category per description** (first match wins on a most-specific → generic list); no title-case fallback (→ `Unclassified`); `Hypothetical`/`Unclassified` are floors that never beat a functional call.
+4. **Machinery by component identity** (VgrG/Hcp/PAAR/Tss/Gsp/Vir/Sec/Tat/flagellar with boundaries) + translocator context ("haemolysin *secretion* protein", ShlB/FhaC/HecB/TpsB) → `Apparatus-associated`, which **competes by weight** (so a translocator the good tools agree on wins over a weak structural mislabel).
+5. **Taxonomy** = the two-level lit-grounded set above, minus a standalone "RTX toxin" bucket (RTX is a T1SS secretion motif spanning proteases/cytolysins/cyclases, not a function — serralysins → Protease, CyaA/cytolysins → Pore-forming), plus **Beta-lactamase** and **Phage/mobile element**.
+
+### Measured v1 → v2
+
+| | v1 | v2 |
+|---|---|---|
+| Title-case fallback noise (Xantho 593) | 37 | **0** |
+| Effectors keyword-hijacked to machinery | several (Tae amidase, T3SS effectors) | **0** (Tae → Peptidoglycan hydrolase; translocators → Apparatus by evidence) |
+| Structure-vs-function false matches | e.g. 71 autotransporter→GH, hemolysin-fold→toxin | fixed (GDSL lipase stays Lipase; flu→Adhesin; icsA→Autotransporter) |
+| 55-gold outside-vocabulary | 13/55 | **8/55**, all now *honest* Unclassifieds (no tool has a function) |
+| Correct on annotatable gold | mixed (RTX→Protease errors, adhesins→Nuclease) | serralysins→Protease, SPATE→Protease, Map→GTPase modulator, hasA→Hemophore, cdrA/flu→Adhesin, cya→Pore-forming |
+
+### Residual errors are garbage-in (the one lever left)
+
+A few stay wrong because the annotation tools themselves have no correct call: `Tde1` → Phage (its His-Me nuclease domain is genuinely annotated phage-associated), `VasX` → Oxidoreductase (only a "haem peroxidase domain" fold hit exists), `apxIIIA` → Protease (pore-former carrying a peptidase domain). No keyword logic fixes these; they need a **small curated effector-family override** (known gene/family → category), the recommended follow-on to v2.
+
+Prototype: `docs/development/v2lib.py` (matcher) + `docs/development/regrade.py` (grading). Implementation tracked as the v2 task.
+
+---
+
 ## Sources
 
 - [Hernandez et al. 2020, T6SS effector proteins (Cell Microbiol)](https://onlinelibrary.wiley.com/doi/10.1111/cmi.13241)
