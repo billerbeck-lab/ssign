@@ -117,14 +117,22 @@ _EGGNOG_INDEX_CHUNKS_MIN_RAM_GB = 60
 def _autodetect_dbmem() -> bool:
     """True only when the job has headroom for emapper's in-RAM SQLite copy.
 
-    Delegates to `ssign_lib.resources.effective_ram_gb` which respects PBS
-    `Resource_List.mem`, SLURM `SLURM_MEM_PER_NODE`, and cgroup limits — not
-    just host total. Critical on shared HPC nodes where psutil would
-    falsely greenlight --dbmem on a small job that lands on a big box.
-    """
-    from ssign_lib.resources import effective_ram_gb
+    Uses `ssign_lib.resources.parallel_share_ram_gb` — this subprocess's RAM
+    *share*, not the whole node. It respects PBS `Resource_List.mem`, SLURM
+    `SLURM_MEM_PER_NODE`, and cgroup limits, then divides by the parallel-group
+    size when EggNOG runs inside the annotation group. Without the share divisor,
+    --dbmem + a node-sized --block_size would overcommit and OOM-kill DIAMOND
+    when the other annotation tools run concurrently (seen live at full tier).
 
-    return effective_ram_gb() >= _EGGNOG_DBMEM_MIN_GB
+    Inside the full-tier group the share is usually below the threshold, so
+    --dbmem stays off. The shared-filesystem mmap stall that --dbmem also
+    guarded against is then covered by the runner staging eggnog.db to local
+    $TMPDIR (--local-cache-dir); a bare shared-FS run with $TMPDIR unset is the
+    only gap (env misconfig, and run_emapper warns when staging is skipped).
+    """
+    from ssign_lib.resources import parallel_share_ram_gb
+
+    return parallel_share_ram_gb() >= _EGGNOG_DBMEM_MIN_GB
 
 
 def _autodetect_block_size(dbmem: bool) -> int:
@@ -133,11 +141,13 @@ def _autodetect_block_size(dbmem: bool) -> int:
     Reserves either ~44 GB (when --dbmem is loading the SQLite into RAM)
     or ~16 GB (system headroom otherwise), then sizes the DIAMOND working
     set against the remainder. Caps at 8 (DIAMOND gains plateau there).
+    Sizes against this subprocess's RAM *share* (parallel-group aware), so a
+    concurrent annotation group doesn't collectively overcommit the node.
     """
-    from ssign_lib.resources import effective_ram_gb
+    from ssign_lib.resources import parallel_share_ram_gb
 
     reserved = _EGGNOG_DBMEM_RESERVED_GB if dbmem else _EGGNOG_NONDB_RESERVED_GB
-    free = effective_ram_gb() - reserved
+    free = parallel_share_ram_gb() - reserved
     if free <= _EGGNOG_BLOCKSIZE_DEFAULT * _EGGNOG_GB_PER_BLOCKSIZE_UNIT:
         return _EGGNOG_BLOCKSIZE_DEFAULT
     sized = int(free // _EGGNOG_GB_PER_BLOCKSIZE_UNIT)
@@ -146,10 +156,11 @@ def _autodetect_block_size(dbmem: bool) -> int:
 
 def _autodetect_index_chunks() -> int:
     """DIAMOND --index_chunks. Default 4 → 4 sequential DB-index passes.
-    On a 60+ GB job the index fits in 1 chunk (~25% faster overall)."""
-    from ssign_lib.resources import effective_ram_gb
+    On a 60+ GB job the index fits in 1 chunk (~25% faster overall). Gauged on
+    this subprocess's RAM share (parallel-group aware), matching --block_size."""
+    from ssign_lib.resources import parallel_share_ram_gb
 
-    return 1 if effective_ram_gb() >= _EGGNOG_INDEX_CHUNKS_MIN_RAM_GB else 4
+    return 1 if parallel_share_ram_gb() >= _EGGNOG_INDEX_CHUNKS_MIN_RAM_GB else 4
 
 
 # Eggnog DB files emapper actually reads at run time. Listed exhaustively

@@ -10,6 +10,7 @@ import os
 import pytest
 from run_eggnog import (
     _autodetect_block_size,
+    _autodetect_dbmem,
     _autodetect_index_chunks,
     _build_emapper_cmd,
     _split_rich_field,
@@ -136,6 +137,30 @@ class TestAutodetectIndexChunks:
     def test_threshold_inclusive(self, monkeypatch):
         monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 60)
         assert _autodetect_index_chunks() == 1
+
+
+class TestAutodetectParallelGroupAware:
+    """EggNOG sizes memory off its RAM *share*, not the whole node. In the
+    full-tier 6-tool annotation group a node-sized --dbmem/--block_size
+    overcommits and OOM-kills DIAMOND; dividing by the group size fixes it.
+    Same 120 GB node, same effective_ram_gb — only the group env differs."""
+
+    def test_dbmem_off_when_group_shrinks_share_below_threshold(self, monkeypatch):
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 120)
+        # Alone on the node: 120 GB >= 50 → --dbmem on.
+        monkeypatch.delenv("SSIGN_PARALLEL_GROUP_SIZE", raising=False)
+        assert _autodetect_dbmem() is True
+        # In the 6-tool group: 120/6 = 20 GB < 50 → --dbmem off (no overcommit).
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "6")
+        assert _autodetect_dbmem() is False
+
+    def test_block_size_and_chunks_shrink_in_group(self, monkeypatch):
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 120)
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "6")
+        # share = 20 GB: no --dbmem, block_size falls to the default 2
+        # (20-16=4 GB free < 2*6), index_chunks back to 4 (20 < 60).
+        assert _autodetect_block_size(dbmem=False) == 2
+        assert _autodetect_index_chunks() == 4
 
 
 # Representative emapper 2.1.x .annotations fixture. Lines starting with

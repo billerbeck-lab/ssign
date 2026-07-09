@@ -149,6 +149,43 @@ class TestParallelShareCpus:
         assert parallel_share_cpus() == 16
 
 
+class TestParallelShareRamGb:
+    """RAM analogue of parallel_share_cpus: a wrapper that sizes memory to
+    fill the node (EggNOG --dbmem / DIAMOND --block_size) must take 1/N of
+    the RAM when it runs inside the annotation group, else the concurrent
+    tools collectively overcommit and OOM-kill the biggest allocator."""
+
+    def test_unset_returns_full_ram(self, monkeypatch):
+        from ssign_lib.resources import parallel_share_ram_gb
+
+        monkeypatch.delenv("SSIGN_PARALLEL_GROUP_SIZE", raising=False)
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 120.0)
+        assert parallel_share_ram_gb() == 120.0
+
+    def test_group_of_6_splits_evenly(self, monkeypatch):
+        from ssign_lib.resources import parallel_share_ram_gb
+
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "6")
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 120.0)
+        # 120 / 6 == 20 GB — below EggNOG's 50 GB --dbmem threshold, so the
+        # full-tier 6-tool group no longer overcommits the node.
+        assert parallel_share_ram_gb() == 20.0
+
+    def test_group_of_1_returns_full_ram(self, monkeypatch):
+        from ssign_lib.resources import parallel_share_ram_gb
+
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "1")
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 120.0)
+        assert parallel_share_ram_gb() == 120.0
+
+    def test_garbage_value_returns_full_ram(self, monkeypatch):
+        from ssign_lib.resources import parallel_share_ram_gb
+
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "not-an-int")
+        monkeypatch.setattr("ssign_lib.resources.effective_ram_gb", lambda: 88.0)
+        assert parallel_share_ram_gb() == 88.0
+
+
 class TestParallelGroupContext:
     """parallel_group() context-manager-ifies the SSIGN_PARALLEL_GROUP_SIZE
     env-var save/set/restore dance the runner used to do inline. It must

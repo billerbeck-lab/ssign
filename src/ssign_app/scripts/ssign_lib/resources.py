@@ -131,25 +131,46 @@ def resolve_threads(n: int | None) -> int:
 _PARALLEL_GROUP_SIZE_ENV = "SSIGN_PARALLEL_GROUP_SIZE"
 
 
-def parallel_share_cpus() -> int:
-    """Return this subprocess's CPU share when it's inside a parallel group.
+def _parallel_group_size() -> int:
+    """The SSIGN_PARALLEL_GROUP_SIZE divisor: N when set to an int >= 2, else 1.
 
-    Reads SSIGN_PARALLEL_GROUP_SIZE (set by the runner before launching
-    the prediction group) and returns `effective_cpu_count() // N`,
-    clamped to >=1. When the env var is unset or invalid, returns the
-    full count — standalone invocations of the wrapper aren't penalised.
+    Set by the runner's `parallel_group(N)` before it launches the prediction /
+    annotation tools concurrently. 1 (env unset, non-int, or <= 1) means
+    "running standalone" — the caller keeps its full CPU / RAM budget. Shared by
+    parallel_share_cpus / parallel_share_ram_gb so the two can't drift.
     """
     raw = os.environ.get(_PARALLEL_GROUP_SIZE_ENV)
-    cpus = effective_cpu_count()
     if not raw:
-        return max(1, cpus)
+        return 1
     try:
         n = int(raw)
     except ValueError:
-        return max(1, cpus)
-    if n <= 1:
-        return max(1, cpus)
-    return max(1, cpus // n)
+        return 1
+    return n if n > 1 else 1
+
+
+def parallel_share_cpus() -> int:
+    """Return this subprocess's CPU share when it's inside a parallel group.
+
+    `effective_cpu_count() // N` (N = the parallel-group size), clamped to >= 1.
+    Standalone (N = 1) keeps the full count so lone wrapper invocations aren't
+    penalised. Stops tool wrappers 3-4x oversubscribing a shared HPC node.
+    """
+    return max(1, effective_cpu_count() // _parallel_group_size())
+
+
+def parallel_share_ram_gb() -> float:
+    """Return this subprocess's RAM share (GB) when it's inside a parallel group.
+
+    The RAM analogue of `parallel_share_cpus()`: `effective_ram_gb() / N`. A
+    wrapper that sizes memory to "fill the node" (EggNOG's `--dbmem` + DIAMOND
+    `--block_size`) would otherwise overcommit when it runs concurrently with the
+    other annotation tools — each grabbing the full allocation OOM-kills the
+    biggest allocator (observed live: EggNOG DIAMOND OOM in a 6-tool full-tier
+    group on a 120 GB node). Standalone (N = 1) returns the full RAM so
+    single-tool jobs keep the speedup.
+    """
+    return effective_ram_gb() / _parallel_group_size()
 
 
 from contextlib import contextmanager  # noqa: E402
