@@ -51,11 +51,14 @@ openspec change + signalp-t5ss (task #4).
 0 (was 37), 55-gold outside-vocab 13→3, full-tier fold-name false calls fixed. 1449 unit tests green.
 Golden fixture regenerated (surgical, GBFF-only). Change is ready for `/opsx:archive` after the reruns confirm.
 
-**NEXT (Teo-driven CX3): rerun BOTH genome sets through the REAL full tier** so the paper's functional
-figures use the v2 consensus. Xantho 74 at `~/xantho_gbff/`; benchmark 75 at
-`$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb/`. Commands in the chat / cx3-submit skill.
-Prereq: CX3 `git pull` this branch; `ssign doctor --tier full` 8/8. Runtime caveat: 75 benchmark genomes at
-full tier is multi-day (per-substrate HH-suite over UniRef30) — may exceed the 72h PBS cap; consider splitting.
+**SUBMITTED 2026-07-09 (Teo-driven CX3): BOTH genome sets running at full tier** so the paper's functional
+figures use the v2 consensus. Two pooled jobs, `--tier full --enrichment-stats --walltime 72:00:00`: Xantho 74
+(`~/xantho_gbff/*.gbff`) + benchmark 75 (`$HOME/blastp_t5a/ssign/validation_sweeps/benchmark/inputs_gb/*.gbff`).
+**RESUME = retrieve via cx3-retrieve → check v2 functional figures (03–06) + `_enrichment_stats` → then
+`/opsx:archive consensus-annotation-v2`.** Runtime caveat: benchmark 75 at full tier is multi-day
+(per-substrate HH-suite over UniRef30) and **may exceed 72h**; if it times out, decide split vs raise-walltime
+vs per-genome enrichment. (Xantho full-tier ≈ extended for the *consensus* figures: BLASTp/Swiss-Prot is empty
+on environmental Roseixanthobacter, so full only adds down-weighted HH-suite.)
 
 Deferred from the v2 apply (revisit triggers noted):
 - **Numeric-suffix machinery miss.** `_MACH` uses strict word boundaries, so `Hcp1`/`VgrG1`/`Tae2` (digit
