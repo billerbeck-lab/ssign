@@ -27,12 +27,12 @@
 # nvidia/cuda runtime image: CUDA 12.4 + cuDNN, no compiler toolchain.
 # Runtime variant is sufficient because PyTorch ships its own CUDA kernels.
 #
-# FRAGILE: SHA digest below is a PLACEHOLDER. Resolve and lock at build
-# time with `docker pull nvidia/cuda:12.4.1-runtime-ubuntu22.04` followed
-# by `docker inspect --format='{{index .RepoDigests 0}}' ...`. Locking
-# the digest is what makes the image deterministic across years; without
-# it, the same `docker build` command can produce different stacks.
-ARG CUDA_BASE=nvidia/cuda:12.4.1-runtime-ubuntu22.04@sha256:0000000000000000000000000000000000000000000000000000000000000000
+# Digest locked 2026-07-10 (resolved from Docker Hub). Locking the digest is what
+# makes the image deterministic across years. To re-pin (e.g. after a base-image
+# CVE): `docker pull nvidia/cuda:12.4.1-runtime-ubuntu22.04` then
+# `docker inspect --format='{{index .RepoDigests 0}}' nvidia/cuda:12.4.1-runtime-ubuntu22.04`
+# and paste the digest below (confirm it matches the arch you build on; amd64).
+ARG CUDA_BASE=nvidia/cuda:12.4.1-runtime-ubuntu22.04@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e83667932643d9
 FROM ${CUDA_BASE}
 
 # SSIGN_VERSION is the *image tag* — the Python package version comes from
@@ -99,17 +99,23 @@ RUN groupadd --gid 1000 ssign \
 # pLM-BLAST + PLM-Effector). Install non-editable so the image is frozen
 # at build time.
 #
-# FRAGILE: pyproject.toml dependency versions are NOT yet locked via
-# uv.lock. Step 9 of the publication roadmap pins every transitive
-# dep; until then, two builds days apart can resolve different versions.
-# The skeleton accepts this — locking is the build-time job.
+# Dependencies are pinned via the committed uv.lock: uv exports the fully-
+# resolved [extended] set to a requirements file, pip installs exactly that,
+# then ssign itself is installed --no-deps. Two builds resolve the same stack.
+# `uv export --locked` FAILS the build if uv.lock is stale vs pyproject.toml
+# (rather than silently omitting new deps) — run `uv lock` on the build host
+# first if it does (the build_and_test.sh helper does this for you).
+# `python3 -m pip` (not bare `pip`) is used so the chain can't die if the base
+# image ships `pip` under a different script name.
 WORKDIR /opt/ssign
-COPY --chown=ssign:ssign pyproject.toml README.md LICENSE ./
+COPY --chown=ssign:ssign pyproject.toml uv.lock README.md LICENSE ./
 COPY --chown=ssign:ssign src ./src
 COPY --chown=ssign:ssign scripts ./scripts
 
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install '.[extended]'
+RUN python3 -m pip install --upgrade pip setuptools wheel uv \
+    && uv export --locked --extra extended --no-hashes --no-emit-project -o /tmp/requirements.lock.txt \
+    && python3 -m pip install --no-cache-dir -r /tmp/requirements.lock.txt \
+    && python3 -m pip install --no-cache-dir --no-deps .
 
 # ---------------------------------------------------------------------------
 # Bind-mount points + TXSScan profiles
