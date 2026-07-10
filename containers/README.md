@@ -1,160 +1,147 @@
 # containers/
 
-The `Dockerfile` here builds the official **ssign** bundle image: a
-SHA-pinned CUDA + Python stack with the ssign Python package installed,
-ready to run the pipeline against user-supplied genomes. Model weights
-and reference databases are **not** baked in; they are fetched on the
-host and bind-mounted at run time. This keeps the image at a few GB
-instead of 600+ GB and avoids licence-redistribution friction.
+Reproducible install artifacts for **ssign**.
 
-## Prerequisites
+- **`ssign.def`** — a Singularity/Apptainer definition. This is the **default**
+  reproducible artifact: Linux + HPC, all tiers, one archivable `.sif`, runs
+  with no root. Built from a digest-pinned CUDA base and the frozen `uv.lock`.
+- **`build_sif.sh`** — build + offline smoke-test helper.
+- **macOS** users install the **base** tier with a pinned pip install (every
+  base tool is pip-installable; see below). Extended/full are Linux/HPC only
+  (InterProScan, HH-suite, BLAST+ have no macOS build) and run via the `.sif`.
+- **Windows** is not supported natively (several tools are Linux/macOS only);
+  use WSL2, which is just the Linux path.
 
-- Linux host with NVIDIA GPU (≥ 16 GB VRAM recommended for the prediction tools)
-- NVIDIA driver ≥ 550 (matches CUDA 12.4 runtime in the image)
-- Docker with the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), or Singularity ≥ 3.8 with `--nv`
+Databases and model weights are **not** baked in (licence + up to ~500 GB);
+they are fetched on the host and bind-mounted at run time.
 
-## Fetch the assets first
+## Build the image
 
-```bash
-# Reference databases (pick a tier: ~3 GB / ~150 GB / ~630 GB)
-bash scripts/fetch_databases.sh --tier extended
-
-# Model weights (~18 GB)
-bash scripts/fetch_weights.sh
-```
-
-Both default to `~/.ssign/{databases,models}`. Override with `--target` if
-you need a different host path.
-
-## Build
+Build on a machine with **open internet** (a laptop, workstation, or CI). It is
+normal for an **HPC compute node to be unable to build it**: clusters typically
+allow only an allowlist of package hosts (PyPI, conda, Docker Hub, NVIDIA) and
+block the general Ubuntu package servers the base image's `apt` needs. Build
+once, then copy the `.sif` to the cluster (see "On HPC" below).
 
 ```bash
-docker build -f containers/Dockerfile -t ssign:1.0.0 .
-```
-
-The Dockerfile pins its CUDA base by SHA digest. The placeholder digest
-in the file is replaced at release time; see the FRAGILE comment at the
-top of `Dockerfile`.
-
-## Run (Docker)
-
-ssign is offline-first: the DTU prediction tools default to local mode.
-The image does not bundle SignalP or DeepLocPro (DTU licence terms);
-the canonical pattern is to bind-mount your host install and point
-ssign at it. For users without a DTU licence, the DTU webserver is
-available as an opt-in fallback (`--signalp-mode remote
---deeplocpro-mode remote`) — see the note below the example for the
-caveats.
-
-```bash
-# Canonical: local SignalP and DeepLocPro on the host
-docker run --gpus all --rm \
-    -v $HOME/.ssign/databases:/home/ssign/.ssign/databases:ro \
-    -v $HOME/.ssign/models:/home/ssign/.ssign/models:ro \
-    -v $HOME/signalp6:/opt/signalp6:ro \
-    -v $HOME/deeplocpro:/opt/deeplocpro:ro \
-    -v $PWD:/work \
-    ssign:1.0.0 run /work/genome.gbff --outdir /work/output \
-        --signalp-path /opt/signalp6/bin \
-        --deeplocpro-path /opt/deeplocpro
-
-# Opt-in fallback: DTU webserver (no local install or licence needed,
-# but depends on DTU keeping the service alive — fine for trials and
-# users without a DTU licence, not recommended for paper-grade runs)
-docker run --gpus all --rm \
-    -v $HOME/.ssign/databases:/home/ssign/.ssign/databases:ro \
-    -v $HOME/.ssign/models:/home/ssign/.ssign/models:ro \
-    -v $PWD:/work \
-    ssign:1.0.0 run /work/genome.gbff --outdir /work/output \
-        --signalp-mode remote --deeplocpro-mode remote
+# from the repo root; needs apptainer + a real-disk build tmp (NOT a small tmpfs)
+export APPTAINER_TMPDIR=$HOME/.ssign_build/tmp APPTAINER_CACHEDIR=$HOME/.ssign_build/cache TMPDIR=$APPTAINER_TMPDIR
+mkdir -p "$APPTAINER_TMPDIR" "$APPTAINER_CACHEDIR"
+apptainer build --fakeroot ssign.sif containers/ssign.def
+# ...or the helper (also runs the offline smoke test):
+containers/build_sif.sh /path/to/dir/containing/deeplocpro
 ```
 
 Notes:
+- The `.sif` is ~5 GB. The build pulls the CUDA base + the torch stack, so it
+  overflows a RAM-backed `/tmp` (`[Errno 122] disk quota exceeded`) unless
+  `APPTAINER_TMPDIR` points at real disk (as above).
+- `--fakeroot` builds unprivileged (needs a `/etc/subuid` mapping, standard on
+  most Linux). Nothing here needs system root.
+- The base is pinned by digest; re-pin per the comment in `ssign.def` only if a
+  base-image CVE forces it.
 
-- `--gpus all` is required for the GPU-accelerated steps (DLP / DSE /
-  SignalP / PLM-Effector / pLM-BLAST embedding).
-- The `:ro` mounts let the container read your fetched assets without
-  modifying them.
-- `/work` is the convention for input + output; mount whichever host
-  directory contains your genomes.
+## Run the image
 
-## Run (Singularity, HPC)
+ssign needs, per run: (1) an install **tier** (`--tier base|extended|full`);
+(2) the DTU predictors (DeepLocPro / SignalP), bind-mounted from a host install;
+(3) the databases for the tier, bind-mounted; (4) the ESM model weights.
 
-Most academic HPC environments use Singularity instead of Docker. Pull
-and run the same image:
+Three rules the container makes explicit (all validated on Imperial CX3):
 
-```bash
-singularity pull docker://ghcr.io/billerbeck-lab/ssign:1.0.0
-singularity run --nv \
-    --bind $HOME/.ssign/databases:/home/ssign/.ssign/databases:ro \
-    --bind $HOME/.ssign/models:/home/ssign/.ssign/models:ro \
-    --bind $PWD:/work \
-    ssign_1.0.0.sif run /work/genome.gbff --outdir /work/output
-```
+1. **Always pass `--tier`.** The image has no tier marker, so it defaults to
+   `extended` and will expect host-provided tools (EggNOG, etc.). Pick the tier
+   matching the databases you mount.
+2. **Mount DTU tools at their real host path.** DeepLocPro/SignalP are usually a
+   conda env; bind-mount the *whole env at its own absolute path* so its bundled
+   Python and libraries resolve, then point `--deeplocpro-path <env>/bin`.
+3. **Provide the ESM weights.** DeepLocPro/DeepSecE load a ~2.5 GB ESM2 model. If
+   you have run ssign natively once, mount your `~/.cache/torch` into the
+   container; on an air-gapped node it cannot download it fresh.
 
-Singularity uses `--nv` instead of `--gpus all`. Bind-mounts default to
-read-write; the `:ro` suffix above mirrors the safety posture of the
-Docker example for the asset directories.
-
-## uid / gid alignment
-
-The image creates a `ssign` user with uid 1000. If your host user has a
-different uid, output written under `/work` will be owned by uid 1000
-inside the container, which may show as a different owner on the host.
-Two ways to fix this:
+Worked example (base tier, offline; the exact command validated on CX3):
 
 ```bash
-# Option 1: run as your host uid
-docker run --user $(id -u):$(id -g) --gpus all ... ssign:1.0.0 ...
-
-# Option 2: chown after the run
-sudo chown -R $(id -u):$(id -g) ./output
+DLPENV=$HOME/.conda/envs/deeplocpro          # host DeepLocPro conda env
+OUT=$(mktemp -d)
+apptainer run --nv --writable-tmpfs --containall \
+  -B "$DLPENV":"$DLPENV":ro \
+  -B $HOME/.cache/torch:/opt/ssign_home/.cache/torch \
+  -B $PWD/genome.gbff:/work/in.gbff:ro \
+  -B "$OUT":/work/out \
+  ssign.sif run /work/in.gbff --outdir /work/out --tier base \
+    --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin"
 ```
 
-Singularity automatically maps the host user into the container, so this
-caveat doesn't apply there.
+- `--nv` passes the host GPU (drop it for CPU-only nodes; DeepLocPro then runs on
+  CPU, fine for small inputs).
+- `--writable-tmpfs` gives the read-only image a scratch overlay (caches, `$HOME`).
+- `--containall` isolates it from your host environment; explicit `-B` mounts
+  still apply. Apptainer passes host `SSIGN_*` env vars through, so you can wire
+  databases with `export SSIGN_*_DB=...` instead of flags if you prefer.
 
-## What's bundled and what isn't
+### Per-tier database mounts
 
-| Component                                    | Bundled? | Fetched by                        |
-| -------------------------------------------- | -------- | --------------------------------- |
-| CUDA 12.4 runtime + cuDNN                    | Yes      | base image                        |
-| Python 3.10 + ssign[extended] deps           | Yes      | `pip install` during build (see note below)        |
-| MacSyFinder + TXSScan profiles               | Yes      | pip install (macsyfinder package) |
-| `ncbi-blast+` (`blastp` binary)              | Yes      | apt-get during build              |
-| Model weights (DeepSecE / ProtT5 / ESM / …)  | No       | `scripts/fetch_weights.sh`        |
-| Reference DBs (Bakta / HH-suite / …)         | No       | `scripts/fetch_databases.sh`      |
-| DeepLocPro + SignalP binaries                | No       | User-installed locally; DTU webserver as fallback * |
-| EggNOG-mapper code + database                | No       | User: conda install; DB via `fetch_databases.sh` ** |
+Same image for every tier; the tier is what you mount + `--tier`.
 
-The image pip-installs `ssign[extended]`. The `full` tier ships the same
-Python dependency set; only the database tier picked by
-`fetch_databases.sh` differs.
+| Tier       | Mount into the container                                   | Extra host tools           |
+| ---------- | ---------------------------------------------------------- | -------------------------- |
+| `base`     | (none — base needs no reference DB)                        | DeepLocPro, SignalP        |
+| `extended` | EggNOG DB, InterProScan, pLM-BLAST/ECOD, Bakta-light       | + EggNOG-mapper, InterProScan |
+| `full`     | extended + HH-suite (Pfam/PDB70/UniRef30), Swiss-Prot, Bakta-full | + HH-suite, BLAST+   |
 
-\* The DTU entries default to the conservative path because their
-licences don't currently permit redistribution inside a public image.
-If those terms change, the Dockerfile gets a one-line edit per plan
-addendum E.6 and the entries flip to `Yes`.
+Bind each host DB dir and point ssign at it via its `--*-db` flag or `SSIGN_*`
+env var (see `docs/how-to/install.md` for the full list). EggNOG-mapper and
+InterProScan are host-provided (not in the image); mount their conda env /
+install the same way as the DTU tools.
 
-\*\* eggnog-mapper hard-pins `biopython==1.76` while ssign + Bakta need
-`biopython>=1.78`, so the two cannot co-install via pip. Users who want
-EggNOG annotation install eggnog-mapper separately on the host
-(`conda install -c bioconda eggnog-mapper`) and bind-mount the conda env
-into the container, or skip eggnog (off by default via `--skip-eggnog`).
+### DTU webserver fallback
 
-## Troubleshooting
+No local DeepLocPro/SignalP and no licence? Use the DTU webserver (needs
+outbound internet, so not air-gapped HPC nodes):
 
-- **`Could not select device driver "" with capabilities: [[gpu]]`:**
-  the NVIDIA Container Toolkit isn't installed or the daemon needs a
-  restart. See the toolkit install guide linked above.
-- **`CUDA error: no kernel image is available for execution on the device`:**
-  your driver is older than CUDA 12.4 expects. Either upgrade the driver
-  or rebuild against an older CUDA base (edit the `CUDA_BASE` ARG in
-  `Dockerfile`).
-- **`ssign run` exits with `database not found`:** the bind mount paths
-  don't match the image's expected layout. Confirm the host directories
-  exist (`ls $HOME/.ssign/databases`) and that they were populated by
-  `fetch_databases.sh`.
-- **First run downloads 7 GB of ESM weights:** expected if
-  `fetch_weights.sh` was skipped. Either let it finish (it caches into
-  `~/.ssign/models` for next time) or run the fetch script first.
+```bash
+apptainer run --writable-tmpfs --containall -B $PWD:/work \
+  ssign.sif run /work/genome.gbff --outdir /work/out --tier base \
+    --deeplocpro-mode remote --signalp-mode remote
+```
+
+## On HPC (build elsewhere, run here)
+
+HPCs run Apptainer but usually can't build the image (allowlisted internet). So:
+
+```bash
+# 1. build on a machine with open internet (above), then copy the .sif up:
+scp ssign.sif you@cluster:$EPHEMERAL/ssign.sif
+# 2. on the cluster, inside a job, run as in the worked example, pointing at
+#    $EPHEMERAL/ssign.sif and your host DeepLocPro env + ~/.cache/torch.
+```
+
+The archival release image (Zenodo) will bake the ESM weights in so it is fully
+self-contained on air-gapped nodes.
+
+## macOS (base tier)
+
+Every base-tier tool is pip-installable, so macOS base needs no container:
+
+```bash
+python3 -m pip install ssign            # pinned via the shipped lock
+```
+
+DeepLocPro/SignalP still come from DTU (install locally, or `--*-mode remote`).
+Extended/full stay on Linux/HPC via the `.sif`.
+
+## What's bundled vs provided
+
+| Component                                   | In the image | Provided at run time                    |
+| ------------------------------------------- | ------------ | --------------------------------------- |
+| CUDA 12.4 runtime, Python 3.10, ssign[extended] deps (pinned via `uv.lock`) | Yes | — |
+| MacSyFinder + TXSScan 1.1.4 profiles, `hmmsearch` (pyhmmer), `ncbi-blast+` | Yes | — |
+| ESM2 model weights (~2.5 GB)                | No (mount now; baked in the archival image) | host `~/.cache/torch` |
+| DeepLocPro, SignalP (DTU licence)           | No           | bind-mount host env, or `--*-mode remote` |
+| EggNOG-mapper, InterProScan                 | No           | host install, bind-mounted (extended/full) |
+| Reference databases                         | No           | `scripts/fetch_databases.sh` + bind-mount |
+
+EggNOG-mapper is separate because it hard-pins `biopython==1.76` while ssign +
+Bakta need `>=1.78`; install it on the host (`conda install -c bioconda
+eggnog-mapper`) and mount it, or leave it off (`--skip-eggnog`).

@@ -14,16 +14,16 @@
   - The BIMENO_04457 substrate call differs laptop-vs-CX3 (borderline DeepLocPro localization, 0.60 extracellular) — a DeepLocPro-version difference, not a container issue; the container reproduces CX3-native output (parity check pending).
 - [x] 2.4 Added `containers/build_sif.sh` (uv-lock check → real-disk-tmpdir `apptainer build` → `--version`/`doctor` smoke → optional golden run).
 
-## 3. Base-only conda environment (macOS)
+## 3. macOS base install
 
-- [ ] 3.1 Write `containers/environment.yml`: base-tier deps only (DeepLocPro/SignalP host-provided or the DTU channel, DeepSecE/ProtParam/MacSyFinder/pyrodigal/pyhmmer/torch), pinned to the `uv.lock` versions. Explicitly exclude InterProScan / HH-suite / BLAST+ / Bakta.
-- [ ] 3.2 Verify the env resolves for osx-64 + osx-arm64 and contains no Linux-only tool (dry-run solve).
-- [ ] 3.3 (User, on a Mac) create the env and run the golden fixture at base tier → BIMENO_04457.
+- [ ] 3.1 **Reconsidered — conda may be unnecessary.** Every base-tier tool is pip-installable (MacSyFinder, pyhmmer, pyrodigal, DeepSecE, torch, biopython; DeepLocPro/SignalP are DTU, host-provided either way). Base has **no** Linux-only binary that conda would lock, so macOS base = a **pinned `pip install`** (lock-derived), simpler than a conda env. Decision pending Teo's OK; if yes, ship a base requirements lock instead of `environment.yml`.
+- [ ] 3.2 Provide + verify the chosen macOS base install (pinned pip requirements, or conda env) resolves on osx-64 + osx-arm64 with no Linux-only tool.
+- [ ] 3.3 (User, on a Mac) install + run the golden fixture at base tier.
 
 ## 4. Retire Docker
 
-- [ ] 4.1 Remove `containers/Dockerfile` and `containers/build_and_test.sh`; remove the `docker-release-image` openspec change (superseded).
-- [ ] 4.2 Rewrite `containers/README.md` for the `.sif` (build + run + per-tier mount matrix) and the Mac conda env; drop Docker instructions.
+- [x] 4.1 Removed `containers/Dockerfile` + `build_and_test.sh` and the `docker-release-image` change (superseded).
+- [x] 4.2 Rewrote `containers/README.md` for the `.sif`: build-off-cluster + real-disk tmpdir, the CX3-validated run recipe (DTU conda-env mount at real path, ESM cache mount, `--tier`, `--nv/--writable-tmpfs/--containall`), per-tier DB mount matrix, DTU webserver fallback, HPC build-elsewhere-run-here, macOS base = pinned pip, Windows→WSL2.
 
 ## 5. Databases, DTU tools, HPC
 
