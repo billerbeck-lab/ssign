@@ -84,16 +84,54 @@ apptainer run --nv --writable-tmpfs --containall \
 
 Same image for every tier; the tier is what you mount + `--tier`.
 
-| Tier       | Mount into the container                                   | Extra host tools           |
-| ---------- | ---------------------------------------------------------- | -------------------------- |
-| `base`     | (none — base needs no reference DB)                        | DeepLocPro, SignalP        |
-| `extended` | EggNOG DB, InterProScan, pLM-BLAST/ECOD, Bakta-light       | + EggNOG-mapper, InterProScan |
-| `full`     | extended + HH-suite (Pfam/PDB70/UniRef30), Swiss-Prot, Bakta-full | + HH-suite, BLAST+   |
+| Tier       | Mount into the container                                          | Extra host tools           |
+| ---------- | ---------------------------------------------------------------- | -------------------------- |
+| `base`     | (none — base needs no reference DB)                              | DeepLocPro, SignalP        |
+| `extended` | EggNOG DB, InterProScan install, ECOD (pLM-BLAST DB), Bakta-light | + EggNOG-mapper, InterProScan install |
+| `full`     | extended + HH-suite (Pfam/PDB70/UniRef30), Swiss-Prot, Bakta-full | + HH-suite install         |
 
 Bind each host DB dir and point ssign at it via its `--*-db` flag or `SSIGN_*`
-env var (see `docs/how-to/install.md` for the full list). EggNOG-mapper and
-InterProScan are host-provided (not in the image); mount their conda env /
-install the same way as the DTU tools.
+env var (see `docs/reference/env_vars.md` for the full list). What the image now
+bakes for extended/full: **Java 11** (InterProScan's launcher needs it),
+**pLM-BLAST code** (pinned clone; only its ECOD DB is mounted), **`ncbi-blast+`**.
+Still host-provided: the **EggNOG-mapper** and **InterProScan** *installs* (mount
+their conda env / install dir the same way as the DTU tools) and all reference
+databases. EggNOG-mapper is host-provided because it hard-pins `biopython==1.76`
+against ssign's `>=1.78`; mount it or `--skip-eggnog`.
+
+Worked example (extended tier; DTU env, ESM cache, and the extended DBs mounted):
+
+```bash
+DLPENV=$HOME/.conda/envs/deeplocpro
+EGGENV=$HOME/.conda/envs/eggnog             # host EggNOG-mapper env (emapper.py)
+DBROOT=$EPHEMERAL/ssign-databases           # host DB tree
+OUT=$(mktemp -d)
+apptainer run --nv --writable-tmpfs --containall \
+  -B "$DLPENV":"$DLPENV":ro \
+  -B "$EGGENV":"$EGGENV":ro \
+  -B $HOME/.cache/torch:/opt/ssign_home/.cache/torch \
+  -B "$DBROOT":"$DBROOT" \
+  -B $PWD/genome.gbff:/work/in.gbff:ro -B "$OUT":/work/out \
+  --env EGGNOG_DATA_DIR="$DBROOT/eggnog" \
+  --env SSIGN_ECOD_DB="$(ls -d $DBROOT/plm_blast/ECOD* | head -1)" \
+  --env SSIGN_INTERPROSCAN_PATH="$(ls -d $DBROOT/interproscan/interproscan-* | head -1)" \
+  ssign.sif run /work/in.gbff --outdir /work/out --tier extended \
+    --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin" \
+    --eggnog-mode local --interproscan-mode local
+```
+
+Notes on this recipe:
+- `$DBROOT` is mounted **read-write** (no `:ro`): InterProScan's launcher writes
+  scratch files under its own install dir, so a read-only mount makes it fail
+  (native runs it from writable `$EPHEMERAL`, so this matches native).
+- pLM-BLAST needs no mount (baked); only its ECOD DB comes via `SSIGN_ECOD_DB`.
+  The image sets `NUMBA_CACHE_DIR` to a writable tmpdir so pLM-BLAST's numba
+  code imports in the read-only image (no action needed).
+- Java is baked, so InterProScan's `interproscan.sh` finds `java` in-container.
+- EggNOG-mapper: mount the host env at its real path (above) and prepend its
+  `bin` to the container PATH so `emapper.py` resolves:
+  `export APPTAINERENV_PREPEND_PATH="$EGGENV/bin"` before the run. `--skip-eggnog`
+  if you have no EggNOG install.
 
 ### DTU webserver fallback
 
@@ -138,9 +176,10 @@ Extended/full stay on Linux/HPC via the `.sif`.
 | ------------------------------------------- | ------------ | --------------------------------------- |
 | CUDA 12.4 runtime, Python 3.10, ssign[extended] deps (pinned via `uv.lock`) | Yes | — |
 | MacSyFinder + TXSScan 1.1.4 profiles, `hmmsearch` (pyhmmer), `ncbi-blast+` | Yes | — |
+| Java 11 runtime (InterProScan launcher), pLM-BLAST code (pinned `4dddea3`) | Yes | — |
 | ESM2 model weights (~2.5 GB)                | No (mount now; baked in the archival image) | host `~/.cache/torch` |
 | DeepLocPro, SignalP (DTU licence)           | No           | bind-mount host env, or `--*-mode remote` |
-| EggNOG-mapper, InterProScan                 | No           | host install, bind-mounted (extended/full) |
+| EggNOG-mapper + InterProScan installs, ECOD/EggNOG/HH-suite DBs | No | host install/DBs, bind-mounted (extended/full) |
 | Reference databases                         | No           | `scripts/fetch_databases.sh` + bind-mount |
 
 EggNOG-mapper is separate because it hard-pins `biopython==1.76` while ssign +

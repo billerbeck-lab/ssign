@@ -1,0 +1,96 @@
+#!/bin/bash
+# ssign EXTENDED-tier CONTAINER validation PBS script.
+#
+# Runs ONE genome through the Singularity/Apptainer image (.sif) at extended
+# tier, with the host DTU predictors, EggNOG env, and databases bind-mounted.
+# Confirms the image reproduces a native extended run (reproducible-install
+# task 5.3). Mirrors run_batched_multi.pbs's env wiring but invokes the image
+# instead of the venv, so Java (InterProScan) + pLM-BLAST come from the image,
+# not host modules.
+#
+# Usage (gpu_type=RTX6000 is required for gpu72 placement on CX3):
+#   qsub -v "GENOME=$HOME/xantho/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v2.sif" \
+#        -l select=1:ncpus=64:mem=120gb:ngpus=1:gpu_type=RTX6000 \
+#        scripts/cx3/run_container_extended.pbs
+#
+# Pick GENOME as a real annotated genome that yields >=1 substrate: the minimal
+# T5aSS fixture localizes 0 substrates on CX3's DeepLocPro, which would leave the
+# annotation tools (EggNOG/InterProScan/pLM-BLAST) with nothing to run on.
+
+#PBS -l select=1:ncpus=64:mem=120gb:ngpus=1
+#PBS -l walltime=06:00:00
+#PBS -N ssign_container_ext
+#PBS -j oe
+#PBS -o ssign_container_ext.log
+#PBS -S /bin/bash
+
+set -eo pipefail
+
+: "${GENOME:?Pass via -v GENOME=/abs/path/genome.gbff}"
+: "${SIF:=$EPHEMERAL/ssign_v2.sif}"
+: "${TIER:=extended}"
+test -f "$GENOME" || { echo "FATAL: genome not found: $GENOME"; exit 1; }
+test -f "$SIF"    || { echo "FATAL: image not found: $SIF"; exit 1; }
+
+RUN_DIR="$HOME/runs/container_${TIER}_$(date +%Y%m%d_%H%M%S)_${PBS_JOBID%%.*}"
+mkdir -p "$RUN_DIR" && cd "$RUN_DIR"
+
+echo "===== CONTAINER $TIER JOB START $(date -Is) | $(hostname) | $PBS_JOBID ====="
+echo "  genome: $GENOME"
+echo "  image:  $SIF"
+nvidia-smi || { echo "FATAL: no GPU"; exit 1; }
+command -v apptainer >/dev/null || module load apptainer 2>/dev/null || true
+command -v apptainer >/dev/null || { echo "FATAL: apptainer not available"; exit 1; }
+echo "  apptainer -> $(apptainer --version)"
+
+# --- host tools + databases (same locations as run_batched_multi.pbs) -------
+DBROOT="$EPHEMERAL/ssign-databases"
+DLPENV="$HOME/.conda/envs/deeplocpro"
+SP6ENV="$HOME/.conda/envs/signalp6"
+# EggNOG-mapper env (holds bin/emapper.py) — auto-detect by finding emapper.py.
+# `|| true` inside each $(): under `set -eo pipefail` a missing glob makes ls
+# exit non-zero, which would otherwise kill the script at the assignment.
+_EMAPPER=$(ls "$HOME"/.conda/envs/*/bin/emapper.py 2>/dev/null | head -1 || true)
+EGGENV=""; [ -n "$_EMAPPER" ] && EGGENV=$(dirname "$(dirname "$_EMAPPER")")
+_ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
+_IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
+
+# ssign reads these INSIDE the container. Under --containall the host env is not
+# forwarded, so use the APPTAINERENV_ prefix (Apptainer strips it and sets the
+# bare var inside). Each is set only when its target exists on the host.
+[ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta"
+[ -d "$DBROOT/eggnog" ]          && export APPTAINERENV_EGGNOG_DATA_DIR="$DBROOT/eggnog"
+[ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
+[ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
+[ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
+# Prepend the EggNOG env bin to the container PATH so emapper.py resolves.
+[ -n "$EGGENV" ]                 && export APPTAINERENV_PREPEND_PATH="$EGGENV/bin"
+
+# --- bind mounts ------------------------------------------------------------
+# $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
+# install dir. Conda envs are ro (invoked at their real host path so their
+# shebang + bundled libs resolve). torch cache supplies the ESM2 weights.
+BINDS=( -B "$DBROOT":"$DBROOT" )
+[ -d "$DLPENV" ]            && BINDS+=( -B "$DLPENV":"$DLPENV":ro )
+[ -d "$SP6ENV" ]            && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
+[ -n "$EGGENV" ]           && BINDS+=( -B "$EGGENV":"$EGGENV":ro )
+[ -d "$HOME/.cache/torch" ] && BINDS+=( -B "$HOME/.cache/torch":/opt/ssign_home/.cache/torch )
+BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
+
+echo "  DLP=$DLPENV"
+echo "  SignalP=$SP6ENV"
+echo "  EggNOG=${EGGENV:-<none: emapper.py not found, EggNOG will fail>}"
+echo "  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
+
+echo "===== apptainer run START $(date -Is) ====="
+apptainer run --nv --writable-tmpfs --containall "${BINDS[@]}" \
+    "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
+    --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin" \
+    --signalp-mode local --signalp-path "$SP6ENV/bin" \
+    2>&1 | tee "$RUN_DIR/ssign.run.log"
+RC=${PIPESTATUS[0]}
+echo "===== apptainer run END (rc=$RC) $(date -Is) ====="
+
+echo "===== Output layout ====="
+ls -la "$RUN_DIR"
+exit $RC

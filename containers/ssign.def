@@ -33,9 +33,13 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
 
 %post
     export DEBIAN_FRONTEND=noninteractive
+    # openjdk-11-jre-headless: InterProScan's interproscan.sh shells out to
+    # `java`, which must be on the container PATH under --containall. Java 11
+    # matches the validated native CX3 path (module Java/11.0.25).
     apt-get update && apt-get install -y --no-install-recommends \
         python3.10 python3.10-venv python3-pip python3-dev build-essential \
         wget tar unzip git ca-certificates libgomp1 ncbi-blast+ \
+        openjdk-11-jre-headless \
         && rm -rf /var/lib/apt/lists/*
 
     # Pinned install: export the frozen uv.lock to a requirements file, install
@@ -46,6 +50,17 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     uv export --locked --extra extended --no-hashes --no-emit-project -o /tmp/requirements.lock.txt
     python3 -m pip install --no-cache-dir -r /tmp/requirements.lock.txt
     python3 -m pip install --no-cache-dir --no-deps .
+
+    # pLM-BLAST (extended/full). run_plm_blast.py invokes it as
+    # `sys.executable plmblast.py`, so it runs under ssign's own Python; its
+    # whole runtime stack (torch/transformers/numba/scikit-learn) is already in
+    # the pinned env above, so no extra pip install is needed. Clone a pinned
+    # commit for reproducibility. The wrapper prepends the repo root to
+    # PYTHONPATH at run time so the in-repo `alntools` package resolves. The
+    # ECOD database is host-mounted separately (SSIGN_ECOD_DB), not baked.
+    git clone https://github.com/labstructbioinf/pLM-BLAST.git /opt/pLM-BLAST
+    git -C /opt/pLM-BLAST checkout 4dddea3cf70fa60ece8c4dc6e454b7799887fa28
+    rm -rf /opt/pLM-BLAST/.git
 
     # Bake TXSScan HMM profiles so the run is offline. The runner looks for them
     # under $HOME/.macsyfinder (runner.py); we pin HOME to /opt/ssign_home (set in
@@ -65,6 +80,14 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # Pin HOME to the baked profile/config location so TXSScan + ~/.ssign resolve
     # regardless of the host user. Runtime writes (caches) need --writable-tmpfs.
     export HOME=/opt/ssign_home
+    # Baked pLM-BLAST clone (extended/full). Default-only (`:-`) so a
+    # user-supplied SSIGN_PLMBLAST_SCRIPT (e.g. --env at run time) still wins.
+    export SSIGN_PLMBLAST_SCRIPT=${SSIGN_PLMBLAST_SCRIPT:-/opt/pLM-BLAST/scripts/plmblast.py}
+    # pLM-BLAST's alntools uses numba @njit(cache=True), which by default writes
+    # its cache next to the source file — read-only in the image, so `import
+    # alntools` raises "no locator available". Redirect the numba cache to a
+    # writable tmpdir (/tmp is a private tmpfs under --containall). Default-only.
+    export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-/tmp/ssign_numba_cache}
 
 %runscript
     exec ssign "$@"
