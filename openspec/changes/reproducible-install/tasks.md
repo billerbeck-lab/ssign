@@ -27,7 +27,7 @@
 
 ## 5. Databases, DTU tools, HPC
 
-- [ ] 5.1 Document the per-tier host directories to bind-mount (base/extended/full) against the single `.sif`; verify a base and an extended run.
+- [~] 5.1 **base** per-tier mounts documented + verified on CX3 (17/17). **extended/full surfaced image gaps** (from `run_batched_multi.pbs` wiring, 2026-07-10): (a) **InterProScan needs Java** (`module load Java/11.0.25`) — the image has none, so **Java must be baked into the image** for extended/full; (b) **pLM-BLAST is an external script** (`$HOME/tools/pLM-BLAST/scripts/plmblast.py` via `SSIGN_PLMBLAST_SCRIPT`), not pip — bundle it or document mounting the host script + its env; (c) EggNOG (`emapper.py` conda env) mounts like DeepLocPro + `EGGNOG_DATA_DIR`; (d) pLM-BLAST DB = `$DBROOT/plm_blast/ECOD*` via `SSIGN_ECOD_DB`, InterProScan install = `$DBROOT/interproscan/interproscan-*` via `SSIGN_INTERPROSCAN_PATH`. **So extended/full container = an image rebuild (add Java + pLM-BLAST), a focused follow-up — not a mount-only exercise.** Bakta not needed with `--use-input-annotations`.
 - [ ] 5.2 Verify the DTU bind-mount (`--signalp-path`/`--deeplocpro-path`) and `--*-mode remote` fallback inside the `.sif`.
 - [ ] 5.3 **[CX3]** Run the `.sif` on the target HPC with `--nv` + DBs bind-mounted; confirm parity with a native run. Record the Apptainer version.
 
