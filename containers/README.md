@@ -125,7 +125,8 @@ self-contained on air-gapped nodes.
 Every base-tier tool is pip-installable, so macOS base needs no container:
 
 ```bash
-python3 -m pip install ssign            # pinned via the shipped lock
+# pinned to the same locked versions as the container (base tier = core deps)
+python3 -m pip install -c containers/requirements-base.lock.txt ssign
 ```
 
 DeepLocPro/SignalP still come from DTU (install locally, or `--*-mode remote`).

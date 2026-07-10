@@ -16,8 +16,8 @@
 
 ## 3. macOS base install
 
-- [ ] 3.1 **Reconsidered — conda may be unnecessary.** Every base-tier tool is pip-installable (MacSyFinder, pyhmmer, pyrodigal, DeepSecE, torch, biopython; DeepLocPro/SignalP are DTU, host-provided either way). Base has **no** Linux-only binary that conda would lock, so macOS base = a **pinned `pip install`** (lock-derived), simpler than a conda env. Decision pending Teo's OK; if yes, ship a base requirements lock instead of `environment.yml`.
-- [ ] 3.2 Provide + verify the chosen macOS base install (pinned pip requirements, or conda env) resolves on osx-64 + osx-arm64 with no Linux-only tool.
+- [x] 3.1 **Decided: pinned pip, no conda** (Teo OK'd). Base is all-pip, so macOS base = `pip install -c containers/requirements-base.lock.txt ssign`. Shipped `containers/requirements-base.lock.txt` (108 deps, `uv export` core-only from `uv.lock`; no extended/Linux-only tools). README updated.
+- [ ] 3.2 (Needs a Mac) verify the base lock resolves on osx-64 + osx-arm64 (uv export carries cross-platform markers, so it should; confirm on Amine's Mac).
 - [ ] 3.3 (User, on a Mac) install + run the golden fixture at base tier.
 
 ## 4. Retire Docker
