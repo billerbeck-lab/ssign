@@ -5,10 +5,10 @@
 
 ## 2. Singularity/Apptainer image (default)
 
-- [ ] 2.1 Write `containers/ssign.def`: `Bootstrap: docker` from the pinned CUDA base; `%post` mirrors the retired Dockerfile recipe (`python3 -m pip install ... uv` → `uv export --locked --extra extended --no-hashes --no-emit-project` → `pip install -r` → `pip install --no-deps .`), bake TXSScan profiles, create the `.ssign/{databases,models}` + `/work` mount points.
-- [ ] 2.2 **[this laptop, Linux]** Build unprivileged: `apptainer build ssign.sif containers/ssign.def` (install apptainer first: `sudo pacman -S apptainer`); fix any pin/build fallout (adjust pyproject constraints only, then `uv lock` + rebuild).
-- [ ] 2.3 **[this laptop]** Offline golden run: `apptainer run --no-home --containall <mounts> ssign.sif run <fixture> ...` with DeepLocPro bind-mounted, all other tools off; confirm substrate BIMENO_04457. (DeepLocPro isn't on this laptop → if unavailable here, do the container-starts + `ssign --version` smoke here and defer the golden run to a DLP box.)
-- [ ] 2.4 Add a build/test helper capturing the `uv lock` check → `apptainer build` → golden run.
+- [x] 2.1 Wrote `containers/ssign.def`: `Bootstrap: docker` from the **digest-only** pinned CUDA base (Apptainer rejects `tag@digest`); `%post` mirrors the Dockerfile recipe (`python3 -m pip install ... uv` → `uv export --locked --extra extended --no-hashes --no-emit-project` → `pip install -r` → `pip install --no-deps .`); bakes TXSScan under a fixed `HOME=/opt/ssign_home`; creates `.ssign/{databases,models}` + `/work`.
+- [x] 2.2 **[this laptop, 2026-07-10]** Built unprivileged (`apptainer build --fakeroot`, apptainer 1.5.2), **5.0 GB `.sif`**. Gotcha found + worked around: the build sandbox + torch overflow a RAM-backed tmpfs `/tmp` (`[Errno 122] disk quota exceeded`) — must point `APPTAINER_TMPDIR`/`CACHEDIR`/`TMPDIR` at real disk (the `build_sif.sh` helper does this). No pyproject change needed; the pinned stack built clean.
+- [~] 2.3 In-container smoke (offline, `--containall`) PASSED: `ssign --version`, `ssign doctor --tier base` = **18/18 Python packages OK**, MacSyFinder 2.1.6 binary + hmmsearch shim on PATH, **TXSScan 1.1.4 baked + discoverable** (`msf_data info`), HOME resolves correctly, DTU tools correctly optional. **Deferred**: the genome→BIMENO_04457 golden run needs DeepLocPro (not on this laptop) — run via `build_sif.sh <deeplocpro-dir>` on a DLP box.
+- [x] 2.4 Added `containers/build_sif.sh` (uv-lock check → real-disk-tmpdir `apptainer build` → `--version`/`doctor` smoke → optional golden run).
 
 ## 3. Base-only conda environment (macOS)
 

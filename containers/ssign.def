@@ -1,0 +1,82 @@
+# ssign v1.0.0 Singularity/Apptainer definition (default reproducible artifact).
+#
+# Build from the REPO ROOT (so the %files paths resolve):
+#   apptainer build ssign.sif containers/ssign.def
+# (unprivileged: Apptainer 1.x builds via user namespaces / --fakeroot.)
+#
+# Run (offline golden smoke, DeepLocPro bind-mounted, no DBs needed):
+#   apptainer run --writable-tmpfs --containall \
+#     -B <deeplocpro_dir>:/opt/deeplocpro:ro -B <outdir>:/work \
+#     ssign.sif run <genome.gbff> --outdir /work \
+#       --use-input-annotations --deeplocpro-mode local --deeplocpro-path /opt/deeplocpro \
+#       --skip-deepsece --skip-signalp --skip-plm-effector --skip-blastp \
+#       --skip-hhsuite --skip-interproscan --skip-plmblast --skip-protparam
+#
+# Databases/weights are NOT baked (licence + up to 500 GB). At run time, bind
+# the host database dir and point ssign at it; Apptainer passes host SSIGN_*
+# env vars through by default, so `export SSIGN_*_DB=...` on the host works.
+# DTU SignalP/DeepLocPro are bind-mounted (see containers/README.md).
+
+Bootstrap: docker
+# Digest locked 2026-07-10 for tag 12.4.1-runtime-ubuntu22.04. Apptainer rejects
+# a combined tag@digest reference, so pin by digest only (the digest IS the pin).
+# Re-pin from Docker Hub if a base CVE forces it; this is what makes it deterministic.
+From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e83667932643d9
+
+%files
+    pyproject.toml /opt/ssign/pyproject.toml
+    uv.lock /opt/ssign/uv.lock
+    README.md /opt/ssign/README.md
+    LICENSE /opt/ssign/LICENSE
+    src /opt/ssign/src
+    scripts /opt/ssign/scripts
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update && apt-get install -y --no-install-recommends \
+        python3.10 python3.10-venv python3-pip python3-dev build-essential \
+        wget tar unzip git ca-certificates libgomp1 ncbi-blast+ \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Pinned install: export the frozen uv.lock to a requirements file, install
+    # exactly that, then ssign --no-deps. `--locked` fails the build if uv.lock
+    # is stale vs pyproject.toml (rather than silently omitting deps).
+    cd /opt/ssign
+    python3 -m pip install --upgrade pip setuptools wheel uv
+    uv export --locked --extra extended --no-hashes --no-emit-project -o /tmp/requirements.lock.txt
+    python3 -m pip install --no-cache-dir -r /tmp/requirements.lock.txt
+    python3 -m pip install --no-cache-dir --no-deps .
+
+    # Bake TXSScan HMM profiles so the run is offline. The runner looks for them
+    # under $HOME/.macsyfinder (runner.py); we pin HOME to /opt/ssign_home (set in
+    # %environment) and install there, so the runtime check passes without a
+    # network install. Pin matches runner.py.
+    export HOME=/opt/ssign_home
+    mkdir -p /opt/ssign_home
+    macsydata install --user TXSScan==1.1.4
+
+    # Default mount points for host-provided databases/weights + work dir.
+    mkdir -p /opt/ssign_home/.ssign/databases /opt/ssign_home/.ssign/models /work
+    chmod -R a+rX /opt/ssign_home
+
+%environment
+    export LANG=C.UTF-8 LC_ALL=C.UTF-8
+    export PYTHONUNBUFFERED=1
+    # Pin HOME to the baked profile/config location so TXSScan + ~/.ssign resolve
+    # regardless of the host user. Runtime writes (caches) need --writable-tmpfs.
+    export HOME=/opt/ssign_home
+
+%runscript
+    exec ssign "$@"
+
+%labels
+    org.opencontainers.image.title ssign
+    org.opencontainers.image.description Secretion-system Identification for Gram-negative bacterial genomes
+    org.opencontainers.image.source https://github.com/billerbeck-lab/ssign
+    org.opencontainers.image.licenses GPL-3.0-or-later
+    org.opencontainers.image.version 1.0.0
+
+%help
+    ssign v1.0.0 — reproducible Singularity image. Databases/weights are
+    bind-mounted (not bundled). See containers/README.md for per-tier mounts,
+    DTU-tool wiring, and HPC usage. `apptainer run ssign.sif --help`.
