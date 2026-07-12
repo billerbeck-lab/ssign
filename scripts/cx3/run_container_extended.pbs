@@ -8,19 +8,19 @@
 # instead of the venv, so Java (InterProScan) + pLM-BLAST come from the image,
 # not host modules.
 #
-# Usage. gpu_type=RTX6000 is required for gpu72 placement, and a SMALL footprint
-# (32c/64gb, baked into the directive below) is what actually places under
-# contention — a 64c/120gb ask sits Q indefinitely even with the right gpu_type.
-# The -l override just re-pins gpu_type; the directive already sets the size:
-#   qsub -v "GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v2.sif" \
-#        -l select=1:ncpus=32:mem=64gb:ngpus=1:gpu_type=RTX6000 \
-#        scripts/cx3/run_container_extended.pbs
+# Usage. gpu_type=RTX6000 is baked into the #PBS directive below (it is MANDATORY
+# on v1_gpu72 — a GPU request without it queues FOREVER with "Placement set is too
+# small"). So submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
+# qsub gets its -l line swallowed by terminal auto-indent on paste, which drops
+# gpu_type and wedges the job). 32c/64gb is enough for one genome; 120gb also
+# places, footprint only changes placement speed, not whether it starts.
+#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v2.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
 #
 # Pick GENOME as a real annotated genome that yields >=1 substrate: the minimal
 # T5aSS fixture localizes 0 substrates on CX3's DeepLocPro, which would leave the
 # annotation tools (EggNOG/InterProScan/pLM-BLAST) with nothing to run on.
 
-#PBS -l select=1:ncpus=32:mem=64gb:ngpus=1
+#PBS -l select=1:ncpus=32:mem=64gb:ngpus=1:gpu_type=RTX6000
 #PBS -l walltime=06:00:00
 #PBS -N ssign_container_ext
 #PBS -j oe
