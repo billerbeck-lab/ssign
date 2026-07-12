@@ -132,6 +132,11 @@ Notes on this recipe:
   `bin` to the container PATH so `emapper.py` resolves:
   `export APPTAINERENV_PREPEND_PATH="$EGGENV/bin"` before the run. `--skip-eggnog`
   if you have no EggNOG install.
+- **Bakta** (runs at extract_proteins unless `--use-input-annotations`) shells
+  out to external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, HMMER,
+  amrfinder) that are not baked. Mount a host `bakta-deps` conda env and prepend
+  its `bin` too (its real HMMER also serves MacSyFinder). `scripts/cx3/run_container_extended.pbs`
+  wires this automatically. The archival image will bake this toolchain in.
 
 ### DTU webserver fallback
 

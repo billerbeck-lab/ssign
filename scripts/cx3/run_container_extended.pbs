@@ -47,6 +47,12 @@ echo "  apptainer -> $(apptainer --version)"
 DBROOT="$EPHEMERAL/ssign-databases"
 DLPENV="$HOME/.conda/envs/deeplocpro"
 SP6ENV="$HOME/.conda/envs/signalp6"
+# Bakta's external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, real
+# HMMER, amrfinder) are not pip-installable and not baked in the image. Mount
+# the host bakta-deps env and PREPEND it so Bakta runs under the same coherent
+# toolchain as a native run (the real HMMER also serves MacSyFinder, whose
+# in-image hmmsearch is only a drop-in stand-in for it).
+BAKTADEPS="$HOME/.conda/envs/bakta-deps"
 # EggNOG-mapper env (holds bin/emapper.py) — auto-detect by finding emapper.py.
 # `|| true` inside each $(): under `set -eo pipefail` a missing glob makes ls
 # exit non-zero, which would otherwise kill the script at the assignment.
@@ -63,8 +69,12 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 [ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
 [ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
-# Prepend the EggNOG env bin to the container PATH so emapper.py resolves.
-[ -n "$EGGENV" ]                 && export APPTAINERENV_PREPEND_PATH="$EGGENV/bin"
+# Prepend bakta-deps (real toolchain for Bakta) + the EggNOG env bin (so
+# emapper.py resolves) to the container PATH. bakta-deps first.
+_PREPEND=""
+[ -d "$BAKTADEPS/bin" ] && _PREPEND="$BAKTADEPS/bin"
+[ -n "$EGGENV" ]        && _PREPEND="${_PREPEND:+$_PREPEND:}$EGGENV/bin"
+[ -n "$_PREPEND" ]      && export APPTAINERENV_PREPEND_PATH="$_PREPEND"
 
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
@@ -73,12 +83,15 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 BINDS=( -B "$DBROOT":"$DBROOT" )
 [ -d "$DLPENV" ]            && BINDS+=( -B "$DLPENV":"$DLPENV":ro )
 [ -d "$SP6ENV" ]            && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
+[ -d "$BAKTADEPS" ]        && BINDS+=( -B "$BAKTADEPS":"$BAKTADEPS":ro )
 [ -n "$EGGENV" ]           && BINDS+=( -B "$EGGENV":"$EGGENV":ro )
 [ -d "$HOME/.cache/torch" ] && BINDS+=( -B "$HOME/.cache/torch":/opt/ssign_home/.cache/torch )
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
 
 echo "  DLP=$DLPENV"
 echo "  SignalP=$SP6ENV"
+[ -d "$BAKTADEPS" ] && echo "  bakta-deps=$BAKTADEPS" \
+                    || echo "  bakta-deps=<none: Bakta will FAIL at extract_proteins — build the env or point BAKTADEPS at it>"
 echo "  EggNOG=${EGGENV:-<none: emapper.py not found, EggNOG will fail>}"
 echo "  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
 
