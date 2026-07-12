@@ -63,6 +63,25 @@ def test_low_confidence_fit_uses_wider_margin():
     assert LOW_CONFIDENCE_MARGIN > DEFAULT_MARGIN
 
 
+def test_hhsuite_large_substrate_set_scales_above_floor():
+    # Pooled full-tier reruns (~593/768 substrates) overran the flat 4h floor.
+    # hh_suite.substrates is a low_confidence prior (a=35, b=600) -> 3x margin
+    # lifts a big pool well above the floor so it isn't killed mid-step.
+    n = 768
+    e = effort("hh_suite", n, "substrates", COEFFS)
+    assert e is not None and e.low_confidence
+    out = scaled_timeout("hh_suite", n, "substrates")
+    assert out == math.ceil(LOW_CONFIDENCE_MARGIN * e.seconds)
+    assert out > TOOL_TIMEOUT_S
+
+
+def test_hhsuite_small_substrate_set_stays_at_floor():
+    # A single genome's handful of substrates: 3x predicted is below the 4h
+    # floor, so the floor is unchanged (no regression for small runs).
+    out = scaled_timeout("hh_suite", 30, "substrates")
+    assert out == TOOL_TIMEOUT_S
+
+
 def test_degenerate_low_fit_protected_by_floor():
     # plm_effector whole_genome is a degenerate flat fit (a=0, n=3); the margin
     # times its tiny prediction stays below the floor, so scaled_timeout returns

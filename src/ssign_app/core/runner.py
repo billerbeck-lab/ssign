@@ -2206,7 +2206,13 @@ class PipelineRunner:
         if cache:
             args.extend(["--local-cache-dir", cache])
 
-        rc, stdout, stderr = run_script("run_hhsuite.py", args, timeout=14400)
+        # Size-aware timeout (like the other annotation tools): a big pooled
+        # substrate set legitimately needs many hours of per-protein hhblits/
+        # hhsearch, so the flat 4h floor killed 74/57-genome pooled runs mid-step.
+        # HH-suite has no overall --timeout flag (per-protein caps live inside the
+        # wrapper), so only the outer subprocess cap is scaled.
+        timeout_s = self._scaled_tool_timeout("hh_suite", self._substrate_count())
+        rc, stdout, stderr = run_script("run_hhsuite.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["hhsuite"] = output
             return StepResult("hhsuite", True, "HH-suite complete")
