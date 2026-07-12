@@ -134,12 +134,13 @@ Notes on this recipe:
   if you have no EggNOG install.
 - **Bakta** (runs at extract_proteins unless `--use-input-annotations`) shells
   out to external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, amrfinder)
-  that are not baked. Mount a host `bakta-deps` conda env and **append** its `bin`
-  (`APPTAINERENV_APPEND_PATH`, not prepend): the image's own pinned Bakta 1.12.0
-  must win, with bakta-deps supplying only the auxiliary tools. Prepending runs
-  the host env's own `bakta` instead, which crashes.
-  `scripts/cx3/run_container_extended.pbs` wires this automatically. The archival
-  image will bake this toolchain in.
+  and a blastn ≥2.17 (Bakta 1.12.0 rejects older) that are not baked. Mount a
+  host `bakta-deps` conda env and set `APPTAINERENV_PREPEND_PATH` to
+  `/usr/local/bin:<bakta-deps>/bin:<eggnog>/bin` — leading with `/usr/local/bin`
+  keeps the image's own pinned Bakta 1.12.0, while bakta-deps still beats the
+  image's stale `/usr/bin` blastn. `scripts/cx3/run_container_extended.pbs` wires
+  this automatically. The archival image will bake this toolchain in (incl. a
+  current BLAST+).
 
 ### DTU webserver fallback
 

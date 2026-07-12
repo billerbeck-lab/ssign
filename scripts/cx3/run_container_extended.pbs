@@ -51,14 +51,9 @@ DBROOT="$EPHEMERAL/ssign-databases"
 DLPENV="$HOME/.conda/envs/deeplocpro"
 SP6ENV="$HOME/.conda/envs/signalp6"
 # Bakta's external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, amrfinder)
-# are not pip-installable and not baked in the image. Mount the host bakta-deps
-# env and APPEND it (NOT prepend) — exactly as the native PBS does
-# (PATH="$PATH:...bakta-deps/bin"). Appending lets the image's OWN pinned Bakta
-# 1.12.0 win while bakta-deps supplies only the auxiliary tools the image lacks.
-# Prepending instead makes bakta-deps' own `bakta` (a different version on
-# Python 3.13) shadow the image's and crash in its JSON writer — the 2026-07-12
-# failure. Same reason the image's hmmsearch shim (fine for MacSyFinder + Bakta,
-# proven native) must stay ahead of bakta-deps' hmmer.
+# and a NEW-ENOUGH blastn (2.17, which Bakta 1.12.0 requires) are not baked in
+# the image. Mount the host bakta-deps env; the PATH block below orders it so it
+# supplies these without shadowing the image's own pinned Bakta.
 BAKTADEPS="$HOME/.conda/envs/bakta-deps"
 # EggNOG-mapper env (holds bin/emapper.py) — auto-detect by finding emapper.py.
 # `|| true` inside each $(): under `set -eo pipefail` a missing glob makes ls
@@ -76,14 +71,20 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 [ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
 [ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
-# APPEND bakta-deps + the EggNOG env bin to the container PATH so their tools
-# (tRNAscan-SE etc., emapper.py) resolve WITHOUT shadowing the image's own pinned
-# bakta / hmmsearch / blast. Appended = image tools win, host env fills the gaps
-# (mirrors the native PBS). Never prepend — that ran the wrong (host) bakta.
-_APPEND=""
-[ -d "$BAKTADEPS/bin" ] && _APPEND="$BAKTADEPS/bin"
-[ -n "$EGGENV" ]        && _APPEND="${_APPEND:+$_APPEND:}$EGGENV/bin"
-[ -n "$_APPEND" ]       && export APPTAINERENV_APPEND_PATH="$_APPEND"
+# PATH order matters two ways at once, so we craft it explicitly:
+#   /usr/local/bin  (image: pinned Bakta 1.12.0 + hmmsearch shim + python)  FIRST
+#   bakta-deps/bin  (its blastn 2.17 etc. — Bakta 1.12.0 REJECTS the image's OLD
+#                    apt blastn in /usr/bin, so bakta-deps must beat /usr/bin)
+#   eggnog/bin      (emapper.py)
+# Leading with /usr/local/bin is the trick: the image's own bakta wins over
+# bakta-deps' bakta, while bakta-deps still wins over /usr/bin's stale blastn.
+# Plain append left the old blastn ahead (Bakta version check fails); plain
+# prepend ran bakta-deps' own bakta (crashes). /usr/local/bin has no blastn, so
+# blastn still resolves from bakta-deps.
+_PRE="/usr/local/bin"
+[ -d "$BAKTADEPS/bin" ] && _PRE="$_PRE:$BAKTADEPS/bin"
+[ -n "$EGGENV" ]        && _PRE="$_PRE:$EGGENV/bin"
+export APPTAINERENV_PREPEND_PATH="$_PRE"
 
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
