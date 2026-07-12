@@ -2140,10 +2140,13 @@ class PipelineRunner:
             args.extend(["--exclude-taxid", self.config.blastp_exclude_taxid])
         args.extend(["--threads", str(self._annotation_cpu_budget())])
 
-        # Swiss-Prot (the full-tier default) finishes in minutes; TOOL_TIMEOUT_S
-        # (4h) is generous for it and gives headroom for an opt-in --blastp-db NR
+        # Size-aware timeout on the substrate count (like the other annotation
+        # tools). Swiss-Prot (the full-tier default) finishes in minutes and stays
+        # well under any cap; the prior is sized for the slow opt-in --blastp-db NR
         # run (the old hardcoded 7200s killed NR mid-search — full-tier smoke test).
-        rc, stdout, stderr = run_script("run_blastp.py", args, timeout=TOOL_TIMEOUT_S)
+        # Small runs keep the 4h floor.
+        timeout_s = self._scaled_tool_timeout("blastp", self._substrate_count())
+        rc, stdout, stderr = run_script("run_blastp.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["blastp"] = output
             return StepResult("blastp", True, "BLASTp complete")

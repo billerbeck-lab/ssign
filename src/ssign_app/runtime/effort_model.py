@@ -41,7 +41,7 @@ LIMITING_FACTOR: dict[str, str] = {
 
 # Tool -> size axis / regime class. A tool's regime selects which coefficient
 # block applies (see resolve_regime). Mirrors calibration/clean.py's sets.
-_WHOLE = {"bakta", "macsyfinder", "extract_proteins", "blastp"}  # always whole proteome -> "fixed"
+_WHOLE = {"bakta", "macsyfinder", "extract_proteins"}  # always whole proteome -> "fixed"
 _PREDICT = {"deeplocpro", "signalp", "deepsece", "plm_effector"}  # neighborhood OR whole_genome
 _ANNOT = {
     "eggnog",
@@ -51,6 +51,7 @@ _ANNOT = {
     "plm_blast_embed",
     "plm_blast_search",
     "hh_suite",
+    "blastp",  # BLASTs the substrate/passenger set, not the whole proteome
 }  # run on the substrate set -> "substrates"
 
 

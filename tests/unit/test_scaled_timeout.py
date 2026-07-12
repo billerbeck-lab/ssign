@@ -6,7 +6,7 @@ actual fits the runner will use.
 
 import math
 
-from ssign_app.runtime.effort_model import effort, load_coefficients
+from ssign_app.runtime.effort_model import effort, load_coefficients, resolve_regime
 from ssign_app.runtime.timeouts import (
     DEFAULT_MARGIN,
     LOW_CONFIDENCE_MARGIN,
@@ -35,13 +35,13 @@ def test_small_input_stays_at_floor():
 
 
 def test_unmodelled_tool_returns_floor():
-    # blastp has no coefficient block -> effort is None -> floor unchanged.
-    assert effort("blastp", 100_000, "fixed", COEFFS) is None
-    assert scaled_timeout("blastp", 100_000, "fixed") == TOOL_TIMEOUT_S
+    # A tool with no coefficient block -> effort is None -> floor unchanged.
+    assert effort("made_up_tool", 100_000, "substrates", COEFFS) is None
+    assert scaled_timeout("made_up_tool", 100_000, "substrates") == TOOL_TIMEOUT_S
 
 
 def test_unmodelled_tool_respects_custom_floor():
-    assert scaled_timeout("blastp", 100_000, "fixed", floor=999) == 999
+    assert scaled_timeout("made_up_tool", 100_000, "substrates", floor=999) == 999
 
 
 def test_confident_fit_uses_default_margin():
@@ -79,6 +79,26 @@ def test_hhsuite_small_substrate_set_stays_at_floor():
     # A single genome's handful of substrates: 3x predicted is below the 4h
     # floor, so the floor is unchanged (no regression for small runs).
     out = scaled_timeout("hh_suite", 30, "substrates")
+    assert out == TOOL_TIMEOUT_S
+
+
+def test_blastp_is_substrate_scoped_and_scales_above_floor():
+    # blastp BLASTs the substrate set (regime "substrates", not "fixed"). Its
+    # prior (a=20, b=300, low_confidence) is sized for the slow opt-in NR path,
+    # so a big substrate set gets headroom above the 4h floor.
+    assert resolve_regime("blastp") == "substrates"
+    n = 768
+    e = effort("blastp", n, "substrates", COEFFS)
+    assert e is not None and e.low_confidence
+    out = scaled_timeout("blastp", n, "substrates")
+    assert out == math.ceil(LOW_CONFIDENCE_MARGIN * e.seconds)
+    assert out > TOOL_TIMEOUT_S
+
+
+def test_blastp_small_substrate_set_stays_at_floor():
+    # Swiss-Prot default finishes in minutes; a handful of substrates stays at
+    # the floor (the prior only lifts large NR runs above it).
+    out = scaled_timeout("blastp", 30, "substrates")
     assert out == TOOL_TIMEOUT_S
 
 

@@ -11,7 +11,7 @@
     "n_raw_rows": 893,
     "reference_machine": "CX3-A40",
     "units": "reference-machine seconds; effort = a*size + b",
-    "manual_overrides": "2026-07-03: signalp.whole_genome was method=mean (a=0, n=4, size<=5572) -> floored large runs at the 4h TOOL_TIMEOUT_S and killed the 160,831-protein pooled SignalP (run 3165431). Proxied to deeplocpro.whole_genome rate (a=0.1214, b=28.9) since both are transformers on the same input and SignalP was killed incomplete (true time unmeasured; concurrent DLP took 5.56h). low_confidence kept True -> 3x margin -> ~16h cap. Refit officially once the rerun measures SignalP directly. See openspec/changes/size-aware-tool-timeouts/calibration_observations.md. || 2026-07-12: hh_suite.substrates added as a hand-set PRIOR (a=35, b=600, method=prior, n=0) because there is still no clean HH-suite calibration point (the only rows are wallclock=null). Previously hh_suite had no block, so its outer timeout was hardcoded flat at 4h and killed the pooled full-tier reruns 3261357 (74 genomes, ~593 substrates) + 3261459 (57, ~768) mid-step. a=35 s/substrate sits just above the observed >=24 s/substrate lower bound (kill point) and between plm_blast (38) and eggnog (19); with the low_confidence 3x margin a ~600-substrate pool caps at ~18h, small runs stay at the 4h floor. Refit once a full-tier run COMPLETES hh_suite and yields a real point."
+    "manual_overrides": "2026-07-03: signalp.whole_genome was method=mean (a=0, n=4, size<=5572) -> floored large runs at the 4h TOOL_TIMEOUT_S and killed the 160,831-protein pooled SignalP (run 3165431). Proxied to deeplocpro.whole_genome rate (a=0.1214, b=28.9) since both are transformers on the same input and SignalP was killed incomplete (true time unmeasured; concurrent DLP took 5.56h). low_confidence kept True -> 3x margin -> ~16h cap. Refit officially once the rerun measures SignalP directly. See openspec/changes/size-aware-tool-timeouts/calibration_observations.md. || 2026-07-12: hh_suite.substrates added as a hand-set PRIOR (a=35, b=600, method=prior, n=0) because there is still no clean HH-suite calibration point (the only rows are wallclock=null). Previously hh_suite had no block, so its outer timeout was hardcoded flat at 4h and killed the pooled full-tier reruns 3261357 (74 genomes, ~593 substrates) + 3261459 (57, ~768) mid-step. a=35 s/substrate sits just above the observed >=24 s/substrate lower bound (kill point) and between plm_blast (38) and eggnog (19); with the low_confidence 3x margin a ~600-substrate pool caps at ~18h, small runs stay at the 4h floor. Refit once a full-tier run COMPLETES hh_suite and yields a real point. || 2026-07-12: blastp moved from the _WHOLE (fixed) set to _ANNOT (substrates) — it BLASTs the substrate/passenger set, not the whole proteome — and given a hand-set PRIOR (a=20, b=300, method=prior, n=0). No blastp calibration point exists. Sized for the slow opt-in NR path (Swiss-Prot, the full-tier default, finishes in minutes and stays well under any timeout); small runs keep the 4h floor, a ~768-substrate NR run caps at ~13h. Refit once an NR run yields a real point."
   },
   "models": {
     "bakta": {
@@ -25,6 +25,19 @@
         "n": 20,
         "size_max": 5680,
         "size_min": 3588
+      }
+    },
+    "blastp": {
+      "substrates": {
+        "a": 20.0,
+        "b": 300.0,
+        "loo_med_abs_s": null,
+        "loo_med_pct": null,
+        "low_confidence": true,
+        "method": "prior",
+        "n": 0,
+        "size_max": 0,
+        "size_min": 0
       }
     },
     "deeplocpro": {
