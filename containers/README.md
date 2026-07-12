@@ -133,10 +133,13 @@ Notes on this recipe:
   `export APPTAINERENV_PREPEND_PATH="$EGGENV/bin"` before the run. `--skip-eggnog`
   if you have no EggNOG install.
 - **Bakta** (runs at extract_proteins unless `--use-input-annotations`) shells
-  out to external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, HMMER,
-  amrfinder) that are not baked. Mount a host `bakta-deps` conda env and prepend
-  its `bin` too (its real HMMER also serves MacSyFinder). `scripts/cx3/run_container_extended.pbs`
-  wires this automatically. The archival image will bake this toolchain in.
+  out to external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, amrfinder)
+  that are not baked. Mount a host `bakta-deps` conda env and **append** its `bin`
+  (`APPTAINERENV_APPEND_PATH`, not prepend): the image's own pinned Bakta 1.12.0
+  must win, with bakta-deps supplying only the auxiliary tools. Prepending runs
+  the host env's own `bakta` instead, which crashes.
+  `scripts/cx3/run_container_extended.pbs` wires this automatically. The archival
+  image will bake this toolchain in.
 
 ### DTU webserver fallback
 
