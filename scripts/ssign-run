@@ -37,7 +37,7 @@
 #   -h, --help             show this help
 #   --                     pass everything after it straight to `ssign run`
 #
-# Example (extended tier — DeepLocPro baked; provide SignalP + DBs):
+# Example (extended tier, DeepLocPro baked; provide SignalP + DBs):
 #   ssign-run genome.gbff out --tier extended \
 #     --db-root /data/ssign-databases \
 #     --signalp-env ~/.conda/envs/signalp6
@@ -173,7 +173,7 @@ echo "ssign-run: tier=$TIER  image=$SIF  gpu=$([ "${#NV_FLAG[@]}" -gt 0 ] && ech
 echo "ssign-run: genome=$GENOME"
 echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
 [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
-[ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local DTU envs given — SignalP/DeepLocPro use the web-server fallback"
+[ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local SignalP env found; DeepLocPro is baked, but the SignalP step will stop the run unless you install it (ssign-setup-dtu) or add '-- --signalp-mode remote'"
 
 exec apptainer run "${NV_FLAG[@]}" --writable-tmpfs --containall "${BINDS[@]}" \
     "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
