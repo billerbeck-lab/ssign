@@ -14,7 +14,21 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
   points `$TMPDIR`+tempfile at real disk (keep $TMPDIR if ≥5 GB free, else
   outdir/.ssign_scratch) before any work_dir; wired into `run()` AND
   `_run_multi()` (multi path bypasses run()). New `--scratch-dir`. 1456 tests green.
-- **Phase 2 (IN PROGRESS 2026-07-13) = bake free toolchain into `containers/ssign.def`.**
+- **Phase 2 (DEF DONE + PUSHED 2026-07-13; CX3 validation pending) = bake free toolchain.**
+  Commits: `5547759` (def bake + tasks 5.4) + `fa9d523` (stripped container PBS),
+  pushed on `enrichment-circular-shift-per-run`. Image built + smoke-verified:
+  `~/.ssign_sif_build/ssign_v3.sif` 5.7 GB, bakta 1.12.0 / blastn 2.17 / diamond /
+  real hmmsearch / tRNAscan from `/opt/conda/envs/bakta`, emapper.py from eggnog env.
+  **REMAINING = the CX3 parity proof** (self-contained image, NO host bakta-deps/eggnog):
+    1. laptop: `scp ~/.ssign_sif_build/ssign_v3.sif ttr25@login.cx3.hpc.ic.ac.uk:ephemeral/ssign_v3.sif`
+       (fallback if no `~/ephemeral` symlink: ssh in, `echo $EPHEMERAL`, scp to that abs path)
+    2. CX3: `cd ~/blastp_t5a/ssign && git pull`
+    3. CX3: `qsub -v GENOME=$HOME/xantho_gbff/<substrate-yielding>.gbff,SIF=$EPHEMERAL/ssign_v3.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs`
+       then health-check `qstat -f <id> | grep -E 'job_state|Resource_List.select'` (gpu_type must be present).
+    Pass = 23/23 steps with EggNOG/IPS/pLM-BLAST columns populated, matching a native run.
+    Watch: emapper picks up bakta env's diamond 2.2.3 on PATH (not eggnog's) — confirm
+    compatible with emapperdb-5.0.2 when the real DB is mounted (smoke couldn't test it).
+- (superseded detail) Phase 2 def AUTHORED: micromamba added to `%post`; `/opt/conda/envs/bakta`
   Def AUTHORED: micromamba added to `%post`; `/opt/conda/envs/bakta`
   (`-c conda-forge -c bioconda bakta=1.12.0` → blast 2.17 + real HMMER + amrfinder +
   diamond + tRNAscan/aragorn/infernal/pilercr) + isolated `/opt/conda/envs/eggnog`
