@@ -25,23 +25,26 @@
 #   --sif PATH             image file            (default: $SSIGN_SIF or ./ssign.sif)
 #   --tier base|extended|full                    (default: extended)
 #   --db-root DIR          reference DB root     (required for extended/full)
-#   --deeplocpro-env DIR   conda env with bin/deeplocpro (local DTU predictor)
-#   --signalp-env DIR      conda env with bin/signalp6   (local DTU predictor)
+#   --signalp-env DIR      conda env with bin/signalp6 (the only predictor not baked;
+#                          omit to install via ssign-setup-dtu or use --signalp-mode remote)
+#   --deeplocpro-env DIR   conda env with bin/deeplocpro — OPTIONAL: DeepLocPro is baked
+#                          into the image; only pass this to override with your own build
+#   --torch-cache DIR      host torch cache to mount (only for persisting DeepSecE's ESM1b;
+#                          NOT needed for DeepLocPro — its ESM2 is baked)
 #   --scratch DIR          real-disk scratch bound onto /tmp (default: OUTDIR/.ssign_scratch)
 #   --cpu                  run without a GPU (drops --nv)
 #   -h, --help             show this help
 #   --                     pass everything after it straight to `ssign run`
 #
-# Example (extended tier, local DTU tools):
+# Example (extended tier — DeepLocPro baked; provide SignalP + DBs):
 #   ssign-run genome.gbff out --tier extended \
 #     --db-root /data/ssign-databases \
-#     --deeplocpro-env ~/.conda/envs/deeplocpro \
 #     --signalp-env ~/.conda/envs/signalp6
 
 set -euo pipefail
 
 die()  { echo "ssign-run: $*" >&2; exit 1; }
-usage() { sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 SIF="${SSIGN_SIF:-./ssign.sif}"
 TIER="extended"
@@ -49,6 +52,7 @@ DBROOT=""
 DLPENV=""
 SP6ENV=""
 SCRATCH=""
+TORCH_CACHE=""
 USE_NV=1
 GENOME=""
 OUTDIR=""
@@ -64,6 +68,7 @@ while [ $# -gt 0 ]; do
         --db-root)        DBROOT="$2"; shift 2 ;;
         --deeplocpro-env) DLPENV="$2"; shift 2 ;;
         --signalp-env)    SP6ENV="$2"; shift 2 ;;
+        --torch-cache)    TORCH_CACHE="$2"; shift 2 ;;
         --scratch)        SCRATCH="$2"; shift 2 ;;
         --cpu)            USE_NV=0; shift ;;
         --)               shift; PASSTHRU=("$@"); break ;;
@@ -134,13 +139,19 @@ if [ -n "$SP6ENV" ]; then
     DTU_ARGS+=( --signalp-mode local --signalp-path "$SP6ENV/bin" )
 fi
 
-# --- scratch + torch cache (ESM2 weights persist across runs) ---------------
+# --- scratch + (optional) torch cache --------------------------------------
 # Bind real-disk scratch onto /tmp and point TMPDIR there so Bakta/EggNOG/IPS
 # temp files have room (the runner's scratch resolver keeps a roomy TMPDIR).
 BINDS+=( -B "$SCRATCH":/tmp )
 export APPTAINERENV_TMPDIR=/tmp
-TORCH_CACHE="${SSIGN_TORCH_CACHE:-$HOME/.cache/torch}"; mkdir -p "$TORCH_CACHE"
-BINDS+=( -B "$TORCH_CACHE":/opt/ssign_home/.cache/torch )
+# DeepLocPro's ESM2 backbone is BAKED into the image, so the default localization
+# path needs no torch-cache mount. Mount one only if asked (--torch-cache), e.g.
+# to persist DeepSecE's (off-by-default) ESM1b across runs. NOTE: a mount overlays
+# the baked cache, so if you mount one it must also hold ESM2 for DeepLocPro.
+if [ -n "$TORCH_CACHE" ]; then
+    TORCH_CACHE=$(readlink -f "$TORCH_CACHE"); mkdir -p "$TORCH_CACHE"
+    BINDS+=( -B "$TORCH_CACHE":/opt/ssign_home/.cache/torch )
+fi
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$OUTDIR":/work/out )
 
 # --- run --------------------------------------------------------------------

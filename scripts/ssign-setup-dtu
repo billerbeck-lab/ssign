@@ -13,6 +13,9 @@
 #   * SignalP 6  — academic licence. YOU must register + download the tarball once
 #     (we can't redistribute it); then this script installs it from that tarball.
 #
+# This is for NATIVE (pip) installs. If you run ssign via the CONTAINER, DeepLocPro
+# is already baked in — you only need SignalP: `ssign-setup-dtu <tarball> --signalp-only`.
+#
 # Usage:
 #   ssign-setup-dtu [SIGNALP_TARBALL] [options]
 #
@@ -35,7 +38,7 @@ set -euo pipefail
 die()   { echo "ssign-setup-dtu: $*" >&2; exit 1; }
 info()  { echo "  $*"; }
 step()  { echo; echo "==> $*"; }
-usage() { sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 SIGNALP_URL="https://services.healthtech.dtu.dk/services/SignalP-6.0/"
 DEEPLOCPRO_REPO="https://github.com/Jaimomar99/deeplocpro.git"

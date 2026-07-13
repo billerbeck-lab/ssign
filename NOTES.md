@@ -63,6 +63,15 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
   NOT licence-gated (public GitHub) — only SignalP is. Easiest-path = image + fetch-DBs
   + ssign-setup-dtu + ssign-run. Still TODO for full "just works": expose fetch-databases
   from the image, GHCR/Zenodo publish, README quickstart, ssign-run host-side DTU auto-mount.
+- **v4 image = DeepLocPro BAKED (task 5.7, 2026-07-13).** `~/.ssign_sif_build/ssign_v4.sif`
+  9.7 GB: DeepLocPro (pin 32c0b37c, --no-deps into ssign env) + its ESM2-650M (2.5 GB)
+  baked. **Verified in-image offline**: real prediction runs under torch 2.12 (testprot→
+  Outer Membrane 0.82). So SignalP 6 is now the ONLY host-provided predictor. Image is
+  NON-COMMERCIAL (CC BY-NC-SA DeepLocPro + AGPL EggNOG; Teo OK'd, academic tool).
+  **CX3 v4 validation supersedes the queued v3 job 3282805** (kill it): scp ssign_v4.sif
+  to CX3 ephemeral, `git pull`, qsub run_container_extended.pbs (now defaults to v4, mounts
+  only SignalP + DBs). ssign-run/PBS updated: torch-cache mount opt-in (`--torch-cache`),
+  no host DeepLocPro mount.
 - Stays host-provided forever: DTU tools (SignalP/DeepLocPro) + reference DBs.
 - The mount-based `run_container_extended.pbs` (gpu_type in directive, PREPEND
   /usr/local/bin:bakta-deps:eggnog, /tmp real-disk bind) is a validation HARNESS,

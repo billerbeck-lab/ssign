@@ -4,21 +4,25 @@
 #   apptainer build ssign.sif containers/ssign.def
 # (unprivileged: Apptainer 1.x builds via user namespaces / --fakeroot.)
 #
-# Run (offline golden smoke, DeepLocPro bind-mounted, no DBs needed):
-#   apptainer run --writable-tmpfs --containall \
-#     -B <deeplocpro_dir>:/opt/deeplocpro:ro -B <outdir>:/work \
+# Run (offline golden smoke, no DBs needed — DeepLocPro is baked in):
+#   apptainer run --writable-tmpfs --containall -B <outdir>:/work \
 #     ssign.sif run <genome.gbff> --outdir /work \
-#       --use-input-annotations --deeplocpro-mode local --deeplocpro-path /opt/deeplocpro \
+#       --use-input-annotations \
 #       --skip-deepsece --skip-signalp --skip-plm-effector --skip-blastp \
 #       --skip-hhsuite --skip-interproscan --skip-plmblast --skip-protparam
 #
 # The free toolchain is BAKED: Bakta 1.12.0 + its binary deps (tRNAscan-SE,
 # aragorn, INFERNAL, PilerCR, AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and
-# EggNOG-mapper live in two micromamba envs on PATH, so extended/full runs need NO
-# host conda env. Only two things stay host-provided (they cannot be bundled):
-#   * DTU SignalP/DeepLocPro (academic licence) — bind-mount, see containers/README.md
+# EggNOG-mapper live in two micromamba envs on PATH; DeepLocPro (the default-on
+# localization predictor, open source) + its ESM2 backbone are baked into ssign's
+# env, so the default path runs fully offline. Only two things stay host-provided:
+#   * SignalP 6 (DTU academic licence — cannot be bundled) — install locally with
+#     scripts/ssign-setup-dtu, or run with --signalp-mode remote. It is the ONLY
+#     predictor not baked.
 #   * reference databases/weights (licence + up to 500 GB) — bind the host DB dir;
 #     Apptainer passes host SSIGN_* env vars through, so `export SSIGN_*_DB=...` works.
+# LICENCE: baking DeepLocPro (CC BY-NC-SA 4.0) makes this image NON-COMMERCIAL
+# (academic/research use). See %labels/%help.
 
 Bootstrap: docker
 # Digest locked 2026-07-10 for tag 12.4.1-runtime-ubuntu22.04. Apptainer rejects
@@ -110,6 +114,28 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     mkdir -p /opt/ssign_home
     macsydata install --user TXSScan==1.1.4
 
+    # --- DeepLocPro (baked) ----------------------------------------------------
+    # DeepLocPro is the DEFAULT-ON localization predictor. Unlike the DTU-licensed
+    # SignalP it is open source (public GitHub, CC BY-NC-SA 4.0 — see the licence
+    # note in %labels/%help; this is why the image is non-commercial), so it CAN be
+    # baked. Installed --no-deps into ssign's own env: its deps (torch, fair-esm,
+    # numpy, pandas, biopython, matplotlib) are all in the pinned uv.lock stack, so
+    # the pinned versions are untouched. Pinned commit for reproducibility; this
+    # also MIRRORS the repo into the image so it survives if upstream disappears.
+    git clone https://github.com/Jaimomar99/deeplocpro.git /opt/deeplocpro-src
+    git -C /opt/deeplocpro-src checkout 32c0b37c7a31a0686ce022a697f48998fc2997b1
+    rm -rf /opt/deeplocpro-src/.git
+    python3 -m pip install --no-cache-dir --no-deps /opt/deeplocpro-src
+    # Bake the ~2.5 GB ESM2-650M backbone DeepLocPro needs into the image torch
+    # cache (HOME=/opt/ssign_home here), so the default localization path runs
+    # fully offline. Explicit — don't rely on DeepLocPro's atexit install hook,
+    # which may run in pip's isolated build subprocess and not persist.
+    python3 -c "import esm; esm.pretrained.load_model_and_alphabet('esm2_t33_650M_UR50D')"
+    # Build-time gate: confirm the baked DeepLocPro actually runs under the pinned
+    # torch. If this fails, the shared-env assumption is wrong and it must move to
+    # its own micromamba env (like bakta/eggnog).
+    deeplocpro -h >/dev/null 2>&1 || { echo "FATAL: baked deeplocpro fails under torch $(python3 -c 'import torch;print(torch.__version__)')"; exit 1; }
+
     # Default mount points for host-provided databases/weights + work dir.
     mkdir -p /opt/ssign_home/.ssign/databases /opt/ssign_home/.ssign/models /work
     chmod -R a+rX /opt/ssign_home
@@ -143,10 +169,18 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     org.opencontainers.image.title ssign
     org.opencontainers.image.description Secretion-system Identification for Gram-negative bacterial genomes
     org.opencontainers.image.source https://github.com/billerbeck-lab/ssign
-    org.opencontainers.image.licenses GPL-3.0-or-later
+    # ssign itself is GPL-3.0-or-later. The image also BUNDLES DeepLocPro
+    # (CC-BY-NC-SA-4.0, non-commercial) and EggNOG-mapper (AGPL-3.0-or-later) as
+    # aggregated tools, so the image as a whole is for NON-COMMERCIAL research use.
+    org.opencontainers.image.licenses GPL-3.0-or-later AND CC-BY-NC-SA-4.0 AND AGPL-3.0-or-later
     org.opencontainers.image.version 1.0.0
 
 %help
     ssign v1.0.0 — reproducible Singularity image. Databases/weights are
-    bind-mounted (not bundled). See containers/README.md for per-tier mounts,
-    DTU-tool wiring, and HPC usage. `apptainer run ssign.sif --help`.
+    bind-mounted (not bundled). SignalP 6 (DTU licence) is the only predictor not
+    baked: install it with scripts/ssign-setup-dtu or use --signalp-mode remote.
+    See containers/README.md for per-tier mounts and HPC usage.
+
+    LICENCE: this image bundles DeepLocPro (CC BY-NC-SA 4.0) and EggNOG-mapper
+    (AGPL), so it is for NON-COMMERCIAL academic/research use. ssign's own code is
+    GPL-3.0-or-later. `apptainer run ssign.sif --help`.

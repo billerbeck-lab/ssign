@@ -2,24 +2,22 @@
 # ssign EXTENDED-tier CONTAINER validation PBS script (self-contained image).
 #
 # Runs ONE genome through the Singularity/Apptainer image (.sif) at extended
-# tier. As of the 2026-07-13 image (ssign_v3.sif), the free toolchain is BAKED:
-# Bakta 1.12.0 + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR,
-# AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and EggNOG's emapper.py live
-# in two micromamba envs on the image PATH. So this script mounts ONLY what
-# genuinely can't be baked:
-#   * DTU predictors (DeepLocPro, SignalP 6)  — academic licence
-#   * reference databases (Bakta DB, EggNOG DB, InterProScan install, ECOD,
-#     Swiss-Prot) + the torch cache (ESM2 weights, not yet baked)
-# No host bakta-deps / eggnog conda env, and no crafted PREPEND_PATH: the image
-# supplies the tools. This is the reproducible-install task 5.3 parity check for
-# the self-contained image (task 5.4).
+# tier. As of the ssign_v4.sif image, the free toolchain is BAKED: Bakta 1.12.0
+# + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR, AMRFinderPlus,
+# DIAMOND, real HMMER, BLAST+ 2.17), EggNOG's emapper.py, AND DeepLocPro + its
+# ESM2 backbone. So this script mounts ONLY what genuinely can't be baked:
+#   * SignalP 6 — the ONLY predictor still host-provided (DTU academic licence)
+#   * reference databases (Bakta DB, EggNOG DB, InterProScan install, ECOD, Swiss-Prot)
+# No host bakta-deps / eggnog / deeplocpro conda env, no crafted PREPEND_PATH, no
+# torch-cache mount (ESM2 is baked): the image supplies the tools. This is the
+# reproducible-install task 5.3 parity check for the self-contained image (5.4/5.7).
 #
 # Usage. gpu_type=RTX6000 is baked into the #PBS directive below (it is MANDATORY
 # on v1_gpu72 — a GPU request without it queues FOREVER with "Placement set is too
 # small"). Submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
 # qsub gets its -l line swallowed by terminal auto-indent on paste, which drops
 # gpu_type and wedges the job):
-#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v3.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
+#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v4.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
 #
 # Pick GENOME as a real annotated genome that yields >=1 substrate: the minimal
 # T5aSS fixture localizes 0 substrates on CX3's DeepLocPro, which would leave the
@@ -35,7 +33,7 @@
 set -eo pipefail
 
 : "${GENOME:?Pass via -v GENOME=/abs/path/genome.gbff}"
-: "${SIF:=$EPHEMERAL/ssign_v3.sif}"
+: "${SIF:=$EPHEMERAL/ssign_v4.sif}"
 : "${TIER:=extended}"
 test -f "$GENOME" || { echo "FATAL: genome not found: $GENOME"; exit 1; }
 test -f "$SIF"    || { echo "FATAL: image not found: $SIF"; exit 1; }
@@ -53,8 +51,7 @@ echo "  apptainer -> $(apptainer --version)"
 
 # --- host-provided databases + DTU predictors (only the un-bakeable bits) ----
 DBROOT="$EPHEMERAL/ssign-databases"
-DLPENV="$HOME/.conda/envs/deeplocpro"
-SP6ENV="$HOME/.conda/envs/signalp6"
+SP6ENV="$HOME/.conda/envs/signalp6"  # SignalP 6 — the only predictor not baked
 _ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
 
@@ -72,12 +69,11 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
-# install dir. DTU envs are ro (invoked at their real host path so their shebang
-# + bundled libs resolve). torch cache supplies the ESM2 weights (not yet baked).
+# install dir. SignalP env is ro (invoked at its real host path so its shebang +
+# bundled libs resolve). No DeepLocPro mount and no torch-cache mount — DeepLocPro
+# and its ESM2 backbone are baked into the image.
 BINDS=( -B "$DBROOT":"$DBROOT" )
-[ -d "$DLPENV" ]            && BINDS+=( -B "$DLPENV":"$DLPENV":ro )
-[ -d "$SP6ENV" ]            && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
-[ -d "$HOME/.cache/torch" ] && BINDS+=( -B "$HOME/.cache/torch":/opt/ssign_home/.cache/torch )
+[ -d "$SP6ENV" ] && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
 # Bind the PBS node-local scratch (real SSD) onto /tmp and point TMPDIR at it.
 # The runner's Phase-1 scratch fix already reroutes tempfile to real disk, so this
@@ -87,7 +83,7 @@ SCRATCH="${TMPDIR:-$EPHEMERAL/ssign_ctr_scratch}"; mkdir -p "$SCRATCH"
 BINDS+=( -B "$SCRATCH":/tmp )
 export APPTAINERENV_TMPDIR=/tmp
 
-echo "  DLP=$DLPENV"
+echo "  DeepLocPro: BAKED IN IMAGE (+ ESM2 weights)"
 echo "  SignalP=$SP6ENV"
 echo "  Bakta+EggNOG: BAKED IN IMAGE (no host conda env mounted)"
 echo "  EggNOG DB=${DBROOT}/eggnog  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
@@ -95,7 +91,6 @@ echo "  EggNOG DB=${DBROOT}/eggnog  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
 echo "===== apptainer run START $(date -Is) ====="
 apptainer run --nv --writable-tmpfs --containall "${BINDS[@]}" \
     "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
-    --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin" \
     --signalp-mode local --signalp-path "$SP6ENV/bin" \
     2>&1 | tee "$RUN_DIR/ssign.run.log"
 RC=${PIPESTATUS[0]}
