@@ -12,10 +12,13 @@
 #       --skip-deepsece --skip-signalp --skip-plm-effector --skip-blastp \
 #       --skip-hhsuite --skip-interproscan --skip-plmblast --skip-protparam
 #
-# Databases/weights are NOT baked (licence + up to 500 GB). At run time, bind
-# the host database dir and point ssign at it; Apptainer passes host SSIGN_*
-# env vars through by default, so `export SSIGN_*_DB=...` on the host works.
-# DTU SignalP/DeepLocPro are bind-mounted (see containers/README.md).
+# The free toolchain is BAKED: Bakta 1.12.0 + its binary deps (tRNAscan-SE,
+# aragorn, INFERNAL, PilerCR, AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and
+# EggNOG-mapper live in two micromamba envs on PATH, so extended/full runs need NO
+# host conda env. Only two things stay host-provided (they cannot be bundled):
+#   * DTU SignalP/DeepLocPro (academic licence) — bind-mount, see containers/README.md
+#   * reference databases/weights (licence + up to 500 GB) — bind the host DB dir;
+#     Apptainer passes host SSIGN_* env vars through, so `export SSIGN_*_DB=...` works.
 
 Bootstrap: docker
 # Digest locked 2026-07-10 for tag 12.4.1-runtime-ubuntu22.04. Apptainer rejects
@@ -32,15 +35,52 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     scripts /opt/ssign/scripts
 
 %post
+    # Fail-fast: Apptainer only checks %post's final exit code, so without this a
+    # mid-build failure (a blipped download, a bad conda solve) can be masked by a
+    # later command succeeding and bake a silently-broken image. dash (/bin/sh) has
+    # no `pipefail`, but `set -e` alone suffices here (a failed download yields empty
+    # input and the consuming command then fails, aborting the build).
+    set -e
     export DEBIAN_FRONTEND=noninteractive
     # openjdk-11-jre-headless: InterProScan's interproscan.sh shells out to
     # `java`, which must be on the container PATH under --containall. Java 11
     # matches the validated native CX3 path (module Java/11.0.25).
+    # ncbi-blast+ is intentionally NOT installed here: the baked bakta env below
+    # ships BLAST+ 2.17 (the version Bakta 1.12.0 requires), which also serves the
+    # BLASTp annotation step. The old apt blast (2.12, 2022) was too stale for Bakta.
     apt-get update && apt-get install -y --no-install-recommends \
         python3.10 python3.10-venv python3-pip python3-dev build-essential \
-        wget tar unzip git ca-certificates libgomp1 ncbi-blast+ \
+        wget tar unzip bzip2 git ca-certificates libgomp1 \
         openjdk-11-jre-headless \
         && rm -rf /var/lib/apt/lists/*
+
+    # --- Baked free toolchain (micromamba envs) --------------------------------
+    # Bakta and EggNOG-mapper shell out to binary tools that are NOT pip-installable
+    # (tRNAscan-SE, aragorn, INFERNAL, PilerCR, AMRFinderPlus, DIAMOND, real HMMER,
+    # BLAST+ 2.17). Baking them makes extended/full runs self-contained: a user
+    # provides ONLY the DTU licence tools + reference databases, never a host conda
+    # env. Two isolated envs at fixed paths, kept apart so EggNOG's biopython==1.76
+    # pin cannot collide with ssign's biopython>=1.80. Solved EARLY (before the heavy
+    # torch pip layer) so a bad solve fails the build in minutes, not after an hour.
+    #
+    # micromamba is fetched at `latest` for this first build; the reproducibility pin
+    # that matters is the per-package solve, frozen to /opt/conda/*.lock.yml below
+    # (re-pin micromamba itself from the recorded build log at close-out).
+    export MAMBA_ROOT_PREFIX=/opt/conda
+    wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest \
+        | tar -xj -C /usr/local bin/micromamba
+    # conda-forge before bioconda + strict priority is the bioconda-mandated channel
+    # order; the version pins make each solve deterministic.
+    micromamba create -y -p /opt/conda/envs/bakta \
+        -c conda-forge -c bioconda --channel-priority strict bakta=1.12.0
+    micromamba create -y -p /opt/conda/envs/eggnog \
+        -c conda-forge -c bioconda --channel-priority strict eggnog-mapper=2.1.13
+    # Freeze the exact solved versions inside the image (reproducibility lock).
+    micromamba env export -p /opt/conda/envs/bakta  > /opt/conda/bakta.lock.yml
+    micromamba env export -p /opt/conda/envs/eggnog > /opt/conda/eggnog.lock.yml
+    # Drop package tarballs + solver caches (several GB) so they don't bloat the image.
+    micromamba clean -y --all
+    rm -rf /opt/conda/pkgs
 
     # Pinned install: export the frozen uv.lock to a requirements file, install
     # exactly that, then ssign --no-deps. `--locked` fails the build if uv.lock
@@ -80,6 +120,13 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # Pin HOME to the baked profile/config location so TXSScan + ~/.ssign resolve
     # regardless of the host user. Runtime writes (caches) need --writable-tmpfs.
     export HOME=/opt/ssign_home
+    # Baked toolchain envs on PATH so Bakta (+ its tRNAscan/aragorn/diamond/
+    # amrfinder/real-HMMER/BLAST+ 2.17) and EggNOG's emapper.py resolve under
+    # --containall with NO host conda-env mount. bakta first also gives MacSyFinder
+    # a real hmmsearch (ssign's pyhmmer stand-in stays a harmless fallback). ssign's
+    # own scripts run via sys.executable (absolute), so the conda `python` on PATH
+    # never shadows them. Mirrors the validated native CX3 prepend.
+    export PATH=/opt/conda/envs/bakta/bin:/opt/conda/envs/eggnog/bin:$PATH
     # Baked pLM-BLAST clone (extended/full). Default-only (`:-`) so a
     # user-supplied SSIGN_PLMBLAST_SCRIPT (e.g. --env at run time) still wins.
     export SSIGN_PLMBLAST_SCRIPT=${SSIGN_PLMBLAST_SCRIPT:-/opt/pLM-BLAST/scripts/plmblast.py}

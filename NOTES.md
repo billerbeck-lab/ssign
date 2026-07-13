@@ -2,6 +2,43 @@
 
 Tracks items skipped during tasks. One bullet per item: what, why, trigger to revisit.
 
+## ⭐ RESUME 2026-07-13 — "container just works" plan (approved); Phase 1 DONE
+
+Plan file: `~/.claude/plans/expressive-cooking-pebble.md` (make extended/full
+container self-contained + durable; base benefits too — one image, one runner).
+Driven by a long CX3 debugging chain: every extended-container failure was
+host-tool integration, not ssign logic (missing tRNAscan → wrong bakta shadow →
+stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
+
+- **Phase 1 (scratch fix) = DONE + pushed (172f121).** `runner.resolve_scratch_dir()`
+  points `$TMPDIR`+tempfile at real disk (keep $TMPDIR if ≥5 GB free, else
+  outdir/.ssign_scratch) before any work_dir; wired into `run()` AND
+  `_run_multi()` (multi path bypasses run()). New `--scratch-dir`. 1456 tests green.
+- **Phase 2 (IN PROGRESS 2026-07-13) = bake free toolchain into `containers/ssign.def`.**
+  Def AUTHORED: micromamba added to `%post`; `/opt/conda/envs/bakta`
+  (`-c conda-forge -c bioconda bakta=1.12.0` → blast 2.17 + real HMMER + amrfinder +
+  diamond + tRNAscan/aragorn/infernal/pilercr) + isolated `/opt/conda/envs/eggnog`
+  (eggnog-mapper=2.1.13, biopython 1.76 pin isolated); solved EARLY in %post
+  (fail-fast before torch); dropped apt `ncbi-blast+`; `%environment` prepends both
+  env bins; env specs frozen to `/opt/conda/*.lock.yml`. **Scope tightened vs plan:**
+  (a) **IPS NOT baked** — it ships software+member-DBs as one 24 GB dir that must be
+  host-mounted for the DBs anyway, so that mount already brings `interproscan.sh`
+  (baking = redundant). (b) **ESM bake DEFERRED** — DeepSecE's ESM1b alone is 7.3 GB
+  (not 2.5), PLM-E pulls 3 more, both off by default; default-on DeepLocPro is
+  host-mounted + pulls its own ESM. Needs checkpoint verification (DTU pkg) before
+  baking the right one; host torch-cache mount already covers it. So image ~7 GB,
+  not 12-18. **BUILDING NOW:** bg PID 660926 → `~/.ssign_sif_build/build_v3.log`,
+  out `ssign_v3.sif` (v2.sif = last known-good, untouched). Monitor task b5xq5m36p
+  waits for exit. After green build: smoke (bakta 1.12.0 / blastn 2.17 / emapper.py
+  all from /opt/conda), then commit def + tasks.md, then CX3 extended re-validate
+  with ONLY DBs+DTU mounted (no host bakta-deps/eggnog). Tasks #18-22.
+- **Phase 3 = `scripts/ssign-run` one-line wrapper** (mounts DBs+DTU+scratch, --nv).
+- Stays host-provided forever: DTU tools (SignalP/DeepLocPro) + reference DBs.
+- The mount-based `run_container_extended.pbs` (gpu_type in directive, PREPEND
+  /usr/local/bin:bakta-deps:eggnog, /tmp real-disk bind) is a validation HARNESS,
+  superseded once Phase 2 bakes the tools. Last container run got to Bakta
+  ENOSPC (job 3278618) → Phase 1 fixes that; needs a rerun to confirm.
+
 ## ⭐ RESUME AFTER COMPACT (2026-07-08)
 
 **State:** full-tier (tier-3) is code-complete + reviewed + pushed on branch `enrichment-circular-shift-per-run`
@@ -42,6 +79,15 @@ bakta_db_light_backup (reclaim after smoke-test-3 confirms the resolve fix uses 
 **NOTE:** CX3 has 822GB NR unused-by-default (opt-in via --blastp-db, or delete to reclaim).
 Next likely: rerun smoke test → if EggNOG green, a real full-tier panel; close full-tier-cx3-wiring
 openspec change + signalp-t5ss (task #4).
+
+## 2026-07-12 — full-tier reruns retrieved (CLEAN); container extended = Bakta gap fixed; HH-suite timeout OPEN
+
+Retrieved both full-tier reruns (in `~/Desktop/cx3_runs/`): run 3261357 = **74 genomes** (Xantho+Roseixantho, 17/17 each), run 3261459 = **57 genomes** (benchmark, 17/17 each). Pooled enrichment is biologically clean: Sec-dependent types high on SignalP (T5aSS self DLP 28×/SignalP 7.6×***, T5bSS DLP 37×, T2SS all sig), Sec-independent a clean SignalP negative (T1SS 0.5×, T3SS 0.39×, T6SS 0.2×, all n.s.) with DLP/DSE still high; T5cSS rescued by SignalP in benchmark (4.8×, q<0.001). Figures render on house style.
+
+**OPEN ITEMS:**
+- **HH-suite pooled step timed out at the flat 4h floor (14400s) in BOTH reruns.** Optional homology annotation only; substrate calls + enrichment unaffected, but the HH-suite annotation column is empty. Not in the size-aware timeout scaling. Trigger to revisit: if HH-suite annotations are wanted in the paper → add hhsuite to `runtime/effort_model.py` scaling or raise its floor; else accept (EggNOG/InterProScan/consensus cover function).
+- **Container extended validation (reproducible-install 5.3):** run 3268527 failed at Bakta (missing tRNAscan-SE + external binaries, not baked). Fixed `run_container_extended.pbs` to mount host `bakta-deps` (commit 0099ca9); RERUN PENDING. Archival image should bake Bakta's toolchain + ESM ("mount now, bake for archival").
+- **v2 functional figures (03–06) NOT yet verified** — weren't in the retrieval tarball (filter grabbed enrichment only). Re-pull `figures/` to confirm the v2 consensus rendered.
 
 ## 2026-07-09 — consensus-annotation-v2 LANDED (tool-weighted voter); CX3 full-tier reruns NEXT
 
