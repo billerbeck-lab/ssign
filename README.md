@@ -49,6 +49,36 @@ For an end-to-end walkthrough on a real genome, see
 instructions (WSL, optional tool extras, dependency management) in
 [`docs/how-to/install.md`](docs/how-to/install.md).
 
+### Container quickstart (self-contained; recommended for HPC and the full pipeline)
+
+The Singularity/Apptainer image bundles the entire free toolchain (Bakta,
+EggNOG-mapper, BLAST+, MacSyFinder, DeepLocPro + its ESM2 weights, and more).
+You supply only a genome, the reference databases, and (for signal-peptide
+calls) the DTU-licensed SignalP 6. DeepLocPro is baked in; SignalP is the only
+predictor you install yourself.
+
+```bash
+# 1. Get the image  (at release: apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0)
+#    until then, build it once:  containers/build_sif.sh
+
+# 2. Fetch the databases for your tier (runs from the image, no host tools needed)
+apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign-databases \
+  ssign.sif fetch-databases --tier extended --target /data/ssign-databases
+
+# 3. Install SignalP 6, the only licence-gated tool (register + download once, then:)
+scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
+
+# 4. Run
+scripts/ssign-run genome.gbff out --tier extended \
+  --db-root /data/ssign-databases --signalp-env ~/.conda/envs/signalp6
+```
+
+Omit step 3 to run without signal-peptide calls, or add `--signalp-mode remote`
+to use the DTU webserver (this uploads your sequences). The image is for
+**non-commercial** research use (it bundles DeepLocPro, CC BY-NC-SA, and
+EggNOG-mapper, AGPL). Per-tier database mounts and HPC usage:
+[`containers/README.md`](containers/README.md).
+
 ---
 
 ## What ssign does

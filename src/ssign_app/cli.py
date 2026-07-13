@@ -277,7 +277,7 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "--deeplocpro-mode",
         choices=["local", "remote"],
         default=None,
-        help="DeepLocPro execution mode. Default: auto — local if 'deeplocpro' is "
+        help="DeepLocPro execution mode. Default: auto, local if 'deeplocpro' is "
         "on PATH or at --deeplocpro-path / $SSIGN_DEEPLOCPRO_PATH. If no local "
         "install is found, ssign STOPS with install instructions (it does not "
         "auto-upload to the DTU webserver); pass 'remote' to opt into the webserver.",
@@ -291,7 +291,7 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "--signalp-mode",
         choices=["local", "remote"],
         default=None,
-        help="SignalP execution mode. Default: auto — local if 'signalp6' is "
+        help="SignalP execution mode. Default: auto, local if 'signalp6' is "
         "on PATH or at --signalp-path / $SSIGN_SIGNALP_PATH. If no local install "
         "is found, ssign STOPS with install instructions (it does not auto-upload "
         "to the DTU webserver); pass 'remote' to opt into the webserver.",
@@ -777,6 +777,75 @@ def _add_doctor_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 # ---------------------------------------------------------------------------
+# `ssign fetch-databases`: download reference DBs via the bundled script
+# ---------------------------------------------------------------------------
+
+
+def _add_fetch_databases_parser(subparsers) -> None:
+    p = subparsers.add_parser(
+        "fetch-databases",
+        help="Download the reference databases for a tier (wraps scripts/fetch_databases.sh).",
+        description=(
+            "Fetch ssign's reference databases (pinned versions, resumable download). This "
+            "wraps the bundled fetch_databases.sh, so from the container you need no host "
+            "tools: `apptainer run ssign.sif fetch-databases --tier extended --target /data/db` "
+            "(bind /data/db). The DTU-licensed SignalP tool is separate; see ssign-setup-dtu."
+        ),
+    )
+    p.add_argument(
+        "--tier",
+        choices=("base", "extended", "full"),
+        required=True,
+        help="Which tier's databases to download (base ~22 GB, extended ~100 GB, full ~500 GB).",
+    )
+    p.add_argument(
+        "--target",
+        default="",
+        help="Destination directory (default: the script's own ~/.ssign/databases).",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be downloaded without downloading anything.",
+    )
+
+
+def _find_fetch_script() -> "str | None":
+    """Locate the bundled fetch_databases.sh: the container bake path first, then
+    the repo root relative to this file (works for an editable install / a clone).
+    A wheel-only install without the repo won't find it; the container is the
+    supported path for that case."""
+    here = os.path.dirname(os.path.abspath(__file__))  # src/ssign_app
+    repo_root = os.path.dirname(os.path.dirname(here))  # repo root
+    for cand in (
+        "/opt/ssign/scripts/fetch_databases.sh",
+        os.path.join(repo_root, "scripts", "fetch_databases.sh"),
+    ):
+        if os.path.isfile(cand):
+            return cand
+    return None
+
+
+def _fetch_databases(args: argparse.Namespace) -> int:
+    script = _find_fetch_script()
+    if not script:
+        print(
+            "fetch_databases.sh not found. It ships with the container image "
+            "(apptainer run ssign.sif fetch-databases ...) and the source repo. "
+            "For a wheel-only install without the repo, clone it and run "
+            "scripts/fetch_databases.sh directly.",
+            file=sys.stderr,
+        )
+        return 1
+    cmd = ["bash", script, "--tier", args.tier]
+    if args.target:
+        cmd += ["--target", args.target]
+    if args.dry_run:
+        cmd += ["--dry-run"]
+    return subprocess.call(cmd)
+
+
+# ---------------------------------------------------------------------------
 # `ssign` (no subcommand) — Streamlit GUI launcher
 # ---------------------------------------------------------------------------
 
@@ -915,6 +984,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="subcommand")
     _add_run_parser(subparsers)
     _add_doctor_parser(subparsers)
+    _add_fetch_databases_parser(subparsers)
 
     args = parser.parse_args()
 
@@ -935,6 +1005,9 @@ def main() -> int:
             imports_only=args.imports_only,
             data_root=args.data_root,
         )
+
+    if args.subcommand == "fetch-databases":
+        return _fetch_databases(args)
 
     return _launch_gui(args)
 

@@ -185,3 +185,39 @@ class TestStreamlitCmd:
         cli.main()
         headless_idx = streamlit_env.index("--server.headless")
         assert streamlit_env[headless_idx + 1] == "false"
+
+
+# ---------------------------------------------------------------------------
+# fetch-databases
+# ---------------------------------------------------------------------------
+
+
+class TestFetchDatabases:
+    def test_find_fetch_script_resolves_in_repo(self):
+        # In the dev/editable checkout the repo-root fallback must resolve.
+        p = cli._find_fetch_script()
+        assert p is not None and p.endswith("scripts/fetch_databases.sh")
+
+    def test_dispatch_shells_out_with_translated_args(self, monkeypatch):
+        # `ssign fetch-databases` must exec the bundled script with the flags
+        # mapped through; --dry-run passes so nothing downloads.
+        called = {}
+
+        def fake_call(cmd):
+            called["cmd"] = cmd
+            return 0
+
+        monkeypatch.setattr(cli.subprocess, "call", fake_call)
+        monkeypatch.setattr(sys, "argv", ["ssign", "fetch-databases", "--tier", "base", "--dry-run"])
+        rc = cli.main()
+        assert rc == 0
+        assert called["cmd"][0] == "bash"
+        assert called["cmd"][1].endswith("scripts/fetch_databases.sh")
+        assert called["cmd"][2:] == ["--tier", "base", "--dry-run"]
+
+    def test_missing_script_returns_1(self, monkeypatch, capsys):
+        monkeypatch.setattr(cli, "_find_fetch_script", lambda: None)
+        monkeypatch.setattr(sys, "argv", ["ssign", "fetch-databases", "--tier", "base"])
+        rc = cli.main()
+        assert rc == 1
+        assert "fetch_databases.sh not found" in capsys.readouterr().err
