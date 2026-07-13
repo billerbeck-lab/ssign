@@ -117,6 +117,16 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
     g.add_argument(
+        "--scratch-dir",
+        default="",
+        help=(
+            "Directory for scratch/temp files (tool working dirs). Default ('') "
+            "auto-resolves: keep $TMPDIR if it has adequate free space, else fall "
+            "back to a dir under --outdir. Set this when running in a container "
+            "whose /tmp is a small tmpfs (avoids Bakta 'No space left on device')."
+        ),
+    )
+    g.add_argument(
         "--combined-summary",
         dest="combined_summary",
         action=argparse.BooleanOptionalAction,
@@ -542,6 +552,7 @@ def _config_from_args(
         "sample_id": sample_id,
         "outdir": outdir,
         "tier": args.tier,
+        "scratch_dir": args.scratch_dir,
         "wholeness_threshold": args.wholeness_threshold,
         "excluded_systems": list(args.excluded_systems),
         "macsyfinder_db_type": args.macsyfinder_db_type,

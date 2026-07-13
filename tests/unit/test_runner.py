@@ -1519,3 +1519,44 @@ class TestT5assAnnotateWholeConfig:
     def test_field_accepts_true(self, tmp_dir):
         c = runner.PipelineConfig(outdir=tmp_dir, sample_id="x", t5ass_annotate_whole=True)
         assert c.t5ass_annotate_whole is True
+
+
+class TestResolveScratchDir:
+    """_resolve_scratch_dir points $TMPDIR at real disk so tool scratch (and the
+    work_dir) never lands on a tiny container /tmp tmpfs (Bakta ENOSPC)."""
+
+    def _runner(self, tmp_dir, **cfg):
+        c = runner.PipelineConfig(outdir=tmp_dir, sample_id="x", **cfg)
+        return runner.PipelineRunner(c)
+
+    @staticmethod
+    def _free(gb):
+        # stand-in for shutil.disk_usage(...) — only `.free` is read.
+        return type("DU", (), {"free": int(gb * 1024**3)})()
+
+    def test_explicit_scratch_dir_wins(self, tmp_dir, monkeypatch, tmp_path):
+        monkeypatch.setattr(runner.tempfile, "tempdir", None)
+        scratch = tmp_path / "myscratch"
+        r = self._runner(tmp_dir, scratch_dir=str(scratch))
+        r._resolve_scratch_dir()
+        assert os.environ["TMPDIR"] == str(scratch)
+        assert scratch.is_dir()
+
+    def test_tiny_tmpdir_falls_back_to_outdir(self, tmp_dir, monkeypatch):
+        monkeypatch.setattr(runner.tempfile, "tempdir", None)
+        monkeypatch.setenv("TMPDIR", tmp_dir)
+        monkeypatch.setattr(runner.shutil, "disk_usage", lambda p: self._free(1))
+        r = self._runner(tmp_dir)
+        r._resolve_scratch_dir()
+        assert os.environ["TMPDIR"] == os.path.join(tmp_dir, ".ssign_scratch")
+        assert os.path.isdir(os.environ["TMPDIR"])
+
+    def test_roomy_tmpdir_is_kept(self, tmp_dir, monkeypatch, tmp_path):
+        monkeypatch.setattr(runner.tempfile, "tempdir", None)
+        roomy = tmp_path / "roomy"
+        roomy.mkdir()
+        monkeypatch.setenv("TMPDIR", str(roomy))
+        monkeypatch.setattr(runner.shutil, "disk_usage", lambda p: self._free(50))
+        r = self._runner(tmp_dir)
+        r._resolve_scratch_dir()
+        assert os.environ["TMPDIR"] == str(roomy)

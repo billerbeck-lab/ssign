@@ -30,7 +30,12 @@ from ssign_app.core._pool_utils import (
     split_tsv_by_source,
     validate_sample_id,
 )
-from ssign_app.core.runner import PipelineConfig, PipelineRunner, StepResult
+from ssign_app.core.runner import (
+    PipelineConfig,
+    PipelineRunner,
+    StepResult,
+    resolve_scratch_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +196,12 @@ class MultiGenomeRunner:
         top_outdir = Path(os.path.commonpath([c.outdir for c in self.configs])).resolve()
         pool_outdir = top_outdir / "_pool"
         pool_outdir.mkdir(parents=True, exist_ok=True)
+
+        # Point scratch at real disk BEFORE any per-genome/pool work_dir is made.
+        # The multi path drives runners via _execute_stages, not run(), so it
+        # would otherwise miss the scratch resolution run() does for N==1.
+        # Genomes run sequentially here, so one shared $TMPDIR is race-free.
+        resolve_scratch_dir(getattr(self.configs[0], "scratch_dir", ""), str(top_outdir))
 
         # === Segment A (per-genome) ===
         self._run_per_genome_segment(runners, "A")

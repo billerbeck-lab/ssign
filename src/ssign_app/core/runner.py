@@ -310,6 +310,13 @@ class PipelineConfig:
     # Pass "off" (literal) to disable staging.
     eggnog_local_cache_dir: str = ""
 
+    # Directory for scratch/temp files (every tool wrapper's working dir + the
+    # run work_dir go here via $TMPDIR). Empty ("") auto-resolves: keep $TMPDIR
+    # if it has adequate free space (the fast node-local SSD HPCs provide), else
+    # fall back to a dir under outdir. Set explicitly to force a location — needed
+    # in a container, where /tmp is a tiny (~64 MiB) tmpfs that Bakta overflows.
+    scratch_dir: str = ""
+
     # Phase 3.2.d: PLM-Effector (prediction-tier, equal to DLP/DSE per
     # the cross-validate refactor in 3.2.b). Tier-driven default: on at
     # every tier (weights ship with the base bundle), but the user can
@@ -529,6 +536,55 @@ class StepResult:
     message: str
     output_files: dict = field(default_factory=dict)
     duration_s: float = 0.0
+
+
+# Minimum free space for a scratch location to be usable. A genome's Bakta
+# output + tool temp is well under this; the point is to reject a ~64 MiB
+# container tmpfs, not to size precisely.
+_SCRATCH_MIN_FREE_GB = 5
+
+
+def resolve_scratch_dir(scratch_dir: str, outdir: str) -> str:
+    """Point $TMPDIR (and this process's tempfile) at real disk with room.
+
+    Every tool wrapper and the run work_dir create scratch via `tempfile`, which
+    honours $TMPDIR. In a container /tmp is a tiny (~64 MiB) tmpfs, so Bakta et
+    al. hit ENOSPC writing output. Resolve a location with space and export it so
+    all subprocesses (which inherit env via `run_script`) use it. Returns the
+    chosen dir. Safe to call once per run; the single- and multi-genome runners
+    both call it before any work_dir is created.
+
+    Order: explicit `scratch_dir` → else the existing $TMPDIR if it has adequate
+    free space (keeps the fast node-local SSD HPCs set) → else a dir under
+    `outdir` (always real, writable).
+    """
+    chosen = (scratch_dir or "").strip()
+    if not chosen:
+        current = os.environ.get("TMPDIR") or tempfile.gettempdir()
+        try:
+            free_gb = shutil.disk_usage(current).free / (1024**3)
+        except OSError:
+            free_gb = 0.0
+        if free_gb >= _SCRATCH_MIN_FREE_GB:
+            chosen = current
+        else:
+            chosen = os.path.join(outdir, ".ssign_scratch")
+            logger.warning(
+                "Scratch dir %s has only %.1f GB free (< %d GB) — using %s on the "
+                "output filesystem instead (set --scratch-dir to override).",
+                current,
+                free_gb,
+                _SCRATCH_MIN_FREE_GB,
+                chosen,
+            )
+    os.makedirs(chosen, exist_ok=True)
+    # Export for subprocess wrappers AND set the module-level tempdir so this
+    # process's own tempfile calls honour it immediately regardless of any
+    # earlier cached value.
+    os.environ["TMPDIR"] = chosen
+    tempfile.tempdir = chosen
+    logger.info("Scratch/TMPDIR resolved to %s", chosen)
+    return chosen
 
 
 def run_script(
@@ -863,6 +919,10 @@ class PipelineRunner:
 
         # Create output directory
         os.makedirs(self.config.outdir, exist_ok=True)
+
+        # Point scratch (work_dir + every tool wrapper's tempfile) at real disk
+        # BEFORE work_dir is created below, so nothing lands on a tiny /tmp tmpfs.
+        self._resolve_scratch_dir()
 
         # Spin up the in-process resource sampler. Writes
         # runtime_data/resource_samples.csv to outdir in real time
@@ -1263,6 +1323,10 @@ class PipelineRunner:
     def _wf(self, name):
         """Get work file path."""
         return os.path.join(self.work_dir, name)
+
+    def _resolve_scratch_dir(self) -> None:
+        """Point scratch at real disk before this runner creates its work_dir."""
+        resolve_scratch_dir(self.config.scratch_dir, self.config.outdir)
 
     # ── Phase 1: Input Processing ──
 
