@@ -97,6 +97,14 @@ BINDS=( -B "$DBROOT":"$DBROOT" )
 [ -n "$EGGENV" ]           && BINDS+=( -B "$EGGENV":"$EGGENV":ro )
 [ -d "$HOME/.cache/torch" ] && BINDS+=( -B "$HOME/.cache/torch":/opt/ssign_home/.cache/torch )
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
+# The container's --writable-tmpfs /tmp is only 64 MiB; Bakta writes its full
+# output set there and dies with "No space left on device". Bind the PBS
+# node-local scratch (real SSD, large) onto /tmp and point TMPDIR at it so Bakta
+# (and any EggNOG/InterProScan temp) has room. Fall back to $EPHEMERAL if PBS
+# didn't set TMPDIR.
+SCRATCH="${TMPDIR:-$EPHEMERAL/ssign_ctr_scratch}"; mkdir -p "$SCRATCH"
+BINDS+=( -B "$SCRATCH":/tmp )
+export APPTAINERENV_TMPDIR=/tmp
 
 echo "  DLP=$DLPENV"
 echo "  SignalP=$SP6ENV"
