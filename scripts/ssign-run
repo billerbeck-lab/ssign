@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# ssign-run — one-line launcher for the ssign Singularity/Apptainer container.
+# ssign-run: one-line launcher for the ssign Singularity/Apptainer container.
 #
 # The image bakes the entire free toolchain (Bakta 1.12.0 + its binary deps,
 # EggNOG-mapper, BLAST+ 2.17, MacSyFinder, pLM-BLAST, real HMMER, ...). You
 # supply only what genuinely cannot be bundled:
 #   * a genome file (GenBank / GFF3 / FASTA)
 #   * for extended/full: the reference-database root (fetch_databases.sh output)
-#   * optionally the DTU predictors SignalP 6 / DeepLocPro as local conda envs;
-#     omit them and ssign falls back to the DTU web server (no licence needed).
+#   * SignalP 6 (the only predictor not baked; DeepLocPro is baked in). Provide it
+#     via --signalp-env, or install it with ssign-setup-dtu (auto-detected after);
+#     without it the run stops at the SignalP step unless you add
+#     `-- --signalp-mode remote`.
 #
 # This wrapper is host-agnostic: no PBS, no cluster paths. It builds the
 # `apptainer run` command, binds the un-bakeable bits at their real paths, points
@@ -28,10 +30,10 @@
 #   --signalp-env DIR      conda env with bin/signalp6 (the only predictor not baked).
 #                          Omit and it is auto-detected from your conda envs (after
 #                          ssign-setup-dtu); or add `-- --signalp-mode remote`.
-#   --deeplocpro-env DIR   conda env with bin/deeplocpro — OPTIONAL: DeepLocPro is baked
+#   --deeplocpro-env DIR   conda env with bin/deeplocpro, OPTIONAL: DeepLocPro is baked
 #                          into the image; only pass this to override with your own build
 #   --torch-cache DIR      host torch cache to mount (only for persisting DeepSecE's ESM1b;
-#                          NOT needed for DeepLocPro — its ESM2 is baked)
+#                          NOT needed for DeepLocPro, its ESM2 is baked)
 #   --scratch DIR          real-disk scratch bound onto /tmp (default: OUTDIR/.ssign_scratch)
 #   --cpu                  run without a GPU (drops --nv)
 #   -h, --help             show this help
@@ -101,7 +103,7 @@ if [ "$USE_NV" -eq 1 ]; then
     if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
         NV_FLAG=(--nv)
     else
-        echo "ssign-run: no GPU detected — running CPU-only (predictors will be slower)" >&2
+        echo "ssign-run: no GPU detected, running CPU-only (predictors will be slower)" >&2
     fi
 fi
 

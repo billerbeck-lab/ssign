@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# ssign-setup-dtu — install the DTU predictors (DeepLocPro + SignalP 6) locally so
+# ssign-setup-dtu: install the DTU predictors (DeepLocPro + SignalP 6) locally so
 # ssign runs them on your machine, never on the DTU webserver.
 #
 # Why this exists: ssign will NOT upload your sequences to DTU by default. It needs
 # a LOCAL install of each tool. This script does all the fiddly install steps for
-# you and puts each tool in ~/.conda/envs/<name>, which ssign auto-detects — after
+# you and puts each tool in ~/.conda/envs/<name>, which ssign auto-detects, after
 # it finishes you just run `ssign-run ...` with no extra flags.
 #
 # The two tools differ in how open they are:
-#   * DeepLocPro — fully open (public GitHub, CC BY-NC-SA). Installed AUTOMATICALLY,
+#   * DeepLocPro, fully open (public GitHub, CC BY-NC-SA). Installed AUTOMATICALLY,
 #     no registration. Its ~2.5 GB ESM2 model downloads during install (needs internet).
-#   * SignalP 6  — academic licence. YOU must register + download the tarball once
+#   * SignalP 6: academic licence. YOU must register + download the tarball once
 #     (we can't redistribute it); then this script installs it from that tarball.
 #
 # This is for NATIVE (pip) installs. If you run ssign via the CONTAINER, DeepLocPro
-# is already baked in — you only need SignalP: `ssign-setup-dtu <tarball> --signalp-only`.
+# is already baked in, you only need SignalP: `ssign-setup-dtu <tarball> --signalp-only`.
 #
 # Usage:
 #   ssign-setup-dtu [SIGNALP_TARBALL] [options]
@@ -26,7 +26,7 @@
 # Options:
 #   --deeplocpro-only   install DeepLocPro, skip SignalP
 #   --signalp-only      install SignalP, skip DeepLocPro
-#   --conda-root DIR    where env dirs go (default: ~/.conda/envs — a location ssign scans)
+#   --conda-root DIR    where env dirs go (default: ~/.conda/envs, a location ssign scans)
 #   --force             recreate an env even if the tool is already installed
 #   -h, --help          show this help
 #
@@ -68,7 +68,7 @@ mkdir -p "$CONDA_ROOT"
 CONDA=""
 for c in mamba conda micromamba; do command -v "$c" >/dev/null && { CONDA="$c"; break; }; done
 if [ -z "$CONDA" ]; then
-    step "No conda/mamba/micromamba found — bootstrapping a local micromamba"
+    step "No conda/mamba/micromamba found, bootstrapping a local micromamba"
     export MAMBA_ROOT_PREFIX="$HOME/micromamba"
     mkdir -p "$MAMBA_ROOT_PREFIX"
     wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest \
@@ -97,14 +97,14 @@ install_deeplocpro() {
     prefix=$(create_env deeplocpro)
     local tmp; tmp=$(mktemp -d)
     git clone --depth 1 "$DEEPLOCPRO_REPO" "$tmp/deeplocpro" >/dev/null 2>&1 \
-        || die "git clone failed ($DEEPLOCPRO_REPO) — check network"
+        || die "git clone failed ($DEEPLOCPRO_REPO), check network"
     # pip install triggers an atexit hook that fetches ESM2-650M into ~/.cache/torch.
     "$prefix/bin/pip" install --quiet "$tmp/deeplocpro" \
         || die "DeepLocPro pip install failed"
     rm -rf "$tmp"
     "$prefix/bin/deeplocpro" -h >/dev/null 2>&1 \
         || die "DeepLocPro installed but 'deeplocpro -h' failed"
-    info "OK — DeepLocPro at $prefix/bin/deeplocpro"
+    info "OK, DeepLocPro at $prefix/bin/deeplocpro"
 }
 
 # --- SignalP 6 (needs the licensed tarball) ---------------------------------
@@ -145,7 +145,7 @@ install_signalp() {
     rm -rf "$tmp"
     "$prefix/bin/signalp6" -h >/dev/null 2>&1 \
         || die "SignalP installed but 'signalp6 -h' failed"
-    info "OK — SignalP 6 at $prefix/bin/signalp6"
+    info "OK, SignalP 6 at $prefix/bin/signalp6"
 }
 
 # --- run --------------------------------------------------------------------
@@ -160,5 +160,5 @@ if [ "$DO_SP" -eq 1 ]; then
                        || info "SignalP 6 : NOT installed (see the registration steps above)"
 fi
 echo
-info "ssign auto-detects these under $CONDA_ROOT — just run 'ssign-run ...' (no --*-env flags)."
+info "ssign auto-detects these under $CONDA_ROOT, just run 'ssign-run ...' (no --*-env flags)."
 [ "$DO_SP" -eq 1 ] && [ "$sp_ok" -eq 0 ] && exit 1 || exit 0
