@@ -25,8 +25,9 @@
 #   --sif PATH             image file            (default: $SSIGN_SIF or ./ssign.sif)
 #   --tier base|extended|full                    (default: extended)
 #   --db-root DIR          reference DB root     (required for extended/full)
-#   --signalp-env DIR      conda env with bin/signalp6 (the only predictor not baked;
-#                          omit to install via ssign-setup-dtu or use --signalp-mode remote)
+#   --signalp-env DIR      conda env with bin/signalp6 (the only predictor not baked).
+#                          Omit and it is auto-detected from your conda envs (after
+#                          ssign-setup-dtu); or add `-- --signalp-mode remote`.
 #   --deeplocpro-env DIR   conda env with bin/deeplocpro — OPTIONAL: DeepLocPro is baked
 #                          into the image; only pass this to override with your own build
 #   --torch-cache DIR      host torch cache to mount (only for persisting DeepSecE's ESM1b;
@@ -124,13 +125,26 @@ if [ -n "$DBROOT" ]; then
     [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
 fi
 
-# --- DTU predictors (local if provided, else ssign's web-server fallback) ---
+# --- DTU predictors ---------------------------------------------------------
+# DeepLocPro is baked into the image; pass --deeplocpro-env only to override it.
+# SignalP is host-provided: use --signalp-env, or we auto-detect a conda env that
+# holds signalp6 (the same roots the runner scans), so no flag is needed after
+# ssign-setup-dtu. If none is found, ssign stops at the SignalP step with install
+# instructions unless you add `-- --signalp-mode remote`.
 DTU_ARGS=()
 if [ -n "$DLPENV" ]; then
     DLPENV=$(readlink -f "$DLPENV")
     [ -x "$DLPENV/bin/deeplocpro" ] || die "no bin/deeplocpro in --deeplocpro-env: $DLPENV"
     BINDS+=( -B "$DLPENV":"$DLPENV":ro )
     DTU_ARGS+=( --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin" )
+fi
+if [ -z "$SP6ENV" ]; then
+    for _root in ~/.conda/envs ~/miniconda3/envs ~/anaconda3/envs ~/miniforge3/envs ~/mambaforge/envs ~/micromamba/envs; do
+        for _d in "$_root"/*/; do
+            if [ -x "${_d}bin/signalp6" ]; then SP6ENV="${_d%/}"; break 2; fi
+        done
+    done
+    [ -n "$SP6ENV" ] && echo "ssign-run: auto-detected SignalP env $SP6ENV"
 fi
 if [ -n "$SP6ENV" ]; then
     SP6ENV=$(readlink -f "$SP6ENV")

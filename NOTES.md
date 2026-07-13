@@ -61,8 +61,13 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
   (DeepLocPro fully auto from GitHub; SignalP needs the user's licensed tarball only).
   1457 tests green. Facts: memory `reference_dtu_install`. KEY finding: DeepLocPro is
   NOT licence-gated (public GitHub) — only SignalP is. Easiest-path = image + fetch-DBs
-  + ssign-setup-dtu + ssign-run. Still TODO for full "just works": expose fetch-databases
-  from the image, GHCR/Zenodo publish, README quickstart, ssign-run host-side DTU auto-mount.
+  + ssign-setup-dtu + ssign-run.
+- **"Just works" glue DONE 2026-07-13 (task 5.8 + ssign-run polish).** `ssign fetch-databases`
+  subcommand (runs the bundled fetch script from the image, no host tools); README
+  "Container quickstart" 4-step block; `ssign-run` auto-detects the host SignalP env
+  (scans conda roots) so it needs ZERO DTU flags after ssign-setup-dtu. 1460 tests green.
+  **Only release-time item left for full "just works": GHCR + Zenodo publish** (needs a
+  token, user-run; I can stage the `apptainer push` / upload commands on request).
 - **v4 image = DeepLocPro BAKED (task 5.7, 2026-07-13).** `~/.ssign_sif_build/ssign_v4.sif`
   9.7 GB: DeepLocPro (pin 32c0b37c, --no-deps into ssign env) + its ESM2-650M (2.5 GB)
   baked. **Verified in-image offline**: real prediction runs under torch 2.12 (testprot→
