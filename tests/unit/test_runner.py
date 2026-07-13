@@ -51,10 +51,10 @@ class TestPipelineConfig:
         assert c.proximity_window == 3
         assert c.required_fraction_correct == 0.8
         # signalp_mode / deeplocpro_mode are auto-detected at __post_init__:
-        # in a clean dev env neither binary is on PATH, so both fall back to
-        # "remote" with a logger warning.
-        assert c.deeplocpro_mode in ("local", "remote")
-        assert c.signalp_mode in ("local", "remote")
+        # in a clean dev env neither binary is on PATH, so both resolve to
+        # "unavailable" (ssign does not auto-use the DTU webserver).
+        assert c.deeplocpro_mode in ("local", "remote", "unavailable")
+        assert c.signalp_mode in ("local", "remote", "unavailable")
 
     def test_excluded_systems_default(self):
         # Default excludes all non-secretion appendages; T3SS is detected by
@@ -174,7 +174,7 @@ class TestPipelineConfig:
 
 
 class TestDTUModeAutoDetect:
-    """signalp_mode / deeplocpro_mode resolve from None → local / remote."""
+    """signalp_mode / deeplocpro_mode resolve from None → local / unavailable."""
 
     def test_explicit_local_passes_through(self):
         c = PipelineConfig(signalp_mode="local")
@@ -184,14 +184,26 @@ class TestDTUModeAutoDetect:
         c = PipelineConfig(deeplocpro_mode="remote")
         assert c.deeplocpro_mode == "remote"
 
-    def test_auto_falls_back_to_remote_when_no_binary(self, monkeypatch, tmp_path):
+    def test_auto_marks_unavailable_when_no_binary(self, monkeypatch, tmp_path):
         # Empty PATH guarantees shutil.which returns None; HOME redirected so
         # the conda-env scan can't accidentally pick up the dev machine's envs.
+        # No local install => "unavailable" (NOT "remote"): ssign must not
+        # silently upload sequences to the DTU webserver.
         monkeypatch.setenv("PATH", "")
         monkeypatch.setenv("HOME", str(tmp_path))
         c = PipelineConfig(signalp_path="", deeplocpro_path="")
-        assert c.signalp_mode == "remote"
-        assert c.deeplocpro_mode == "remote"
+        assert c.signalp_mode == "unavailable"
+        assert c.deeplocpro_mode == "unavailable"
+
+    def test_unavailable_message_is_actionable(self):
+        from ssign_app.core.runner import _dtu_unavailable_message
+
+        msg = _dtu_unavailable_message("SignalP", "signalp", "https://services.healthtech.dtu.dk/services/SignalP-6.0/")
+        # Points at the local-install helper AND the explicit remote opt-in,
+        # so the user is never silently sent to the webserver.
+        assert "ssign-setup-dtu" in msg
+        assert "--signalp-mode remote" in msg
+        assert "SignalP" in msg
 
     def test_auto_picks_local_when_conda_env_holds_binary(self, monkeypatch, tmp_path):
         # Stage ~/.conda/envs/signalp6/bin/signalp6 under a fake HOME.
@@ -205,8 +217,8 @@ class TestDTUModeAutoDetect:
         c = PipelineConfig(signalp_path="", deeplocpro_path="")
         assert c.signalp_mode == "local"
         assert c.signalp_path == str(bin_dir)
-        # The other tool isn't in any conda env → still remote.
-        assert c.deeplocpro_mode == "remote"
+        # The other tool isn't in any conda env → unavailable (not remote).
+        assert c.deeplocpro_mode == "unavailable"
 
     def test_configured_path_wins_over_conda_env(self, monkeypatch, tmp_path):
         # Put a stub in a conda env AND in a user-configured dir; the

@@ -57,6 +57,7 @@ _CONDA_ENV_ROOTS = (
     "~/anaconda3/envs",
     "~/miniforge3/envs",
     "~/mambaforge/envs",
+    "~/micromamba/envs",
 )
 
 
@@ -85,13 +86,15 @@ def _find_in_conda_envs(binary: str) -> Optional[str]:
 
 
 def _detect_dtu_mode(binary: str, configured_path: str, display_name: str) -> tuple[str, Optional[str]]:
-    """Pick local vs remote for a DTU-licensed tool.
+    """Pick the mode for a DTU-licensed tool from a local install.
 
     Tries (in order): explicit ``configured_path/binary`` (CLI flag or the
     matching ``SSIGN_*_PATH`` env var already filled in by __post_init__'s
     env loop), ``binary`` on PATH, then a scan of conventional conda env
-    roots. Falls back to remote with a warning so an offline-only user
-    doesn't silently get network-submitted jobs.
+    roots. When none is found, returns ``"unavailable"`` (NOT ``"remote"``):
+    ssign does not silently upload sequences to the DTU webserver. The step
+    then stops with install instructions unless the user explicitly passed
+    ``--<tool>-mode remote``.
 
     Returns ``(mode, discovered_dir)``. ``discovered_dir`` is non-None only
     when the conda-env scan was the thing that succeeded, so the caller can
@@ -113,18 +116,33 @@ def _detect_dtu_mode(binary: str, configured_path: str, display_name: str) -> tu
         )
         return "local", conda_dir
     roots_for_msg = " or ".join(_CONDA_ENV_ROOTS)
-    logger.warning(
+    logger.info(
         "No local %s binary found (%r not on PATH, no configured path holds it, "
-        "and no conda env under %s has it). "
-        "Falling back to the DTU webserver — pass --%s-mode local once you've "
-        "installed it locally, or --%s-mode remote to silence this warning.",
+        "and no conda env under %s has it). Mode set to 'unavailable' — ssign does "
+        "NOT auto-submit to the DTU webserver. The %s step will stop with install "
+        "instructions unless you pass --%s-mode remote.",
         display_name,
         binary,
         roots_for_msg,
-        display_name.lower(),
+        display_name,
         display_name.lower(),
     )
-    return "remote", None
+    return "unavailable", None
+
+
+def _dtu_unavailable_message(display_name: str, mode_flag: str, service_url: str) -> str:
+    """Actionable error shown when a needed DTU tool has no local install and
+    the user did not opt into the webserver. ssign never uploads sequences to
+    DTU's servers unless explicitly asked with --<tool>-mode remote."""
+    return (
+        f"No local {display_name} install found, and ssign does not use the DTU "
+        f"webserver by default (your sequences would otherwise be uploaded to DTU).\n"
+        f"  Fix with EITHER:\n"
+        f"    1. Install locally (recommended): run  scripts/ssign-setup-dtu\n"
+        f"       — it installs {display_name} for you; ssign auto-detects it afterward.\n"
+        f"    2. Use the webserver explicitly: re-run with  --{mode_flag}-mode remote\n"
+        f"       (this uploads your sequences to {service_url})."
+    )
 
 
 def _resolve_db_root_for_runner() -> str:
@@ -239,7 +257,7 @@ class PipelineConfig:
     # as a fallback. mode=None means "auto-detect" — __post_init__ picks
     # local if a binary is configured/on PATH, remote (with a warning)
     # otherwise. Explicit "local" / "remote" force the choice regardless.
-    deeplocpro_mode: Optional[str] = None  # "local" / "remote" / None=auto
+    deeplocpro_mode: Optional[str] = None  # "local"/"remote"/"unavailable" (auto: local, else unavailable)
     deeplocpro_path: str = ""
     signalp_mode: Optional[str] = None
     signalp_path: str = ""
@@ -1822,8 +1840,18 @@ class PipelineRunner:
             args.extend(["--mode", "local"])
             if self.config.deeplocpro_path:
                 args.extend(["--deeplocpro-path", self.config.deeplocpro_path])
-        else:
+        elif self.config.deeplocpro_mode == "remote":
             args.extend(["--mode", "remote"])
+        else:  # "unavailable": no local install found, webserver not opted into
+            return StepResult(
+                "deeplocpro",
+                False,
+                _dtu_unavailable_message(
+                    "DeepLocPro",
+                    "deeplocpro",
+                    "https://services.healthtech.dtu.dk/services/DeepLocPro-1.0/",
+                ),
+            )
 
         sem = self.api_sem.get("dtu")
         held = False
@@ -1891,8 +1919,18 @@ class PipelineRunner:
             args.extend(["--mode", "local"])
             if self.config.signalp_path:
                 args.extend(["--signalp-path", self.config.signalp_path])
-        else:
+        elif self.config.signalp_mode == "remote":
             args.extend(["--mode", "remote"])
+        else:  # "unavailable": no local install found, webserver not opted into
+            return StepResult(
+                "signalp",
+                False,
+                _dtu_unavailable_message(
+                    "SignalP",
+                    "signalp",
+                    "https://services.healthtech.dtu.dk/services/SignalP-6.0/",
+                ),
+            )
 
         sem = self.api_sem.get("dtu")
         held = False

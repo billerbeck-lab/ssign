@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# ssign-setup-dtu — install the DTU predictors (DeepLocPro + SignalP 6) locally so
+# ssign runs them on your machine, never on the DTU webserver.
+#
+# Why this exists: ssign will NOT upload your sequences to DTU by default. It needs
+# a LOCAL install of each tool. This script does all the fiddly install steps for
+# you and puts each tool in ~/.conda/envs/<name>, which ssign auto-detects — after
+# it finishes you just run `ssign-run ...` with no extra flags.
+#
+# The two tools differ in how open they are:
+#   * DeepLocPro — fully open (public GitHub, CC BY-NC-SA). Installed AUTOMATICALLY,
+#     no registration. Its ~2.5 GB ESM2 model downloads during install (needs internet).
+#   * SignalP 6  — academic licence. YOU must register + download the tarball once
+#     (we can't redistribute it); then this script installs it from that tarball.
+#
+# Usage:
+#   ssign-setup-dtu [SIGNALP_TARBALL] [options]
+#
+#   SIGNALP_TARBALL   path to the signalp-6.0*.fast.tar.gz you downloaded from DTU.
+#                     If omitted, the script looks in ~/Downloads and the current
+#                     dir; if none is found it prints how to get it and installs
+#                     only DeepLocPro.
+# Options:
+#   --deeplocpro-only   install DeepLocPro, skip SignalP
+#   --signalp-only      install SignalP, skip DeepLocPro
+#   --conda-root DIR    where env dirs go (default: ~/.conda/envs — a location ssign scans)
+#   --force             recreate an env even if the tool is already installed
+#   -h, --help          show this help
+#
+# SignalP 6 registration/download: https://services.healthtech.dtu.dk/services/SignalP-6.0/
+#   (Downloads tab → academic form → get signalp-6.0*.fast.tar.gz)
+
+set -euo pipefail
+
+die()   { echo "ssign-setup-dtu: $*" >&2; exit 1; }
+info()  { echo "  $*"; }
+step()  { echo; echo "==> $*"; }
+usage() { sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+SIGNALP_URL="https://services.healthtech.dtu.dk/services/SignalP-6.0/"
+DEEPLOCPRO_REPO="https://github.com/Jaimomar99/deeplocpro.git"
+CONDA_ROOT="$HOME/.conda/envs"
+SIGNALP_TARBALL=""
+DO_DLP=1
+DO_SP=1
+FORCE=0
+
+# --- args -------------------------------------------------------------------
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)         usage 0 ;;
+        --deeplocpro-only) DO_SP=0; shift ;;
+        --signalp-only)    DO_DLP=0; shift ;;
+        --conda-root)      CONDA_ROOT="$2"; shift 2 ;;
+        --force)           FORCE=1; shift ;;
+        -*)                die "unknown option: $1 (use --help)" ;;
+        *)                 SIGNALP_TARBALL="$1"; shift ;;
+    esac
+done
+mkdir -p "$CONDA_ROOT"
+
+# --- pick a conda-family env manager (bootstrap micromamba if none) ---------
+# All of mamba/conda/micromamba accept `create -y -p <prefix> ...`; we then use
+# the env's own bin/pip directly, so no activation dance is needed.
+CONDA=""
+for c in mamba conda micromamba; do command -v "$c" >/dev/null && { CONDA="$c"; break; }; done
+if [ -z "$CONDA" ]; then
+    step "No conda/mamba/micromamba found — bootstrapping a local micromamba"
+    export MAMBA_ROOT_PREFIX="$HOME/micromamba"
+    mkdir -p "$MAMBA_ROOT_PREFIX"
+    wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest \
+        | tar -xj -C "$MAMBA_ROOT_PREFIX" bin/micromamba
+    CONDA="$MAMBA_ROOT_PREFIX/bin/micromamba"
+fi
+[ "$CONDA" = "micromamba" ] && export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"
+info "env manager: $CONDA"
+
+create_env() {  # $1 = env name ; creates $CONDA_ROOT/$1 with python 3.10
+    # -c conda-forge so a freshly-bootstrapped micromamba (no default channels)
+    # can still solve python; harmless for conda/mamba. python<=3.10 satisfies
+    # both tools (SignalP 6 caps at 3.10).
+    local prefix="$CONDA_ROOT/$1"
+    "$CONDA" create -y -p "$prefix" -c conda-forge python=3.10 >/dev/null
+    echo "$prefix"
+}
+
+# --- DeepLocPro (automatic) -------------------------------------------------
+install_deeplocpro() {
+    local prefix="$CONDA_ROOT/deeplocpro"
+    if [ -x "$prefix/bin/deeplocpro" ] && [ "$FORCE" -eq 0 ]; then
+        info "DeepLocPro already installed at $prefix (use --force to reinstall)"; return 0
+    fi
+    step "Installing DeepLocPro (public GitHub; downloads ~2.5 GB ESM2 model)"
+    prefix=$(create_env deeplocpro)
+    local tmp; tmp=$(mktemp -d)
+    git clone --depth 1 "$DEEPLOCPRO_REPO" "$tmp/deeplocpro" >/dev/null 2>&1 \
+        || die "git clone failed ($DEEPLOCPRO_REPO) — check network"
+    # pip install triggers an atexit hook that fetches ESM2-650M into ~/.cache/torch.
+    "$prefix/bin/pip" install --quiet "$tmp/deeplocpro" \
+        || die "DeepLocPro pip install failed"
+    rm -rf "$tmp"
+    "$prefix/bin/deeplocpro" -h >/dev/null 2>&1 \
+        || die "DeepLocPro installed but 'deeplocpro -h' failed"
+    info "OK — DeepLocPro at $prefix/bin/deeplocpro"
+}
+
+# --- SignalP 6 (needs the licensed tarball) ---------------------------------
+find_signalp_tarball() {
+    [ -n "$SIGNALP_TARBALL" ] && { echo "$SIGNALP_TARBALL"; return; }
+    ls "$HOME"/Downloads/signalp-6*.tar.gz ./signalp-6*.tar.gz 2>/dev/null | head -1 || true
+}
+
+install_signalp() {
+    local prefix="$CONDA_ROOT/signalp6"
+    if [ -x "$prefix/bin/signalp6" ] && [ "$FORCE" -eq 0 ]; then
+        info "SignalP 6 already installed at $prefix (use --force to reinstall)"; return 0
+    fi
+    local tarball; tarball=$(find_signalp_tarball)
+    if [ -z "$tarball" ] || [ ! -f "$tarball" ]; then
+        step "SignalP 6 needs a one-time licensed download (can't be automated)"
+        info "1. Register + download at: $SIGNALP_URL"
+        info "   (Downloads tab -> academic form -> signalp-6.0*.fast.tar.gz)"
+        info "2. Re-run:  ssign-setup-dtu /path/to/signalp-6.0i.fast.tar.gz"
+        info "Skipping SignalP for now."
+        return 1
+    fi
+    step "Installing SignalP 6 from $tarball"
+    prefix=$(create_env signalp6)
+    local tmp; tmp=$(mktemp -d)
+    tar -xzf "$tarball" -C "$tmp" || die "could not extract $tarball"
+    # The tarball contains a `signalp-6-package/` dir (holds setup.py + models/).
+    local pkg; pkg=$(dirname "$(find "$tmp" -name setup.py -path '*signalp*' | head -1)")
+    [ -n "$pkg" ] && [ -d "$pkg" ] || die "signalp-6-package/ not found inside $tarball"
+    # numpy<2 must precede the package install (SignalP 6.0h/i requirement).
+    "$prefix/bin/pip" install --quiet "numpy<2" || die "numpy<2 install failed"
+    "$prefix/bin/pip" install --quiet "$pkg/" || die "signalp-6-package install failed"
+    # Weights ship in the tarball and must be copied into the installed package
+    # (there is no signalp6-register command).
+    local sp_dir; sp_dir=$("$prefix/bin/python" -c "import signalp,os;print(os.path.dirname(signalp.__file__))")
+    mkdir -p "$sp_dir/model_weights"
+    cp -r "$pkg"/models/* "$sp_dir/model_weights/" || die "could not copy SignalP model weights"
+    rm -rf "$tmp"
+    "$prefix/bin/signalp6" -h >/dev/null 2>&1 \
+        || die "SignalP installed but 'signalp6 -h' failed"
+    info "OK — SignalP 6 at $prefix/bin/signalp6"
+}
+
+# --- run --------------------------------------------------------------------
+sp_ok=1
+[ "$DO_DLP" -eq 1 ] && install_deeplocpro
+[ "$DO_SP" -eq 1 ]  && { install_signalp || sp_ok=0; }
+
+step "Done"
+[ "$DO_DLP" -eq 1 ] && info "DeepLocPro: $CONDA_ROOT/deeplocpro"
+if [ "$DO_SP" -eq 1 ]; then
+    [ "$sp_ok" -eq 1 ] && info "SignalP 6 : $CONDA_ROOT/signalp6" \
+                       || info "SignalP 6 : NOT installed (see the registration steps above)"
+fi
+echo
+info "ssign auto-detects these under $CONDA_ROOT — just run 'ssign-run ...' (no --*-env flags)."
+[ "$DO_SP" -eq 1 ] && [ "$sp_ok" -eq 0 ] && exit 1 || exit 0

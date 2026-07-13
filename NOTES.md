@@ -55,6 +55,14 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
   Portable launcher (no PBS): auto-detects DB sub-trees under `--db-root`, binds DTU
   envs, scratch→/tmp, torch cache, auto `--nv`. Assembled apptainer cmd matches the
   validated PBS. Remaining: README doc + refactor PBS to call it (after 5.3 passes).
+- **DTU-easy = DONE 2026-07-13 (task 5.6).** Local DTU is now the hard default: runner
+  errors (not silent webserver) when no local SignalP/DeepLocPro; `--<tool>-mode remote`
+  is explicit opt-in. New `scripts/ssign-setup-dtu` installs both into `~/.conda/envs/*`
+  (DeepLocPro fully auto from GitHub; SignalP needs the user's licensed tarball only).
+  1457 tests green. Facts: memory `reference_dtu_install`. KEY finding: DeepLocPro is
+  NOT licence-gated (public GitHub) — only SignalP is. Easiest-path = image + fetch-DBs
+  + ssign-setup-dtu + ssign-run. Still TODO for full "just works": expose fetch-databases
+  from the image, GHCR/Zenodo publish, README quickstart, ssign-run host-side DTU auto-mount.
 - Stays host-provided forever: DTU tools (SignalP/DeepLocPro) + reference DBs.
 - The mount-based `run_container_extended.pbs` (gpu_type in directive, PREPEND
   /usr/local/bin:bakta-deps:eggnog, /tmp real-disk bind) is a validation HARNESS,

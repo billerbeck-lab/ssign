@@ -278,9 +278,9 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         choices=["local", "remote"],
         default=None,
         help="DeepLocPro execution mode. Default: auto — local if 'deeplocpro' is "
-        "on PATH or at --deeplocpro-path / $SSIGN_DEEPLOCPRO_PATH, else falls "
-        "back to the DTU webserver with a warning. 'local' / 'remote' force "
-        "the choice.",
+        "on PATH or at --deeplocpro-path / $SSIGN_DEEPLOCPRO_PATH. If no local "
+        "install is found, ssign STOPS with install instructions (it does not "
+        "auto-upload to the DTU webserver); pass 'remote' to opt into the webserver.",
     )
     g.add_argument(
         "--deeplocpro-path",
@@ -292,8 +292,9 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         choices=["local", "remote"],
         default=None,
         help="SignalP execution mode. Default: auto — local if 'signalp6' is "
-        "on PATH or at --signalp-path / $SSIGN_SIGNALP_PATH, else falls back "
-        "to the DTU webserver with a warning. 'local' / 'remote' force the choice.",
+        "on PATH or at --signalp-path / $SSIGN_SIGNALP_PATH. If no local install "
+        "is found, ssign STOPS with install instructions (it does not auto-upload "
+        "to the DTU webserver); pass 'remote' to opt into the webserver.",
     )
     g.add_argument(
         "--signalp-path",
