@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# ssign-run — one-line launcher for the ssign Singularity/Apptainer container.
+#
+# The image bakes the entire free toolchain (Bakta 1.12.0 + its binary deps,
+# EggNOG-mapper, BLAST+ 2.17, MacSyFinder, pLM-BLAST, real HMMER, ...). You
+# supply only what genuinely cannot be bundled:
+#   * a genome file (GenBank / GFF3 / FASTA)
+#   * for extended/full: the reference-database root (fetch_databases.sh output)
+#   * optionally the DTU predictors SignalP 6 / DeepLocPro as local conda envs;
+#     omit them and ssign falls back to the DTU web server (no licence needed).
+#
+# This wrapper is host-agnostic: no PBS, no cluster paths. It builds the
+# `apptainer run` command, binds the un-bakeable bits at their real paths, points
+# ssign at them, and routes scratch onto real disk (the container's default
+# --writable-tmpfs /tmp is only 64 MiB, too small for Bakta).
+#
+# Usage:
+#   ssign-run GENOME OUTDIR [options] [-- extra `ssign run` args...]
+#
+# Positional:
+#   GENOME                 input genome (GenBank / GFF3 / FASTA)
+#   OUTDIR                 output directory (created if absent)
+#
+# Options:
+#   --sif PATH             image file            (default: $SSIGN_SIF or ./ssign.sif)
+#   --tier base|extended|full                    (default: extended)
+#   --db-root DIR          reference DB root     (required for extended/full)
+#   --deeplocpro-env DIR   conda env with bin/deeplocpro (local DTU predictor)
+#   --signalp-env DIR      conda env with bin/signalp6   (local DTU predictor)
+#   --scratch DIR          real-disk scratch bound onto /tmp (default: OUTDIR/.ssign_scratch)
+#   --cpu                  run without a GPU (drops --nv)
+#   -h, --help             show this help
+#   --                     pass everything after it straight to `ssign run`
+#
+# Example (extended tier, local DTU tools):
+#   ssign-run genome.gbff out --tier extended \
+#     --db-root /data/ssign-databases \
+#     --deeplocpro-env ~/.conda/envs/deeplocpro \
+#     --signalp-env ~/.conda/envs/signalp6
+
+set -euo pipefail
+
+die()  { echo "ssign-run: $*" >&2; exit 1; }
+usage() { sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+SIF="${SSIGN_SIF:-./ssign.sif}"
+TIER="extended"
+DBROOT=""
+DLPENV=""
+SP6ENV=""
+SCRATCH=""
+USE_NV=1
+GENOME=""
+OUTDIR=""
+PASSTHRU=()
+
+# --- parse args -------------------------------------------------------------
+POSITIONAL=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)        usage 0 ;;
+        --sif)            SIF="$2"; shift 2 ;;
+        --tier)           TIER="$2"; shift 2 ;;
+        --db-root)        DBROOT="$2"; shift 2 ;;
+        --deeplocpro-env) DLPENV="$2"; shift 2 ;;
+        --signalp-env)    SP6ENV="$2"; shift 2 ;;
+        --scratch)        SCRATCH="$2"; shift 2 ;;
+        --cpu)            USE_NV=0; shift ;;
+        --)               shift; PASSTHRU=("$@"); break ;;
+        -*)               die "unknown option: $1 (use --help)" ;;
+        *)                POSITIONAL+=("$1"); shift ;;
+    esac
+done
+[ "${#POSITIONAL[@]}" -ge 2 ] || usage 1
+GENOME="${POSITIONAL[0]}"
+OUTDIR="${POSITIONAL[1]}"
+
+# --- validate ---------------------------------------------------------------
+command -v apptainer >/dev/null || die "apptainer not on PATH (install it, or 'module load apptainer')"
+[ -f "$GENOME" ] || die "genome not found: $GENOME"
+[ -f "$SIF" ]    || die "image not found: $SIF (pass --sif or set \$SSIGN_SIF)"
+case "$TIER" in base|extended|full) ;; *) die "invalid --tier '$TIER' (base|extended|full)" ;; esac
+if [ "$TIER" != "base" ] && [ -z "$DBROOT" ]; then
+    die "--db-root is required for tier '$TIER' (run fetch_databases.sh --tier $TIER first)"
+fi
+[ -z "$DBROOT" ] || [ -d "$DBROOT" ] || die "db-root not a directory: $DBROOT"
+
+GENOME=$(readlink -f "$GENOME")
+mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
+SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
+
+# --- GPU --------------------------------------------------------------------
+NV_FLAG=()
+if [ "$USE_NV" -eq 1 ]; then
+    if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
+        NV_FLAG=(--nv)
+    else
+        echo "ssign-run: no GPU detected — running CPU-only (predictors will be slower)" >&2
+    fi
+fi
+
+# --- databases: set the SSIGN_* vars ssign reads INSIDE the container -------
+# Under --containall the host environment is not forwarded, so use the
+# APPTAINERENV_ prefix (Apptainer strips it and sets the bare var inside). Each
+# is set only when the matching sub-tree exists under --db-root, so a base run
+# (no DBs) or a partially-populated root simply skips the ones it lacks.
+BINDS=()
+if [ -n "$DBROOT" ]; then
+    DBROOT=$(readlink -f "$DBROOT")
+    # $DBROOT is bound rw (no :ro): InterProScan's launcher writes scratch under
+    # its own install dir, and Bakta may touch its DB dir.
+    BINDS+=( -B "$DBROOT":"$DBROOT" )
+    _ecod=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
+    _ips=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
+    [ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta"
+    [ -d "$DBROOT/eggnog" ]          && export APPTAINERENV_EGGNOG_DATA_DIR="$DBROOT/eggnog"
+    [ -n "$_ecod" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ecod"
+    [ -n "$_ips" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_ips"
+    [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
+fi
+
+# --- DTU predictors (local if provided, else ssign's web-server fallback) ---
+DTU_ARGS=()
+if [ -n "$DLPENV" ]; then
+    DLPENV=$(readlink -f "$DLPENV")
+    [ -x "$DLPENV/bin/deeplocpro" ] || die "no bin/deeplocpro in --deeplocpro-env: $DLPENV"
+    BINDS+=( -B "$DLPENV":"$DLPENV":ro )
+    DTU_ARGS+=( --deeplocpro-mode local --deeplocpro-path "$DLPENV/bin" )
+fi
+if [ -n "$SP6ENV" ]; then
+    SP6ENV=$(readlink -f "$SP6ENV")
+    [ -x "$SP6ENV/bin/signalp6" ] || die "no bin/signalp6 in --signalp-env: $SP6ENV"
+    BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
+    DTU_ARGS+=( --signalp-mode local --signalp-path "$SP6ENV/bin" )
+fi
+
+# --- scratch + torch cache (ESM2 weights persist across runs) ---------------
+# Bind real-disk scratch onto /tmp and point TMPDIR there so Bakta/EggNOG/IPS
+# temp files have room (the runner's scratch resolver keeps a roomy TMPDIR).
+BINDS+=( -B "$SCRATCH":/tmp )
+export APPTAINERENV_TMPDIR=/tmp
+TORCH_CACHE="${SSIGN_TORCH_CACHE:-$HOME/.cache/torch}"; mkdir -p "$TORCH_CACHE"
+BINDS+=( -B "$TORCH_CACHE":/opt/ssign_home/.cache/torch )
+BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$OUTDIR":/work/out )
+
+# --- run --------------------------------------------------------------------
+echo "ssign-run: tier=$TIER  image=$SIF  gpu=$([ "${#NV_FLAG[@]}" -gt 0 ] && echo yes || echo no)"
+echo "ssign-run: genome=$GENOME"
+echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
+[ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
+[ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local DTU envs given — SignalP/DeepLocPro use the web-server fallback"
+
+exec apptainer run "${NV_FLAG[@]}" --writable-tmpfs --containall "${BINDS[@]}" \
+    "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
+    "${DTU_ARGS[@]}" "${PASSTHRU[@]}"

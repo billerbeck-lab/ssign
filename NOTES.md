@@ -26,6 +26,11 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
     3. CX3: `qsub -v GENOME=$HOME/xantho_gbff/<substrate-yielding>.gbff,SIF=$EPHEMERAL/ssign_v3.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs`
        then health-check `qstat -f <id> | grep -E 'job_state|Resource_List.select'` (gpu_type must be present).
     Pass = 23/23 steps with EggNOG/IPS/pLM-BLAST columns populated, matching a native run.
+    SUBMITTED 2026-07-13: job **3282805.pbs-7** on Roseixanthobacter_finlandensis_VTT_E-85241
+    (image confirmed at /rds/general/user/ttr25/ephemeral/ssign_v3.sif). select has
+    gpu_type=RTX6000 (healthy; queued waiting on busy RTX6000, not a config bug).
+    Check later: `qstat -u ttr25` (R = running); when `ssign.run.log` says "Pipeline
+    complete", retrieve via cx3-retrieve skill. Watch emapper-vs-bakta-diamond compat.
     Watch: emapper picks up bakta env's diamond 2.2.3 on PATH (not eggnog's) — confirm
     compatible with emapperdb-5.0.2 when the real DB is mounted (smoke couldn't test it).
 - (superseded detail) Phase 2 def AUTHORED: micromamba added to `%post`; `/opt/conda/envs/bakta`
@@ -46,7 +51,10 @@ stale apt blastn 2.12 → Bakta ENOSPC on the 64 MiB `--writable-tmpfs` /tmp).
   waits for exit. After green build: smoke (bakta 1.12.0 / blastn 2.17 / emapper.py
   all from /opt/conda), then commit def + tasks.md, then CX3 extended re-validate
   with ONLY DBs+DTU mounted (no host bakta-deps/eggnog). Tasks #18-22.
-- **Phase 3 = `scripts/ssign-run` one-line wrapper** (mounts DBs+DTU+scratch, --nv).
+- **Phase 3 = `scripts/ssign-run` one-line wrapper: DRAFTED + dry-run verified 2026-07-13.**
+  Portable launcher (no PBS): auto-detects DB sub-trees under `--db-root`, binds DTU
+  envs, scratch→/tmp, torch cache, auto `--nv`. Assembled apptainer cmd matches the
+  validated PBS. Remaining: README doc + refactor PBS to call it (after 5.3 passes).
 - Stays host-provided forever: DTU tools (SignalP/DeepLocPro) + reference DBs.
 - The mount-based `run_container_extended.pbs` (gpu_type in directive, PREPEND
   /usr/local/bin:bakta-deps:eggnog, /tmp real-disk bind) is a validation HARNESS,
