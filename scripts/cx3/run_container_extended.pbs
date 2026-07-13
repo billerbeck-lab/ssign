@@ -1,20 +1,25 @@
 #!/bin/bash
-# ssign EXTENDED-tier CONTAINER validation PBS script.
+# ssign EXTENDED-tier CONTAINER validation PBS script (self-contained image).
 #
 # Runs ONE genome through the Singularity/Apptainer image (.sif) at extended
-# tier, with the host DTU predictors, EggNOG env, and databases bind-mounted.
-# Confirms the image reproduces a native extended run (reproducible-install
-# task 5.3). Mirrors run_batched_multi.pbs's env wiring but invokes the image
-# instead of the venv, so Java (InterProScan) + pLM-BLAST come from the image,
-# not host modules.
+# tier. As of the 2026-07-13 image (ssign_v3.sif), the free toolchain is BAKED:
+# Bakta 1.12.0 + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR,
+# AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and EggNOG's emapper.py live
+# in two micromamba envs on the image PATH. So this script mounts ONLY what
+# genuinely can't be baked:
+#   * DTU predictors (DeepLocPro, SignalP 6)  — academic licence
+#   * reference databases (Bakta DB, EggNOG DB, InterProScan install, ECOD,
+#     Swiss-Prot) + the torch cache (ESM2 weights, not yet baked)
+# No host bakta-deps / eggnog conda env, and no crafted PREPEND_PATH: the image
+# supplies the tools. This is the reproducible-install task 5.3 parity check for
+# the self-contained image (task 5.4).
 #
 # Usage. gpu_type=RTX6000 is baked into the #PBS directive below (it is MANDATORY
 # on v1_gpu72 — a GPU request without it queues FOREVER with "Placement set is too
-# small"). So submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
+# small"). Submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
 # qsub gets its -l line swallowed by terminal auto-indent on paste, which drops
-# gpu_type and wedges the job). 32c/64gb is enough for one genome; 120gb also
-# places, footprint only changes placement speed, not whether it starts.
-#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v2.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
+# gpu_type and wedges the job):
+#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v3.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
 #
 # Pick GENOME as a real annotated genome that yields >=1 substrate: the minimal
 # T5aSS fixture localizes 0 substrates on CX3's DeepLocPro, which would leave the
@@ -30,7 +35,7 @@
 set -eo pipefail
 
 : "${GENOME:?Pass via -v GENOME=/abs/path/genome.gbff}"
-: "${SIF:=$EPHEMERAL/ssign_v2.sif}"
+: "${SIF:=$EPHEMERAL/ssign_v3.sif}"
 : "${TIER:=extended}"
 test -f "$GENOME" || { echo "FATAL: genome not found: $GENOME"; exit 1; }
 test -f "$SIF"    || { echo "FATAL: image not found: $SIF"; exit 1; }
@@ -46,72 +51,46 @@ command -v apptainer >/dev/null || module load apptainer 2>/dev/null || true
 command -v apptainer >/dev/null || { echo "FATAL: apptainer not available"; exit 1; }
 echo "  apptainer -> $(apptainer --version)"
 
-# --- host tools + databases (same locations as run_batched_multi.pbs) -------
+# --- host-provided databases + DTU predictors (only the un-bakeable bits) ----
 DBROOT="$EPHEMERAL/ssign-databases"
 DLPENV="$HOME/.conda/envs/deeplocpro"
 SP6ENV="$HOME/.conda/envs/signalp6"
-# Bakta's external binaries (tRNAscan-SE, aragorn, INFERNAL, diamond, amrfinder)
-# and a NEW-ENOUGH blastn (2.17, which Bakta 1.12.0 requires) are not baked in
-# the image. Mount the host bakta-deps env; the PATH block below orders it so it
-# supplies these without shadowing the image's own pinned Bakta.
-BAKTADEPS="$HOME/.conda/envs/bakta-deps"
-# EggNOG-mapper env (holds bin/emapper.py) — auto-detect by finding emapper.py.
-# `|| true` inside each $(): under `set -eo pipefail` a missing glob makes ls
-# exit non-zero, which would otherwise kill the script at the assignment.
-_EMAPPER=$(ls "$HOME"/.conda/envs/*/bin/emapper.py 2>/dev/null | head -1 || true)
-EGGENV=""; [ -n "$_EMAPPER" ] && EGGENV=$(dirname "$(dirname "$_EMAPPER")")
 _ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
 
 # ssign reads these INSIDE the container. Under --containall the host env is not
 # forwarded, so use the APPTAINERENV_ prefix (Apptainer strips it and sets the
-# bare var inside). Each is set only when its target exists on the host.
+# bare var inside). Each is set only when its target exists on the host. NOTE:
+# EGGNOG_DATA_DIR points at the host DB — emapper.py itself is baked, but its
+# ~50 GB database is not; likewise SSIGN_INTERPROSCAN_PATH is the host IPS install
+# (member DBs), which also supplies interproscan.sh (IPS is not baked).
 [ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta"
 [ -d "$DBROOT/eggnog" ]          && export APPTAINERENV_EGGNOG_DATA_DIR="$DBROOT/eggnog"
 [ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
 [ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
-# PATH order matters two ways at once, so we craft it explicitly:
-#   /usr/local/bin  (image: pinned Bakta 1.12.0 + hmmsearch shim + python)  FIRST
-#   bakta-deps/bin  (its blastn 2.17 etc. — Bakta 1.12.0 REJECTS the image's OLD
-#                    apt blastn in /usr/bin, so bakta-deps must beat /usr/bin)
-#   eggnog/bin      (emapper.py)
-# Leading with /usr/local/bin is the trick: the image's own bakta wins over
-# bakta-deps' bakta, while bakta-deps still wins over /usr/bin's stale blastn.
-# Plain append left the old blastn ahead (Bakta version check fails); plain
-# prepend ran bakta-deps' own bakta (crashes). /usr/local/bin has no blastn, so
-# blastn still resolves from bakta-deps.
-_PRE="/usr/local/bin"
-[ -d "$BAKTADEPS/bin" ] && _PRE="$_PRE:$BAKTADEPS/bin"
-[ -n "$EGGENV" ]        && _PRE="$_PRE:$EGGENV/bin"
-export APPTAINERENV_PREPEND_PATH="$_PRE"
 
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
-# install dir. Conda envs are ro (invoked at their real host path so their
-# shebang + bundled libs resolve). torch cache supplies the ESM2 weights.
+# install dir. DTU envs are ro (invoked at their real host path so their shebang
+# + bundled libs resolve). torch cache supplies the ESM2 weights (not yet baked).
 BINDS=( -B "$DBROOT":"$DBROOT" )
 [ -d "$DLPENV" ]            && BINDS+=( -B "$DLPENV":"$DLPENV":ro )
 [ -d "$SP6ENV" ]            && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
-[ -d "$BAKTADEPS" ]        && BINDS+=( -B "$BAKTADEPS":"$BAKTADEPS":ro )
-[ -n "$EGGENV" ]           && BINDS+=( -B "$EGGENV":"$EGGENV":ro )
 [ -d "$HOME/.cache/torch" ] && BINDS+=( -B "$HOME/.cache/torch":/opt/ssign_home/.cache/torch )
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
-# The container's --writable-tmpfs /tmp is only 64 MiB; Bakta writes its full
-# output set there and dies with "No space left on device". Bind the PBS
-# node-local scratch (real SSD, large) onto /tmp and point TMPDIR at it so Bakta
-# (and any EggNOG/InterProScan temp) has room. Fall back to $EPHEMERAL if PBS
-# didn't set TMPDIR.
+# Bind the PBS node-local scratch (real SSD) onto /tmp and point TMPDIR at it.
+# The runner's Phase-1 scratch fix already reroutes tempfile to real disk, so this
+# is now a PERFORMANCE choice (fast node-local SSD for Bakta/EggNOG/IPS temp)
+# rather than the load-bearing fix for the 64 MiB --writable-tmpfs /tmp.
 SCRATCH="${TMPDIR:-$EPHEMERAL/ssign_ctr_scratch}"; mkdir -p "$SCRATCH"
 BINDS+=( -B "$SCRATCH":/tmp )
 export APPTAINERENV_TMPDIR=/tmp
 
 echo "  DLP=$DLPENV"
 echo "  SignalP=$SP6ENV"
-[ -d "$BAKTADEPS" ] && echo "  bakta-deps=$BAKTADEPS" \
-                    || echo "  bakta-deps=<none: Bakta will FAIL at extract_proteins — build the env or point BAKTADEPS at it>"
-echo "  EggNOG=${EGGENV:-<none: emapper.py not found, EggNOG will fail>}"
-echo "  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
+echo "  Bakta+EggNOG: BAKED IN IMAGE (no host conda env mounted)"
+echo "  EggNOG DB=${DBROOT}/eggnog  ECOD=${_ECOD:-<none>}  IPS=${_IPS:-<none>}"
 
 echo "===== apptainer run START $(date -Is) ====="
 apptainer run --nv --writable-tmpfs --containall "${BINDS[@]}" \
