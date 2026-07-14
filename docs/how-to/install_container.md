@@ -3,9 +3,8 @@
 The Singularity/Apptainer image is the recommended way to run ssign on Linux and
 HPC. It is **self-contained and reproducible**: the entire free toolchain and all
 model weights are baked in and version-locked (digest-pinned base, `uv.lock`,
-pinned tool commits, baked ESM/ProtT5 weights), so a run produces the same result
-today and in five years and does not break when an upstream tool changes. You
-provide only two things: the DTU-licensed **SignalP 6**, and the **reference
+pinned tool commits, baked ESM/ProtT5 weights), so a run is reproducable over time. 
+The things that are not included are: the DTU-licensed **SignalP 6**, and the **reference
 databases**.
 
 This guide covers the **extended** tier (secretion-system detection + secreted
@@ -64,12 +63,7 @@ image, so a first run touches the network only for the one database fetch.
 - `--max-ram <GB>` = your job's RAM. Required on schedulers that hide the allocation
   from the container (PBS), else ssign sizes tool memory to the whole node.
 
-## How a run works (plain English)
-
-The `.sif` image is a sealed box that already contains every program ssign needs.
-A container is walled off from the rest of the machine by default (that is what
-makes it reproducible), so it cannot see your files unless you explicitly hand them
-over. `ssign-run` does all of that handing-over for you; you never type the plumbing.
+## How a run works
 
 - **"Mounting" (or "binding") a folder** just means "let the box see this folder on
   the cluster". `ssign-run` mounts your genome, the database folder, and the SignalP
@@ -83,7 +77,7 @@ over. `ssign-run` does all of that handing-over for you; you never type the plum
   scratch, wherever). You just give `ssign-run` the path to the file. There is no
   special location, and you do not copy it into the container.
 
-So after the one-time install, running one genome is a single line:
+So after the install, running one genome is a single line:
 
 ```bash
 scripts/ssign-run path/to/genome.gbff path/to/output_dir --tier extended \
@@ -91,42 +85,12 @@ scripts/ssign-run path/to/genome.gbff path/to/output_dir --tier extended \
 ```
 
 `genome.gbff` is your input (GenBank, GFF3, or FASTA), `output_dir` is where results
-land. That is the whole run; ssign-run handles the mounts, the GPU, and finding SignalP.
+land.
 
 ## Verify
 
 ```bash
 apptainer run --writable-tmpfs --containall "$SSIGN_SIF" doctor --tier extended
-```
-
-## On HPC
-
-Build the image off-cluster (compute nodes usually can't reach the package hosts),
-copy the `.sif` up, then fetch DBs once and run per job.
-
-```bash
-scp ssign.sif you@cluster:$EPHEMERAL/ssign.sif
-```
-
-- Add `--stage-image` to `ssign-run` so it copies the `.sif` to node-local SSD
-  before running (a `.sif` on a network filesystem otherwise adds a long
-  import-startup).
-- **PBS/CX3:** use the ready wrapper `scripts/cx3/run_container_extended.pbs`, it
-  stages the image, pins the RAM budget to the job's `mem`, and mounts only SignalP
-  + the DB root:
-  ```bash
-  qsub -v GENOME=$HOME/g.gbff,SIF=$EPHEMERAL/ssign.sif scripts/cx3/run_container_extended.pbs
-  ```
-
-## Building the image yourself
-
-Until the release image is published, build once on a machine with open internet
-(laptop, workstation, CI); this is normal, HPC compute nodes usually cannot build
-it. Needs `apptainer` and a real-disk build tmp (not a small tmpfs). ~1 hour; the
-image is ~20 GB.
-
-```bash
-containers/build_sif.sh          # build + offline smoke test -> ssign.sif
 ```
 
 ## Tiers
