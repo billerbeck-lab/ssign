@@ -165,6 +165,12 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # SHA-256 of the checksummed Zenodo artifact to catch a mirror serving different-
     # but-valid weights (integrity, not just loadability).
     python3 -c "import torch; from ssign_app.scripts.run_deepsece import DEFAULT_CHECKPOINT; torch.load(DEFAULT_CHECKPOINT, map_location='cpu', weights_only=False); print('DeepSecE checkpoint verified loadable', flush=True)"
+    # DeepSecE's model ALSO loads the ESM-1b backbone (esm1b_t33_650M_UR50S, ~7.3 GB)
+    # via esm.pretrained to build its architecture, separate from the checkpoint
+    # above. Un-baked, it downloads at runtime into the small tmpfs overlay and dies
+    # with "No space left on device". Bake it into the image torch cache (HOME set
+    # above), like DeepLocPro's ESM2, so DeepSecE runs fully offline.
+    python3 -c "import esm; esm.pretrained.esm1b_t33_650M_UR50S()"
 
     # Seed the ProtT5 encoder (weights + tokenizer) into the HF hub cache so that at
     # run time pLM-BLAST's T5Tokenizer/T5EncoderModel.from_pretrained resolve fully

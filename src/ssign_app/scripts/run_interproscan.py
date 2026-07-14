@@ -131,6 +131,14 @@ def run_local_interproscan(
         "-cpu",
         str(cpu),
     ]
+    # IPS writes per-analysis scratch (hmmsearch output files, etc.) under its temp
+    # dir. Its host-configured temporary.file.directory can be an absolute path
+    # (e.g. $HOME/temp) that is NOT mounted inside an --containall container, so
+    # hmmsearch fails at "open output file for writing" and aborts (exit 134).
+    # Point IPS at a container-writable local temp dir under the real-disk scratch
+    # (TMPDIR); harmless natively (mkdtemp falls back to the system temp).
+    ips_tempdir = tempfile.mkdtemp(prefix="ips_temp_", dir=(os.environ.get("TMPDIR") or None))
+    cmd.extend(["-T", ips_tempdir])
     if offline:
         cmd.append("-dp")
     if applications:

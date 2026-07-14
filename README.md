@@ -82,8 +82,11 @@ On a scheduler that hides the job's RAM from the container (e.g. PBS), pass
 node. Omit step 3 to run without signal-peptide calls, or add `--signalp-mode remote`
 to use the DTU webserver (this uploads your sequences). The image is for
 **non-commercial** research use (it bundles DeepLocPro, CC BY-NC-SA, and
-EggNOG-mapper, AGPL). Per-tier database mounts and HPC usage:
-[`containers/README.md`](containers/README.md).
+EggNOG-mapper, AGPL).
+
+**Full install guide** (hardware requirements, HPC/PBS, verification,
+troubleshooting): [`docs/how-to/install_container.md`](docs/how-to/install_container.md).
+Per-tier mounts and the baked-vs-provided matrix: [`containers/README.md`](containers/README.md).
 
 ---
 
