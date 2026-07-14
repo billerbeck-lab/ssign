@@ -64,6 +64,35 @@ image, so a first run touches the network only for the one database fetch.
 - `--max-ram <GB>` = your job's RAM. Required on schedulers that hide the allocation
   from the container (PBS), else ssign sizes tool memory to the whole node.
 
+## How a run works (plain English)
+
+The `.sif` image is a sealed box that already contains every program ssign needs.
+A container is walled off from the rest of the machine by default (that is what
+makes it reproducible), so it cannot see your files unless you explicitly hand them
+over. `ssign-run` does all of that handing-over for you; you never type the plumbing.
+
+- **"Mounting" (or "binding") a folder** just means "let the box see this folder on
+  the cluster". `ssign-run` mounts your genome, the database folder, and the SignalP
+  folder automatically.
+- **A conda environment** is a self-contained folder holding one tool plus its
+  dependencies (kept separate so tools don't clash). The only one you install is
+  SignalP 6 (via `ssign-setup-dtu`), and `ssign-run` finds it for you. Everything
+  else is baked into the image.
+- **The GPU** is turned on automatically (`--nv`) when one is present. Nothing to do.
+- **Where does the genome go?** Anywhere you can read it on the cluster (home,
+  scratch, wherever). You just give `ssign-run` the path to the file. There is no
+  special location, and you do not copy it into the container.
+
+So after the one-time install, running one genome is a single line:
+
+```bash
+scripts/ssign-run path/to/genome.gbff path/to/output_dir --tier extended \
+  --sif "$SSIGN_SIF" --db-root /data/ssign-databases --max-ram 60
+```
+
+`genome.gbff` is your input (GenBank, GFF3, or FASTA), `output_dir` is where results
+land. That is the whole run; ssign-run handles the mounts, the GPU, and finding SignalP.
+
 ## Verify
 
 ```bash
