@@ -6,14 +6,14 @@
 # + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR, AMRFinderPlus,
 # DIAMOND, real HMMER, BLAST+ 2.17), EggNOG's emapper.py, AND DeepLocPro + its
 # ESM2 backbone. So this script mounts ONLY what genuinely can't be baked:
-#   * SignalP 6 — the ONLY predictor still host-provided (DTU academic licence)
+#   * SignalP 6, the ONLY predictor still host-provided (DTU academic licence)
 #   * reference databases (Bakta DB, EggNOG DB, InterProScan install, ECOD, Swiss-Prot)
 # No host bakta-deps / eggnog / deeplocpro conda env, no crafted PREPEND_PATH, no
 # torch-cache mount (ESM2 is baked): the image supplies the tools. This is the
 # reproducible-install task 5.3 parity check for the self-contained image (5.4/5.7).
 #
 # Usage. gpu_type=RTX6000 is baked into the #PBS directive below (it is MANDATORY
-# on v1_gpu72 — a GPU request without it queues FOREVER with "Placement set is too
+# on v1_gpu72, a GPU request without it queues FOREVER with "Placement set is too
 # small"). Submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
 # qsub gets its -l line swallowed by terminal auto-indent on paste, which drops
 # gpu_type and wedges the job):
@@ -51,14 +51,14 @@ echo "  apptainer -> $(apptainer --version)"
 
 # --- host-provided databases + DTU predictors (only the un-bakeable bits) ----
 DBROOT="$EPHEMERAL/ssign-databases"
-SP6ENV="$HOME/.conda/envs/signalp6"  # SignalP 6 — the only predictor not baked
+SP6ENV="$HOME/.conda/envs/signalp6"  # SignalP 6, the only predictor not baked
 _ECOD=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
 _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
 
 # ssign reads these INSIDE the container. Under --containall the host env is not
 # forwarded, so use the APPTAINERENV_ prefix (Apptainer strips it and sets the
 # bare var inside). Each is set only when its target exists on the host. NOTE:
-# EGGNOG_DATA_DIR points at the host DB — emapper.py itself is baked, but its
+# EGGNOG_DATA_DIR points at the host DB, emapper.py itself is baked, but its
 # ~50 GB database is not; likewise SSIGN_INTERPROSCAN_PATH is the host IPS install
 # (member DBs), which also supplies interproscan.sh (IPS is not baked).
 [ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta"
@@ -70,18 +70,30 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own
 # install dir. SignalP env is ro (invoked at its real host path so its shebang +
-# bundled libs resolve). No DeepLocPro mount and no torch-cache mount — DeepLocPro
+# bundled libs resolve). No DeepLocPro mount and no torch-cache mount, DeepLocPro
 # and its ESM2 backbone are baked into the image.
 BINDS=( -B "$DBROOT":"$DBROOT" )
 [ -d "$SP6ENV" ] && BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$RUN_DIR":/work/out )
-# Bind the PBS node-local scratch (real SSD) onto /tmp and point TMPDIR at it.
-# The runner's Phase-1 scratch fix already reroutes tempfile to real disk, so this
-# is now a PERFORMANCE choice (fast node-local SSD for Bakta/EggNOG/IPS temp)
-# rather than the load-bearing fix for the 64 MiB --writable-tmpfs /tmp.
-SCRATCH="${TMPDIR:-$EPHEMERAL/ssign_ctr_scratch}"; mkdir -p "$SCRATCH"
+# Node-local scratch (real SSD) is used for BOTH the /tmp bind AND staging the
+# image. The runner's Phase-1 scratch fix already reroutes tempfile to real disk,
+# so the /tmp bind is a performance choice (fast SSD for Bakta/EggNOG/IPS temp).
+NODE_LOCAL="${TMPDIR:-$EPHEMERAL/ssign_ctr_$$}"; mkdir -p "$NODE_LOCAL"
+SCRATCH="$NODE_LOCAL/scratch"; mkdir -p "$SCRATCH"
 BINDS+=( -B "$SCRATCH":/tmp )
 export APPTAINERENV_TMPDIR=/tmp
+# Stage the .sif to node-local disk before running. A .sif on the network FS
+# ($EPHEMERAL/RDS) is read as thousands of small squashfs / Python-import reads
+# over a high-latency mount; on a loaded cluster that added ~77 min of pure
+# startup (measured 2026-07-14). One sequential copy to local disk makes those
+# reads fast. Falls back to the network path if the copy fails (e.g. disk full).
+LOCAL_SIF="$NODE_LOCAL/$(basename "$SIF")"
+echo "  staging image to node-local disk: $LOCAL_SIF"
+if cp "$SIF" "$LOCAL_SIF" 2>/dev/null; then
+    SIF="$LOCAL_SIF"; echo "  staged OK ($(du -h "$LOCAL_SIF" 2>/dev/null | cut -f1))"
+else
+    echo "  staging failed; running from $SIF (network FS, slower startup)"
+fi
 
 echo "  DeepLocPro: BAKED IN IMAGE (+ ESM2 weights)"
 echo "  SignalP=$SP6ENV"

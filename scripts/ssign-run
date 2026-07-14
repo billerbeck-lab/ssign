@@ -35,6 +35,9 @@
 #   --torch-cache DIR      host torch cache to mount (only for persisting DeepSecE's ESM1b;
 #                          NOT needed for DeepLocPro, its ESM2 is baked)
 #   --scratch DIR          real-disk scratch bound onto /tmp (default: OUTDIR/.ssign_scratch)
+#   --stage-image          copy the .sif to fast local disk (next to --scratch) before
+#                          running. Use on HPC when the image sits on a slow/network
+#                          filesystem: it turns a long import-startup into one copy.
 #   --cpu                  run without a GPU (drops --nv)
 #   -h, --help             show this help
 #   --                     pass everything after it straight to `ssign run`
@@ -56,6 +59,7 @@ DLPENV=""
 SP6ENV=""
 SCRATCH=""
 TORCH_CACHE=""
+STAGE_IMAGE=0
 USE_NV=1
 GENOME=""
 OUTDIR=""
@@ -72,6 +76,7 @@ while [ $# -gt 0 ]; do
         --deeplocpro-env) DLPENV="$2"; shift 2 ;;
         --signalp-env)    SP6ENV="$2"; shift 2 ;;
         --torch-cache)    TORCH_CACHE="$2"; shift 2 ;;
+        --stage-image)    STAGE_IMAGE=1; shift ;;
         --scratch)        SCRATCH="$2"; shift 2 ;;
         --cpu)            USE_NV=0; shift ;;
         --)               shift; PASSTHRU=("$@"); break ;;
@@ -96,6 +101,23 @@ fi
 GENOME=$(readlink -f "$GENOME")
 mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
 SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
+
+# --- optional image staging -------------------------------------------------
+# On HPC a .sif on a slow/network filesystem is read as thousands of small
+# squashfs/Python-import reads, which can add tens of minutes of pure startup.
+# --stage-image copies it once to fast local disk (a sibling of --scratch, so
+# point --scratch at node-local storage) and runs from there. Falls back to the
+# original path if the copy fails.
+if [ "$STAGE_IMAGE" -eq 1 ]; then
+    stage_dir="${SCRATCH}.img"; mkdir -p "$stage_dir"
+    local_sif="$stage_dir/$(basename "$SIF")"
+    echo "ssign-run: staging image to $local_sif (one-time copy for faster startup)"
+    if cp "$SIF" "$local_sif" 2>/dev/null; then
+        SIF="$local_sif"
+    else
+        echo "ssign-run: staging failed; running from $SIF" >&2
+    fi
+fi
 
 # --- GPU --------------------------------------------------------------------
 NV_FLAG=()
