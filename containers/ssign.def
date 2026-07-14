@@ -14,8 +14,9 @@
 # The free toolchain is BAKED: Bakta 1.12.0 + its binary deps (tRNAscan-SE,
 # aragorn, INFERNAL, PilerCR, AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and
 # EggNOG-mapper live in two micromamba envs on PATH; DeepLocPro (the default-on
-# localization predictor, open source) + its ESM2 backbone are baked into ssign's
-# env, so the default path runs fully offline. Only two things stay host-provided:
+# localization predictor, open source) + its ESM2 backbone, the DeepSecE checkpoint
+# (fine-tuned ESM-1b), and the pLM-BLAST ProtT5 encoder are baked into ssign's env
+# and caches, so the default path runs fully offline. Only two things stay host-provided:
 #   * SignalP 6 (DTU academic licence — cannot be bundled) — install locally with
 #     scripts/ssign-setup-dtu, or run with --signalp-mode remote. It is the ONLY
 #     predictor not baked.
@@ -136,6 +137,60 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # its own micromamba env (like bakta/eggnog).
     deeplocpro -h >/dev/null 2>&1 || { echo "FATAL: baked deeplocpro fails under torch $(python3 -c 'import torch;print(torch.__version__)')"; exit 1; }
 
+    # --- DeepSecE checkpoint + pLM-BLAST ProtT5 encoder (baked) -----------------
+    # The last two lazy runtime downloads on the default path. Baking them makes a
+    # first run identical to every run (zero network, fully offline):
+    #   * DeepSecE is default-on (it is in constants._BASE_ENABLED); run_deepsece.py
+    #     otherwise pulls a ~2.5 GB fine-tuned ESM-1b checkpoint on first run. Call
+    #     its own _ensure_checkpoint() (single source of truth) so the build inherits
+    #     the Zenodo-primary/SJTU-fallback URL list + the ~100 MB truncation gate,
+    #     and auto-follows CHECKPOINT_URL_ZENODO once v1.0.0 populates it. It raises
+    #     on failure, which set -e turns into a build abort. Override the source at
+    #     build time with SSIGN_DEEPSECE_CHECKPOINT_URL.
+    #   * pLM-BLAST embeds queries with the ProtT5 encoder
+    #     Rostlab/prot_t5_xl_half_uniref50-enc via a HF from_pretrained with no
+    #     pre-staged cache (~2.4 GB, weights + tokenizer). Seed the HF hub cache so
+    #     T5Tokenizer/T5EncoderModel.from_pretrained resolve offline.
+    # HOME is still /opt/ssign_home here, so both land in the baked profile/caches.
+    python3 -c "from ssign_app.scripts.run_deepsece import _ensure_checkpoint; _ensure_checkpoint()"
+    # The 100 MB size floor _ensure_checkpoint applies can still pass a silently
+    # truncated download from the flaky SJTU mirror, which would then fail at runtime
+    # on every (default-on) DeepSecE run. torch.load it here (same weights_only=False
+    # the runtime uses, since the ESM checkpoint carries non-tensor globals) so a
+    # truncated/corrupt checkpoint aborts the BUILD instead. TODO(v1.0.0): also pin a
+    # SHA-256 of the checksummed Zenodo artifact to catch a mirror serving different-
+    # but-valid weights (integrity, not just loadability).
+    python3 -c "import torch; from ssign_app.scripts.run_deepsece import DEFAULT_CHECKPOINT; torch.load(DEFAULT_CHECKPOINT, map_location='cpu', weights_only=False); print('DeepSecE checkpoint verified loadable', flush=True)"
+
+    # Seed the ProtT5 encoder (weights + tokenizer) into the HF hub cache so that at
+    # run time pLM-BLAST's T5Tokenizer/T5EncoderModel.from_pretrained resolve fully
+    # offline. snapshot_download needs no torch/sentencepiece load. Pin the commit so
+    # a rebuild bakes identical weights (this image bills itself as reproducible).
+    # pLM-BLAST calls from_pretrained with the DEFAULT revision 'main', which offline
+    # mode resolves via refs/main; a commit-pinned snapshot writes no such ref, so we
+    # point refs/main at the pinned commit (reproducible AND offline-resolvable).
+    unset HF_HUB_OFFLINE TRANSFORMERS_OFFLINE  # a host-exported offline flag would break the fetch
+    python3 - <<'PY'
+import os, sys
+from huggingface_hub import snapshot_download
+REPO = "Rostlab/prot_t5_xl_half_uniref50-enc"
+REV = "94a6abc029ae13029317b140b7424e012bf8dfbf"
+snapshot_download(REPO, revision=REV)
+cache = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub",
+                     "models--Rostlab--prot_t5_xl_half_uniref50-enc")
+refs = os.path.join(cache, "refs")
+os.makedirs(refs, exist_ok=True)
+with open(os.path.join(refs, "main"), "w") as fh:
+    fh.write(REV)
+# Size gate: sum the real blobs (skip the symlinks under snapshots/<rev>/).
+total = sum(os.path.getsize(os.path.join(r, f))
+            for r, _d, fs in os.walk(cache) for f in fs
+            if not os.path.islink(os.path.join(r, f)))
+if total < 1_000_000_000:
+    sys.exit("FATAL: ProtT5 encoder not baked (%d bytes)" % total)
+print("ProtT5 encoder baked: %d bytes; refs/main -> %s" % (total, REV), flush=True)
+PY
+
     # Default mount points for host-provided databases/weights + work dir.
     mkdir -p /opt/ssign_home/.ssign/databases /opt/ssign_home/.ssign/models /work
     chmod -R a+rX /opt/ssign_home
@@ -161,6 +216,14 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # alntools` raises "no locator available". Redirect the numba cache to a
     # writable tmpdir (/tmp is a private tmpfs under --containall). Default-only.
     export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-/tmp/ssign_numba_cache}
+    # Everything a default run needs is baked (ESM2, DeepSecE checkpoint, ProtT5
+    # encoder), so default to HF offline: transformers reads the baked hub cache
+    # without probing the network or writing lock files into the read-only image
+    # (this is what makes pLM-BLAST's ProtT5 load fully offline). Default-only, so a
+    # user wanting live HF downloads (e.g. an un-baked PLM-Effector model) sets BOTH
+    # HF_HUB_OFFLINE and TRANSFORMERS_OFFLINE to 0 (transformers honours either).
+    export HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-1}
+    export TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-1}
 
 %runscript
     exec ssign "$@"
