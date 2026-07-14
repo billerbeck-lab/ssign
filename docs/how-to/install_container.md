@@ -40,14 +40,11 @@ CC BY-NC-SA, and EggNOG-mapper, AGPL).
 # 0a. Load apptainer (on HPC it is a module) and confirm it runs
 module load apptainer && apptainer --version
 
-# 0b. Get the launcher scripts (ssign-run, ssign-setup-dtu are bash wrappers, so pip
-#     does NOT install them). Until this is merged to main, clone the branch:
+# 0b. Get the launcher scripts. Until this is merged to main, clone the branch:
 git clone -b enrichment-circular-shift-per-run https://github.com/billerbeck-lab/ssign && cd ssign
 
 # 0c. Get the image (.sif) and point ssign-run at it. At release:
 #       apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0
-#     Until then, download the .sif a colleague shares (see "Getting the image" below)
-#     into a folder with space:
 export SSIGN_SIF=$HOME/ssign.sif
 
 # 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once)
