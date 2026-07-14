@@ -25,32 +25,41 @@ CC BY-NC-SA, and EggNOG-mapper, AGPL).
 
 ## Prerequisites
 
-- `apptainer` (or `singularity`). On HPC it is usually a module: `module load apptainer`.
+- **`apptainer`** (or `singularity`). On HPC it is almost always preinstalled as a
+  module: `module avail apptainer` (or `singularity`), then `module load apptainer`,
+  then `apptainer --version` to confirm. If your cluster genuinely lacks it, email HPC
+  support to add it (it is a standard rootless cluster tool; users normally should not
+  install a system container runtime themselves). User-space fallback on clusters that
+  allow user namespaces: `conda install -c conda-forge apptainer`.
 - A licensed **SignalP 6** tarball. Register (free for academics) at
   <https://services.healthtech.dtu.dk/services/SignalP-6.0/> and download once.
 
 ## Install (extended)
 
 ```bash
-# 0. Get the launcher scripts + the image. The scripts (ssign-run, ssign-setup-dtu)
-#    are bash wrappers, so pip does NOT install them; git clone gives you scripts/.
-git clone https://github.com/billerbeck-lab/ssign && cd ssign
-apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0     # at release
-#    (until release, build it once: containers/build_sif.sh, see below)
-export SSIGN_SIF=$PWD/ssign_1.0.0.sif                        # so ssign-run finds it
+# 0a. Load apptainer (on HPC it is a module) and confirm it runs
+module load apptainer && apptainer --version
 
-# 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB)
-apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign-databases \
-  "$SSIGN_SIF" fetch-databases --tier extended --target /data/ssign-databases
+# 0b. Get the launcher scripts (ssign-run, ssign-setup-dtu are bash wrappers, so pip
+#     does NOT install them). Until this is merged to main, clone the branch:
+git clone -b enrichment-circular-shift-per-run https://github.com/billerbeck-lab/ssign && cd ssign
 
-# 2. SignalP 6, the only licence-gated tool
-scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
+# 0c. Get the image (.sif) and point ssign-run at it. At release:
+#       apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0
+#     Until then, download the .sif a colleague shares (see "Getting the image" below)
+#     into a folder with space:
+export SSIGN_SIF=$HOME/ssign.sif
 
-# 3. Run
-scripts/ssign-run genome.gbff out --tier extended \
-  --db-root /data/ssign-databases \
-  --signalp-env ~/.conda/envs/signalp6 \
-  --max-ram 60
+# 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once)
+apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
+  "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
+
+# 2. SignalP 6, the only licence-gated tool (register + download the tarball first, then:)
+bash scripts/ssign-setup-dtu ~/signalp-6.0i.fast.tar.gz --signalp-only
+
+# 3. Run (one line per genome)
+bash scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
+  --sif "$SSIGN_SIF" --db-root $HOME/ssign-databases --max-ram 60
 ```
 
 Everything else (Bakta + its toolchain, EggNOG-mapper, DeepLocPro + ESM2, DeepSecE
@@ -92,6 +101,22 @@ land.
 ```bash
 apptainer run --writable-tmpfs --containall "$SSIGN_SIF" doctor --tier extended
 ```
+
+## Getting the image
+
+The `.sif` is a single file, roughly 13-20 GB. Ways to get it onto a cluster,
+simplest first:
+
+- **A shared link** (OneDrive, Google Drive, Dropbox, or a large-file service such
+  as WeTransfer Pro / Smash / Filemail). Upload the `.sif` once, share the link; the
+  recipient downloads it onto their cluster, browser then `scp`, or directly on the
+  cluster with `wget`/`gdown`/`rclone` if it has outbound internet. (Institutional
+  OneDrive usually has room for 20 GB; a free Google Drive is only 15 GB total.)
+- **Globus** for HPC-to-HPC: the standard for large research-data transfers, and most
+  university clusters have a Globus endpoint. Reliable and resumable.
+- **Build it** from the repo (`containers/build_sif.sh`): no transfer, fully
+  reproducible; needs ~1 hour and internet on the build machine.
+- **Zenodo** (after release): a public download link / DOI anyone can `wget`.
 
 ## Tiers
 
