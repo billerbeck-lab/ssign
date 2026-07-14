@@ -39,6 +39,11 @@
 #                          running. Use on HPC when the image sits on a slow/network
 #                          filesystem: it turns a long import-startup into one copy.
 #   --cpu                  run without a GPU (drops --nv)
+#   --max-ram GB           RAM budget passed into the container (sizes tool heaps /
+#                          EggNOG --dbmem). REQUIRED on schedulers that hide the
+#                          allocation from --containall (e.g. PBS): pass your job's
+#                          RAM, else ssign reads the whole node and may OOM. Defaults
+#                          from $SSIGN_MAX_RAM_GB, then SLURM_MEM_PER_NODE.
 #   -h, --help             show this help
 #   --                     pass everything after it straight to `ssign run`
 #
@@ -61,6 +66,7 @@ SCRATCH=""
 TORCH_CACHE=""
 STAGE_IMAGE=0
 USE_NV=1
+MAXRAM="${SSIGN_MAX_RAM_GB:-}"
 GENOME=""
 OUTDIR=""
 PASSTHRU=()
@@ -78,6 +84,7 @@ while [ $# -gt 0 ]; do
         --torch-cache)    TORCH_CACHE="$2"; shift 2 ;;
         --stage-image)    STAGE_IMAGE=1; shift ;;
         --scratch)        SCRATCH="$2"; shift 2 ;;
+        --max-ram)        MAXRAM="$2"; shift 2 ;;
         --cpu)            USE_NV=0; shift ;;
         --)               shift; PASSTHRU=("$@"); break ;;
         -*)               die "unknown option: $1 (use --help)" ;;
@@ -192,11 +199,22 @@ if [ -n "$TORCH_CACHE" ]; then
 fi
 BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$OUTDIR":/work/out )
 
+# --- RAM budget -------------------------------------------------------------
+# Under --containall ssign cannot see the scheduler's RAM allocation (no qstat;
+# cgroup often reports the whole physical node), so its effective_ram_gb would
+# size tool heaps and EggNOG --dbmem to the full node and risk OOM. Pass the job's
+# RAM in explicitly. Priority: --max-ram > $SSIGN_MAX_RAM_GB > SLURM_MEM_PER_NODE.
+if [ -z "$MAXRAM" ] && [ -n "${SLURM_MEM_PER_NODE:-}" ]; then
+    MAXRAM=$(( SLURM_MEM_PER_NODE / 1024 ))   # scheduler reports MB; ssign wants GB
+fi
+[ -n "$MAXRAM" ] && export APPTAINERENV_SSIGN_MAX_RAM_GB="$MAXRAM"
+
 # --- run --------------------------------------------------------------------
 echo "ssign-run: tier=$TIER  image=$SIF  gpu=$([ "${#NV_FLAG[@]}" -gt 0 ] && echo yes || echo no)"
 echo "ssign-run: genome=$GENOME"
 echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
 [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
+[ -n "$MAXRAM" ] && echo "ssign-run: RAM budget SSIGN_MAX_RAM_GB=${MAXRAM} GB"
 [ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local SignalP env found; DeepLocPro is baked, but the SignalP step will stop the run unless you install it (ssign-setup-dtu) or add '-- --signalp-mode remote'"
 
 exec apptainer run "${NV_FLAG[@]}" --writable-tmpfs --containall "${BINDS[@]}" \

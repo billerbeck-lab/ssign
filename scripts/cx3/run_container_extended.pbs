@@ -2,7 +2,7 @@
 # ssign EXTENDED-tier CONTAINER validation PBS script (self-contained image).
 #
 # Runs ONE genome through the Singularity/Apptainer image (.sif) at extended
-# tier. As of the ssign_v4.sif image, the free toolchain is BAKED: Bakta 1.12.0
+# tier. As of the ssign_v5.sif image, the free toolchain is BAKED: Bakta 1.12.0
 # + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR, AMRFinderPlus,
 # DIAMOND, real HMMER, BLAST+ 2.17), EggNOG's emapper.py, AND DeepLocPro + its
 # ESM2 backbone. So this script mounts ONLY what genuinely can't be baked:
@@ -17,7 +17,7 @@
 # small"). Submit with a SHORT, SINGLE-LINE qsub passing only -v (a multi-line
 # qsub gets its -l line swallowed by terminal auto-indent on paste, which drops
 # gpu_type and wedges the job):
-#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v4.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
+#   qsub -v GENOME=$HOME/xantho_gbff/GCF_000.gbff,SIF=$EPHEMERAL/ssign_v5.sif ~/blastp_t5a/ssign/scripts/cx3/run_container_extended.pbs
 #
 # Pick GENOME as a real annotated genome that yields >=1 substrate: the minimal
 # T5aSS fixture localizes 0 substrates on CX3's DeepLocPro, which would leave the
@@ -33,7 +33,7 @@
 set -eo pipefail
 
 : "${GENOME:?Pass via -v GENOME=/abs/path/genome.gbff}"
-: "${SIF:=$EPHEMERAL/ssign_v4.sif}"
+: "${SIF:=$EPHEMERAL/ssign_v5.sif}"
 : "${TIER:=extended}"
 test -f "$GENOME" || { echo "FATAL: genome not found: $GENOME"; exit 1; }
 test -f "$SIF"    || { echo "FATAL: image not found: $SIF"; exit 1; }
@@ -66,6 +66,13 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 [ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
 [ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
+
+# RAM budget: under --containall ssign cannot see the PBS mem allocation (no qstat;
+# CX3 does not cgroup-enforce), so effective_ram_gb reads the whole physical node
+# and over-sizes tool heaps / EggNOG --dbmem -> OOM. Pin it to this job's mem, less
+# a little headroom. Keep MEM_GB in sync with the mem= in the #PBS -l select above.
+MEM_GB=64
+export APPTAINERENV_SSIGN_MAX_RAM_GB="${SSIGN_MAX_RAM_GB:-$((MEM_GB - 4))}"
 
 # --- bind mounts ------------------------------------------------------------
 # $DBROOT is rw (no :ro): InterProScan's launcher writes scratch under its own

@@ -8,7 +8,7 @@
 #
 # Usage (on CX3, from the repo dir ~/blastp_t5a/ssign):
 #   bash scripts/cx3/submit_container.sh $HOME/xantho_gbff/GCF_000.gbff
-#   bash scripts/cx3/submit_container.sh --sif $EPHEMERAL/ssign_v4.sif --tier extended GENOME.gbff
+#   bash scripts/cx3/submit_container.sh --sif $EPHEMERAL/ssign_v5.sif --tier extended GENOME.gbff
 #   bash scripts/cx3/submit_container.sh --dry-run GENOME.gbff     # print the qsub, do not submit
 #
 # The genome path MUST be absolute (the PBS input check runs before any cd on the
@@ -26,7 +26,7 @@ WALLTIME="06:00:00"
 NCPUS="32"
 MEM="64gb"
 TIER="extended"
-SIF="${SIF:-${EPHEMERAL:-$HOME/ephemeral}/ssign_v4.sif}"
+SIF="${SIF:-${EPHEMERAL:-$HOME/ephemeral}/ssign_v5.sif}"
 DRY="0"
 
 while [[ "$#" -gt 0 ]]; do
