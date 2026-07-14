@@ -53,9 +53,13 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # ncbi-blast+ is intentionally NOT installed here: the baked bakta env below
     # ships BLAST+ 2.17 (the version Bakta 1.12.0 requires), which also serves the
     # BLASTp annotation step. The old apt blast (2.12, 2022) was too stale for Bakta.
+    # rsync: the DB-staging helper (ssign_lib/resources.py) rsyncs network-mounted
+    # DB trees (InterProScan member DBs, pLM-BLAST ECOD, Bakta, HH-suite) to fast
+    # node-local SSD before use. Without it, staging silently skips and tools run
+    # off the network mount, InterProScan then SIGBUS-crashes on mmap over RDS/NFS.
     apt-get update && apt-get install -y --no-install-recommends \
         python3.10 python3.10-venv python3-pip python3-dev build-essential \
-        wget tar unzip bzip2 git ca-certificates libgomp1 \
+        wget tar unzip bzip2 git ca-certificates libgomp1 rsync \
         openjdk-11-jre-headless \
         && rm -rf /var/lib/apt/lists/*
 

@@ -339,12 +339,22 @@ def run_emapper(
     )
 
     logger.info(f"Running EggNOG-mapper: emapper.py -i {proteins_fasta} -o {sample_id} --cpu {threads}")
+    # emapper.py shells out to `diamond` via PATH. Force it to use the DIAMOND that
+    # ships in emapper's OWN environment (the version its emapperdb `.dmnd` was built
+    # against): resolve emapper.py and prepend its bin dir for this subprocess only.
+    # Without this, a different diamond earlier on PATH (e.g. the container's baked
+    # bakta env) can be incompatible with the `.dmnd` and emapper exits 1.
+    env = os.environ.copy()
+    emapper_path = shutil.which("emapper.py")
+    if emapper_path:
+        emapper_bin = os.path.dirname(os.path.realpath(emapper_path))
+        env["PATH"] = emapper_bin + os.pathsep + env.get("PATH", "")
     # FRAGILE: subprocess call requires `emapper.py` on PATH.
     # Eggnog-mapper is not in the ssign[extended] extras: its hard pin
     # biopython==1.76 conflicts with bakta>=1.78. Users install it
     # separately. See docs/how-to/install.md § EggNOG-mapper.
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     except FileNotFoundError as e:
         raise RuntimeError(
             f"emapper.py binary not found: {e}\n"
