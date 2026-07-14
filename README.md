@@ -68,12 +68,14 @@ apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign
 # 3. Install SignalP 6, the only licence-gated tool (register + download once, then:)
 scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
 
-# 4. Run
+# 4. Run  (on HPC add --max-ram <job RAM GB> and --stage-image)
 scripts/ssign-run genome.gbff out --tier extended \
   --db-root /data/ssign-databases --signalp-env ~/.conda/envs/signalp6
 ```
 
-Omit step 3 to run without signal-peptide calls, or add `--signalp-mode remote`
+On a scheduler that hides the job's RAM from the container (e.g. PBS), pass
+`--max-ram <GB>` so ssign sizes tool memory to your allocation, not the whole
+node. Omit step 3 to run without signal-peptide calls, or add `--signalp-mode remote`
 to use the DTU webserver (this uploads your sequences). The image is for
 **non-commercial** research use (it bundles DeepLocPro, CC BY-NC-SA, and
 EggNOG-mapper, AGPL). Per-tier database mounts and HPC usage:
