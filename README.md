@@ -72,8 +72,8 @@ apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign
 # 3. Install SignalP 6, the only licence-gated tool (register + download once, then:)
 scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
 
-# 4. Run  (on HPC add --max-ram <job RAM GB> and --stage-image)
-scripts/ssign-run genome.gbff out --tier extended \
+# 4. Run  (--sif = your image path; on HPC add --max-ram <job RAM GB> and --stage-image)
+scripts/ssign-run genome.gbff out --tier extended --sif ssign.sif \
   --db-root /data/ssign-databases --signalp-env ~/.conda/envs/signalp6
 ```
 

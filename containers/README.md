@@ -41,11 +41,14 @@ scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
 
 # 3. Run
 scripts/ssign-run genome.gbff out --tier extended \
+  --sif ssign.sif \
   --db-root /data/ssign-databases \
   --signalp-env ~/.conda/envs/signalp6 \
   --max-ram 60
 ```
 
+- `--sif` is your image path (default `./ssign.sif`); or `export SSIGN_SIF=/path/to/ssign.sif`
+  once instead of passing the flag each run.
 - `--signalp-env` is auto-detected from your conda envs after step 2, so the flag
   is only needed to override it.
 - `--max-ram GB`: pass your job's RAM on schedulers that hide the allocation from
