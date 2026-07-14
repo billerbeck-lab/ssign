@@ -102,22 +102,6 @@ land.
 apptainer run --writable-tmpfs --containall "$SSIGN_SIF" doctor --tier extended
 ```
 
-## Getting the image
-
-The `.sif` is a single file, roughly 13-20 GB. Ways to get it onto a cluster,
-simplest first:
-
-- **A shared link** (OneDrive, Google Drive, Dropbox, or a large-file service such
-  as WeTransfer Pro / Smash / Filemail). Upload the `.sif` once, share the link; the
-  recipient downloads it onto their cluster, browser then `scp`, or directly on the
-  cluster with `wget`/`gdown`/`rclone` if it has outbound internet. (Institutional
-  OneDrive usually has room for 20 GB; a free Google Drive is only 15 GB total.)
-- **Globus** for HPC-to-HPC: the standard for large research-data transfers, and most
-  university clusters have a Globus endpoint. Reliable and resumable.
-- **Build it** from the repo (`containers/build_sif.sh`): no transfer, fully
-  reproducible; needs ~1 hour and internet on the build machine.
-- **Zenodo** (after release): a public download link / DOI anyone can `wget`.
-
 ## Tiers
 
 Same image every tier; the tier is the database set you fetch plus `--tier`.
