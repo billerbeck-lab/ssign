@@ -25,8 +25,11 @@ Three commands once you have the image. `ssign-run` and `ssign-setup-dtu` live i
 `scripts/` in the repo, and inside the image at `/opt/ssign/scripts/`.
 
 ```bash
-# 0. Get the image (release: apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0)
-#    until then, build it once (see "Build" below) -> ssign.sif
+# 0. Get the launcher scripts + the image. The scripts wrap apptainer, so pip does
+#    not install them; git clone gives you scripts/ (and the docs):
+git clone https://github.com/billerbeck-lab/ssign && cd ssign
+#    Image: apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0 (at release),
+#    or build once (see "Build" below) -> ssign.sif
 
 # 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB extended)
 apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign-databases \

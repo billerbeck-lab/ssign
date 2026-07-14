@@ -58,6 +58,10 @@ calls) the DTU-licensed SignalP 6. DeepLocPro is baked in; SignalP is the only
 predictor you install yourself.
 
 ```bash
+# 0. Get the launcher scripts (ssign-run / ssign-setup-dtu wrap apptainer, so pip
+#    does not put them on PATH; they live in scripts/):
+git clone https://github.com/billerbeck-lab/ssign && cd ssign
+
 # 1. Get the image  (at release: apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0)
 #    until then, build it once:  containers/build_sif.sh
 
