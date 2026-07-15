@@ -23,7 +23,7 @@
 ## 3. Docs
 
 - [x] 3.1 CLAUDE.md critical bug-fix #6 rewritten: the T5 substrate gate (DLP-or-SignalP-Sec), enforced in system_filtering, Sec-only, and the note that it was previously inert.
-- [ ] 3.2 `docs/reference/output_files.md`: note that a T5 component needs DeepLocPro localization or a Sec signal peptide to be reported.
+- [x] 3.2 `docs/reference/output_files.md`: note that a T5 component needs DeepLocPro localization or a Sec signal peptide to be reported. (Already present at the "T5SS substrates" callout, lines 55-59; verified accurate.)
 
 ## 4. Validation
 
