@@ -1,8 +1,10 @@
 #!/bin/bash
-# ssign EXTENDED-tier CONTAINER validation PBS script (self-contained image).
+# ssign CONTAINER validation PBS script (self-contained image), extended OR full.
 #
-# Runs ONE genome through the Singularity/Apptainer image (.sif) at extended
-# tier. As of the ssign_v5.sif image, the free toolchain is BAKED: Bakta 1.12.0
+# Runs ONE genome through the Singularity/Apptainer image (.sif) at the tier set
+# by TIER (default extended; pass TIER=full for the full annotation panel, which
+# additionally uses the host-mounted HH-suite DBs wired below — bump --walltime to
+# 24h for full). As of the ssign_v7.sif image, the free toolchain is BAKED: Bakta 1.12.0
 # + its binary deps (tRNAscan-SE, aragorn, INFERNAL, PilerCR, AMRFinderPlus,
 # DIAMOND, real HMMER, BLAST+ 2.17), EggNOG's emapper.py, AND DeepLocPro + its
 # ESM2 backbone. So this script mounts ONLY what genuinely can't be baked:
@@ -33,7 +35,7 @@
 set -eo pipefail
 
 : "${GENOME:?Pass via -v GENOME=/abs/path/genome.gbff}"
-: "${SIF:=$EPHEMERAL/ssign_v5.sif}"
+: "${SIF:=$EPHEMERAL/ssign_v7.sif}"
 : "${TIER:=extended}"
 test -f "$GENOME" || { echo "FATAL: genome not found: $GENOME"; exit 1; }
 test -f "$SIF"    || { echo "FATAL: image not found: $SIF"; exit 1; }
@@ -66,6 +68,11 @@ _IPS=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true
 [ -n "$_ECOD" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ECOD"
 [ -n "$_IPS" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_IPS"
 [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
+# Full tier only: HH-suite DBs (hhsearch/hhblits are baked; their ~340 GB DBs are
+# host-mounted). Guarded so extended runs (no HH-suite) don't require them.
+[ -d "$DBROOT/hhsuite/pfam" ]     && export APPTAINERENV_SSIGN_HHSUITE_PFAM="$DBROOT/hhsuite/pfam"
+[ -d "$DBROOT/hhsuite/pdb70" ]    && export APPTAINERENV_SSIGN_HHSUITE_PDB70="$DBROOT/hhsuite/pdb70"
+[ -d "$DBROOT/hhsuite/uniref30" ] && export APPTAINERENV_SSIGN_HHSUITE_UNICLUST="$DBROOT/hhsuite/uniref30"
 
 # RAM budget: under --containall ssign cannot see the PBS mem allocation (no qstat;
 # CX3 does not cgroup-enforce), so effective_ram_gb reads the whole physical node
