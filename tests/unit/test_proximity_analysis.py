@@ -375,7 +375,7 @@ class TestToolAttribution:
         assert len(rows) == 1
         assert rows[0]["tool"] == "DLP+DSE"
 
-    def test_both_tools_fire(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
+    def test_both_tools_fire_order_independent(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
         rows_pred = [
             make_prediction_row(
                 locus,

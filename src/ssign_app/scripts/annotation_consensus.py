@@ -50,16 +50,20 @@ HYPOTHETICAL = "Hypothetical"  # the sole scoring floor (see _FLOORS)
 CATEGORY_PATTERNS = [
     (
         "Phage/mobile element",
-        r"\bphage\b|prophage|\bintegrase\b|transposase|insertion sequence|capsid|tail fib|terminase|mobile element|conjugativ",
+        r"\bphage\b|prophage|\bintegrase\b|transposase|insertion sequence"
+        r"|capsid|tail fib|terminase|mobile element|conjugativ",
     ),
     # translocator/apparatus context BEFORE the toxin rules: "haemolysin secretion protein" is machinery, not a toxin
     (
         "__APPARATUS__",
-        r"(ha?emolysin|leukotoxin|filamentous.?ha?emagglutinin).{0,25}(secretion|activation|transport|export)|\bshlb\b|\bfhac\b|\bhecb\b|\btpsb\b|two.?partner.*(transport|secretion protein)|patatin.?like.*secretion",
+        r"(ha?emolysin|leukotoxin|filamentous.?ha?emagglutinin).{0,25}(secretion|activation|transport|export)"
+        r"|\bshlb\b|\bfhac\b|\bhecb\b|\btpsb\b|two.?partner.*(transport|secretion protein)"
+        r"|patatin.?like.*secretion",
     ),
     (
         "Peptidoglycan hydrolase",
-        r"amidase|muramidase|glucosaminidase|lytic transglycosylase|murein.*hydrolase|peptidoglycan.*(hydrolase|amidase)|n-acetylmuram|\btae\d|\btge\d",
+        r"amidase|muramidase|glucosaminidase|lytic transglycosylase|murein.*hydrolase"
+        r"|peptidoglycan.*(hydrolase|amidase)|n-acetylmuram|\btae\d|\btge\d",
     ),
     ("ADP-ribosyltransferase", r"adp.?ribosyl|mono.?adp|\bmartx\b|nad.*glycohydrolase|\bnadase\b|tox-art"),
     ("Glycosyltransferase", r"glycosyltransferase|glcnac|glucosyltransferase|arginine.?glcnac|\bnleb\b"),

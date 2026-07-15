@@ -129,7 +129,7 @@ def ss_type_palette(types) -> dict:
     fallback colours assigned in sorted order (so a given input always yields the
     same mapping).
     """
-    palette: dict[str, str] = {}
+    palette: dict[str, str | tuple[float, ...]] = {}
     unknown: list[str] = []
     for t in types:
         base = display_type(_split_base(t))  # strip self/hitch, collapse pT4SSt/T6SSi.. -> parent

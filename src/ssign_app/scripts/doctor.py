@@ -108,7 +108,7 @@ def check_external_binary(b: ExternalBinary, db_root: str = "") -> CheckResult:
     # somewhere, then points an env var at the install dir. Honour that
     # so doctor doesn't false-flag the binary as missing.
     if b.install_dir_env:
-        install_dir = os.environ.get(b.install_dir_env, "").strip()
+        install_dir: str | None = os.environ.get(b.install_dir_env, "").strip()
         if install_dir:
             candidate = os.path.join(install_dir, b.binary)
             if os.path.isfile(candidate) and os.access(candidate, os.X_OK):

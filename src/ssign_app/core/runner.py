@@ -3038,8 +3038,8 @@ class PipelineRunner:
             "fig_physicochemical": "--no-physicochemical",
             "fig_func_summary": "--no-func-summary",
         }
-        for field, flag in toggles.items():
-            if not getattr(self.config, field):
+        for fld, flag in toggles.items():
+            if not getattr(self.config, fld):
                 fig_args.append(flag)
 
         rc, stdout, stderr = run_script("generate_figures.py", fig_args)

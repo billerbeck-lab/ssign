@@ -111,7 +111,7 @@ def main():
     # bar) and only the tool(s) this figure plots. Autotransporters (T5a/c) carry
     # two modes (self + hitchhiker window), each its own x-group.
     by_key = {}
-    col_modes = {}  # ss_type -> set of modes present
+    col_modes: dict[str, set[str]] = {}  # ss_type -> set of modes present
     for r in rows:
         if str(r.get("observed", "")).strip() == "" or r.get("tool") not in tools:
             continue

@@ -42,6 +42,7 @@ import os as _os
 import re
 import sys as _sys
 from collections import defaultdict
+from typing import cast
 
 import numpy as np
 
@@ -142,7 +143,7 @@ def is_signalp_positive(row: dict) -> bool:
     autotransporter self-detection modes; SignalP positivity is the same vector
     either way (the mask differs, not the call).
     """
-    return is_sec_signal_peptide(row.get("signalp_prediction", ""))
+    return cast(bool, is_sec_signal_peptide(row.get("signalp_prediction", "")))
 
 
 def is_dlp_self_positive(row: dict, conf: float) -> bool:
@@ -162,7 +163,7 @@ def is_dlp_self_positive(row: dict, conf: float) -> bool:
 
 def load_predictions_keyed(path: str) -> dict:
     """Read a tool-output TSV indexed by locus_tag."""
-    return load_tsv_by_key(path, key_columns=("locus_tag",))
+    return cast(dict, load_tsv_by_key(path, key_columns=("locus_tag",)))
 
 
 def load_systems(ss_components_path: str):
@@ -222,7 +223,7 @@ def bh_fdr_by_family(rows: list) -> None:
 def gene_order_flat(gene_order_path: str) -> list:
     """Flat list of locus_tags in circular gene order (contig-then-position)."""
     contigs = load_gene_order(gene_order_path)  # {contig: [(pos, locus), ...]} pre-sorted
-    order = []
+    order: list[str] = []
     for contig in sorted(contigs):
         order.extend(locus for _pos, locus in contigs[contig])
     return order

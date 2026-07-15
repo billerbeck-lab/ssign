@@ -132,7 +132,8 @@ def _autodetect_dbmem() -> bool:
     """
     from ssign_lib.resources import parallel_share_ram_gb
 
-    return parallel_share_ram_gb() >= _EGGNOG_DBMEM_MIN_GB
+    share_gb: float = parallel_share_ram_gb()
+    return share_gb >= _EGGNOG_DBMEM_MIN_GB
 
 
 def _autodetect_block_size(dbmem: bool) -> int:

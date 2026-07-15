@@ -45,7 +45,7 @@ def install_torch_submodule_stubs() -> list[str]:
     Returns an empty list when the host torch already ships both
     submodules (the common case on standard pip wheels).
     """
-    stubbed = []
+    stubbed: list[str] = []
     try:
         __import__("torch")
     except (ImportError, ModuleNotFoundError):

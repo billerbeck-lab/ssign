@@ -530,7 +530,8 @@ def main():
     parser.add_argument(
         "--batch-size",
         default="auto",
-        help="Inference batch size. 'auto' (default) picks from GPU VRAM (1 on CPU/no-GPU); a CUDA OOM halves it back toward 1.",
+        help="Inference batch size. 'auto' (default) picks from GPU VRAM "
+        "(1 on CPU/no-GPU); a CUDA OOM halves it back toward 1.",
     )
     args = parser.parse_args()
 

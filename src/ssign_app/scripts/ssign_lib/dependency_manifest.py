@@ -20,7 +20,7 @@ from __future__ import annotations
 import glob
 import os
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal, Optional, cast
 
 Tier = Literal["base", "extended", "full"]
 
@@ -386,19 +386,19 @@ def _filter_by_tier(items, tier: Tier):
 
 
 def deps_for_tier(tier: Tier) -> tuple[PythonDep, ...]:
-    return _filter_by_tier(PYTHON_DEPS, tier)
+    return cast("tuple[PythonDep, ...]", _filter_by_tier(PYTHON_DEPS, tier))
 
 
 def binaries_for_tier(tier: Tier) -> tuple[ExternalBinary, ...]:
-    return _filter_by_tier(EXTERNAL_BINARIES, tier)
+    return cast("tuple[ExternalBinary, ...]", _filter_by_tier(EXTERNAL_BINARIES, tier))
 
 
 def databases_for_tier(tier: Tier) -> tuple[DatabasePath, ...]:
-    return _filter_by_tier(DATABASE_PATHS, tier)
+    return cast("tuple[DatabasePath, ...]", _filter_by_tier(DATABASE_PATHS, tier))
 
 
 def weights_for_tier(tier: Tier) -> tuple[ModelWeights, ...]:
-    return _filter_by_tier(MODEL_WEIGHTS, tier)
+    return cast("tuple[ModelWeights, ...]", _filter_by_tier(MODEL_WEIGHTS, tier))
 
 
 def find_db_by_env_var(env_var: str) -> Optional[DatabasePath]:

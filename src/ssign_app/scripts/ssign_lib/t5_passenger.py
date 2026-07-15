@@ -130,7 +130,7 @@ def build_passenger_substituted_fasta(
     sequences = read_fasta(proteins_fasta)
     classifications = load_t5_classifications(classifications_tsv)
 
-    routing: dict[str, str] = {}
+    routing: dict[str, AnnotationSource] = {}
     out_sequences: dict[str, str] = {}
     fallback_quality = 0
     fallback_short = 0
@@ -141,6 +141,8 @@ def build_passenger_substituted_fasta(
         decision = _routing_decision(locus, classification, min_passenger_length)
 
         if decision == PASSENGER:
+            # _routing_decision only returns PASSENGER when classification is present.
+            assert classification is not None
             passenger_seq = _passenger_slice(
                 seq,
                 classification["sp_end"],

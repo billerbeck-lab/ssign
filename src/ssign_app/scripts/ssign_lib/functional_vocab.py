@@ -145,7 +145,7 @@ def kegg_ko_name(ko_id: str) -> str:
     KEGG definitions read "gene1, gene2; function name [EC:...]"; drop the leading
     gene-symbol list and the trailing EC bracket so the label is the function.
     """
-    defn = _kegg_ko_names().get(ko_id.strip().upper())
+    defn: str | None = _kegg_ko_names().get(ko_id.strip().upper())
     if not defn:
         return ko_id
     name = defn.split(";", 1)[1].strip() if ";" in defn else defn

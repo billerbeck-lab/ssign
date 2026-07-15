@@ -5,6 +5,7 @@ actual fits the runner will use.
 """
 
 import math
+
 import pytest
 
 from ssign_app.runtime.effort_model import effort, load_coefficients, resolve_regime

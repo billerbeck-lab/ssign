@@ -537,7 +537,8 @@ def main() -> int:
         "--timeout",
         type=int,
         default=PLMBLAST_TIMEOUT_S,
-        help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the pLM-BLAST 24h floor)",
+        help="Subprocess timeout in seconds (the runner passes a size-scaled "
+        "value; default is the pLM-BLAST 24h floor)",
     )
     args = parser.parse_args()
 
