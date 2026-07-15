@@ -1,12 +1,13 @@
 # Running ssign on an HPC cluster
 
 For users with an HPC account who want to run ssign on more than a handful
-of genomes. Verified path: pip install in a venv, fetch databases to
-scratch, submit a SLURM or PBS job that calls `ssign run`.
+of genomes.
 
-A Singularity container path is planned with v1.0.0's Docker image and
-will be added to this page when the image lands; for now use the pip
-path.
+The **recommended** HPC path is the self-contained Apptainer/Singularity image,
+see [`install_container.md`](install_container.md) (its "On HPC" section covers the
+PBS/Singularity wrapper). This page documents the **native pip** alternative: pip
+install in a venv, fetch databases to scratch, submit a SLURM or PBS job that calls
+`ssign run`. Use it when you can't or don't want to use the container.
 
 ## Overview: what is different on a cluster
 
@@ -71,13 +72,9 @@ bash $(python -c "import ssign_app, os; print(os.path.dirname(ssign_app.__file__
     --target $SSIGN_DBS
 ```
 
-Disk usage by tier (approximate):
-
-| Tier | Disk | Time to fetch |
-|---|---|---|
-| `base` | 17 GB | 15-30 min |
-| `extended` | 130 GB | 1-3 h |
-| `full` | 630 GB | 6-12 h |
+Disk sizes per tier are in [`install.md`](install.md#database-tier-sizes)
+(~4 / ~100 / ~500 GB for base / extended / full). Rough fetch time on a fast
+cluster link: base 15-30 min, extended 1-3 h, full 6-12 h.
 
 The fetcher prints a list of `export SSIGN_*` lines at the end; copy them
 into your shell rc file or your job script so the database paths are set
@@ -296,18 +293,11 @@ ssign run $GENOME \
 `genomes.txt` is a flat file with one input path per line. SLURM will
 schedule them in parallel up to your queue's array limit.
 
-## 7. When the Docker image lands
+## 7. Container path (recommended)
 
-v1.0.0 will publish a SHA-pinned Docker image to the GitHub Container
-Registry that bundles every Python dependency. On a cluster with
-Singularity (the standard HPC container runtime):
-
-```bash
-# Pre-v1.0.0: this section is a stub. The path lights up when the image
-# is built and tagged on Docker Hub / GHCR.
-singularity pull docker://billerbeck-lab/ssign:1.0.0
-singularity run --bind $SCRATCH/ssign-databases:/data ssign_1.0.0.sif \
-    run /path/to/genome.gbff --outdir /scratch/out
-```
-
-The Singularity path will be filled in once the image is published.
+The self-contained Apptainer/Singularity image is the recommended way to run on a
+cluster: no pip install, no host toolchain, every dependency baked in. It is fully
+documented in [`install_container.md`](install_container.md), including the "On HPC"
+section (copy the `.sif` up, `fetch-databases` once, `ssign-run` per job) and the
+ready PBS wrapper `scripts/cx3/run_container_extended.pbs`. Use the native pip path
+on this page only if the container doesn't fit your cluster.
