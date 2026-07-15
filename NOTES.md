@@ -1870,6 +1870,24 @@ itself; native users' tools auto-download). NOTE: scripts/README.md was already
 edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
 default-path reading), so resolve the script to match or re-edit the README.
 
+## 2026-07-15: #8 DECIDED — DeepSecE stays unconditionally distrusted for T3SS
+
+Teo's call, data-backed: because of the flagellar miscalls we cannot trust
+DeepSecE for T3SS, and a proximity-gated exception doesn't earn its keep either.
+Evidence from `actual_per_effector.panel_genbank_t3ss.tsv` (223 in-input T3SS
+gold effectors, 47 reachable within ±3 of a validated injectisome):
+- DeepSecE-T3SS recall in-proximity = **17% (8/47)**; DeepLocPro = 15% (7/47);
+  DLP-or-DSE = 19% (9/47), i.e. DSE adds only **2** effectors beyond DLP.
+- Of the 40 reachable-but-missed effectors, DSE flagged only 2 as T3SS (0 near a
+  validated injectisome). So un-gating recovers ~0 while re-admitting the
+  ~1,800-call genome-scale flagellar FP flood (0 injectisomes validated across 74).
+- **Root cause of the low T3SS recall is predictor sensitivity, not DSE trust:**
+  T3SS effectors are injected / Sec-independent, so DLP/DSE/SignalP barely see
+  them (~15-19% even in-window). That gap is a separate, deeper thread
+  (effector-recovery-benchmark), NOT fixable by changing DeepSecE T3SS gating.
+Recorded in `cross_validate_predictions._dse_flag` docstring. Do not re-open
+without new evidence that DSE distinguishes injectisome from flagellar T3SS.
+
 ## 2026-07-15: coefficients.json packaging bug (ETA + timeout-scaling dead in installs)
 
 Teo spotted no ETA lines in the v7 interactive CX3 run. Root cause: `runtime/
