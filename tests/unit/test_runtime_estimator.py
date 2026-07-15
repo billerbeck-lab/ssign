@@ -204,3 +204,50 @@ def test_observed_step_uses_actual_not_projection():
     est.observe(0, "macsyfinder", "fixed", 4000, 999.0)  # absurd actual
     r = est.eta([[Step("macsyfinder", "fixed", 4000)]])
     assert r.total_s == 999.0  # the completed step contributes its real wall-clock
+
+
+# --- t=0 resource prior ---------------------------------------------------
+
+from ssign_app.runtime.machine import MachineProfile  # noqa: E402
+
+COEFFS_REF = {
+    **COEFFS,
+    "_meta": {**COEFFS["_meta"], "reference_profile": {"cpu_cores": 24, "gpu": "A40", "gpu_vram_gb": 48}},
+}
+
+
+def test_prior_rate_scales_projection_before_any_observation():
+    # A seeded gpu prior of 2.0 halves the reference-machine projection at t=0,
+    # but is NOT reported as an inferred rate and keeps the wide machine CI.
+    est = Estimator(COEFFS, prior_rates={"gpu": 2.0})
+    r = est.eta([[Step("deeplocpro", "neighborhood", 200)]])  # effort 250
+    assert r.total_s == 125.0  # 250 / 2.0
+    assert r.rates == {}  # prior is not a learned rate
+    assert r.rel_uncertainty > 0.3  # still wide until a real observation lands
+
+
+def test_observation_overrides_prior():
+    est = Estimator(COEFFS, prior_rates={"gpu": 2.0})
+    plan = [[Step("deeplocpro", "neighborhood", 200)], [Step("signalp", "neighborhood", 200)]]
+    est.observe(0, "deeplocpro", "neighborhood", 200, 62.5)  # effort 250 / 62.5 = rate 4.0
+    r = est.eta(plan)
+    # signalp (also gpu) now projects with the inferred 4.0, not the 2.0 prior.
+    sp_effort = 0.4 * 200 + 46.0  # 126
+    assert r.rates["gpu"] == 4.0
+    # stage 0 observed (62.5) + stage 1 projected at rate 4.0
+    assert r.total_s == 62.5 + sp_effort / 4.0
+
+
+def test_from_profile_slow_machine_widens_prior_eta():
+    # 12-core, no-GPU laptop vs the 24-core A40 reference: cpu prior 0.707, gpu 0.02.
+    est = Estimator.from_profile(COEFFS_REF, current=MachineProfile(12, None, None))
+    cpu_eta = est.eta([[Step("macsyfinder", "fixed", 4000)]]).total_s  # effort 100
+    assert cpu_eta == 100.0 / (12 / 24) ** 0.5  # slower than the reference 100 s
+    gpu_eta = est.eta([[Step("deeplocpro", "neighborhood", 200)]]).total_s  # effort 250
+    assert gpu_eta == 250.0 / 0.02  # CPU-fallback penalty -> far slower
+
+
+def test_from_profile_no_reference_profile_is_parity():
+    # COEFFS lacks _meta.reference_profile -> prior is parity, same as bare Estimator.
+    est = Estimator.from_profile(COEFFS, current=MachineProfile(12, None, None))
+    assert est.eta([[Step("macsyfinder", "fixed", 4000)]]).total_s == 100.0

@@ -5,6 +5,7 @@ actual fits the runner will use.
 """
 
 import math
+import pytest
 
 from ssign_app.runtime.effort_model import effort, load_coefficients, resolve_regime
 from ssign_app.runtime.timeouts import (
@@ -115,3 +116,32 @@ def test_unmodeled_tool_protected_by_floor():
 
 def test_returns_int():
     assert isinstance(scaled_timeout("deeplocpro", 160_831, "whole_genome"), int)
+
+
+def test_machine_rate_slow_widens_timeout():
+    # A machine at half the reference GPU rate (0.5) should roughly double the
+    # cap above what the reference estimate alone would give, when both clear the floor.
+    n = 160_831
+    ref = scaled_timeout("deeplocpro", n, "whole_genome")
+    slow = scaled_timeout("deeplocpro", n, "whole_genome", machine_rate=0.5)
+    assert slow > ref
+    assert slow == pytest.approx(2 * ref, rel=0.01)
+
+
+def test_machine_rate_fast_never_below_floor():
+    # A fast machine (rate 4) shrinks the raw prediction, but the floor still
+    # backstops it so a still-running tool can't be false-killed.
+    out = scaled_timeout("deeplocpro", 160_831, "whole_genome", machine_rate=4.0)
+    assert out >= TOOL_TIMEOUT_S
+
+
+def test_machine_rate_none_is_unchanged():
+    n = 160_831
+    assert scaled_timeout("deeplocpro", n, "whole_genome") == scaled_timeout(
+        "deeplocpro", n, "whole_genome", machine_rate=None
+    )
+
+
+def test_machine_rate_ignored_for_unmodeled_tool():
+    # No fit -> floor, regardless of any machine rate.
+    assert scaled_timeout("plm_effector", 160_831, "whole_genome", machine_rate=0.1) == TOOL_TIMEOUT_S

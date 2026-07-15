@@ -743,6 +743,13 @@ class PipelineRunner:
         self.work_dir = ""
         self.files = {}  # Track intermediate file paths
         self.start_time: float | None = None
+        # Live runtime ETA (informational). Built lazily in _execute_stages;
+        # None disables all ETA reporting so a run never depends on it.
+        self._estimator = None
+        self._eta_stage_ids: list[list[str]] = []
+        self._eta_prior_shown = False
+        self._fasta_counts: dict[str, int] = {}
+        self._substrate_counts: dict[str, int] = {}
         # Lazily set in run() if monitor_resources is on. Initialised here
         # so callers that drive _execute_stages directly (MultiGenomeRunner)
         # don't AttributeError on the `if self._sampler is not None` checks
@@ -1087,9 +1094,25 @@ class PipelineRunner:
         step_counter = 0
         any_step_ran = False  # Track if any step ran (for forcing downstream re-runs)
 
+        # Live ETA (informational): build the estimator once and capture the
+        # step-ids of THESE stages so plan stage indices line up with the loop
+        # below. Only for a top-level single-genome run() (which sets start_time);
+        # MultiGenomeRunner drives _execute_stages per segment without a start_time,
+        # where a per-segment estimator would re-pay the prior and never count down,
+        # so skip it there. Any failure leaves _estimator None and disables reporting.
+        self._estimator = None
+        if self.start_time is not None:
+            try:
+                from ssign_app.runtime import Estimator, load_coefficients
+
+                self._estimator = Estimator.from_profile(load_coefficients())
+                self._eta_stage_ids = self._stage_ids(stages)
+            except Exception:
+                self._estimator = None
+
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        for stage in stages:
+        for stage_idx, stage in enumerate(stages):
             # Normalize: single step becomes a one-element list
             if isinstance(stage, tuple):
                 stage_steps = [stage]
@@ -1178,6 +1201,8 @@ class PipelineRunner:
                             result.duration_s = time.monotonic() - t_step_start
                             with self._state_lock:
                                 self._record_result(result)
+                                if result.success:
+                                    self._eta_step(stage_idx, step_id, result.duration_s)
                             pct = int(100 * sc / total)
                             print(
                                 f"[ssign] [{self.config.sample_id}] Finished (parallel): {name} -> "
@@ -1231,6 +1256,8 @@ class PipelineRunner:
                         result = func()
                         result.duration_s = time.monotonic() - t_step
                         self._record_result(result)
+                        if result.success:
+                            self._eta_step(stage_idx, step_id, result.duration_s)
                         self._save_progress()
                         print(
                             f"[ssign] [{self.config.sample_id}] Finished step {sc}/{total}: "
@@ -1774,7 +1801,19 @@ class PipelineRunner:
         regime = resolve_regime(tool, whole_genome=whole_genome)
         if regime is None or size is None or size < 0:
             return floor
-        return scaled_timeout(tool, size, regime, floor=floor)
+        # Once a tool of this limiting factor has completed, size the kill-timeout
+        # to the machine's *observed* rate (not the coarse t=0 prior), so a slow
+        # box gets a proportionally longer cap. None -> raw reference estimate.
+        machine_rate = None
+        est = self._estimator
+        if est is not None:
+            try:
+                from ssign_app.runtime import limiting_factor
+
+                machine_rate = est.rate(limiting_factor(tool))
+            except Exception:
+                machine_rate = None
+        return scaled_timeout(tool, size, regime, floor=floor, machine_rate=machine_rate)
 
     def _substrate_count(self) -> int:
         """Number of filtered substrates staged for this runner (0 if none/unreadable).
@@ -1786,10 +1825,113 @@ class PipelineRunner:
         path = self.files.get("substrates_filtered", "")
         if not path:
             return 0
+        if path in self._substrate_counts:
+            return self._substrate_counts[path]  # write-once file; safe to memoise
         try:
-            return len(load_substrate_ids(path))
+            n = len(load_substrate_ids(path))
         except (OSError, ValueError):
-            return 0
+            n = 0
+        self._substrate_counts[path] = n
+        return n
+
+    # --- Live runtime ETA (informational; never allowed to break a run) -----
+
+    # Rough substrate:proteome ratio used to size annotation tools BEFORE the
+    # real substrate count is known (filtering runs ~2/3 through). Replaced by
+    # the measured count once filtering completes, so the ETA refines.
+    _SUBSTRATE_FRACTION_PRIOR = 0.02
+
+    @staticmethod
+    def _stage_ids(stages: list) -> list[list[str]]:
+        """Runner stages -> list of per-stage step-id lists (one inner list per stage)."""
+        out = []
+        for stage in stages:
+            steps = stage if isinstance(stage, list) else [stage]
+            out.append([func.__name__.replace("_step_", "") for _name, func in steps])
+        return out
+
+    def _count_fasta(self, path: str) -> int:
+        """Cached record count for a FASTA (reuses fasta_io.count_sequences), 0 if unreadable."""
+        if path in self._fasta_counts:
+            return self._fasta_counts[path]
+        try:
+            n = count_sequences(path)
+        except OSError:
+            n = 0
+        self._fasta_counts[path] = n
+        return n
+
+    def _whole_genome_tools(self) -> set[str]:
+        """Effort-tool names whose predictor runs whole-genome (the three flags are
+        independent; enrichment forces all three, but a user can set just one)."""
+        c = self.config
+        return {
+            tool
+            for tool, flag in (
+                ("deeplocpro", c.dlp_whole_genome),
+                ("deepsece", c.dse_whole_genome),
+                ("signalp", c.sp_whole_genome),
+            )
+            if flag
+        }
+
+    def _eta_sizes(self) -> dict[str, int]:
+        """Sizes known so far for the effort model: proteins / neighborhood / substrates."""
+        sizes: dict[str, int] = {}
+        p = self.files.get("proteins")
+        if p and (n := self._count_fasta(p)):
+            sizes["proteins"] = n
+        nb = self.files.get("neighborhood_proteins")
+        if nb and (n := self._count_fasta(nb)):
+            sizes["neighborhood"] = n
+        if "substrates_filtered" in self.files:
+            sizes["substrates"] = self._substrate_count()  # measured (may be 0)
+        elif "proteins" in sizes:
+            sizes["substrates"] = max(1, round(self._SUBSTRATE_FRACTION_PRIOR * sizes["proteins"]))
+        return sizes
+
+    def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> None:
+        """Feed one completed step's duration to the estimator, then print the ETA.
+
+        Fully defensive: any failure is swallowed. The ETA is a convenience, so a
+        bug here must never take down a real pipeline run.
+        """
+        est = self._estimator
+        if est is None:
+            return
+        try:
+            from ssign_app.runtime.run_eta import build_plan, step_to_plan
+
+            sizes = self._eta_sizes()
+            wg = self._whole_genome_tools()
+            step = step_to_plan(step_id, sizes, wg)
+            if step is not None and duration_s > 0:
+                est.observe(stage_idx, step.tool, step.regime, step.size, duration_s)
+
+            plan = build_plan(self._eta_stage_ids, sizes, wg)
+            res = est.eta(plan)
+            if res.total_s <= 0:
+                return
+            prior = "proteins" in sizes and not self._eta_prior_shown
+            elapsed = (time.monotonic() - self.start_time) if self.start_time else 0.0
+            # Prior line reports the whole-run total; later lines report time left.
+            display_s = res.total_s if prior else max(0.0, res.total_s - elapsed)
+            self._print_eta(display_s, res, prior=prior)
+            if "proteins" in sizes:
+                self._eta_prior_shown = True
+        except Exception:
+            pass  # informational only
+
+    def _print_eta(self, display_s: float, res, *, prior: bool) -> None:
+        approx = " (approx)" if res.n_unmodeled or res.rel_uncertainty > 0.4 else ""
+        rem_min = display_s / 60.0
+        label = "estimated total" if prior else "estimated remaining"
+        # A wide relative CI on the remaining time, floored so it reads sensibly.
+        band = res.rel_uncertainty
+        lo = max(0.0, rem_min * (1 - band))
+        hi = rem_min * (1 + band)
+        msg = f"[ssign] [{self.config.sample_id}] {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
+        print(msg, flush=True)
 
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")

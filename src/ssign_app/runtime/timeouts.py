@@ -50,6 +50,7 @@ def scaled_timeout(
     margin: float = DEFAULT_MARGIN,
     low_confidence_margin: float = LOW_CONFIDENCE_MARGIN,
     floor: int = TOOL_TIMEOUT_S,
+    machine_rate: float | None = None,
 ) -> int:
     """Subprocess timeout (seconds) for `tool` processing `size` items in `regime`.
 
@@ -57,9 +58,16 @@ def scaled_timeout(
     is the effort model's reference-machine estimate and `m` is `margin` for a
     well-calibrated fit or `low_confidence_margin` for a low-confidence one.
     Returns `floor` unchanged when the tool/regime has no fit.
+
+    `machine_rate` is the estimator's inferred rate for this tool's limiting
+    factor (>1 = this machine beats the reference, <1 = slower). When given, the
+    reference-machine estimate is divided by it before the margin, so a slow
+    machine gets a proportionally longer kill-timeout. Omitted (None) leaves the
+    raw reference estimate untouched, preserving the pre-estimator behaviour.
     """
     e = effort(tool, size, regime, _coefficients())
     if e is None:
         return int(floor)
+    predicted = e.seconds / machine_rate if machine_rate and machine_rate > 0 else e.seconds
     m = low_confidence_margin if e.low_confidence else margin
-    return int(max(floor, math.ceil(m * e.seconds)))
+    return int(max(floor, math.ceil(m * predicted)))

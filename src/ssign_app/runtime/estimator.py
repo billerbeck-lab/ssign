@@ -21,6 +21,7 @@ from collections import defaultdict
 from typing import NamedTuple
 
 from .effort_model import effort, limiting_factor
+from .machine import machine_profile, reference_profile, resource_ratio
 
 # Relative uncertainty of a fit with no measured LOO error (thin whole-genome regimes).
 U_THIN = 0.5
@@ -53,10 +54,24 @@ class EtaResult(NamedTuple):
 class Estimator:
     """Holds inferred machine rates and projects a plan's ETA from them."""
 
-    def __init__(self, coeffs: dict):
+    def __init__(self, coeffs: dict, prior_rates: dict[str, float] | None = None):
         self.coeffs = coeffs
+        # Coarse per-factor rate prior (from resource_ratio) used before any tool
+        # of that factor has completed. Overwritten by the inferred rate once one does.
+        self._prior_rates: dict[str, float] = dict(prior_rates or {})
         self._rate_samples: dict[str, list[float]] = defaultdict(list)
         self._actual: dict[tuple[int, str], float] = {}
+
+    @classmethod
+    def from_profile(cls, coeffs: dict, current=None) -> "Estimator":
+        """Build an estimator whose t=0 prior rates come from the current-vs-reference
+        resource ratio, so the first ETA is machine-adjusted even with no history.
+
+        ``current`` defaults to the detected `machine_profile()`; pass one to test.
+        """
+        cur = current if current is not None else machine_profile()
+        prior = resource_ratio(reference_profile(coeffs), cur)
+        return cls(coeffs, prior_rates=prior)
 
     def observe(self, stage_idx: int, tool: str, regime: str, size: int, wallclock: float) -> None:
         """Record a completed tool's real wall-clock and update its limiting-factor rate."""
@@ -67,9 +82,19 @@ class Estimator:
             self._rate_samples[limiting_factor(tool)].append(e.seconds / wallclock)
 
     def rate(self, factor: str | None) -> float | None:
-        """Mean inferred rate for a limiting factor (>1 = this machine beats the reference)."""
+        """Mean *inferred* rate for a limiting factor (observations only; None until
+        a tool of that factor completes). Excludes the prior so callers can see
+        exactly what has been learned."""
         samples = self._rate_samples.get(factor)
         return sum(samples) / len(samples) if samples else None
+
+    def _effective_rate(self, factor: str | None) -> tuple[float | None, bool]:
+        """(rate, is_observed): the inferred rate if any tool of this factor has
+        completed, else the t=0 prior, else (None, False) for a factor with no prior."""
+        observed = self.rate(factor)
+        if observed is not None:
+            return observed, True
+        return self._prior_rates.get(factor), False
 
     def rates(self) -> dict:
         return {f: self.rate(f) for f in self._rate_samples}
@@ -79,12 +104,13 @@ class Estimator:
         e = effort(step.tool, step.size, step.regime, self.coeffs)
         if e is None:
             return None
-        r = self.rate(limiting_factor(step.tool))
-        # Divide reference-machine effort by this machine's inferred rate (any r>0:
-        # r>1 faster than reference, r<1 slower). Until a rate is known, r is None -> use effort as-is.
+        r, is_observed = self._effective_rate(limiting_factor(step.tool))
+        # Divide reference-machine effort by this machine's rate (any r>0: r>1 faster
+        # than reference, r<1 slower). r is None only when no prior AND no observation.
         seconds = e.seconds / r if r else e.seconds
         u_eff = (e.loo_pct / 100.0) if e.loo_pct is not None else U_THIN
-        u_machine = 0.0 if r is not None else PRIOR_MACHINE_U
+        # An inferred rate carries no machine uncertainty; a prior (or no rate) does.
+        u_machine = 0.0 if is_observed else PRIOR_MACHINE_U
         return seconds, (u_eff**2 + u_machine**2) ** 0.5
 
     def eta(self, plan: Plan) -> EtaResult:

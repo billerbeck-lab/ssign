@@ -93,6 +93,14 @@ ssign will print step-by-step progress with percentages. DeepSecE is
 usually the slowest step on a CPU; DeepLocPro and SignalP take a few
 minutes each on a modern laptop when run locally.
 
+You'll also see a live runtime estimate, e.g.
+`estimated remaining ~42 min (range 28-61)`. The first estimate is a rough
+prior scaled from your machine's cores + GPU versus the calibration reference
+box, so it can be wide (and large on a CPU-only machine, where the neural-net
+predictors run ~50x slower); it sharpens after each tool finishes as ssign
+learns this machine's real speed. It is informational only and never affects
+the run.
+
 ### Quick taste without DTU tools
 
 If you have not installed SignalP and DeepLocPro locally yet and just
