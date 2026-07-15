@@ -1870,6 +1870,29 @@ itself; native users' tools auto-download). NOTE: scripts/README.md was already
 edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
 default-path reading), so resolve the script to match or re-edit the README.
 
+## 2026-07-15: v7 image built + validated; branches merged to main (DONE)
+
+**v7 container** (`~/ssign_v7.sif`, 19 GB) built with HH-suite baked (#35) +
+build-weight cache (#36). Offline smoke passed: base-tier `doctor` all green;
+full-tier binaries 7/8 (bakta/eggnog/hhsearch/hhblits/blastp 2.17/DeepLocPro
+resolve from the image; InterProScan the expected 1 FAIL, host-mounted by
+design). Model weights 1/1 (DeepSecE checkpoint only, ZERO PLM-E). DBs 0/8 FAIL
+= expected (mount at runtime). Only host-provided: SignalP (DTU) + IPS + DBs.
+NOT yet run: the CX3 parity proof at extended/full with only DB+DTU mounts
+(Teo-driven; expect 23/23). reproducible-install openspec still 17/22 (its
+5.10/rebuild + CX3-parity tasks); update after the CX3 run.
+
+**Branch merge (task #30 DONE).** Fast-forwarded `main` to the dev branch
+(`enrichment-circular-shift-per-run`) at 6e5c380, pushed main + dev to origin,
+deleted `pre-claude-purge` (local-only backup, 0 unique commits) + the remote
+`fix/ci-lint-mypy-test` (superseded: its one still-valuable piece, the complete
+pyhmmer mypy override with `follow_imports_for_stubs`, was ported into dev).
+Recovery SHAs if ever needed: old main da96c1f, pre-claude-purge 7469c90, fix
+374a7da. Before merging, made dev CI-green: fixed 10 ruff + 22 mypy errors
+(commit 6e5c380), all behavior-preserving, 1398 unit tests pass. NOTE: main ==
+dev now; the feature-branch name is stale, so future work can just go on main
+(dev branch kept per Teo, but it's a cleanup candidate).
+
 ## 2026-07-15: PLM-E doc/metadata sweep + base-tier size drift (DONE)
 
 Finished the PLM-E removal outside src/ (annotation-subsystem-cleanup only did
