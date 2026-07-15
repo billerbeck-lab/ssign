@@ -1870,6 +1870,30 @@ itself; native users' tools auto-download). NOTE: scripts/README.md was already
 edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
 default-path reading), so resolve the script to match or re-edit the README.
 
+## ⭐ #32 REPO TLC — big pre-release overhaul (multi-session; NOT STARTED)
+
+Teo's framing (2026-07-15), to anchor a careful multi-session effort:
+- **Goal:** pre-release cleanup for v1.0.0. Mostly **deleting / streamlining**, not
+  adding. The git repo is **too large, too wordy, and poorly organized**; also
+  needs **fact-checking** (docs/claims vs actual code behaviour).
+- **Process (Teo was emphatic):** this is "very important, take our time."
+  **Scope + read-only AUDIT passes BEFORE changing anything.** Expect multiple
+  sessions. **First step is a DISCUSSION with Teo about what we want out of it**
+  — do NOT start auditing or deleting until the goals are agreed.
+- **SAFETY (hard-learned this session):** never `rm`/delete anything without
+  `git ls-files <path>` first. On 2026-07-15 I `rm -rf`'d `verification_phase_a/`
+  thinking it was 1.4M untracked scratch; it was 138 committed gold-review files
+  (restored via `git restore`). For a "mostly deleting" task this discipline is
+  non-negotiable: audit tracked-vs-untracked + what references a file before
+  removing it. Re-confirm every destructive/history-rewriting op with Teo.
+- **Likely sub-areas** (to shape the discussion, not a committed plan): oversized
+  tracked files + git history bloat (repo "way too large" → maybe large blobs in
+  history); doc wordiness/duplication + fact-check vs code; dead/orphaned files;
+  directory organization; `.gitignore` gaps; **CLAUDE.md removal from git before
+  public release** (see memory project_claudemd_removal). Overlaps #34 (benchmark
+  deliverables) + #13 (install runbook).
+- **Status: NOT STARTED.** Next action = the goals discussion, then a scoping doc.
+
 ## 2026-07-15: #8 DECIDED — DeepSecE stays unconditionally distrusted for T3SS
 
 Teo's call, data-backed: because of the flagellar miscalls we cannot trust
