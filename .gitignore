@@ -78,11 +78,16 @@ openspec/
 NOTES.md
 
 # Empty placeholder dirs removed from git until they hold real content (#32).
-# data/ and models/ stay tracked (their README carries the DB/weights reference
-# tables) until those tables are folded into docs/ in the docs pass.
 results/
 figures/
 colab/
+
+# Internal dev scaffolding + point-in-time audits — kept local, not public (#32)
+docs/development/grade_consensus.py
+docs/development/regrade.py
+docs/development/v2lib.py
+docs/development/consensus_annotation_audit.md
+docs/research_software_audit.md
 
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
