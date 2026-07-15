@@ -30,6 +30,13 @@ Bootstrap: docker
 # Re-pin from Docker Hub if a base CVE forces it; this is what makes it deterministic.
 From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e83667932643d9
 
+%setup
+    # Pre-create the build-weight cache mount point (#36) in the container rootfs.
+    # Apptainer build-time --bind (unlike runtime binds) does NOT auto-create the
+    # destination, so without this the build aborts with "destination /build_cache
+    # doesn't exist in container". Harmless empty dir when no cache is bound.
+    mkdir -p "${APPTAINER_ROOTFS}/build_cache"
+
 %files
     pyproject.toml /opt/ssign/pyproject.toml
     uv.lock /opt/ssign/uv.lock
