@@ -20,8 +20,7 @@ Zenodo-DOI'd. See [Roadmap to v1.0.0](#roadmap-to-v100).
 ## Hosted web service: coming soon
 
 A public web service for browser-based genome submission is planned alongside
-v1.0.0. Until then, run ssign locally (below) or via Google Colab (see
-[`colab/`](colab/), notebook ships with v1.0.0).
+v1.0.0. Until then, run ssign locally (below).
 
 ---
 

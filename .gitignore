@@ -39,8 +39,6 @@ ssign_progress.json
 .nextflow/
 .nextflow.log*
 work/
-# Note: top-level `results/` is tracked (paper analysis outputs + README).
-# Nextflow's own outputs go in `work/` above.
 
 # Test artifacts
 tests/e2e_work/
@@ -78,6 +76,17 @@ models/**
 # Claude Code instructions (not for public release)
 CLAUDE.md
 .claude/
+
+# Internal planning + scratch — kept locally, not in the public repo (#32 repo TLC)
+openspec/
+NOTES.md
+
+# Empty placeholder dirs removed from git until they hold real content (#32).
+# data/ and models/ stay tracked (their README carries the DB/weights reference
+# tables) until those tables are folded into docs/ in the docs pass.
+results/
+figures/
+colab/
 
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
