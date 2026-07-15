@@ -1,32 +1,33 @@
 # `models/`: trained model weights used by ssign
 
 This directory is a **placeholder**. Model weights are too large to version in
-Git, so they are hosted externally and fetched at install time.
+Git, so they are auto-downloaded on first run (or baked into the container
+image).
 
 ## What goes here at runtime
 
-| Model                | Size     | Used by                                   |
-| -------------------- | -------- | ----------------------------------------- |
-| DeepSecE checkpoint  | ~2.5 GB  | `run_deepsece.py`                         |
-| ESM-1b               | ~7 GB    | DeepSecE feature extraction               |
-| ESM-2                | ~3 GB    | PLM-Effector feature extraction           |
-| ProtT5               | ~2.5 GB  | PLM-Effector feature extraction           |
-| ProtBert             | ~1.6 GB  | PLM-Effector feature extraction           |
-| PLM-Effector weights | ~1.7 GB  | `run_plm_effector.py`                     |
-| DeepLocPro weights   | ~2 GB    | `run_deeplocpro.py` (user-acquired, DTU)  |
-| SignalP 6.0 weights  | ~1.5 GB  | `run_signalp.py` (user-acquired, DTU)     |
+| Model                | Size     | Used by                                    |
+| -------------------- | -------- | ------------------------------------------ |
+| DeepSecE checkpoint  | ~2.5 GB  | `run_deepsece.py` (fine-tuned ESM-1b)      |
+| ESM-1b               | ~7.3 GB  | DeepSecE backbone                          |
+| ESM-2                | ~2.5 GB  | DeepLocPro backbone                        |
+| ProtT5 (half)        | ~2.4 GB  | pLM-BLAST query embedding (extended tier)  |
+| DeepLocPro weights   | ~2 GB    | `run_deeplocpro.py` (user-acquired, DTU)   |
+| SignalP 6.0 weights  | ~1.5 GB  | `run_signalp.py` (user-acquired, DTU)      |
 
-Total fetched by `scripts/fetch_weights.sh`: ~18 GB (everything except the
-two user-acquired DTU rows).
+Total auto-downloaded on first run: ~14 GB (everything except the two
+user-acquired DTU rows). Base tier needs all but ProtT5 (~12 GB); ProtT5
+adds at the extended tier. Container users get every weight pre-baked in
+the image, so nothing downloads at run time.
 
 ## Getting the weights
 
-ssign ships a fetch script that pulls every weight file from its canonical
-source:
-
-```bash
-bash scripts/fetch_weights.sh
-```
+Each predictor fetches its own weights the first time it runs: DeepLocPro and
+DeepSecE pull their ESM backbones through `esm.pretrained` (torch-hub cache),
+pLM-BLAST pulls ProtT5 through `huggingface_hub`, and the DeepSecE checkpoint
+comes down via `run_deepsece._ensure_checkpoint()`. No separate fetch step is
+needed. The container image bakes all of them at build time (see
+`containers/ssign.def`) so container runs are fully offline.
 
 The **DeepSecE checkpoint** is currently hosted on an unreliable SJTU
 server; mirroring to a Zenodo deposit before v1.0.0 release is part of the

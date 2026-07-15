@@ -343,7 +343,7 @@ class TestPoolAndSplitTsv:
         assert "prefix" in caplog.text
 
     def test_split_custom_id_column(self, tmp_path):
-        # PLM-Effector emits seq_id rather than locus_tag.
+        # Some tools emit seq_id rather than locus_tag.
         pooled = tmp_path / "pool.tsv"
         _write_tsv(
             pooled,

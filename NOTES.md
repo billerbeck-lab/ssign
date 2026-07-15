@@ -1869,3 +1869,40 @@ that path). If PLM-E-only: the whole script goes (the container bakes those weig
 itself; native users' tools auto-download). NOTE: scripts/README.md was already
 edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
 default-path reading), so resolve the script to match or re-edit the README.
+
+## 2026-07-15: PLM-E doc/metadata sweep + base-tier size drift (DONE)
+
+Finished the PLM-E removal outside src/ (annotation-subsystem-cleanup only did
+code+core-docs). Swept it as a live tool from README, pipeline_overview,
+troubleshooting, configure, licensing, env_vars, run_on_hpc, install_test_runbook,
+models/README, plus the release metadata CITATION.cff + codemeta.json (Zenodo/GitHub
+read these) and dead pyproject.toml config (keyword, coverage-omit block, mypy
+exclude, per-file lint ignore, all pointed at deleted files). Added a CHANGELOG
+"Removed" entry for PLM-E + fetch_weights.sh. Verified: `git grep` shows PLM-E only
+in openspec/, NOTES, CHANGELOG/design_decisions (removal notes), the historical
+analyse_k12_runs parser+test, test_scaled_timeout (deliberate "unknown tool"
+example), and .gbff sequences (amino-acid false positives).
+
+Same commit fixed the base-tier size drift (docs disagreed: 2/4/17/22 GB). Root
+cause: some docs counted model weights in "tier size", some counted only DBs, and
+none said which. **Standardized decomposition (measured from the v7 build rootfs +
+ssign.def bake manifest):**
+- base **DBs ~4 GB** (taxdump 1.5 + Bakta light ~2.5); extended ~100 GB; full ~500 GB.
+- **weights ~14 GB** auto-downloaded/baked, shared across tiers (ESM2 2.5 +
+  DeepSecE ckpt 2.5 + DeepSecE's ESM-1b 7.3 + DeepLocPro ~1.4; ProtT5 ~2.4 is
+  extended-only via pLM-BLAST). Old "~18 GB weights" was inflated by PLM-E's
+  ProtBert 1.6 + PLM-E weights 1.7 (now gone).
+- HH-suite is **full-only** (design_decisions wrongly split Pfam+PDB70 to extended);
+  Bakta light belongs to **base** not extended (install.md had it under extended);
+  Bakta full ~84 GB not ~30 (install.md prose was stale).
+
+FOLLOW-UPS (small, non-blocking):
+- **openspec plme-prediction spec** (`openspec/specs/plme-prediction/spec.md`) still
+  describes PLM-E as live. It's retired by the spec-sync when annotation-subsystem-
+  cleanup is archived (its proposal.md says "plme-prediction: removed"). Trigger:
+  `/opsx:archive annotation-subsystem-cleanup`. Also runtime-effort-model spec still
+  lists PLM-Effector in the predictor set (stale vs the code, which dropped it).
+- **pool_utils seq_id handling** (`ssign_lib/pool_utils.py` custom-id-column split,
+  tested by test_pool_utils.test_split_custom_id_column): the only documented consumer
+  was PLM-E (emitted seq_id not locus_tag). Check whether any current tool still emits
+  seq_id; if none, the custom-id path + its test are dead code. Trigger: repo TLC audit (#32).

@@ -45,7 +45,8 @@ attack surfaces are:
 - **Subprocess invocations**: ssign shells out to external bioinformatics
   tools (BLAST, MacSyFinder, Bakta, etc.); injection via genome filenames
   or sequence headers is in-scope.
-- **Network fetches**: `scripts/fetch_databases.sh`, `scripts/fetch_weights.sh`,
+- **Network fetches**: `scripts/fetch_databases.sh`, the model-weight
+  downloads each predictor makes on first run (torch-hub / Hugging Face hub),
   and the optional remote modes (DTU webserver for SignalP / DeepLocPro).
 
 The hosted web service (planned, post-v1.0.0) will have its own threat

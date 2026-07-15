@@ -21,7 +21,7 @@ Compared to a laptop install:
   `$SCRATCH` or `$WORK` (large, fast). A 50 GB EggNOG download in
   `$HOME` will likely hit your quota.
 - GPUs are requested explicitly in the job script. Forget that flag and
-  DeepSecE, PLM-Effector, and pLM-BLAST all fall back to CPU (10-100x
+  DeepSecE and pLM-BLAST both fall back to CPU (10-100x
   slower).
 - Jobs have walltime limits. A bigger cohort or extended tier may need
   to be split across multiple jobs.
@@ -94,7 +94,7 @@ when ssign runs.
 #SBATCH --mem=64G
 #SBATCH --time=06:00:00
 #SBATCH --output=%x-%j.log
-# For PLM-Effector or pLM-BLAST add: #SBATCH --gres=gpu:1
+# For pLM-BLAST add: #SBATCH --gres=gpu:1
 
 module load python/3.11
 source ~/.ssign-env/bin/activate
@@ -124,7 +124,7 @@ the log file with `tail -f ssign-ecoli-*.log`.
 #PBS -l select=1:ncpus=16:mem=64gb
 #PBS -l walltime=06:00:00
 #PBS -j oe
-# For PLM-Effector or pLM-BLAST add: #PBS -l select=1:ncpus=16:mem=64gb:ngpus=1
+# For pLM-BLAST add: #PBS -l select=1:ncpus=16:mem=64gb:ngpus=1
 
 module load anaconda3
 source ~/.ssign-env/bin/activate
@@ -173,12 +173,10 @@ for the full array pattern.
 
 ## 4. GPU access
 
-DeepSecE, PLM-Effector, and pLM-BLAST all benefit from a GPU:
+DeepSecE and pLM-BLAST both benefit from a GPU:
 
 - **DeepSecE:** seconds on GPU, ~10 min on a 16-core CPU node, ~90 min on
   a 1-CPU session. Auto-detected; no flag.
-- **PLM-Effector:** seconds on GPU, ~1-2 min per protein on CPU. Default
-  is `cuda`; skipped automatically if no GPU is visible.
 - **pLM-BLAST:** ProtT5 embedding is ~100x slower on CPU than GPU.
 
 Request a GPU in your job script:
@@ -199,7 +197,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 ```
 
 If `nvidia-smi` is missing or reports no GPU, ssign falls back to CPU
-silently for DeepSecE and skips PLM-Effector entirely.
+silently for DeepSecE.
 
 ## 4a. Installing DTU tools on HPC
 

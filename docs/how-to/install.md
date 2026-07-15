@@ -27,9 +27,13 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases on Imper
 
 | Tier | Cumulative size | Adds |
 |---|---|---|
-| base | ~2 GB | DeepSecE checkpoint |
-| extended | ~100 GB | + Bakta light DB (4 GB), EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB) |
-| full | ~500 GB | + Bakta full DB (84 GB), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
+| base | ~4 GB | NCBI taxdump (1.5 GB) + Bakta light DB (2.5 GB) |
+| extended | ~100 GB | + EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB) |
+| full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
+
+These are databases only. Model weights (~14 GB: ESM backbones + DeepSecE
+checkpoint + DeepLocPro, auto-downloaded on first run or baked into the
+container) are separate and shared across tiers.
 
 HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
 
@@ -125,8 +129,8 @@ bakta_db download --output ~/bakta_db --type light
 Pass `--bakta-db ~/bakta_db` on the command line, or set
 `SSIGN_BAKTA_DB=~/bakta_db` (read by `scripts/fetch_databases.sh`).
 
-The full Bakta database (~30 GB) is the `--type full` variant. The full
-tier in `fetch_databases.sh --tier full` pulls it.
+The full Bakta database (~84 GB extracted) is the `--type full` variant. The
+full tier in `fetch_databases.sh --tier full` pulls it.
 
 ---
 

@@ -42,7 +42,7 @@ Opens a browser-based interface for uploading genomes and configuring the
 pipeline. Command-line mode is also supported (see `ssign --help`).
 
 **System requirements:** Linux or macOS, Python ≥ 3.10. CUDA-capable GPU
-recommended for DeepSecE and (in v1.0.0) PLM-Effector.
+recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
 
 For an end-to-end walkthrough on a real genome, see
 [`docs/tutorials/first_run.md`](docs/tutorials/first_run.md). Full install
@@ -98,7 +98,7 @@ Per-tier mounts and the baked-vs-provided matrix: [`containers/README.md`](conta
 │    MacSyFinder v2 + TXSScan models → validated secretion systems        │
 │                                                                         │
 │  Stage 2: Secreted-Protein Prediction                                   │
-│    DeepLocPro + DeepSecE + SignalP + PLM-Effector                       │
+│    DeepLocPro + DeepSecE + SignalP                                      │
 │    → candidate proteins, voted on by independent predictors             │
 │                                                                         │
 │  Stage 3: Cross-Validation + Proximity Analysis                         │
@@ -174,13 +174,14 @@ Upgrade later by re-running the database fetcher with a new `--tier`.
 
 | Tier         | DB disk | What's included                                                                                   | Install                       |
 | ------------ | ------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **base**     | ~22 GB  | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP, PLM-E) + Bakta light | `pip install ssign`           |
-| **extended** | ~115 GB | base + EggNOG\* + InterProScan + pLM-BLAST                                                        | `pip install ssign[extended]` |
+| **base**     | ~4 GB   | Secretion-system detection + secreted-protein prediction (DLP, DSE, SignalP) + Bakta light        | `pip install ssign`           |
+| **extended** | ~100 GB | base + EggNOG\* + InterProScan + pLM-BLAST                                                        | `pip install ssign[extended]` |
 | **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot (NR opt-in)   | `pip install ssign[full]`     |
 
-Disk sizes above cover databases pulled by `fetch_databases.sh`. Add ~18 GB
-of model weights (downloaded once by `fetch_weights.sh`, shared across
-tiers).
+Disk sizes above are the databases pulled by `fetch_databases.sh`. Add ~14 GB
+of model weights (ESM2, DeepSecE checkpoint + ESM-1b backbone, DeepLocPro),
+downloaded automatically on first run and shared across tiers. Container users
+get them pre-baked in the image, so nothing downloads at run time.
 
 \* EggNOG annotation needs `eggnog-mapper` installed separately (its
 biopython pin clashes with Bakta's, so it can't be a pip extra). See
@@ -262,13 +263,11 @@ itself.
   remote BLAST, EBI InterProScan webserver, and MPI Toolkit HHpred remote
   modes removed in favour of local binaries.
 - ✅ Bakta + EggNOG whole-genome annotation, pLM-BLAST / ECOD30 substrate
-  annotation. PLM-Effector is available but OFF by default (it over-predicts
-  at genome scale; opt in with `--no-skip-plm-effector`).
+  annotation.
 - ✅ Re-annotate inputs with Bakta by default; `--use-input-annotations`
   preserves curated GenBank annotations.
 - ✅ Cross-validation rule: DLP and DSE are the default secretion predictors
-  (any one flagging means a candidate). PLM-Effector, when opted in, is gated
-  at `max_stacking >= 0.8`. SignalP is evidence-only.
+  (any one flagging means a candidate). SignalP is evidence-only.
   `n_prediction_tools_agreeing` column carried through.
 - ✅ Pipeline order: `enrichment_testing` runs before substrate filtering;
   stats filter default ON for ≥10 genomes.
@@ -320,8 +319,6 @@ uses alongside ssign.
   Ou HY. _Research_. 2023;6:0258. [doi:10.34133/research.0258](https://doi.org/10.34133/research.0258)
 - **SignalP 6.0**: Teufel F, Almagro Armenteros JJ, Johansen AR, et al.
   _Nature Biotechnology_. 2022;40(7):1023-1025. [doi:10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3)
-- **PLM-Effector**: Zheng D. _Briefings in Bioinformatics_. 2026;27(2):bbag143.
-  [doi:10.1093/bib/bbag143](https://doi.org/10.1093/bib/bbag143)
 - **BLAST+**: Camacho C, Coulouris G, Avagyan V, et al. _BMC Bioinformatics_.
   2009;10:421. [doi:10.1186/1471-2105-10-421](https://doi.org/10.1186/1471-2105-10-421)
 - **HH-suite3**: Steinegger M, Meier M, Mirdita M, et al. _BMC Bioinformatics_.

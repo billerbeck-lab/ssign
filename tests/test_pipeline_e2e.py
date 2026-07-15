@@ -15,7 +15,7 @@ What runs:
 - Proximity analysis + cross-validation + T5SS handling + reporting
 
 Heavy annotation tools (BLASTp, HH-suite, InterProScan, Bakta, EggNOG,
-PLM-Effector, pLM-BLAST) are **skipped** by default here — they all need
+pLM-BLAST) are **skipped** by default here — they all need
 local databases and, in a few cases, a GPU. Turn any of them on by
 providing the database path / weights dir plus `skip_*=False`.
 

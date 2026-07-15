@@ -33,7 +33,6 @@ run time; the matching CLI flag is the load-bearing handle.
 | `SSIGN_EGGNOG_DB` | `--eggnog-db` |
 | `SSIGN_INTERPROSCAN_PATH` | `--interproscan-db` |
 | `SSIGN_ECOD_DB` | `--plmblast-db` |
-| `SSIGN_PLM_EFFECTOR_WEIGHTS` | (consumed by the PLM-Effector wrapper) |
 | `SSIGN_DEEPSECE_CHECKPOINT` | (alternative to `SSIGN_DEEPSECE_CHECKPOINT_URL` for already-downloaded files) |
 | `SSIGN_DEEPLOCPRO_PATH` | `--deeplocpro-path` (also used by the DLP integration test) |
 | `SSIGN_SIGNALP_PATH` | `--signalp-path` (also used by the SignalP integration test) |
@@ -47,13 +46,13 @@ so `pip install ssign[extended]` resolves them automatically.
 
 | Package | Pin | Reason |
 |---|---|---|
-| `transformers` | `>=4.38,<5.0` | 5.0 removed `batch_encode_plus`, used by pLM-BLAST and PLM-Effector tokenizers. |
+| `transformers` | `>=4.38,<5.0` | 5.0 removed `batch_encode_plus`, used by pLM-BLAST tokenizers. |
 | `numpy` | `>=1.26,<2.0` | 2.0 removed `np.issubsctype`, used by pLM-BLAST's alignment code. |
 | `protobuf` | any | Required by ProtT5's SentencePiece tokenizer at load time. |
 | `mkl`, `mkl-service` | any | pLM-BLAST's `plmblast.py` imports them directly. |
 
 The `transformers` and `numpy` upper bounds are revisited in the v1.x roadmap
-once upstream pLM-BLAST and PLM-Effector publish 5.0/2.0-compatible code.
+once upstream pLM-BLAST publishes 5.0/2.0-compatible code.
 
 ## Test and developer-only
 

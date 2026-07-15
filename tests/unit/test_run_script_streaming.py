@@ -2,7 +2,7 @@
 
 The default (stream_stderr=False) buffers stderr until the subprocess exits.
 stream_stderr=True forwards each line to the runner logger live so long
-steps like PLM-Effector can surface per-PLM-type progress to the run log.
+steps like pLM-BLAST embedding can surface incremental progress to the run log.
 """
 
 import logging

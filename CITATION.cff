@@ -6,7 +6,7 @@ abstract: >-
   ssign is a bioinformatics pipeline that identifies secretion-system substrates
   in Gram-negative bacterial genomes. It combines secretion-system detection
   (MacSyFinder v2 + TXSScan), secreted-protein prediction (DeepLocPro, DeepSecE,
-  PLM-Effector, SignalP), per-component genomic proximity analysis, and multi-tool
+  SignalP), per-component genomic proximity analysis, and multi-tool
   functional annotation (BLASTp, HH-suite, InterProScan, Bakta, EggNOG, pLM-BLAST,
   ProtParam) to generate a ranked, evidence-linked list of candidate substrates
   together with a summary HTML report and intermediate tables.
@@ -56,20 +56,5 @@ keywords:
   - "TXSScan"
   - "DeepLocPro"
   - "DeepSecE"
-  - "PLM-Effector"
   - "SignalP"
   - "bacterial genomics"
-references:
-  - type: article
-    title: "PLM-effector: unleashing the potential of protein language models for bacterial secreted protein prediction"
-    authors:
-      - family-names: "Zheng"
-        given-names: "Dandan"
-    year: 2026
-    journal: "Briefings in Bioinformatics"
-    volume: "27"
-    issue: "2"
-    notes: >-
-      ssign vendors PLM-Effector source code (github.com/zhengdd0422/PLM-Effector,
-      CC-BY 3.0) into `src/ssign_app/scripts/plm_effector/`. Please cite this
-      paper alongside ssign if your analysis uses PLM-Effector predictions.

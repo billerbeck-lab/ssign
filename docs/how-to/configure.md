@@ -115,8 +115,8 @@ ssign run input.gbff --outdir results --proximity-window 5
 On the K-12 reference: window 3 → 17 substrates, window 5 → 20.
 
 **Compute cost grows roughly linearly** with the window size. The
-neighborhood feeds the prediction tools (DeepLocPro, DeepSecE, SignalP,
-PLM-Effector), so a window-5 run does ~1.7x more prediction work than
+neighborhood feeds the prediction tools (DeepLocPro, DeepSecE,
+SignalP), so a window-5 run does ~1.7x more prediction work than
 the default; window-10 is ~3x. Per-substrate annotation tools
 (InterProScan, EggNOG, pLM-BLAST) only run on the final filtered set,
 so their cost grows more slowly. False-positive count also grows with

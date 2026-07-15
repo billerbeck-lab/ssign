@@ -60,23 +60,21 @@ here (T3SS is not excluded); detection itself is unconditional.
 
 ## Phase 3: secreted-protein prediction
 
-Three independent predictors look at every protein and decide whether
+Two independent predictors look at every protein and decide whether
 it looks secreted:
 
 - **DeepLocPro** predicts the subcellular localization (extracellular,
   outer-membrane, periplasmic, cytoplasmic, ...).
 - **DeepSecE** predicts which secretion-system *type* a protein is a
   substrate of (T1SE / T2SE / T3SE / T4SE / T6SE).
-- **PLM-Effector** uses a stack of protein language models (ESM-1b,
-  ESM-2, ProtT5) plus XGBoost to classify per-SS-type secretion.
 
 A protein is flagged as a candidate substrate if **any one** of these
-three trips. ssign records `n_prediction_tools_agreeing` (0-3) as a
+two trips. ssign records `n_prediction_tools_agreeing` (0-2) as a
 confidence signal, and `secretion_evidence` lists which tools voted.
 The "any one" rule is deliberate: false negatives from any single tool
 are expensive (a missed substrate is a missed biological finding),
 while false positives get filtered by Phase 4's proximity step. See
-[`design_decisions.md` § 3.1](design_decisions.md#31-equal-predictor-rule-dlp--dse--plm-e-all-trigger).
+[`design_decisions.md` § 3.1](design_decisions.md#31-equal-predictor-rule-dlp--dse-both-trigger).
 
 **SignalP** also runs in this phase but does not contribute to the
 trigger count. It detects classical Sec/Tat signal peptides, which

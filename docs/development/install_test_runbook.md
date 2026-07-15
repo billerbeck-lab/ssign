@@ -18,7 +18,7 @@ Run Part A first. Part B is gated on Part A **and** the full-tier CX3 smoke test
 | `README.md` § Quickstart | first install command + GUI launch |
 | `README.md` § Install tiers / § Verify | tier table + `ssign doctor` |
 | `docs/tutorials/first_run.md` | first end-to-end run (functional test) |
-| `docs/how-to/install.md` | per-tool install for extended/full (Bakta, EggNOG, InterProScan, HH-suite, BLAST+, SignalP, DeepLocPro, pLM-BLAST, PLM-Effector) |
+| `docs/how-to/install.md` | per-tool install for extended/full (Bakta, EggNOG, InterProScan, HH-suite, BLAST+, SignalP, DeepLocPro, pLM-BLAST) |
 | `containers/README.md` | Docker / Singularity (Part B) |
 
 ## Prerequisite: are the docs actually reachable as a new user?

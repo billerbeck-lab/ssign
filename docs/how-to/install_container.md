@@ -105,7 +105,7 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
 
 | Tier | `fetch-databases` pulls | Approx size |
 | --- | --- | --- |
-| `base` | NCBI taxdump + Bakta light | ~22 GB |
+| `base` | NCBI taxdump + Bakta light | ~4 GB |
 | `extended` | + EggNOG + InterProScan + ECOD30 (pLM-BLAST) | ~100 GB |
 | `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB |
 

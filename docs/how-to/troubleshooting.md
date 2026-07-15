@@ -30,7 +30,7 @@ pip install ssign[deepsece]            # add DeepSecE
 ssign run input.gbff --skip-deepsece   # skip it
 ```
 
-Same pattern for `bakta`, `plmblast`, `plm-effector`.
+Same pattern for `bakta` and `plmblast`.
 
 ### `emapper.py: command not found` (EggNOG-mapper)
 
@@ -49,9 +49,9 @@ the EggNOG database, or skip the step with `--skip-eggnog`. See
 [`how-to/install.md`](install.md#eggnog-mapper-separate-install--database)
 for the full recipe.
 
-### `transformers >=5.0` or `numpy >=2.0` import errors during pLM-BLAST or PLM-Effector
+### `transformers >=5.0` or `numpy >=2.0` import errors during pLM-BLAST
 
-Upstream removed APIs that pLM-BLAST and PLM-Effector still depend on.
+Upstream removed APIs that pLM-BLAST still depends on.
 Pin to compatible versions:
 
 ```bash

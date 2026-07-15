@@ -495,12 +495,11 @@ Entries are organised by pipeline stage. Each has three parts:
 
 - **Decision:** Three install tiers differ in which databases
   `scripts/fetch_databases.sh` downloads:
-  - **base** (~17 GB): MacSyFinder + DLP + DSE + SignalP +
+  - **base** (~4 GB DBs): MacSyFinder + DLP + DSE + SignalP +
     Bakta light
-  - **extended** (~130 GB): + EggNOG + HH-suite (Pfam + PDB70) +
-    InterProScan + pLM-BLAST
-  - **full** (~500 GB): + Bakta full DB + HH-suite UniRef30 +
-    BLASTp-vs-Swiss-Prot (NR opt-in, not fetched by default)
+  - **extended** (~100 GB): + EggNOG + InterProScan + pLM-BLAST (ECOD30)
+  - **full** (~500 GB): + Bakta full DB + HH-suite (Pfam + PDB70 +
+    UniRef30) + BLASTp-vs-Swiss-Prot (NR opt-in, not fetched by default)
 
 - **Rationale:** Tier-aware distribution keeps the minimum-useful install
   under 20 GB while still offering the full reproducibility bundle. Full-tier
