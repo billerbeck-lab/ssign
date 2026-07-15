@@ -166,30 +166,6 @@
         "size_min": 0
       }
     },
-    "plm_effector": {
-      "neighborhood": {
-        "a": 1.794323,
-        "b": 387.938,
-        "loo_med_abs_s": 55.5,
-        "loo_med_pct": 8.3,
-        "low_confidence": false,
-        "method": "linear",
-        "n": 16,
-        "size_max": 291,
-        "size_min": 128
-      },
-      "whole_genome": {
-        "a": 0.0,
-        "b": 4495.333,
-        "loo_med_abs_s": 5736.5,
-        "loo_med_pct": 131.5,
-        "low_confidence": true,
-        "method": "mean",
-        "n": 3,
-        "size_max": 5572,
-        "size_min": 4314
-      }
-    },
     "protparam": {
       "substrates": {
         "a": 0.0,

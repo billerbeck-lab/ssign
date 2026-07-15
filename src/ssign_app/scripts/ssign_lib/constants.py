@@ -34,7 +34,7 @@ PROXIMITY_WINDOW = 3  # +/- N genes per SS component
 # rotations of the predictor's gene-ordered positivity vector (offset 0 = observed),
 # so no Monte-Carlo sampling is needed for a single genome. Window size and the
 # positivity threshold reuse PROXIMITY_WINDOW / CONF_THRESHOLD (single source of truth).
-ENRICH_TOOLS = ("DLP", "DSE", "SignalP")  # the enrichment predictors (PLM-Effector excluded)
+ENRICH_TOOLS = ("DLP", "DSE", "SignalP")  # the enrichment predictors
 # Pseudo-predictor: "secreted by DLP OR DSE" (only the valid predictors per type;
 # DSE dropped where unreliable). One combined fold/significance bar per SS type;
 # emitted alongside DLP/DSE in the stats TSV, BH-corrected as its own family.
@@ -162,6 +162,10 @@ HHBLITS_ITERATIONS = 3
 # wall-time per protein stays bounded.
 HHBLITS_TIMEOUT_S = 3600
 HHSEARCH_TIMEOUT_S = 1800
+# Approx private RAM per concurrent hhblits MSA build (UniRef30 profile
+# construction). Used to clamp the HH-suite worker fan-out by the RAM share
+# so a many-core but RAM-tight node doesn't launch cpu//2 workers and OOM.
+HHSUITE_RAM_GB_PER_WORKER = 3.5
 
 # --- DTU API HTTP timeouts (run_deeplocpro.py + run_signalp.py) ---
 # Three tiers matching what the DTU webserver actually does at each call.
@@ -268,20 +272,6 @@ DSE_TO_MACSYFINDER = {
     "T6SS": ["T6SSi", "T6SS"],
 }
 
-# --- PLM-Effector type to MacSyFinder SS type mapping ---
-# PLM-Effector reports per-effector-type predictions (T1SE = T1-secreted-
-# effector, etc.); the gate at proximity time needs to map those back to
-# MacSyFinder SS-system names to verify the system actually exists in the
-# genome (same cross-genome leakage class of bug DSE_TO_MACSYFINDER fixes).
-PLME_TO_MACSYFINDER = {
-    "T1SE": ["T1SS"],
-    "T2SE": ["T2SS"],
-    "T3SE": ["T3SS"],
-    "T4SE": ["pT4SSt", "T4SS"],
-    "T6SE": ["T6SSi", "T6SS"],
-}
-
-
 # --- Install-tier defaults ---
 # Which optional tools default on at each install tier. The user's tier
 # comes from --tier on the CLI, or ~/.ssign/tier (written by
@@ -290,7 +280,7 @@ PLME_TO_MACSYFINDER = {
 # the user is explicit.
 #
 # Mapping reflects "what does this tier ship that's also actually usable?":
-#   - base: Bakta light DB + DeepSecE/PLM-Effector weights → those tools
+#   - base: Bakta light DB + DeepSecE weights → those tools
 #     default on. Annotation tools that need extended DBs (EggNOG ~50 GB,
 #     IPS ~24 GB, ECOD30 ~11 GB) default off.
 #   - extended: adds those three DBs → EggNOG/IPS/pLM-BLAST default on.
@@ -305,13 +295,6 @@ PLME_TO_MACSYFINDER = {
 # Each tool listed exactly once at the tier it first becomes available.
 # The full per-tier on/off map is built below.
 _BASE_ENABLED = frozenset({"deeplocpro", "signalp", "deepsece", "protparam"})
-# PLM-Effector is installable at every tier but OFF by default: at genome scale it
-# over-predicts heavily (called ~25% of the PAO1 proteome; the model is validated only
-# on balanced sets, see openspec change enrichment-background-and-plme-default-off and
-# the PLM-E over-prediction memo). Opt in with --no-skip-plm-effector. Listed here (not
-# in any tier's enabled set) so the tier resolver emits a definite skip=True default
-# rather than leaving skip_plm_effector unresolved (which would default it back ON).
-_OPT_IN = frozenset({"plm_effector"})
 # HH-suite is NOT in extended because its hhblits MSA step needs UniRef30
 # (~25 GB), which only ships with --tier full. The wrapper currently
 # aborts when UniRef30 is missing rather than degrading to hhsearch-only;
@@ -327,7 +310,7 @@ _TIER_ENABLED = {
     "extended": _BASE_ENABLED | _EXTENDED_ADDS,
     "full": _BASE_ENABLED | _EXTENDED_ADDS | _FULL_ADDS,
 }
-_ALL_TOOLS = _TIER_ENABLED["full"] | _OPT_IN
+_ALL_TOOLS = _TIER_ENABLED["full"]
 
 TIER_TOOL_DEFAULTS = {tier: {tool: (tool in enabled) for tool in _ALL_TOOLS} for tier, enabled in _TIER_ENABLED.items()}
 DEFAULT_TIER = "extended"

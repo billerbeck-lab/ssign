@@ -231,7 +231,6 @@ def report_resources(stream) -> None:
     # patched names per-call, and keeps psutil/torch out of doctor's
     # module-load path so `ssign doctor --imports-only` stays cheap.
     from ssign_app.scripts.ssign_lib.resources import (
-        auto_batch_size_from_vram,
         effective_cpu_count,
         effective_ram_gb,
         host_ram_gb,
@@ -243,7 +242,6 @@ def report_resources(stream) -> None:
     ram = effective_ram_gb()
     host_ram = host_ram_gb()
     gpu_label = _format_gpu(*probe_cuda_device())
-    plme_batch = auto_batch_size_from_vram()
 
     section = "Resources"
     print(f"\n{section}  (informational)", file=stream)
@@ -253,7 +251,6 @@ def report_resources(stream) -> None:
         print(f"           note: scheduler is restricting ssign to {cpu}/{host_cpu} cores", file=stream)
     print(f"  RAM      effective: {ram:.1f} GB  (host: {host_ram:.1f} GB)", file=stream)
     print(f"  GPU      {gpu_label}", file=stream)
-    print(f"  PLM-E    auto batch size: {plme_batch}  (override with --plme-batch-size N)", file=stream)
 
 
 def _render(section: str, results: list[CheckResult], stream) -> tuple[int, int]:

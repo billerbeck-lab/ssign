@@ -142,7 +142,7 @@ class ModelWeights:
       - False (default): subpath is relative to ``~/.ssign`` — covers things
         that auto-download on first pipeline run (DeepSecE checkpoint).
       - True: subpath is relative to the fetch_databases.sh target — covers
-        bundles fetched by the install script (PLM-Effector weights).
+        bundles fetched by the install script (e.g. reference databases).
     """
 
     name: str
@@ -201,14 +201,7 @@ PYTHON_DEPS: tuple[PythonDep, ...] = (
             "transformers.AutoTokenizer",
         ),
         tier="extended",
-        note="used by PLM-Effector (T5*) + pLM-BLAST embedders (prottrans, hfautomodel)",
-    ),
-    PythonDep(
-        "xgboost",
-        "xgboost",
-        symbols=("xgboost.XGBClassifier",),
-        tier="extended",
-        note="PLM-Effector ensemble.py",
+        note="used by pLM-BLAST embedders (prottrans, hfautomodel)",
     ),
     PythonDep(
         "google.protobuf",
@@ -380,14 +373,6 @@ MODEL_WEIGHTS: tuple[ModelWeights, ...] = (
         "models/deepsece_checkpoint.pt",
         "auto-downloaded on first run, or `bash scripts/fetch_weights.sh`",
         tool="DeepSecE",
-    ),
-    ModelWeights(
-        "PLM-Effector ensemble weights",
-        "plm_effector_weights",
-        "bash scripts/fetch_weights.sh (or scripts/fetch_databases.sh --tier extended)",
-        tier="extended",
-        under_db_root=True,
-        tool="PLM-Effector",
     ),
 )
 

@@ -1,8 +1,7 @@
 """Eager-import check: every Python dep + lazy symbol ssign reaches for.
 
 This test exists because lazy imports inside pipeline scripts (``from
-DeepSecE.model import EffectorTransformer`` inside ``run_deepsece.py``;
-``from transformers import T5Tokenizer`` inside ``plm_effector/feature_extraction.py``)
+DeepSecE.model import EffectorTransformer`` inside ``run_deepsece.py``)
 do not fail at ``pip install`` time. They only fail when that branch of
 the pipeline actually executes — sometimes hours into a run on a multi-day
 HPC job. This test imports every symbol upfront, so any ``pyproject.toml``

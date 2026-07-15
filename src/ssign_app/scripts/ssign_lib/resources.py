@@ -27,12 +27,12 @@ logger = logging.getLogger(__name__)
 _CGROUP_UNLIMITED_BYTES = 2**63 - 4096
 
 
-# PLM-Effector batch sizes per VRAM tier. The breakpoints come from
-# measuring peak activation memory for ProtT5 (the largest of the four
-# PLMs) at max_length=512 plus tokenizer/model weight overhead, leaving
-# ~20% headroom on top to survive Bakta and EggNOG running alongside.
-# Used by auto_batch_size_from_vram below; callers can pass --batch-size N
-# to override entirely.
+# GPU-predictor batch sizes per VRAM tier. The breakpoints come from
+# measuring peak activation memory for ProtT5 at max_length=512 plus
+# tokenizer/model weight overhead, leaving ~20% headroom on top to survive
+# Bakta and EggNOG running alongside. ProtT5 is larger than DeepSecE's
+# ESM-1b, so these tiers are conservative for the current caller. Used by
+# auto_batch_size_from_vram below; callers can pass --batch-size N to override.
 _AUTO_BATCH_TIERS = (
     # (min_vram_gib_inclusive, batch_size). Thresholds sit 2-4 GiB below
     # the marketing-GB capacity because torch reports total - firmware
@@ -71,11 +71,11 @@ def probe_cuda_device() -> tuple[str | None, float | None]:
 
 
 def auto_batch_size_from_vram(default_when_no_gpu: int = 4) -> int:
-    """Pick a PLM-E batch size from the active CUDA device's total VRAM.
+    """Pick a GPU-predictor batch size from the active CUDA device's total VRAM.
 
-    Returns the smallest tier table entry's batch size when no CUDA
-    device is visible or torch isn't importable; callers can override
-    via an explicit ``--batch-size N``.
+    Used by the ESM-based predictors (currently DeepSecE). Returns the
+    smallest tier table entry's batch size when no CUDA device is visible
+    or torch isn't importable; callers can override via ``--batch-size N``.
     """
     _name, total_gib = probe_cuda_device()
     if total_gib is None:
@@ -83,7 +83,7 @@ def auto_batch_size_from_vram(default_when_no_gpu: int = 4) -> int:
     for min_gb, batch in _AUTO_BATCH_TIERS:
         if total_gib >= min_gb:
             logger.info(
-                "PLM-E auto-batch: detected %.1f GB VRAM, choosing batch_size=%d",
+                "GPU auto-batch: detected %.1f GB VRAM, choosing batch_size=%d",
                 total_gib,
                 batch,
             )

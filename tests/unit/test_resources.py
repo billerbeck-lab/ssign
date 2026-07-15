@@ -473,7 +473,7 @@ class TestStagePrefixFiles:
 
 
 # ---------------------------------------------------------------------------
-# auto_batch_size_from_vram — VRAM-tier table for PLM-E
+# auto_batch_size_from_vram — VRAM-tier table for the GPU predictors (DeepSecE)
 # ---------------------------------------------------------------------------
 
 

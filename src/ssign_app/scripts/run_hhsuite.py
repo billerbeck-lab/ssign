@@ -23,9 +23,10 @@ from ssign_lib.constants import (
     HHBLITS_TIMEOUT_S,
     HHSEARCH_TIMEOUT_S,
     HHSUITE_MIN_PROB,
+    HHSUITE_RAM_GB_PER_WORKER,
 )
 from ssign_lib.fasta_io import read_fasta
-from ssign_lib.resources import effective_cpu_count
+from ssign_lib.resources import effective_cpu_count, parallel_share_ram_gb
 from ssign_lib.substrates import load_substrate_ids
 
 # Regex for HHR hit table lines — works for both PDB (desc ends with ;) and Pfam (multiple ;)
@@ -269,14 +270,16 @@ def main():
     # Parallelism: two-layer (workers × cpu_per_job). cpu_per_job=2 stays
     # load-bearing because hhblits/hhsearch scale sub-linearly above 2-4
     # threads per process; widening it past 2 burns cores for little speedup.
-    # Default workers derives from os.cpu_count() so HPC nodes saturate
-    # (16-core node → 8 workers × 2 cpu = 16 cores in use, vs the previous
-    # hardcoded 4 workers × 2 cpu = 8 cores leaving half the node idle).
+    # Default workers derives from cpu_count so HPC nodes saturate (16-core
+    # node → 8 workers × 2 cpu = 16 cores), but is also clamped by the RAM
+    # share: each hhblits MSA build is multi-GB private RAM, so a many-core
+    # RAM-tight node caps workers by RAM instead of OOMing. (The runner passes
+    # an explicit --max-workers; this default only governs standalone runs.)
     parser.add_argument(
         "--max-workers",
         type=int,
-        default=max(1, effective_cpu_count() // 2),
-        help="Concurrent hhblits/hhsearch processes (default: cpu_count // 2).",
+        default=max(1, min(effective_cpu_count() // 2, int(parallel_share_ram_gb() / HHSUITE_RAM_GB_PER_WORKER))),
+        help="Concurrent hhblits/hhsearch processes (default: min(cpu//2, ram_share/3.5GB)).",
     )
     parser.add_argument(
         "--cpu-per-job",

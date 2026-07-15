@@ -122,21 +122,6 @@ def _predictions_with_dse(tmp_dir, dse_calls):
     return write_tsv(os.path.join(tmp_dir, "predictions.tsv"), PREDICTIONS_FIELDS, rows)
 
 
-def _predictions_with_plm(tmp_dir, plm_positives, plm_type="T2SE"):
-    """Predictions TSV: plm_positives flagged by PLM-Effector; DLP+DSE=0 for everyone."""
-    rows = [
-        make_prediction_row(
-            locus,
-            dlp_ext=0.0,
-            plm_secreted=locus in plm_positives,
-            plm_type=plm_type if locus in plm_positives else "",
-            plm_max_prob=0.95 if locus in plm_positives else 0.0,
-        )
-        for locus in _all_loci()
-    ]
-    return write_tsv(os.path.join(tmp_dir, "predictions.tsv"), PREDICTIONS_FIELDS, rows)
-
-
 class TestPerComponentWindow:
     """Components live at GENE_0005 + GENE_0006 on contig_A. Window ±3 around either
     covers genes 2-9 (union), excluding the components themselves."""
@@ -390,34 +375,13 @@ class TestToolAttribution:
         assert len(rows) == 1
         assert rows[0]["tool"] == "DLP+DSE"
 
-    def test_plm_effector_alone_marks_substrate(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
-        # PLM-E flags GENE_0003; DLP and DSE both negative. Proximity must
-        # still pick it up as a candidate -- this is the bug we just fixed
-        # (previously PLM-E votes were dropped on the floor here).
-        predictions = _predictions_with_plm(tmp_dir, {"GENE_0003"}, plm_type="T2SE")
-        rows = _run_proximity(
-            monkeypatch,
-            tmp_dir,
-            gene_order_tsv,
-            ss_components_tsv,
-            predictions,
-        )
-        assert len(rows) == 1
-        assert rows[0]["tool"] == "PLM-E"
-        assert rows[0]["plm_effector_secreted"] == "True"
-        assert rows[0]["plm_effector_type"] == "T2SE"
-        assert float(rows[0]["plm_effector_max_prob"]) == pytest.approx(0.95)
-
-    def test_all_three_tools_fire(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
+    def test_both_tools_fire(self, monkeypatch, tmp_dir, gene_order_tsv, ss_components_tsv):
         rows_pred = [
             make_prediction_row(
                 locus,
                 dlp_ext=0.95 if locus == "GENE_0003" else 0.0,
                 dse_type="T2SS" if locus == "GENE_0003" else "Non-secreted",
                 dse_prob=0.95 if locus == "GENE_0003" else 0.0,
-                plm_secreted=locus == "GENE_0003",
-                plm_type="T2SE" if locus == "GENE_0003" else "",
-                plm_max_prob=0.95 if locus == "GENE_0003" else 0.0,
             )
             for locus in _all_loci()
         ]
@@ -434,5 +398,5 @@ class TestToolAttribution:
             predictions,
         )
         assert len(rows) == 1
-        # Tool string is "+"-joined in sorted-set order: DLP, DSE, PLM-E.
-        assert set(rows[0]["tool"].split("+")) == {"DLP", "DSE", "PLM-E"}
+        # Tool string is "+"-joined in sorted-set order: DLP, DSE.
+        assert set(rows[0]["tool"].split("+")) == {"DLP", "DSE"}

@@ -157,15 +157,18 @@ def run_local_interproscan(
     # prints a "Picked up _JAVA_OPTIONS" stderr notice and the last -Xmx
     # wins, so our value overrides the launcher's hard-coded one.
     #
-    # Formula: (effective_ram_gb - 2) * 0.5. Reserves 2 GB for OS / IPS
-    # Perl helpers / file cache, then halves the rest (the JVM also
-    # needs metaspace and Code Cache on top of the heap). Clamped to
-    # [4, 64] GB so a 256 GB box doesn't ask for 192 GB and a 16 GB
-    # laptop doesn't crash because IPS asked for 12.
-    from ssign_lib.resources import effective_ram_gb
+    # Formula: (parallel_share_ram_gb - 2) * 0.5. Uses this tool's RAM
+    # *share* (effective RAM / parallel-group size), not the whole node, so
+    # IPS's heap plus its co-scheduled annotation peers (EggNOG, BLASTp,
+    # HH-suite) fit the allocation instead of collectively OOM-killing on a
+    # small node. Reserves 2 GB for OS / IPS Perl helpers / file cache, then
+    # halves the rest (the JVM also needs metaspace and Code Cache on top of
+    # the heap). Clamped to [4, 64] GB. Standalone (group size 1) the share
+    # equals the full allocation, so single-tool behavior is unchanged.
+    from ssign_lib.resources import parallel_share_ram_gb
 
     env = os.environ.copy()
-    heap_gb = max(4, min(64, int((effective_ram_gb() - 2) * 0.5)))
+    heap_gb = max(4, min(64, int((parallel_share_ram_gb() - 2) * 0.5)))
     java_opt = f"-Xmx{heap_gb}g"
     existing = env.get("_JAVA_OPTIONS", "")
     env["_JAVA_OPTIONS"] = f"{existing} {java_opt}".strip() if existing else java_opt

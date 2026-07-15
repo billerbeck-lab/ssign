@@ -4,22 +4,16 @@
 Inputs (one row per protein each):
     --deeplocpro     DeepLocPro localisation scores (required)
     --deepsece       DeepSecE secretion-type probabilities (optional)
-    --plm-effector   PLM-Effector combined-type predictions (optional,
-                     one row per protein with `passes_threshold` reflecting
-                     "secreted by at least one SS type" — the upstream runner
-                     merges the five per-type PLM-Effector outputs before
-                     calling cross_validate)
     --signalp        SignalP signal-peptide predictions (optional)
     --ss-components  Per-protein SS component table (locus_tag → ss_type).
                      Used to apply T5SS-specific localisation rule.
 
 Rule (3.2.b):
-    DeepLocPro, DeepSecE, and PLM-Effector are treated as equal
-    secretion predictors. Any one flagging is enough to mark a protein
-    as `is_secreted=True`; the count of agreeing tools is emitted as
-    `n_prediction_tools_agreeing` (0-3). SignalP is evidence-only —
-    its determination goes into `signalp_supports_secretion` but does
-    not trip `is_secreted` on its own.
+    DeepLocPro and DeepSecE are treated as equal secretion predictors.
+    Any one flagging is enough to mark a protein as `is_secreted=True`;
+    the count of agreeing tools is emitted as `n_prediction_tools_agreeing`
+    (0-2). SignalP is evidence-only — its determination goes into
+    `signalp_supports_secretion` but does not trip `is_secreted` on its own.
 
 T5SS localisation rules are per-component, not per-subtype. TXSScan v2
 only models T5aSS, T5bSS, and T5cSS (T5dSS/T5eSS exist in the literature
@@ -153,28 +147,6 @@ def _dse_flag(dse_row: dict) -> tuple:
     return is_secreted, dse_type, dse_max, t3ss_flagged
 
 
-def _plm_effector_flag(plm_row: dict, conf_threshold: float) -> bool:
-    """True if PLM-Effector called this protein a secreted effector AND it clears
-    the confidence gate.
-
-    PLM-Effector emits one row per protein with `passes_threshold=1` if the
-    ensemble flagged it for at least one secretion-system type; the runner merges
-    the five per-type outputs into one summary row (with `max_stacking` = highest
-    stacking probability) before handing to cross_validate.
-
-    We additionally require `max_stacking >= conf_threshold` (0.8), matching the
-    DLP/DSE positivity convention. PLM-E's native per-type thresholds are all <= 0.8
-    (T6SE as low as 0.5), so the bare `passes_threshold` call is far more permissive
-    than DLP/DSE; gating at 0.8 makes the three predictors consistent and cuts the
-    genome-scale over-prediction (see openspec change
-    enrichment-background-and-plme-default-off).
-    """
-    if not plm_row:
-        return False
-    passes = str(plm_row.get("passes_threshold", "0")).strip() in ("1", "True", "true")
-    return passes and _float_or_zero(plm_row.get("max_stacking", 0.0)) >= conf_threshold
-
-
 def _signalp_supports(sp_row: dict) -> tuple:
     """(supports_secretion, prediction, probability).
 
@@ -202,14 +174,6 @@ FIELDNAMES = [
     "dse_ss_type",
     "dse_max_prob",
     "dse_T3SS_flagged",
-    # PLM-Effector. `plm_effector_type` carries the comma-separated list of
-    # SS-effector types that flagged the protein (e.g. "T2SE" or "T2SE,T4SE")
-    # -- it's the `flagging_types` field from merge_plm_effector_outputs,
-    # not a single type. `plm_effector_max_prob` is the highest stacking
-    # probability across the flagging types.
-    "plm_effector_secreted",
-    "plm_effector_type",
-    "plm_effector_max_prob",
     # SignalP (evidence-only in 3.2.b)
     "signalp_prediction",
     "signalp_probability",
@@ -226,7 +190,6 @@ FIELDNAMES = [
 def cross_validate(
     dlp_data: dict,
     dse_data: dict,
-    plm_e_data: dict,
     sp_data: dict,
     sample_id: str,
     conf_threshold: float,
@@ -244,18 +207,16 @@ def cross_validate(
     touching the filesystem.
     """
     ss_component_info = ss_component_info or {}
-    all_loci = sorted(set(dlp_data.keys()) | set(dse_data.keys()) | set(plm_e_data.keys()) | set(sp_data.keys()))
+    all_loci = sorted(set(dlp_data.keys()) | set(dse_data.keys()) | set(sp_data.keys()))
 
     for locus in all_loci:
         dlp = dlp_data.get(locus, {})
         dse = dse_data.get(locus, {})
-        plm_e = plm_e_data.get(locus, {})
         sp = sp_data.get(locus, {})
 
         ss_type, gene_name = ss_component_info.get(locus, ("", ""))
         dlp_secreted, ext_prob = _dlp_flag(dlp, conf_threshold, ss_type, gene_name)
         dse_secreted, dse_type, dse_max, t3ss_flagged = _dse_flag(dse)
-        plm_e_secreted = _plm_effector_flag(plm_e, conf_threshold)
         sp_supports, sp_pred, sp_prob = _signalp_supports(sp)
 
         evidence = []
@@ -263,8 +224,6 @@ def cross_validate(
             evidence.append("DeepLocPro")
         if dse_secreted:
             evidence.append("DeepSecE")
-        if plm_e_secreted:
-            evidence.append("PLM-Effector")
 
         n_agreeing = len(evidence)
 
@@ -282,14 +241,6 @@ def cross_validate(
             "dse_ss_type": dse_type,
             "dse_max_prob": dse_max,
             "dse_T3SS_flagged": t3ss_flagged,
-            "plm_effector_secreted": plm_e_secreted,
-            # `flagging_types` is what merge_plm_effector_outputs writes:
-            # comma-separated SS-effector types ("T2SE" / "T2SE,T4SE"). We
-            # fall back to `effector_type` so older fixtures (and the
-            # unit-test stub _plm_e_row) that still write that key keep
-            # working.
-            "plm_effector_type": plm_e.get("flagging_types", plm_e.get("effector_type", "")),
-            "plm_effector_max_prob": _float_or_zero(plm_e.get("max_stacking", 0.0)),
             "signalp_prediction": sp_pred,
             "signalp_probability": sp_prob,
             "signalp_cs_position": sp.get("signalp_cs_position", ""),
@@ -305,16 +256,11 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "Cross-validate secretion predictions across DeepLocPro + "
-            "DeepSecE + PLM-Effector (equal triggers) and SignalP (evidence-only)."
+            "DeepSecE (equal triggers) and SignalP (evidence-only)."
         )
     )
     parser.add_argument("--deeplocpro", required=True)
     parser.add_argument("--deepsece", default="")
-    parser.add_argument(
-        "--plm-effector",
-        default="",
-        help="PLM-Effector combined-type TSV (optional). Missing file == no PLM-E trigger.",
-    )
     parser.add_argument("--signalp", default="")
     parser.add_argument(
         "--ss-components",
@@ -333,14 +279,11 @@ def main():
 
     dlp_data = _load_tsv_by_locus(args.deeplocpro)
     dse_data = _load_tsv_by_locus(args.deepsece)
-    plm_e_data = _load_tsv_by_locus(args.plm_effector)
     sp_data = _load_tsv_by_locus(args.signalp)
     ss_component_info = _load_ss_component_info(args.ss_components)
 
     if not dse_data:
         logger.info("DeepSecE not available — running without DSE trigger")
-    if not plm_e_data:
-        logger.info("PLM-Effector not available — running without PLM-E trigger")
     if not sp_data:
         logger.info("SignalP not available — no signal-peptide evidence")
 
@@ -353,7 +296,6 @@ def main():
         for row in cross_validate(
             dlp_data=dlp_data,
             dse_data=dse_data,
-            plm_e_data=plm_e_data,
             sp_data=sp_data,
             sample_id=args.sample,
             conf_threshold=args.conf_threshold,

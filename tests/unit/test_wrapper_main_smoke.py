@@ -111,7 +111,7 @@ def _run_wrapper_main(module_name: str, argv: list[str], monkeypatch, extra_patc
 
 
 class TestPredictionWrappers:
-    """The four secretion-prediction wrappers (DLP, DSE, SignalP, PLM-E).
+    """The three secretion-prediction wrappers (DLP, DSE, SignalP).
     These are the parallel group whose CPU-sharing rework introduced the
     NameErrors we're guarding against."""
 
@@ -170,26 +170,6 @@ class TestPredictionWrappers:
             "/nonexistent",
         ]
         _run_wrapper_main("ssign_app.scripts.run_deeplocpro", argv, monkeypatch)
-
-    def test_plm_effector(self, tmp_path, tiny_fasta, monkeypatch):
-        weights = tmp_path / "weights"
-        weights.mkdir()
-        out_dir = tmp_path / "out"
-        out_dir.mkdir()
-        argv = [
-            "run_plm_effector.py",
-            "--input",
-            str(tiny_fasta),
-            "--weights-dir",
-            str(weights),
-            "--effector-types",
-            "T1SE",
-            "--out-dir",
-            str(out_dir),
-            "--device",
-            "cpu",
-        ]
-        _run_wrapper_main("ssign_app.scripts.run_plm_effector", argv, monkeypatch)
 
 
 class TestAnnotationWrappers:

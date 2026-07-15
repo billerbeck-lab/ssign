@@ -267,7 +267,6 @@ class PipelineConfig:
     dlp_whole_genome: bool = False  # Run on all proteins, not just neighborhood
     dse_whole_genome: bool = False
     sp_whole_genome: bool = False
-    plme_whole_genome: bool = False
 
     # Resource sampling — writes outdir/runtime_data/resource_samples.csv during a run with
     # system CPU/RAM/GPU/disk samples tagged with the active step. Disable
@@ -334,16 +333,6 @@ class PipelineConfig:
     # fall back to a dir under outdir. Set explicitly to force a location — needed
     # in a container, where /tmp is a tiny (~64 MiB) tmpfs that Bakta overflows.
     scratch_dir: str = ""
-
-    # Phase 3.2.d: PLM-Effector (prediction-tier, equal to DLP/DSE per
-    # the cross-validate refactor in 3.2.b). Tier-driven default: on at
-    # every tier (weights ship with the base bundle), but the user can
-    # --skip-plm-effector on CPU-only nodes where the per-type ESM forward
-    # is too slow.
-    skip_plm_effector: Optional[bool] = None
-    plm_effector_weights_dir: str = ""
-    plm_effector_types: list = field(default_factory=lambda: ["T1SE", "T2SE", "T3SE", "T4SE", "T6SE"])
-    plm_chunk_size: int = 256
 
     skip_protparam: Optional[bool] = None
 
@@ -429,7 +418,6 @@ class PipelineConfig:
             ("interproscan_db", "SSIGN_INTERPROSCAN_PATH"),
             ("eggnog_db", "EGGNOG_DATA_DIR"),
             ("plmblast_db", "SSIGN_ECOD_DB"),
-            ("plm_effector_weights_dir", "SSIGN_PLM_EFFECTOR_WEIGHTS"),
             ("signalp_path", "SSIGN_SIGNALP_PATH"),
             ("deeplocpro_path", "SSIGN_DEEPLOCPRO_PATH"),
         ):
@@ -485,15 +473,6 @@ class PipelineConfig:
             if sp_dir:
                 self.blastp_db = os.path.join(sp_dir, "swissprot")
                 logger.info("Resolved blastp_db → %s", self.blastp_db)
-
-        # PLM-Effector weights also live under db_root when the user used
-        # fetch_databases.sh's default layout. ModelWeights entry with
-        # under_db_root=True; not part of DATABASE_PATHS so handled here.
-        if not self.plm_effector_weights_dir:
-            candidate = os.path.join(db_root, "plm_effector_weights")
-            if os.path.isdir(candidate):
-                self.plm_effector_weights_dir = candidate
-                logger.info("Resolved plm_effector_weights_dir → %s", candidate)
 
         # Auto-detect DTU-tool mode when the user didn't pin it. Defaults
         # to local if a binary is discoverable (configured path or PATH);
@@ -616,8 +595,8 @@ def run_script(
 
     ``stream_stderr=True`` forwards each stderr line to the runner logger as it
     arrives, instead of buffering until the subprocess exits. Use it for long
-    steps where intermediate progress (e.g. per-PLM-type completion in
-    PLM-Effector) is what tells the user "still alive, on type N of 5". Default
+    steps where intermediate progress (e.g. per-protein completion in a long
+    HH-suite or InterProScan run) is what tells the user it's still alive. Default
     off — most tool wrappers are silent on success or chatty enough to flood
     the log.
     """
@@ -1002,15 +981,9 @@ class PipelineRunner:
           detect_format → extract_proteins → macsyfinder → validate →
           extract_neighborhood →
             [deeplocpro || deepsece || signalp]  ← PARALLEL GROUP 1
-          → plm_effector →
           → cross_validate → proximity → t5ss → filtering →
             [blastp || hhsuite || interproscan || plm_blast || protparam]  ← PARALLEL GROUP 2
           → integrate → orthologs → enrichment → report → figures
-
-        PLM-Effector is deliberately serial after parallel group 1: it
-        loads 3-4 PLMs (~6 GB resident each), and on a memory-constrained
-        allocation the parallel group's shared memory ceiling kills its
-        first model load while DLP/DSE/SignalP are still resident.
 
         Memoised because MultiGenomeRunner re-asks each per-genome
         runner for its stages once per per-genome segment (3 calls);
@@ -1054,8 +1027,6 @@ class PipelineRunner:
         # forces whole-genome DLP/DSE (see Config.__post_init__), so every gene
         # already has a prediction and the rotation null is the background.
         stages.append(prediction_steps)
-        if not self.config.skip_plm_effector:
-            stages.append(("Predicting effectors (PLM-Effector, 5 types)", self._step_plm_effector))
         stages.extend(
             [
                 ("Cross-validating predictions", self._step_cross_validate),
@@ -1964,7 +1935,6 @@ class PipelineRunner:
             return StepResult("cross_validate", False, "No DeepLocPro output from previous step")
 
         dse = self.files.get("deepsece", "")
-        plm_e = self.files.get("plm_effector", "")
         sp = self.files.get("signalp", "")
 
         # cross_validate itself no longer needs valid_systems (DSE-T3SS is flagged
@@ -1985,8 +1955,6 @@ class PipelineRunner:
         ]
         if dse and os.path.exists(dse):
             args.extend(["--deepsece", dse])
-        if plm_e and os.path.exists(plm_e):
-            args.extend(["--plm-effector", plm_e])
         if sp and os.path.exists(sp):
             args.extend(["--signalp", sp])
         ss_components = self.files.get("ss_components", "")
@@ -2159,6 +2127,18 @@ class PipelineRunner:
 
     # ── Phase 5: Annotation ──
 
+    def _gpu_present(self) -> bool:
+        """Whether a CUDA device is visible (memoized). Gates whether the
+        GPU-bound annotators (pLM-BLAST) are treated as CPU-heavy in the
+        parallel annotation group."""
+        cached = getattr(self, "_gpu_present_cache", None)
+        if cached is None:
+            from ssign_app.scripts.ssign_lib.resources import probe_cuda_device
+
+            cached = probe_cuda_device()[0] is not None
+            self._gpu_present_cache = cached
+        return cached
+
     def _annotation_cpu_budget(self) -> int:
         """Per-tool CPU budget when annotation_steps run in parallel.
 
@@ -2167,8 +2147,9 @@ class PipelineRunner:
         the parallel annotation_steps group (runner.py L591), naively giving
         each one `cpu_per_genome` produces N× oversubscription. Divide the
         budget by the count of CPU-heavy annotators currently enabled.
-        pLM-BLAST and ProtParam aren't counted: the former is GPU-bound for
-        its long phase, the latter is microseconds of pure-Python work.
+        ProtParam isn't counted (microseconds of pure-Python work); pLM-BLAST
+        is counted only on a GPU-less node, where its search phase is CPU-bound
+        and runs concurrently (with a GPU it stays off the CPU-heavy list).
         """
         n_heavy = sum(
             [
@@ -2178,6 +2159,8 @@ class PipelineRunner:
                 not self.config.skip_eggnog,
             ]
         )
+        if not self.config.skip_plmblast and not self._gpu_present():
+            n_heavy += 1
         return max(1, self.config.cpu_per_genome // max(1, n_heavy))
 
     def _check_substrates_exist(self, step_name):
@@ -2296,10 +2279,17 @@ class PipelineRunner:
         # sub-linearly past 2-4 threads per process, so spend the budget on
         # workers and pin cpu_per_job=2.
         budget = self._annotation_cpu_budget()
+        # Clamp fan-out by BOTH the CPU budget and the RAM share: each hhblits
+        # MSA build holds multi-GB of private RAM, so a many-core but RAM-tight
+        # node must not launch budget//2 workers and OOM.
+        from ssign_app.scripts.ssign_lib.constants import HHSUITE_RAM_GB_PER_WORKER
+        from ssign_app.scripts.ssign_lib.resources import parallel_share_ram_gb
+
+        ram_workers = max(1, int(parallel_share_ram_gb() / HHSUITE_RAM_GB_PER_WORKER))
         args.extend(
             [
                 "--max-workers",
-                str(max(1, budget // 2)),
+                str(max(1, min(budget // 2, ram_workers))),
                 "--cpu-per-job",
                 "2",
             ]
@@ -2459,7 +2449,10 @@ class PipelineRunner:
             "--out",
             output,
             "--threads",
-            str(self.config.cpu_per_genome),
+            # Full budget when GPU-accelerated (embedding dominates and is
+            # GPU-bound); the shared annotation budget on a CPU-only node so the
+            # search phase doesn't oversubscribe against its co-scheduled peers.
+            str(self.config.cpu_per_genome if self._gpu_present() else self._annotation_cpu_budget()),
             "--cpc",
             str(self.config.plmblast_cpc),
         ]
@@ -2476,80 +2469,6 @@ class PipelineRunner:
             self.files["plm_blast"] = output
             return StepResult("plm_blast", True, "pLM-BLAST complete")
         return StepResult("plm_blast", False, stderr[:500])
-
-    def _step_plm_effector(self) -> StepResult:
-        """Run PLM-Effector across all requested SS types in one subprocess,
-        then merge the per-type TSVs into a single combined TSV.
-
-        The merged TSV has one row per protein with `passes_threshold=1`
-        iff the ensemble flagged it for at least one SS type — shape that
-        cross_validate_predictions expects.
-        """
-        if not self.config.plm_effector_weights_dir:
-            return StepResult(
-                "plm_effector",
-                False,
-                "PLM-Effector requires a weights directory. Set "
-                "`plm_effector_weights_dir` in the config; extended/full "
-                "install tier fetches the weights automatically.",
-            )
-
-        # Stage the ~19 GB PLM-Effector weights tree to local SSD once.
-        # Each PLM subprocess re-reads ~4-12 GB of model weights; on gpfs
-        # that's pathologically slow. Local staging makes reads 5-10×
-        # faster. No-op when weights are already on local FS.
-        weights_dir = self.config.plm_effector_weights_dir
-        cache = os.environ.get("TMPDIR", "")
-        if cache:
-            from ssign_app.scripts.ssign_lib.resources import stage_directory_tree_to_local_ssd_if_remote
-
-            weights_dir = stage_directory_tree_to_local_ssd_if_remote(weights_dir, cache)
-
-        input_proteins = self._resolve_step_input_fasta(self.config.plme_whole_genome)
-
-        out_dir = self._wf(f"{self.config.sample_id}_plm_effector")
-        os.makedirs(out_dir, exist_ok=True)
-        args = [
-            "--input",
-            input_proteins,
-            "--weights-dir",
-            weights_dir,
-            "--effector-types",
-            *self.config.plm_effector_types,
-            "--out-dir",
-            out_dir,
-            "--chunk-size",
-            str(self.config.plm_chunk_size),
-        ]
-        rc, stdout, stderr = run_script(
-            "run_plm_effector.py",
-            args,
-            timeout=self._scaled_tool_timeout(
-                "plm_effector", count_sequences(input_proteins), whole_genome=self.config.plme_whole_genome
-            ),
-            stream_stderr=True,
-        )
-        if rc != 0:
-            return StepResult(
-                "plm_effector",
-                False,
-                f"PLM-Effector failed: {stderr[:400]}",
-            )
-
-        per_type_paths = [os.path.join(out_dir, f"{eff_type}.tsv") for eff_type in self.config.plm_effector_types]
-        merged = self._wf(f"{self.config.sample_id}_plm_effector_merged.tsv")
-        rc, stdout, stderr = run_script(
-            "merge_plm_effector_outputs.py",
-            ["--inputs"] + per_type_paths + ["--out", merged],
-        )
-        if rc == 0:
-            self.files["plm_effector"] = merged
-            return StepResult(
-                "plm_effector",
-                True,
-                f"PLM-Effector complete ({len(per_type_paths)} types merged)",
-            )
-        return StepResult("plm_effector", False, stderr[:500])
 
     # ── Phase 6: Integration ──
 
@@ -2704,8 +2623,6 @@ class PipelineRunner:
 
         # Annotation tools only (NOT SignalP — that's a prediction tool,
         # already included via cross_validate → substrates_filtered).
-        # EggNOG + pLM-BLAST added in 3.2.d; PLM-Effector stays prediction-
-        # tier and is consumed by cross_validate, not integrate.
         annotation_files = []
         for key in [
             "blastp",
@@ -2847,8 +2764,7 @@ class PipelineRunner:
         Opt-in: only runs when --enrichment-stats is on. That flag forces
         whole-genome DLP/DSE (Config.__post_init__), so every gene has a
         prediction and the rotation null is the background — no null sample
-        needed. PLM-Effector is deliberately not an enrichment predictor (it
-        over-predicts at genome scale; openspec enrichment-background-and-plme-default-off).
+        needed.
         """
         if not self.config.enrichment_stats:
             return StepResult("enrichment", True, "Skipped (--enrichment-stats not set)")
@@ -3403,8 +3319,7 @@ class PipelineRunner:
         Joined sources (each contributes its full per-tool column set;
         empty values where the tool didn't run or skipped a protein):
           - ``gene_info``      — all proteins extracted from the genome
-          - ``predictions``    — cross_validate output (DLP/DSE/SignalP/PLM-E)
-          - ``plm_effector``   — merged per-type PLM-E TSV
+          - ``predictions``    — cross_validate output (DLP/DSE/SignalP)
           - ``substrates_all`` — proximity + T5SS-self substrate flags
           - per-tool annotation outputs (blastp, hhsuite, interproscan,
             eggnog, plm_blast, protparam)
@@ -3454,7 +3369,6 @@ class PipelineRunner:
         # Order matters only for label-prefixing of overlapping columns.
         sources = [
             ("pred", self.files.get("predictions", "")),
-            ("plme", self.files.get("plm_effector", "")),
             ("substrates_all", self.files.get("substrates_all", "")),
             ("blastp", self.files.get("blastp", "")),
             ("hhsuite", self.files.get("hhsuite", "")),

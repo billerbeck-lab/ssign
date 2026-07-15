@@ -115,19 +115,13 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 |---|---|---|---|
 | `--skip-eggnog` | bool | `true` | Skip EggNOG-mapper (off by default). |
 | `--eggnog-db` | path | `""` | EggNOG database directory. |
-
-## PLM-Effector
-
-| Flag | Type | Default | Description |
-|---|---|---|---|
-| `--skip-plm-effector` | bool | `true` | Skip PLM-Effector (off by default; GPU-heavy). |
-| `--plm-effector-weights-dir` | path | `""` | Directory containing PLM-Effector weights and the ProtT5 cache. |
-| `--plm-effector-types` | list | `T1SE T2SE T3SE T4SE T6SE` | Secretion-system effector types to predict. |
+| `--eggnog-dbmem` | bool | auto | Load `eggnog.db` into RAM (`--dbmem`, ~44 GB resident). Default auto: on only when the job's RAM share is >= 50 GB, else the on-disk SQLite is memory-mapped. Force with `--eggnog-dbmem` / `--no-eggnog-dbmem`. |
 
 ## Miscellaneous annotation
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
+| `--skip-annotation` | bool | `false` | Skip every annotation tool at once (BLASTp, HH-suite, InterProScan, pLM-BLAST, EggNOG, ProtParam). Predictions and substrate calls still run. A per-tool `--no-skip-<tool>` (e.g. `--no-skip-eggnog`) overrides this to keep that one tool on. |
 | `--skip-protparam` | bool | `false` | Skip the ProtParam physicochemical-property step. |
 | `--t5ass-annotate-whole` | bool | `false` | For T5aSS (classical autotransporter) substrates, run EggNOG / BLASTp / pLM-BLAST / HHsuite / ProtParam a second time on the full protein and emit `t5ass_whole_*` columns alongside the default passenger-only annotations. Lets you compare functional (passenger) vs structural (β-barrel-dominated whole-AT) hits side by side. InterProScan unchanged (already domain-aware). See `docs/explanation/design_decisions.md` § 4.3. |
 | `--filter-dse-type-mismatch` | bool | `true` | Drop DSE-only substrates whose predicted SS type does not match the nearby MacSyFinder system. |

@@ -96,14 +96,12 @@ extended = [
     # docs/how-to/install.md for the conda / pip --no-deps recipe.
     "goatools",
     "obonet",
-    # transformers >=5.0 removes batch_encode_plus, breaking pLM-BLAST and
-    # PLM-Effector; numpy >=2.0 removes np.issubsctype, breaking pLM-BLAST.
-    # Both bounds verified via integration tests on 2026-04-29.
-    # v1.x roadmap: revisit when upstream pLM-BLAST/PLM-Effector ships
+    # transformers >=5.0 removes batch_encode_plus and numpy >=2.0 removes
+    # np.issubsctype, both breaking pLM-BLAST. Bounds verified via integration
+    # tests on 2026-04-29. v1.x roadmap: revisit when upstream pLM-BLAST ships
     # transformers-5 + numpy-2 compatible code so we can drop the upper bound.
     "transformers>=4.38,<5.0",
     "numpy>=1.26,<2.0",
-    "xgboost>=2.0",
     # Required at runtime by pLM-BLAST: protobuf for ProtT5 SentencePiece
     # tokenizer; mkl + mkl-service are direct imports in plmblast.py.
     "protobuf",
@@ -136,7 +134,6 @@ full = [
     "obonet",
     "transformers>=4.38,<5.0",
     "numpy>=1.26,<2.0",
-    "xgboost>=2.0",
     "protobuf",
     "mkl",
     "mkl-service",

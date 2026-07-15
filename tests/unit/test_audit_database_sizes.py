@@ -130,21 +130,12 @@ class TestAudit:
         (bakta_dir / "version.json").write_text("{}")
         (bakta_dir / "blob").write_bytes(b"x" * 2048)
 
-        # PLM-Effector weights live under db-root when under_db_root=True
-        plme_dir = db_root / "plm_effector_weights"
-        plme_dir.mkdir()
-        (plme_dir / "model.pt").write_bytes(b"y" * 4096)
-
         rows = audit.audit(str(db_root), str(weights_root))
         by_name = {r["name"]: r for r in rows}
 
         bakta = by_name["Bakta DB"]
         assert bakta["path"] is not None
         assert bakta["bytes"] is not None and bakta["bytes"] >= 2048
-
-        plme = by_name["PLM-Effector ensemble weights"]
-        assert plme["path"] is not None
-        assert plme["bytes"] is not None and plme["bytes"] >= 4096
 
         # Things not present should report path=None, bytes=None
         eggnog = by_name["EggNOG DB"]

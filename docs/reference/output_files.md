@@ -68,7 +68,7 @@ producing step was skipped or had no output.
 | Identity | `locus_tag`, `sample_id` |
 | Annotation consensus | `broad_consensus_annotation`, `broad_annotation`, `detailed_annotation`, `detailed_consensus_annotation`, `evidence_keywords`, `n_tools_agreeing`, `n_tools_with_hits`, `concordance_ratio`, `confidence_tier` |
 | Physicochemical | `aa_length`, `gravy`, `mw_da`, `isoelectric_point`, `charge_ph7`, `instability_index`, `aromaticity` |
-| Secretion-system context | `nearby_ss_types`, `secretion_evidence`, `is_secreted` |
+| Secretion-system context | `nearby_ss_types`, `secretion_evidence`, `is_secreted`, `n_prediction_tools_agreeing` (0-2: how many of DeepLocPro + DeepSecE flagged secretion; SignalP is evidence-only and does not count) |
 | DeepLocPro | `predicted_localization`, `dlp_extracellular_prob`, `dlp_max_localization`, `dlp_max_probability`, `periplasmic_prob`, `outer_membrane_prob`, `cytoplasmic_prob` |
 | DeepSecE | `dse_ss_type`, `dse_max_prob` |
 | SignalP | `signalp_prediction`, `signalp_probability`, `signalp_cs_position` |
@@ -83,9 +83,8 @@ producing step was skipped or had no output.
 | T5aSS whole-protein second pass (opt-in via `--t5ass-annotate-whole`) | `t5ass_whole_eggnog_*`, `t5ass_whole_blastp_*`, `t5ass_whole_ecod_top1_*`, `t5ass_whole_pfam_top1_*`, `t5ass_whole_pdb_top1_*`, `t5ass_whole_<protparam>_*`. Each mirrors the corresponding default-pass column on T5aSS substrates only. |
 | Sequence | `sequence` (always last when present) |
 
-Any tool-specific column not listed above (e.g. EggNOG, pLM-BLAST, PLM-Effector
-fields) appears alphabetically after the last priority group, before
-`sequence`.
+Any tool-specific column not listed above (e.g. EggNOG, pLM-BLAST fields)
+appears alphabetically after the last priority group, before `sequence`.
 
 ### Chunk 2 + 3 column reference (Secretion Systems)
 

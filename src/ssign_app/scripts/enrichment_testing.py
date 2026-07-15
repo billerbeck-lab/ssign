@@ -29,8 +29,7 @@ effectors is an informative contrast, not a skip). A combined one-bar-per-type
 track is a per-type union re-test: "DLP or SignalP" for Sec-dependent T5 results
 (autotransporter self-detection and T5bSS), "DLP or DSE" for other window types
 including the T5a/c hitchhiker window, and DLP-only for T3SS.
-PLM-Effector is deliberately not an enrichment predictor (it over-predicts at
-genome scale). Replaces the earlier binomial test.
+Replaces the earlier binomial test.
 
 Approximation: multi-contig genomes are ordered contig-then-start and rotated as
 one circular replicon (a rotation can wrap across a contig junction).

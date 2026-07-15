@@ -2,8 +2,7 @@
 
 Pools predictions over neighborhoods and annotations over substrates so
 the heavy startup tax (InterProScan JVM, EggNOG DIAMOND, pLM-BLAST
-embeddings, PLM-Effector models) is paid once per batch instead of once
-per genome.
+embeddings) is paid once per batch instead of once per genome.
 
 Five-segment design: A (per-genome detect → neighborhood) → B (pooled
 predictions) → C (per-genome cross-validate → filtering) → D (pooled
@@ -50,7 +49,6 @@ _SEGMENT_BY_STEP = {
     "deeplocpro": "B",
     "deepsece": "B",
     "signalp": "B",
-    "plm_effector": "B",
     "cross_validate": "C",
     "proximity": "C",
     "t5ss": "C",
@@ -73,7 +71,7 @@ _SEGMENT_BY_STEP = {
 
 # Output keys (in PipelineRunner.files) for each pooled segment's tools.
 # Used at split time to wire pool TSVs back into per-genome runners.
-_SEGMENT_B_OUTPUT_KEYS = ("deeplocpro", "deepsece", "signalp", "plm_effector")
+_SEGMENT_B_OUTPUT_KEYS = ("deeplocpro", "deepsece", "signalp")
 _SEGMENT_D_OUTPUT_KEYS = (
     "blastp",
     "hhsuite",
@@ -90,7 +88,6 @@ _REQUIRED_UNIFORM_FLAGS = (
     "skip_deeplocpro",
     "skip_deepsece",
     "skip_signalp",
-    "skip_plm_effector",
     "skip_blastp",
     "skip_hhsuite",
     "skip_interproscan",
@@ -131,7 +128,7 @@ class MultiGenomeRunner:
 
     For N=1, ``run()`` is functionally identical to
     ``PipelineRunner(configs[0]).run()``. For N>1, prediction tools
-    (DLP/DSE/SignalP/PLM-E) run once on a pooled neighborhood FASTA
+    (DLP/DSE/SignalP) run once on a pooled neighborhood FASTA
     and annotation tools (BLASTp/EggNOG/IPS/pLM-BLAST/HHsuite/ProtParam)
     run once on a pooled substrate set, while context-dependent steps
     (cross_validate, proximity, T5SS handling, filtering, integrate,
@@ -389,7 +386,7 @@ class MultiGenomeRunner:
         # pooled DLP/DSE run must therefore see the FULL proteome, not just the
         # neighborhood: _resolve_step_input_fasta(whole_genome=True) returns
         # `proteins`, so we pool the whole proteomes and stage them under that key.
-        # SignalP/PLM-E keep `neighborhood_proteins` (whole_genome=False), matching
+        # SignalP keeps `neighborhood_proteins` (whole_genome=False), matching
         # single-genome scope. Without this the background is computed from
         # neighborhood-only positivity and the null is ~7x too low (fold/p inflated).
         if self.configs[0].dlp_whole_genome or self.configs[0].dse_whole_genome:
@@ -417,7 +414,7 @@ class MultiGenomeRunner:
             pooled = pool_runner.files.get(key)
             if not pooled or not os.path.exists(pooled):
                 continue
-            id_col = "seq_id" if key == "plm_effector" else "locus_tag"
+            id_col = "locus_tag"
             split_dir = pool_outdir / f"split_{key}"
             paths = split_tsv_by_source(Path(pooled), split_dir, id_column=id_col)
             for sid, path in paths.items():

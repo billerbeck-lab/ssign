@@ -1,11 +1,11 @@
 # Installing optional tools
 
 `pip install ssign` gets you the base pipeline: secretion-system detection,
-secreted-protein prediction (DeepLocPro, SignalP, and PLM-Effector — see
-the DeepLocPro and SignalP sections below for installing the DTU tools
-locally, or for the opt-in webserver fallback when you don't have a DTU
-licence), proximity analysis, and reporting. The tools below extend what
-the pipeline reports and how it runs.
+secreted-protein prediction (DeepLocPro, DeepSecE, and SignalP — see the
+DeepLocPro and SignalP sections below for installing the DTU tools locally,
+or for the opt-in webserver fallback when you don't have a DTU licence),
+proximity analysis, and reporting. The tools below extend what the pipeline
+reports and how it runs.
 
 The simplest path is one of the named tiers:
 
@@ -28,7 +28,7 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases on Imper
 | Tier | Cumulative size | Adds |
 |---|---|---|
 | base | ~2 GB | DeepSecE checkpoint |
-| extended | ~125 GB | + Bakta light DB (4 GB), EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB), PLM-Effector weights (26 GB) |
+| extended | ~100 GB | + Bakta light DB (4 GB), EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB) |
 | full | ~500 GB | + Bakta full DB (84 GB), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
 HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
@@ -193,11 +193,11 @@ ssign run input.gbff --outdir results --eggnog-db ~/.ssign/databases/eggnog
 EggNOG annotation is off by default (`--skip-eggnog` defaults to `true`).
 Pass `--no-skip-eggnog` to enable it.
 
-> **HPC / shared scratch users:** `--dbmem` is on by default and loads
-> `eggnog.db` into RAM (~44 GB resident). Required on NFS-backed cluster
-> scratch (Imperial CX3 RDS and similar) — without it, emapper mmaps the
-> 39 GB SQLite DB and hangs silently for hours. Pass `--no-eggnog-dbmem`
-> only on RAM-constrained machines with the database on local SSD.
+> **HPC / shared scratch users:** `--eggnog-dbmem` (loads `eggnog.db` into
+> RAM, ~44 GB resident) is now **auto** by default: on only when the job's
+> RAM share is >= 50 GB, else the on-disk SQLite is memory-mapped. The runner
+> stages that DB to local scratch first, so the old NFS-mmap hang no longer
+> applies. Force either way with `--eggnog-dbmem` / `--no-eggnog-dbmem`.
 
 ---
 
@@ -348,27 +348,6 @@ is 10+ hours just for embedding.
 
 ---
 
-## PLM-Effector (vendored; weights download only)
-
-PLM-Effector source code is shipped with ssign under `src/ssign_app/scripts/plm_effector/`.
-The trained weights (~1.7 GB) and four pretrained protein language models
-(~24 GB) are fetched by `scripts/fetch_databases.sh` at every tier
-(~26 GB total on disk):
-
-```bash
-scripts/fetch_databases.sh --tier base --target ~/.ssign/databases
-export SSIGN_PLM_EFFECTOR_WEIGHTS=~/.ssign/databases/plm_effector_weights
-```
-
-The sourcecode.zip download from `www.mgc.ac.cn` runs at ~2 MB/s
-(slow academic mirror, ~11 min for 1.5 GB). The HuggingFace pulls are fast.
-You need the `hf` CLI on PATH (`pip install 'huggingface_hub[cli]'`).
-
-CUDA GPU required for practical runtime; CPU is ~100x slower. ssign's
-PLM-Effector test hard-skips on systems without a GPU.
-
----
-
 ## SignalP 6.0
 
 ssign is offline-first: the canonical path is a local SignalP install. **DTU
@@ -402,9 +381,8 @@ to publish or repeat, install locally.
 
 SignalP 6.0 pins **Python ≤ 3.10** and **PyTorch < 2.0**, while ssign itself
 runs on Python 3.11+ with PyTorch 2.x. Installing SignalP into your ssign env
-will downgrade PyTorch and break DeepSecE / DeepLocPro / PLM-Effector /
-pLM-BLAST. **Install SignalP into its own env** and point ssign at the
-binary.
+will downgrade PyTorch and break DeepSecE / DeepLocPro / pLM-BLAST.
+**Install SignalP into its own env** and point ssign at the binary.
 
 ```bash
 # 1. Register and request a download at
@@ -573,8 +551,8 @@ ssign run input.gbff --outdir results
 
 That's it. `fetch_databases.sh` records the tier at `~/.ssign/tier`; ssign
 reads it and enables exactly the tools the extended bundle ships (EggNOG,
-InterProScan, pLM-BLAST, PLM-Effector) while leaving BLASTp and HH-suite
-off — BLASTp-vs-Swiss-Prot and HH-suite UniRef30 are full-tier only.
+InterProScan, pLM-BLAST) while leaving BLASTp and HH-suite off —
+BLASTp-vs-Swiss-Prot and HH-suite UniRef30 are full-tier only.
 The database paths come from `~/.ssign/db_root` (also written by
 `fetch_databases.sh`) — no per-DB env var exports needed for the
 common case.
@@ -588,7 +566,6 @@ export BAKTA_DB=$DBROOT/bakta/db-light
 export SSIGN_INTERPROSCAN_PATH=$DBROOT/interproscan/interproscan-5.77-108.0
 export EGGNOG_DATA_DIR=$DBROOT/eggnog
 export SSIGN_ECOD_DB=$DBROOT/plm_blast/ECOD30
-export SSIGN_PLM_EFFECTOR_WEIGHTS=$DBROOT/plm_effector_weights
 # Full-tier-only DBs — uncomment if you've fetched them:
 # export SSIGN_HHSUITE_PFAM=$DBROOT/hhsuite/pfam
 # export SSIGN_HHSUITE_PDB70=$DBROOT/hhsuite/pdb70

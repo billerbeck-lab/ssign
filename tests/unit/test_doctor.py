@@ -11,13 +11,12 @@ import io
 
 
 class TestReportResources:
-    def test_emits_cpu_ram_gpu_and_plme_lines(self, monkeypatch):
+    def test_emits_cpu_ram_gpu_lines(self, monkeypatch):
         from ssign_app.scripts import doctor
 
         # Pin the underlying detectors so the test is host-independent.
         monkeypatch.setattr("ssign_app.scripts.ssign_lib.resources.effective_cpu_count", lambda: 8)
         monkeypatch.setattr("ssign_app.scripts.ssign_lib.resources.effective_ram_gb", lambda: 32.0)
-        monkeypatch.setattr("ssign_app.scripts.ssign_lib.resources.auto_batch_size_from_vram", lambda: 16)
         monkeypatch.setattr("ssign_app.scripts.ssign_lib.resources.probe_cuda_device", lambda: ("FAKE-GPU", 24.0))
         monkeypatch.setattr("os.cpu_count", lambda: 16)
 
@@ -29,7 +28,6 @@ class TestReportResources:
         assert "effective: 8" in out and "host: 16" in out
         assert "32.0 GB" in out
         assert "FAKE-GPU, 24.0 GiB VRAM" in out
-        assert "auto batch size: 16" in out
 
     def test_flags_scheduler_throttle(self, monkeypatch):
         # When effective_cpu_count < host cpu_count, doctor should call

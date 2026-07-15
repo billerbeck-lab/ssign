@@ -102,12 +102,13 @@ def test_blastp_small_substrate_set_stays_at_floor():
     assert out == TOOL_TIMEOUT_S
 
 
-def test_degenerate_low_fit_protected_by_floor():
-    # plm_effector whole_genome is a degenerate flat fit (a=0, n=3); the margin
-    # times its tiny prediction stays below the floor, so scaled_timeout returns
-    # the floor unchanged. (SignalP whole_genome used to be this example; it was
-    # proxied to the DeepLocPro rate on 2026-07-03 after the pooled 160k run
-    # showed its a=0 fit floored SignalP at 4h and killed it.)
+def test_unmodeled_tool_protected_by_floor():
+    # A tool absent from the effort model (e.g. plm_effector, removed
+    # 2026-07-15) has no fit, so scaled_timeout falls back to the floor
+    # rather than under-sizing the timeout. (SignalP whole_genome used to
+    # be a degenerate a=0 fit with the same outcome; it was proxied to the
+    # DeepLocPro rate on 2026-07-03 after the pooled 160k run showed its
+    # a=0 fit floored SignalP at 4h and killed it.)
     out = scaled_timeout("plm_effector", 160_831, "whole_genome")
     assert out == TOOL_TIMEOUT_S
 

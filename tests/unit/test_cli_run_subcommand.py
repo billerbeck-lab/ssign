@@ -79,7 +79,6 @@ class TestDefaults:
         assert cfg.skip_interproscan == defaults.skip_interproscan
         assert cfg.skip_plmblast == defaults.skip_plmblast
         assert cfg.skip_eggnog == defaults.skip_eggnog
-        assert cfg.skip_plm_effector == defaults.skip_plm_effector
         assert cfg.skip_protparam == defaults.skip_protparam
         assert cfg.dpi == defaults.dpi
 
@@ -130,7 +129,6 @@ class TestBooleanFlags:
             ("skip_interproscan", False),
             ("skip_plmblast", True),
             ("skip_eggnog", True),
-            ("skip_plm_effector", True),
             ("skip_protparam", False),
             ("filter_dse_type_mismatch", True),
             ("use_input_annotations", False),
@@ -159,6 +157,32 @@ class TestBooleanFlags:
             assert getattr(captured_config[0], attr) == getattr(defaults, attr)
 
 
+class TestSkipAnnotation:
+    """`--skip-annotation` is a master switch that turns off all six
+    annotation tools, unless a per-tool `--no-skip-<tool>` overrides it."""
+
+    _SIX = ("skip_blastp", "skip_hhsuite", "skip_interproscan", "skip_plmblast", "skip_eggnog", "skip_protparam")
+
+    def test_skip_annotation_sets_all_six(self, monkeypatch, captured_config, fake_input):
+        _invoke(monkeypatch, ["ssign", "run", fake_input, "--tier", "full", "--skip-annotation"])
+        cfg = captured_config[0]
+        assert all(getattr(cfg, attr) is True for attr in self._SIX)
+
+    def test_per_tool_override_keeps_that_tool_on(self, monkeypatch, captured_config, fake_input):
+        # --no-skip-eggnog wins even alongside --skip-annotation.
+        _invoke(monkeypatch, ["ssign", "run", fake_input, "--tier", "full", "--skip-annotation", "--no-skip-eggnog"])
+        cfg = captured_config[0]
+        assert cfg.skip_eggnog is False
+        assert all(getattr(cfg, attr) is True for attr in self._SIX if attr != "skip_eggnog")
+
+    def test_without_flag_tier_defaults_intact(self, monkeypatch, captured_config, fake_input):
+        # extended tier: EggNOG/IPS/pLM-BLAST on, HH-suite/BLASTp off.
+        _invoke(monkeypatch, ["ssign", "run", fake_input, "--tier", "extended"])
+        cfg = captured_config[0]
+        assert cfg.skip_eggnog is False and cfg.skip_interproscan is False
+        assert cfg.skip_hhsuite is True and cfg.skip_blastp is True
+
+
 class TestListFlags:
     def test_excluded_systems_accepts_multiple_values(self, monkeypatch, captured_config, fake_input):
         _invoke(
@@ -166,13 +190,6 @@ class TestListFlags:
             ["ssign", "run", fake_input, "--excluded-systems", "Tad", "Flagellum"],
         )
         assert captured_config[0].excluded_systems == ["Tad", "Flagellum"]
-
-    def test_plm_effector_types_accepts_multiple_values(self, monkeypatch, captured_config, fake_input):
-        _invoke(
-            monkeypatch,
-            ["ssign", "run", fake_input, "--plm-effector-types", "T1SE", "T6SE"],
-        )
-        assert captured_config[0].plm_effector_types == ["T1SE", "T6SE"]
 
 
 class TestChoiceFlags:

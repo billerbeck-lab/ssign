@@ -1815,3 +1815,27 @@ genomes -> per-genome + pooled figure + pooled_enrichment_stats.tsv. Verify:
 <run>/pooled_enrichment_null_distributions.png + pooled_enrichment_stats.tsv (multi).
 KEY THING TO WATCH: whether forcing whole-genome DLP/DSE composes correctly with
 MultiGenomeRunner's segment-B prediction pooling (the one unverified interaction).
+
+## 2026-07-15 — annotation-subsystem-cleanup: golden-fixture regen owed
+
+PLM-Effector removed entirely (openspec annotation-subsystem-cleanup). The e2e
+golden `tests/fixtures/golden/t5ass_minimal/t5ass_minimal_predictions.tsv` had its
+three `plm_effector_*` columns surgically dropped (deterministic column deletion).
+BUT that fixture is ALSO stale for a pre-existing, unrelated reason: it lacks the
+`cytoplasmic_membrane_prob` DeepLocPro column that current production emits (golden
+jumps cytoplasmic_prob -> dse_ss_type; production has cyt_mem between them). So the
+opt-in golden test (`-m integration`, needs local licensed DeepLocPro) will still
+byte-mismatch on that file until a FULL DeepLocPro-driven regen is run per
+`tests/fixtures/golden/REGENERATE.md`. Trigger: next time on a host with SignalP/DLP
+installed (SSIGN_DEEPLOCPRO_PATH set), run the regen and commit the refreshed refs.
+Also confirm the golden `_EXPECTED_FIGURES` list (still `01`-`07` old names) matches
+figures-v2 output while there. Can't do here (no licensed DTU tools on this laptop).
+
+## 2026-07-15 — scripts/analyse_k12_runs.py still parses PLM-E log lines (deliberate)
+
+`scripts/analyse_k12_runs.py` (+ `tests/unit/test_analyse_k12_runs.py`) still contain
+PLM-E log-parsing (34 refs). LEFT IN ON PURPOSE: it's a retrospective benchmark
+log-analyzer, and historical K-12 validation logs contain PLM-E lines. Ripping it out
+would lose the ability to re-analyze past runs. Decision for Teo: keep the historical
+parser, or strip it too for a fully-clean tree? Not a pipeline consumer, so out of the
+annotation-subsystem-cleanup scope.

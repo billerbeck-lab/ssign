@@ -188,47 +188,37 @@ Entries are organised by pipeline stage. Each has three parts:
 
 ## 3. Secreted-protein prediction
 
-### 3.1 Equal-predictor rule: DLP / DSE / PLM-E all trigger
+### 3.1 Equal-predictor rule: DLP / DSE both trigger
 
-- **Decision (Phase 3.2.b):** DeepLocPro, DeepSecE, and PLM-Effector
-  are treated as **equal secretion predictors**. A protein is marked
-  as a candidate substrate if **any one** of these three flags
-  secretion. The count of agreeing tools is recorded as
-  `n_prediction_tools_agreeing` (0-3) as a confidence signal, and
+- **Decision:** DeepLocPro and DeepSecE are treated as **equal secretion
+  predictors**. A protein is marked as a candidate substrate if **either
+  one** flags secretion. The count of agreeing tools is recorded as
+  `n_prediction_tools_agreeing` (0-2) as a confidence signal, and
   `secretion_evidence` lists which tools flagged.
 
-- **Rationale:**
-  - **DLP** (localisation-based, trained on ~40k bacterial proteins)
-    and **DSE** (secretion-type, trained on secretion-system
-    effectors) measure different biological signals. A protein can be
-    clearly secreted by cellular localisation without being a known
-    effector, and vice versa — treating them as equal predictors
-    captures both views.
-  - **PLM-E** adds a third independent signal based on
-    protein-language-model ensemble classification
-    (ESM-1b + ESM-2 + ProtT5 + XGBoost stacking per SS type).
-  - **Equality with OR-logic** is the current best practice for
-    secretion prediction, where false negatives from any single tool
-    are expensive (missed substrates) and false positives get filtered
-    by downstream proximity analysis.
+- **Rationale:** **DLP** (localisation-based, trained on ~40k bacterial
+  proteins) and **DSE** (secretion-type, trained on secretion-system
+  effectors) measure different biological signals. A protein can be
+  clearly secreted by cellular localisation without being a known
+  effector, and vice versa — treating them as equal predictors captures
+  both views. Equality with OR-logic suits secretion prediction, where
+  false negatives from either tool are expensive (missed substrates) and
+  false positives get filtered by downstream proximity analysis.
 
 - **Citations:**
   - [Moreno et al. (2024). _Bioinformatics_ 40(12):btae677](https://doi.org/10.1093/bioinformatics/btae677) — DeepLocPro.
   - [Zhang et al. (2023). _Research_ 6:0258](https://doi.org/10.34133/research.0258) — DeepSecE.
-  - [Zheng (2026). _Briefings in Bioinformatics_ 27(2):bbag143](https://doi.org/10.1093/bib/bbag143) — PLM-Effector.
 
-- **Revision (2026-06-17): PLM-Effector demoted to opt-in.** Validation on
-  P. aeruginosa PAO1 showed PLM-Effector calls ~25% of the proteome as effectors
-  (18% even gated at `max_stacking >= 0.8`), with no reliable enrichment near real
-  secretion systems. This is the documented failure mode of effector predictors
-  trained/thresholded on balanced sets and applied genome-wide (the model's paper
-  reports no genome-scale validation; PAO1 truly has ~4 T3SS effectors). Therefore:
-  DLP + DSE are the default equal predictors; **PLM-Effector is OFF by default**
-  (opt in with `--no-skip-plm-effector`), and when used its call is **gated at
-  `max_stacking >= 0.8`** for consistency with DLP/DSE. It is excluded from the
-  enrichment statistical test and retained as an opt-in proximity signal and a
-  classifier-training feature. See openspec change
-  `enrichment-background-and-plme-default-off`.
+- **PLM-Effector: tested, then removed (2026-07-15).** A third predictor
+  (PLM-Effector, an ESM-1b/ESM-2/ProtT5 + XGBoost ensemble) was trialled as
+  an equal vote. On P. aeruginosa PAO1 it called ~25% of the proteome as
+  effectors (18% even gated at high confidence), with no reliable enrichment
+  near real secretion systems — the documented failure mode of effector
+  predictors trained on balanced sets and applied genome-wide (PAO1 truly has
+  ~4 T3SS effectors). It was first demoted to opt-in, then removed entirely
+  once it earned its keep nowhere in the default pipeline. The downstream
+  secretion-classifier project sources that language-model feature
+  independently, so nothing here depends on it.
 
 - **Revision (2026-06-19): enrichment test is a circular-shift permutation, not a
   binomial.** The opt-in enrichment test asks, per SS type, whether secreted-predicted
@@ -301,29 +291,7 @@ Entries are organised by pipeline stage. Each has three parts:
   calls vs the 0 MacSyFinder-validated injectisomes) before using a number in
   the paper.
 
-### 3.4 Why PLM-Effector is vendored
-
-- **Decision:** PLM-Effector source code is vendored into
-  `src/ssign_app/scripts/plm_effector/` rather than installed as a
-  dependency.
-
-- **Rationale:**
-  - No PyPI package exists upstream; install is conda-based with
-    Python 3.9 + CUDA 11.3 pinned, which conflicts with `ssign`'s
-    Python 3.10+ baseline.
-  - Upstream code has hardcoded paths to the author's institutional
-    machine (`/home/zhengdd/...`) that require edits to run anywhere
-    else.
-  - Vendoring lets us adapt for Python 3.10+, wrap a clean CLI around
-    the entry point, and ship a SHA-pinned Docker image with 5-year
-    reproducibility.
-  - License: CC-BY 3.0 (not MIT, despite the upstream README badge
-    claiming MIT; the actual `LICENSE` file is CC-BY 3.0). CC-BY 3.0
-    explicitly permits redistribution with attribution, which we
-    preserve via `src/ssign_app/scripts/plm_effector/LICENSE` and a
-    citation entry in `CITATION.cff`.
-
-### 3.5 Full-tier BLASTp searches Swiss-Prot, not NR (default)
+### 3.4 Full-tier BLASTp searches Swiss-Prot, not NR (default)
 
 - **Decision:** At the full tier, BLASTp annotates substrates against
   **Swiss-Prot** by default, not NR. NR remains available but opt-in (fetch it
@@ -527,7 +495,7 @@ Entries are organised by pipeline stage. Each has three parts:
 
 - **Decision:** Three install tiers differ in which databases
   `scripts/fetch_databases.sh` downloads:
-  - **base** (~17 GB): MacSyFinder + DLP + DSE + SignalP + PLM-E +
+  - **base** (~17 GB): MacSyFinder + DLP + DSE + SignalP +
     Bakta light
   - **extended** (~130 GB): + EggNOG + HH-suite (Pfam + PDB70) +
     InterProScan + pLM-BLAST
@@ -539,7 +507,7 @@ Entries are organised by pipeline stage. Each has three parts:
   BLASTp defaults to Swiss-Prot (curated, ~300 MB, fast, reviewed function
   names); full NR (~800 GB) is opt-in only because it is impractically slow to
   blast a real substrate set (the full-tier smoke test measured >2 h for ~24
-  substrates, which scales to days on a panel — see §3.5).
+  substrates, which scales to days on a panel — see §3.4).
 
 ### 6.3 Nextflow "power mode" deprecated
 
@@ -605,7 +573,6 @@ For paper Methods section:
 - Teufel, F., et al. (2022). _Nature Biotechnology_, 40(7):1023–1025. doi:[10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3). — SignalP 6.0.
 - Yok, N. G., & Rosen, G. L. (2011). _BMC Bioinformatics_, 12:20. doi:[10.1186/1471-2105-12-20](https://doi.org/10.1186/1471-2105-12-20). — Combining gene prediction methods.
 - Zhang, Y., et al. (2023). _Research_, 6:0258. doi:[10.34133/research.0258](https://doi.org/10.34133/research.0258). — DeepSecE.
-- Zheng, D. (2026). _Briefings in Bioinformatics_, 27(2):bbag143. doi:[10.1093/bib/bbag143](https://doi.org/10.1093/bib/bbag143). — PLM-Effector.
 
 ---
 

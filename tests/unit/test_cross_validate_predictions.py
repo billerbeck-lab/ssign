@@ -2,9 +2,8 @@
 
 Exercises the pure-Python `cross_validate()` generator directly with
 in-memory dicts — no filesystem writes, no subprocess. Covers each
-trigger tool independently (DLP, DSE, PLM-Effector), the SignalP
-evidence-only rule, the DSE T3SS flagging guard, and the
-`n_prediction_tools_agreeing` count.
+trigger tool independently (DLP, DSE), the SignalP evidence-only rule,
+the DSE T3SS flagging guard, and the `n_prediction_tools_agreeing` count.
 """
 
 import pytest
@@ -30,17 +29,6 @@ def _dse_row(locus, ss_type, max_prob=0.9):
     }
 
 
-def _plm_e_row(locus, passes, effector_type="T1SE", max_stacking=0.95):
-    # max_stacking defaults high so a `passes=True` row clears the 0.8 confidence
-    # gate that _plm_effector_flag now applies (consistent with DLP/DSE).
-    return {
-        "locus_tag": locus,
-        "passes_threshold": "1" if passes else "0",
-        "effector_type": effector_type,
-        "max_stacking": str(max_stacking),
-    }
-
-
 def _sp_row(locus, prediction, probability=0.95):
     return {
         "locus_tag": locus,
@@ -53,7 +41,6 @@ def _sp_row(locus, prediction, probability=0.95):
 def _run(
     dlp=None,
     dse=None,
-    plm_e=None,
     sp=None,
     conf_threshold=0.8,
     ss_component_info=None,
@@ -62,7 +49,6 @@ def _run(
         cross_validate(
             dlp_data=dlp or {},
             dse_data=dse or {},
-            plm_e_data=plm_e or {},
             sp_data=sp or {},
             sample_id="sample1",
             conf_threshold=conf_threshold,
@@ -72,7 +58,7 @@ def _run(
 
 
 class TestEqualTriggers:
-    """DLP, DSE, and PLM-Effector are equal secretion predictors."""
+    """DLP and DSE are equal secretion predictors."""
 
     def test_dlp_alone_marks_secreted(self):
         rows = _run(dlp={"G1": _dlp_row("G1", 0.95)})
@@ -87,25 +73,6 @@ class TestEqualTriggers:
         assert rows[0]["is_secreted"] is True
         assert rows[0]["n_prediction_tools_agreeing"] == 1
         assert rows[0]["secretion_evidence"] == "DeepSecE"
-
-    def test_plm_effector_alone_marks_secreted(self):
-        rows = _run(plm_e={"G1": _plm_e_row("G1", passes=True)})
-        assert rows[0]["is_secreted"] is True
-        assert rows[0]["n_prediction_tools_agreeing"] == 1
-        assert rows[0]["secretion_evidence"] == "PLM-Effector"
-        assert rows[0]["plm_effector_secreted"] is True
-
-    def test_plm_effector_below_confidence_gate_is_negative(self):
-        # passes_threshold set but max_stacking < 0.8 -> not counted (0.8 gate,
-        # consistent with DLP/DSE). The native per-type call alone is too permissive.
-        rows = _run(plm_e={"G1": _plm_e_row("G1", passes=True, max_stacking=0.6)})
-        assert rows[0]["plm_effector_secreted"] is False
-        assert rows[0]["is_secreted"] is False
-        assert rows[0]["n_prediction_tools_agreeing"] == 0
-
-    def test_plm_effector_at_confidence_gate_is_positive(self):
-        rows = _run(plm_e={"G1": _plm_e_row("G1", passes=True, max_stacking=0.8)})
-        assert rows[0]["plm_effector_secreted"] is True
 
     def test_below_dlp_threshold_not_secreted(self):
         rows = _run(dlp={"G1": _dlp_row("G1", 0.5)}, conf_threshold=0.8)
@@ -125,14 +92,9 @@ class TestEqualTriggers:
         assert "DeepLocPro" not in rows[0]["secretion_evidence"]
         assert rows[0]["is_secreted"] is True  # DSE still marks it; no crash from the missing DLP row
 
-    def test_plm_effector_not_passing_not_counted(self):
-        rows = _run(plm_e={"G1": _plm_e_row("G1", passes=False)})
-        assert rows[0]["is_secreted"] is False
-        assert rows[0]["plm_effector_secreted"] is False
-
 
 class TestAgreeingCount:
-    """`n_prediction_tools_agreeing` counts only DLP+DSE+PLM-E (0-3)."""
+    """`n_prediction_tools_agreeing` counts only DLP+DSE (0-2)."""
 
     def test_two_tools_agree(self):
         rows = _run(
@@ -144,14 +106,6 @@ class TestAgreeingCount:
             "DeepLocPro",
             "DeepSecE",
         }
-
-    def test_all_three_tools_agree(self):
-        rows = _run(
-            dlp={"G1": _dlp_row("G1", 0.95)},
-            dse={"G1": _dse_row("G1", "T1SS")},
-            plm_e={"G1": _plm_e_row("G1", passes=True)},
-        )
-        assert rows[0]["n_prediction_tools_agreeing"] == 3
 
     def test_signalp_does_not_increment_count(self):
         rows = _run(sp={"G1": _sp_row("G1", "SP(Sec/SPI)")})
@@ -341,10 +295,9 @@ class TestOutputShape:
         rows = _run(
             dlp={"A": _dlp_row("A", 0.5)},
             dse={"B": _dse_row("B", "Non-secreted")},
-            plm_e={"C": _plm_e_row("C", passes=False)},
             sp={"D": _sp_row("D", "OTHER")},
         )
-        assert [r["locus_tag"] for r in rows] == ["A", "B", "C", "D"]
+        assert [r["locus_tag"] for r in rows] == ["A", "B", "D"]
 
     def test_all_required_fields_present(self):
         rows = _run(dlp={"G1": _dlp_row("G1", 0.95)})
@@ -355,8 +308,6 @@ class TestOutputShape:
             "n_prediction_tools_agreeing",
             "secretion_evidence",
             "dse_T3SS_flagged",
-            "plm_effector_secreted",
-            "plm_effector_type",
             "signalp_supports_secretion",
         }
         assert required <= set(rows[0].keys())

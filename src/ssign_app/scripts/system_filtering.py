@@ -235,7 +235,7 @@ def main():
 
     # Write unfiltered (all substrates before exclusion). Union keys across
     # every row — proximity rows and T5SS-self rows carry different columns
-    # (T5SS-self has t5_quality_flag, proximity has plm_effector_* etc.) and
+    # (T5SS-self has t5_quality_flag, proximity has dse_type_match etc.) and
     # taking substrates[0].keys() would silently drop one side's columns.
     if substrates:
         seen: dict[str, None] = {}

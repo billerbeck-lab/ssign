@@ -83,8 +83,8 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
             "All PipelineConfig fields are exposed as flags. When N>1 genomes "
             "are passed, ssign pools predictions over neighborhoods and "
             "annotations over substrates so heavy startup costs (IPS JVM, "
-            "EggNOG DB load, pLM-BLAST embeddings, PLM-Effector models) are "
-            "paid once per batch rather than once per genome."
+            "EggNOG DB load, pLM-BLAST embeddings) are paid once per batch "
+            "rather than once per genome."
         ),
     )
 
@@ -338,12 +338,6 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Run SignalP on every protein, not just the SS neighborhood.",
     )
     g.add_argument(
-        "--plme-whole-genome",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Run PLM-Effector on every protein, not just the SS neighborhood.",
-    )
-    g.add_argument(
         "--monitor-resources",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -357,6 +351,20 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
     # ── Phase 5: Annotation tools ───────────────────────────────────────
+    g = p.add_argument_group("annotation (all tools)")
+    g.add_argument(
+        "--skip-annotation",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Skip every annotation tool at once (BLASTp, HH-suite, "
+            "InterProScan, pLM-BLAST, EggNOG, ProtParam). Predictions and "
+            "substrate calls still run; only the functional-annotation phase "
+            "is dropped. A per-tool --no-skip-<tool> (e.g. --no-skip-eggnog) "
+            "still overrides this to keep that one tool on."
+        ),
+    )
+
     g = p.add_argument_group("BLASTp")
     g.add_argument(
         "--skip-blastp",
@@ -437,40 +445,13 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     g.add_argument(
         "--eggnog-dbmem",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Pass --dbmem to emapper.py (default: enabled). Loads eggnog.db "
-            "into RAM (~44 GB resident); required on NFS-backed cluster "
-            "scratch where the SQLite mmap otherwise hangs. Disable only on "
-            "RAM-constrained machines with the DB on local SSD."
-        ),
-    )
-
-    g = p.add_argument_group("PLM-Effector")
-    g.add_argument(
-        "--skip-plm-effector",
-        action=argparse.BooleanOptionalAction,
         default=None,
         help=(
-            "PLM-Effector is OFF by default (it over-predicts at genome scale; "
-            "see docs). Opt in with --no-skip-plm-effector."
-        ),
-    )
-    g.add_argument("--plm-effector-weights-dir", default="", help="Directory with PLM-Effector weights + ProtT5 cache.")
-    g.add_argument(
-        "--plm-effector-types",
-        nargs="+",
-        default=["T1SE", "T2SE", "T3SE", "T4SE", "T6SE"],
-        help="Secretion-system types to predict (default: T1SE T2SE T3SE T4SE T6SE).",
-    )
-    g.add_argument(
-        "--plm-chunk-size",
-        type=int,
-        default=256,
-        help=(
-            "Proteins per PLM-Effector feature-extraction chunk (default: 256). "
-            "Lower this if PLM-Effector OOM-kills on a large genome; raises only "
-            "help when host RAM is abundant."
+            "Pass --dbmem to emapper.py (loads eggnog.db into RAM, ~44 GB "
+            "resident). Default: auto — enabled only when the job's RAM share "
+            "is >= 50 GB, else the on-disk SQLite is memory-mapped (the runner "
+            "stages it to local scratch, so no NFS mmap stall). Force with "
+            "--eggnog-dbmem / --no-eggnog-dbmem."
         ),
     )
 
@@ -547,6 +528,24 @@ def _config_from_args(
     """
     from ssign_app.core.runner import PipelineConfig
 
+    # `--skip-annotation` is a master switch: force all six annotation-tool
+    # skips on, except any the user explicitly re-enabled with `--no-skip-<tool>`
+    # (that leaves the flag False, not None, so it is preserved here). A flag
+    # left at None falls through to the tier default when skip-annotation is off.
+    ann_skip = {
+        name: getattr(args, name)
+        for name in (
+            "skip_blastp",
+            "skip_hhsuite",
+            "skip_interproscan",
+            "skip_plmblast",
+            "skip_eggnog",
+            "skip_protparam",
+        )
+    }
+    if args.skip_annotation:
+        ann_skip = {name: (True if val is None else val) for name, val in ann_skip.items()}
+
     cfg_kwargs = {
         "input_path": input_path,
         "original_filename": args.original_filename,
@@ -577,34 +576,29 @@ def _config_from_args(
         "dlp_whole_genome": args.dlp_whole_genome,
         "dse_whole_genome": args.dse_whole_genome,
         "sp_whole_genome": args.sp_whole_genome,
-        "plme_whole_genome": args.plme_whole_genome,
         "monitor_resources": args.monitor_resources,
         "monitor_interval_s": args.monitor_interval_s,
         "enrichment_stats": args.enrichment_stats,
-        "skip_blastp": args.skip_blastp,
+        "skip_blastp": ann_skip["skip_blastp"],
         "blastp_db": args.blastp_db,
         "blastp_exclude_taxid": args.blastp_exclude_taxid,
         "blastp_min_pident": args.blastp_min_pident,
         "blastp_min_qcov": args.blastp_min_qcov,
         "blastp_evalue": args.blastp_evalue,
-        "skip_hhsuite": args.skip_hhsuite,
+        "skip_hhsuite": ann_skip["skip_hhsuite"],
         "hhsuite_pfam_db": args.hhsuite_pfam_db,
         "hhsuite_pdb70_db": args.hhsuite_pdb70_db,
         "hhsuite_uniclust_db": args.hhsuite_uniclust_db,
-        "skip_interproscan": args.skip_interproscan,
+        "skip_interproscan": ann_skip["skip_interproscan"],
         "interproscan_db": args.interproscan_db,
         "interproscan_min_evalue": args.interproscan_min_evalue,
-        "skip_plmblast": args.skip_plmblast,
+        "skip_plmblast": ann_skip["skip_plmblast"],
         "plmblast_db": args.plmblast_db,
         "plmblast_cpc": args.plmblast_cpc,
-        "skip_eggnog": args.skip_eggnog,
+        "skip_eggnog": ann_skip["skip_eggnog"],
         "eggnog_db": args.eggnog_db,
         "eggnog_dbmem": args.eggnog_dbmem,
-        "skip_plm_effector": args.skip_plm_effector,
-        "plm_effector_weights_dir": args.plm_effector_weights_dir,
-        "plm_effector_types": list(args.plm_effector_types),
-        "plm_chunk_size": args.plm_chunk_size,
-        "skip_protparam": args.skip_protparam,
+        "skip_protparam": ann_skip["skip_protparam"],
         "t5ass_annotate_whole": args.t5ass_annotate_whole,
         "filter_dse_type_mismatch": args.filter_dse_type_mismatch,
         "deepsece_min_prob": args.deepsece_min_prob,

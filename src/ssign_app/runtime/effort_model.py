@@ -31,7 +31,6 @@ LIMITING_FACTOR: dict[str, str] = {
     "deeplocpro": "gpu",
     "signalp": "gpu",
     "deepsece": "gpu",
-    "plm_effector": "gpu",
     "plm_blast_embed": "gpu",
     "plm_blast": "gpu",  # ProtT5 embedding dominates; ~100x slower on CPU
     "plm_blast_search": "cpu",
@@ -42,7 +41,7 @@ LIMITING_FACTOR: dict[str, str] = {
 # Tool -> size axis / regime class. A tool's regime selects which coefficient
 # block applies (see resolve_regime). Mirrors calibration/clean.py's sets.
 _WHOLE = {"bakta", "macsyfinder", "extract_proteins"}  # always whole proteome -> "fixed"
-_PREDICT = {"deeplocpro", "signalp", "deepsece", "plm_effector"}  # neighborhood OR whole_genome
+_PREDICT = {"deeplocpro", "signalp", "deepsece"}  # neighborhood OR whole_genome
 _ANNOT = {
     "eggnog",
     "interproscan",

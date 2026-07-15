@@ -78,7 +78,6 @@ def _make_config(tmp_outdir: str, dlp_path: str):
         deeplocpro_path=dlp_path,
         skip_deepsece=True,
         skip_signalp=True,
-        skip_plm_effector=True,
         skip_blastp=True,
         skip_hhsuite=True,
         skip_interproscan=True,

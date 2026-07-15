@@ -293,7 +293,7 @@ def main():
         # positions from FASTA order. Without these, extract_gene_order
         # and extract_neighborhood silently drop every row (empty contig
         # fails their truthiness check), the neighborhood ends up empty,
-        # and DeepSecE / PLM-Effector crash on zero inputs.
+        # and DeepSecE crashes on zero inputs.
         entries = []
         counter = 0
         for record in SeqIO.parse(args.input, "fasta"):

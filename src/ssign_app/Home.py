@@ -875,7 +875,7 @@ with tab_pipeline:
                 "(10-50x longer for cloud APIs). Only enable if you need proteome-wide "
                 "predictions for downstream analysis."
             )
-            wg1, wg2, wg3, wg4 = st.columns(4)
+            wg1, wg2, wg3 = st.columns(3)
             with wg1:
                 st.checkbox(
                     "DeepLocPro (whole genome)",
@@ -899,15 +899,6 @@ with tab_pipeline:
                     key="sp_whole_genome",
                     help="Run SignalP on all proteins, not just those near "
                     "secretion systems. Significantly increases runtime.",
-                )
-            with wg4:
-                st.checkbox(
-                    "PLM-Effector (off by default)",
-                    value=False,
-                    key="plme_whole_genome",
-                    help="PLM-Effector is OFF by default: it over-predicts at genome "
-                    "scale (calls ~25% of a proteome as effectors) and is not used in "
-                    "the enrichment test. Check to enable it (runs whole-genome, GPU step).",
                 )
 
         st.markdown("---")
@@ -1670,10 +1661,6 @@ with tab_run:
                     dlp_whole_genome=st.session_state.get("dlp_whole_genome", False),
                     dse_whole_genome=st.session_state.get("dse_whole_genome", False),
                     sp_whole_genome=st.session_state.get("sp_whole_genome", False),
-                    # PLM-Effector is off by default; the single GUI checkbox both
-                    # enables it and runs it whole-genome (see the checkbox help).
-                    plme_whole_genome=st.session_state.get("plme_whole_genome", False),
-                    skip_plm_effector=not st.session_state.get("plme_whole_genome", False),
                     skip_blastp=not st.session_state.get("run_blastp", True),
                     blastp_db=st.session_state.get("blastp_db", ""),
                     blastp_exclude_taxid=genome_taxid,

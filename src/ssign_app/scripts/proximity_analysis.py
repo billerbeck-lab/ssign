@@ -24,7 +24,7 @@ import sys as _sys
 _scripts_dir = _os.path.dirname(_os.path.abspath(__file__))
 if _scripts_dir not in _sys.path:
     _sys.path.insert(0, _scripts_dir)
-from ssign_lib.constants import DSE_TO_MACSYFINDER, PLME_TO_MACSYFINDER
+from ssign_lib.constants import DSE_TO_MACSYFINDER
 
 
 def dse_type_in_genome(dse_ss_type: str, genome_ss_types: set) -> bool:
@@ -39,30 +39,6 @@ def dse_type_in_genome(dse_ss_type: str, genome_ss_types: set) -> bool:
     dse_str = str(dse_ss_type)
     macsyfinder_names = DSE_TO_MACSYFINDER.get(dse_str, [dse_str])
     return any(mf_name in gt for mf_name in macsyfinder_names for gt in genome_ss_types)
-
-
-def plm_type_in_genome(plm_flagging_types: str, genome_ss_types: set) -> bool:
-    """Check if any PLM-Effector flagging type maps to a validated SS in this genome.
-
-    Same cross-genome-leakage guard as ``dse_type_in_genome`` -- PLM-Effector
-    can call a protein a T3SE on sequence-similarity grounds when the genome
-    has no T3SS, and we don't want it driving a substrate call in that case.
-
-    ``plm_flagging_types`` is the comma-separated list cross_validate writes
-    into the ``plm_effector_type`` column (one or more of T1SE/T2SE/T3SE/
-    T4SE/T6SE). Returns True if any one of them maps to a MacSyFinder system
-    present in ``genome_ss_types``; empty / unrecognized inputs return False.
-    """
-    if not plm_flagging_types:
-        return False
-    for ptype in str(plm_flagging_types).split(","):
-        ptype = ptype.strip()
-        if not ptype:
-            continue
-        macsyfinder_names = PLME_TO_MACSYFINDER.get(ptype, [ptype])
-        if any(mf_name in gt for mf_name in macsyfinder_names for gt in genome_ss_types):
-            return True
-    return False
 
 
 def main():
@@ -171,33 +147,12 @@ def main():
                 if not dse_type_in_genome(dse_type, genome_ss_types):
                     is_dse = False
 
-            # PLM-Effector: third voting tool. The boolean is written by
-            # cross_validate as Python True/False; csv.DictReader returns
-            # the literal strings "True"/"False", so accept both.
-            plm_secreted_raw = str(pred.get("plm_effector_secreted", "")).strip()
-            is_plm = plm_secreted_raw in ("True", "true", "1")
-            plm_type = pred.get("plm_effector_type", "")
-            try:
-                plm_max_prob = float(pred.get("plm_effector_max_prob", 0))
-            except (ValueError, TypeError):
-                plm_max_prob = 0.0
-
-            # Cross-genome leakage guard mirrors the DSE one: when neither
-            # DLP nor DSE independently flagged this protein, require the
-            # PLM-E type to map to a system that actually exists in the
-            # genome. If DLP/DSE already agreed, trust them.
-            if is_plm and not is_dlp and not is_dse:
-                if not plm_type_in_genome(plm_type, genome_ss_types):
-                    is_plm = False
-
-            if is_dlp or is_dse or is_plm:
+            if is_dlp or is_dse:
                 tool = []
                 if is_dlp:
                     tool.append("DLP")
                 if is_dse:
                     tool.append("DSE")
-                if is_plm:
-                    tool.append("PLM-E")
 
                 ss_type = component_ss_types.get(comp_locus, "")
 
@@ -216,9 +171,6 @@ def main():
                         "dlp_max_probability": pred.get("dlp_max_probability", ""),
                         "dse_ss_type": dse_type,
                         "dse_max_prob": dse_max_prob,
-                        "plm_effector_secreted": is_plm,
-                        "plm_effector_type": plm_type,
-                        "plm_effector_max_prob": plm_max_prob,
                         "signalp_prediction": pred.get("signalp_prediction", ""),
                         "signalp_probability": pred.get("signalp_probability", ""),
                         "signalp_cs_position": pred.get("signalp_cs_position", ""),
@@ -269,9 +221,6 @@ def main():
         "dlp_max_probability",
         "dse_ss_type",
         "dse_max_prob",
-        "plm_effector_secreted",
-        "plm_effector_type",
-        "plm_effector_max_prob",
         "signalp_prediction",
         "signalp_probability",
         "signalp_cs_position",

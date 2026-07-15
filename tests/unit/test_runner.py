@@ -81,25 +81,12 @@ class TestPipelineConfig:
         a.excluded_systems.append("MUTATED")
         assert "MUTATED" not in b.excluded_systems
 
-    def test_plm_effector_types_default(self):
-        c = PipelineConfig()
-        assert c.plm_effector_types == ["T1SE", "T2SE", "T3SE", "T4SE", "T6SE"]
-
-    def test_plm_effector_types_isolated_per_instance(self):
-        a = PipelineConfig()
-        b = PipelineConfig()
-        a.plm_effector_types.append("EXTRA")
-        assert "EXTRA" not in b.plm_effector_types
-
     def test_whole_genome_flags_default_false(self):
-        # All four prediction tools must default to neighborhood-only.
-        # plme_whole_genome was missing until 2026-06-02 — PLM-E silently
-        # ran on the full proteome (~34× the intended work on K-12).
+        # All three prediction tools must default to neighborhood-only.
         c = PipelineConfig()
         assert c.dlp_whole_genome is False
         assert c.dse_whole_genome is False
         assert c.sp_whole_genome is False
-        assert c.plme_whole_genome is False
 
     def test_skip_flags_align_with_install_tier(self):
         # At tier='base' (small install, no annotation DBs), heavy DB-bound
@@ -110,22 +97,11 @@ class TestPipelineConfig:
         assert c.skip_hhsuite is True
         assert c.skip_interproscan is True
         assert c.skip_plmblast is True
-        # base-tier predictors all run, EXCEPT PLM-Effector (off by default at
-        # every tier: it over-predicts at genome scale; opt in with --no-skip-plm-effector).
+        # base-tier predictors all run.
         assert c.skip_deeplocpro is False
         assert c.skip_signalp is False
         assert c.skip_deepsece is False
-        assert c.skip_plm_effector is True
         assert c.skip_protparam is False
-
-    def test_plm_effector_off_by_default_every_tier(self):
-        for tier in ("base", "extended", "full"):
-            assert PipelineConfig(tier=tier).skip_plm_effector is True, tier
-
-    def test_plm_effector_opt_in_respected(self):
-        # Explicit --no-skip-plm-effector (skip=False) must run it, overriding the default.
-        c = PipelineConfig(tier="extended", skip_plm_effector=False)
-        assert c.skip_plm_effector is False
 
     def test_enrichment_stats_forces_whole_genome_predictors(self):
         # The circular-shift null needs every gene's positivity in gene order,
@@ -279,7 +255,6 @@ class TestPipelineConfigMarkerFallback:
         (root / "bakta" / "db-light").mkdir(parents=True)
         (root / "hhsuite" / "pfam" / "PfamA_v38_2").mkdir(parents=True)
         (root / "plm_blast" / "ECOD30").mkdir(parents=True)
-        (root / "plm_effector_weights").mkdir(parents=True)
         (root / "blast_swissprot").mkdir(parents=True)
         (root / "bakta" / "db-light" / "version.json").touch()
         (root / "hhsuite" / "pfam" / "PfamA_v38_2" / "PfamA_v38_2_a3m.ffdata").touch()
@@ -305,11 +280,6 @@ class TestPipelineConfigMarkerFallback:
         root = self._stage_dbs(tmp_path, monkeypatch)
         c = PipelineConfig(input_path="x.gbff")
         assert c.plmblast_db == str(root / "plm_blast" / "ECOD30")
-
-    def test_marker_resolves_plm_effector_weights(self, tmp_path, monkeypatch):
-        root = self._stage_dbs(tmp_path, monkeypatch)
-        c = PipelineConfig(input_path="x.gbff")
-        assert c.plm_effector_weights_dir == str(root / "plm_effector_weights")
 
     def test_marker_resolves_blast_swissprot_to_name_prefix(self, tmp_path, monkeypatch):
         # BLAST+ wants the DB name prefix, not the dir the sentinel lives in:
@@ -930,7 +900,7 @@ class TestBuildRawCsv:
 
         # Per-tool intermediates with non-overlapping per-tool columns
         pred = tmp_path / "predictions.tsv"
-        pred.write_text("locus_tag\tdlp_extracellular_prob\tplm_effector_secreted\nP1\t0.95\tTrue\nP2\t0.10\tFalse\n")
+        pred.write_text("locus_tag\tdlp_extracellular_prob\tdse_ss_type\nP1\t0.95\tT1SS\nP2\t0.10\tNon-secreted\n")
         blastp = tmp_path / "blastp.csv"
         blastp.write_text("locus_tag,blastp_hit_description\nP1,hemolysin family\n")
         ips = tmp_path / "ips.tsv"
@@ -956,7 +926,7 @@ class TestBuildRawCsv:
         for col in (
             "gbff_annotation",
             "dlp_extracellular_prob",
-            "plm_effector_secreted",
+            "dse_ss_type",
             "blastp_hit_description",
             "interpro_descriptions",
         ):
@@ -1065,9 +1035,9 @@ class TestWriteStepTimings:
 
 
 class TestResolveStepInputFasta:
-    """Centralises FASTA selection for the four prediction steps so they
+    """Centralises FASTA selection for the three prediction steps so they
     cannot drift. DLP/DSE see the null-pool concat when enrichment-stats
-    is on; SignalP/PLM-E never do. Whole-genome mode forces the full
+    is on; SignalP never does. Whole-genome mode forces the full
     proteome regardless."""
 
     def _runner(self, tmp_dir, files):
@@ -1134,73 +1104,6 @@ class TestAnnotationInputProteins:
         # should not silently pick up passenger seqs.
         r = self._runner(tmp_dir, {"proteins": "/full", "proteins_for_passenger_tools": "/pass"})
         assert r._annotation_input_proteins("future_tool") == "/full"
-
-
-class TestStepPlmEffectorInput:
-    """`_step_plm_effector` must read the SS neighborhood by default and
-    only fall back to the full proteome when plme_whole_genome=True. The
-    bug fixed in 2026-06-02 (commit X) had it always read the full
-    proteome — 34× more work on K-12, 42m wallclock on an L40S GPU."""
-
-    def _stub_run_script(self, captured):
-        def _fake(script_name, args, **kwargs):
-            captured.append((script_name, list(args)))
-            return (0, "", "")
-
-        return _fake
-
-    def _make_runner(self, tmp_path, plme_whole_genome, files):
-        weights = tmp_path / "weights"
-        weights.mkdir()
-        config = PipelineConfig(
-            outdir=str(tmp_path),
-            sample_id="t",
-            plm_effector_weights_dir=str(weights),
-            plme_whole_genome=plme_whole_genome,
-        )
-        r = PipelineRunner(config)
-        r.work_dir = str(tmp_path)
-        r.files = files
-        return r
-
-    def _input_arg(self, captured):
-        # First captured call is run_plm_effector.py; "--input" is the
-        # second positional in our args list.
-        _, args = captured[0]
-        i = args.index("--input")
-        return args[i + 1]
-
-    def test_default_reads_neighborhood(self, tmp_path, monkeypatch):
-        neigh = tmp_path / "neighborhood.faa"
-        neigh.write_text(">a\nMKT\n")
-        proteins = tmp_path / "proteins.faa"
-        proteins.write_text(">a\nMKT\n>b\nMKL\n")
-        r = self._make_runner(
-            tmp_path,
-            plme_whole_genome=False,
-            files={"proteins": str(proteins), "neighborhood_proteins": str(neigh)},
-        )
-        captured = []
-        monkeypatch.setattr(runner, "run_script", self._stub_run_script(captured))
-        result = r._step_plm_effector()
-        assert result.success, result.message
-        assert self._input_arg(captured) == str(neigh)
-
-    def test_whole_genome_flag_reads_full_proteome(self, tmp_path, monkeypatch):
-        neigh = tmp_path / "neighborhood.faa"
-        neigh.write_text(">a\nMKT\n")
-        proteins = tmp_path / "proteins.faa"
-        proteins.write_text(">a\nMKT\n>b\nMKL\n")
-        r = self._make_runner(
-            tmp_path,
-            plme_whole_genome=True,
-            files={"proteins": str(proteins), "neighborhood_proteins": str(neigh)},
-        )
-        captured = []
-        monkeypatch.setattr(runner, "run_script", self._stub_run_script(captured))
-        result = r._step_plm_effector()
-        assert result.success, result.message
-        assert self._input_arg(captured) == str(proteins)
 
 
 class TestCheckRequiredExecutables:

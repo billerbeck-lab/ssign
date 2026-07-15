@@ -41,7 +41,6 @@ class _StubConfig:
     skip_deeplocpro: bool = False
     skip_deepsece: bool = False
     skip_signalp: bool = False
-    skip_plm_effector: bool = False
     skip_blastp: bool = False
     skip_hhsuite: bool = True  # match runner default for tests
     skip_interproscan: bool = False
@@ -71,9 +70,8 @@ def _stub_step(step_id: str):
 class TestSliceStagesBySegment:
     def test_canonical_layout(self):
         # Mimics the shape returned by PipelineRunner._build_stages():
-        # 5 segment-A tuples, 1 parallel group (B prediction), 1 segment-B
-        # tuple (plm_effector), 4 segment-C tuples, 1 parallel group (D
-        # annotation), 5 segment-E tuples.
+        # 5 segment-A tuples, 1 parallel group (B prediction), 4 segment-C
+        # tuples, 1 parallel group (D annotation), 5 segment-E tuples.
         stages = [
             ("Detecting input format", _stub_step("detect_format")),
             ("Extracting proteins", _stub_step("extract_proteins")),
@@ -85,7 +83,6 @@ class TestSliceStagesBySegment:
                 ("DSE", _stub_step("deepsece")),
                 ("SignalP", _stub_step("signalp")),
             ],
-            ("PLM-Effector", _stub_step("plm_effector")),
             ("Cross-validating", _stub_step("cross_validate")),
             ("Proximity", _stub_step("proximity")),
             ("T5SS", _stub_step("t5ss")),
@@ -106,8 +103,8 @@ class TestSliceStagesBySegment:
         segments = slice_stages_by_segment(stages)
         # A is the 5 tuples before the first parallel group
         assert len(segments["A"]) == 5
-        # B is the prediction parallel group + plm_effector
-        assert len(segments["B"]) == 2
+        # B is the prediction parallel group
+        assert len(segments["B"]) == 1
         assert isinstance(segments["B"][0], list)
         # C is the 4 sequential tuples between the parallel groups
         assert len(segments["C"]) == 4
@@ -151,7 +148,7 @@ class TestSliceStagesBySegment:
         from ssign_app.core.multi_runner import _SEGMENT_BY_STEP, _step_id
         from ssign_app.core.runner import PipelineConfig, PipelineRunner
 
-        cfg = PipelineConfig(outdir=str(tmp_path), sample_id="g", enrichment_stats=True, skip_plm_effector=False)
+        cfg = PipelineConfig(outdir=str(tmp_path), sample_id="g", enrichment_stats=True)
         stages = PipelineRunner(cfg)._build_stages()
         missing = set()
         for stage in stages:
@@ -296,7 +293,6 @@ def n2_runner(monkeypatch, tmp_path):
         stages = [
             ("A1", _stub_step("detect_format")),
             [("B1", _stub_step("deeplocpro"))],
-            ("B2", _stub_step("plm_effector")),
             ("C1", _stub_step("cross_validate")),
             [("D1", _stub_step("eggnog"))],
             ("E1", _stub_step("integrate")),
@@ -600,7 +596,7 @@ class TestSegmentBWholeGenomePooling:
         assert "pooled_whole_genome.faa" in names
         # DLP/DSE read `proteins` (whole_genome=True) -> must be the whole-genome pool
         assert pool_runner.files["proteins"].endswith("pooled_whole_genome.faa")
-        # SignalP/PLM-E read `neighborhood_proteins` -> stays the neighborhood pool
+        # SignalP reads `neighborhood_proteins` -> stays the neighborhood pool
         assert pool_runner.files["neighborhood_proteins"].endswith("pooled_neighborhood.faa")
         # the whole-genome pool drew from each genome's full proteome, not neighborhood
         wg = next(c for c in captured if c[0] == "pooled_whole_genome.faa")

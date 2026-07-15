@@ -456,3 +456,15 @@ class TestJavaOptsHeapAutoScale:
         env = self._run_and_capture(tmp_path, 512.0, monkeypatch)
         # (512 - 2) * 0.5 = 255 → ceiling at 64
         assert self._heap_arg(env) == "-Xmx64g"
+
+    def test_heap_sizes_to_group_share_not_whole_node(self, tmp_path, monkeypatch):
+        # The §4.2 fix: inside the annotation parallel group the heap must
+        # size to this tool's RAM *share*, not the whole node — else N Java
+        # heaps each sized to the full node overcommit and OOM-kill it.
+        # 90 GB node, 3-tool group → 30 GB share → (30-2)*0.5 = 14 GB,
+        # NOT the (90-2)*0.5 = 44 GB a whole-node calc would pick.
+        from ssign_lib.resources import parallel_group
+
+        with parallel_group(3):
+            env = self._run_and_capture(tmp_path, 90.0, monkeypatch)
+        assert self._heap_arg(env) == "-Xmx14g"
