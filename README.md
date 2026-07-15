@@ -338,16 +338,6 @@ uses alongside ssign.
 
 ---
 
-## Validation and sensitivity testing
-
-Behavioral validation runs (proximity-window sensitivity, genome
-fragmentation, batched-mode determinism, benchmarks against
-literature-curated substrate lists) live in
-[`validation_sweeps/`](validation_sweeps/). The README there documents
-the experimental design, parameter ranges, and per-axis interpretation.
-
----
-
 ## AI usage disclosure
 
 Parts of the ssign codebase, documentation, and tests were drafted with the

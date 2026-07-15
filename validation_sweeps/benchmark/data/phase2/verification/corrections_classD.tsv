@@ -1,3 +1,0 @@
-row_id	ss_type	subtype	gene	organism	locus_tag	uniprot	refseq_genome	sys_instance_id	verdict	old_doi	issue	suggested_fix
-R207	T6SS		BopC	B. thailandensis E264	BTH_II0865	Q2T6Y7	NC_007650.1	T6SS-5	misattributed	10.1016/j.chom.2024.04.012	Q2T6Y7/BTH_II0865 = TssG baseplate (structural); cited 2024 paper is TssM esterase, never mentions BopC; BopC is a T3SS(Bsa) effector name	DROP or reclassify: not a verified T6SS-5 effector; if keeping a B.thai T6SS-5 effector use VgrG5
-R208	T6SS		BopE	B. thailandensis E264	BTH_II0874	Q2T6X8	NC_007650.1	T6SS-5	misattributed	10.1016/j.chom.2024.04.012	Q2T6X8/BTH_II0874 = 107aa uncharacterized; canonical BopE = T3SS GEF (BPSS1525); no primary T6SS evidence	DROP or reclassify: BopE is a T3SS effector, not T6SS-5

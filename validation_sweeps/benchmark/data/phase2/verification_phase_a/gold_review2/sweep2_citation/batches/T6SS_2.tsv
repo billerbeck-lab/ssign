@@ -1,5 +1,0 @@
-row_id	ss_type	subtype	gene	uniprot	organism	primary_ref	citation_quote
-T6SS_16	T6SS		EvpQ_C70_protease	A0AAU8P3V9	Edwardsiella piscicida EIB202	10.3389/fmicb.2021.643498	we have demonstrated that EvpQ is a T6SS effector that is translocated into eukaryotic host cells.
-T6SS_17	T6SS		Tae4_Stm	A0A0F6AX88	Salmonella enterica Typhimurium 14028	10.1073/pnas.1608858113	this activity is mediated by the specific interaction of Hcp1 with the antibacterial amidase Tae4
-T6SS_18	T6SS		Tle1_Sci1	D3GUV9	Escherichia coli 042	10.1111/mmi.13292	We further identify Tle1, a toxin effector encoded by this cluster and showed that Tle1 possesses phospholipase A1 and A2 activities required for the interbacterial competition.
-T6SS_21	T6SS		Ssp2	-	Serratia marcescens Db10	10.1111/mmi.12028	Ssp1 and Ssp2 were shown to be secreted substrates of the T6SS by immunoblotting secreted fractions from the wild type strain, two T6SS mutants

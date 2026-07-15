@@ -94,5 +94,6 @@ colab/
 # Stray pipeline outputs from interactive testing
 macsyfinder_out/
 
-# Regenerable Phase-2 enrichment-validation work dir (macsyfinder output + synth TSVs)
-validation_sweeps/benchmark/analysis/**/phase2_work/
+# Benchmark + validation sweeps — kept local, not in the public repo (#32).
+# Mid-flight; curated deliverables get re-added to a clean path when it closes.
+validation_sweeps/
