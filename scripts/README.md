@@ -19,11 +19,11 @@ If a script becomes generally useful to multiple analyses, promote it into
 
 ## Already shipped
 
-- `fetch_weights.sh`: downloads DeepSecE checkpoint, ProtT5, and ESM
-  weights from their canonical sources (Zenodo at v1.0.0 release;
-  upstream mirrors as fallback).
 - `fetch_databases.sh`: tier-aware (`--tier base|extended|full`) downloader
   for Bakta, EggNOG, HH-suite, InterProScan, BLAST NR, ECOD30, taxdump.
+  Model weights (DeepSecE checkpoint, DeepLocPro/DeepSecE ESM backbones,
+  pLM-BLAST ProtT5) auto-download on first run or are baked into the
+  container image.
 
 ## To be populated in Phase 8
 
@@ -54,6 +54,6 @@ top of the file.
 
 ## Status
 
-Install fetchers (`fetch_weights.sh`, `fetch_databases.sh`) shipped.
+Install fetcher (`fetch_databases.sh`) shipped.
 Paper-analysis scripts populated as the corresponding analyses are
 finalised before publication.

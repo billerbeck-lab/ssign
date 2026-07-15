@@ -1840,7 +1840,17 @@ would lose the ability to re-analyze past runs. Decision for Teo: keep the histo
 parser, or strip it too for a fully-clean tree? Not a pipeline consumer, so out of the
 annotation-subsystem-cleanup scope.
 
-## 2026-07-15 — PLM-E residual: scripts/fetch_weights.sh needs untangling
+## 2026-07-15 — PLM-E residual: scripts/fetch_weights.sh — RESOLVED (deleted)
+
+RESOLUTION (verified + Teo's call): deleted the script. Checked what each of its
+6 downloads served: 5 were PLM-E-only (full ProtT5 `prot_t5_xl_uniref50`, ProtBert,
+PLM-E trained_models, AND the ESM1b/ESM2 HF downloads — those went to a
+`plm_effector/transformers_pretrained/` path that NO kept tool reads: DeepSecE/
+DeepLocPro load ESM via `esm.pretrained` from the torch-hub cache, a different
+location/format). Only the DeepSecE-checkpoint fetch served a kept tool, and that
+overlaps with runtime auto-download. So the script was ~vestigial → deleted; refs in
+dependency_manifest.py / scripts/README.md / install_test_runbook.md updated. The
+image never used it (bakes weights directly in %post). ORIGINAL NOTE BELOW (obsolete):
 
 annotation-subsystem-cleanup removed PLM-E from src/tests/core-docs, and this
 session also cleaned scripts/fetch_databases.sh (removed the ~19 GB dead

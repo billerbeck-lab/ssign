@@ -371,7 +371,7 @@ MODEL_WEIGHTS: tuple[ModelWeights, ...] = (
     ModelWeights(
         "DeepSecE checkpoint",
         "models/deepsece_checkpoint.pt",
-        "auto-downloaded on first run, or `bash scripts/fetch_weights.sh`",
+        "auto-downloaded on first run (or baked into the container image)",
         tool="DeepSecE",
     ),
 )

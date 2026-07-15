@@ -41,7 +41,7 @@ Known issues to expect (already suspected, confirm + log them):
 | Level | Removes | Keeps | When |
 |---|---|---|---|
 | **Light** (default, between tiers) | the ssign venv + the clone dir | fetched DBs, model weights, DTU/conda tool envs, `~/.ssign` cache | between each tier — re-tests `pip install …[tier]` + dep resolution fresh |
-| **Deep** (full clean-room) | the above **plus** `~/.ssign/{models,db_root}`, `~/.macsyfinder`, and optionally the `signalp6`/`deeplocpro`/`hhsuite`/`bakta-deps` conda envs | fetched reference DBs on `$EPHEMERAL` (630 GB, validated; re-pulling is wasteful) | once, to re-test `fetch_weights.sh` + the DTU install sections end-to-end |
+| **Deep** (full clean-room) | the above **plus** `~/.ssign/{models,db_root}`, `~/.macsyfinder`, and optionally the `signalp6`/`deeplocpro`/`hhsuite`/`bakta-deps` conda envs | fetched reference DBs on `$EPHEMERAL` (630 GB, validated; re-pulling is wasteful) | once, to re-test the weight auto-download + the DTU install sections end-to-end |
 
 Between-tier wipes default to **light**. Re-running the doc's `fetch_databases.sh --tier N` is cheap when the DBs are present (skip-guards short-circuit) and doubles as a test of the skip logic.
 
