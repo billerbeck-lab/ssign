@@ -31,9 +31,23 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases on Imper
 | extended | ~100 GB | + EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB) |
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
-These are databases only. Model weights (~14 GB: ESM backbones + DeepSecE
-checkpoint + DeepLocPro, auto-downloaded on first run or baked into the
-container) are separate and shared across tiers.
+These are databases only. Model weights are separate and shared across all tiers,
+~14 GB total, auto-downloaded on first run (or baked into the container):
+
+| Model | Size | Used by |
+|---|---|---|
+| DeepSecE checkpoint (fine-tuned ESM-1b) | ~2.5 GB | DeepSecE |
+| ESM-1b | ~7.3 GB | DeepSecE backbone |
+| ESM-2 | ~2.5 GB | DeepLocPro backbone |
+| ProtT5 (half) | ~2.4 GB | pLM-BLAST query embedding (extended tier) |
+| DeepLocPro weights | ~2 GB | DeepLocPro (public GitHub, no licence) |
+| SignalP 6.0 weights | ~1.5 GB | SignalP (DTU academic licence, user-acquired) |
+
+DeepLocPro/DeepSecE pull their ESM backbones via `esm.pretrained` (torch-hub cache),
+pLM-BLAST pulls ProtT5 via `huggingface_hub`, and the DeepSecE checkpoint downloads
+via `run_deepsece._ensure_checkpoint()`, so no separate fetch step is needed. The
+container bakes all of them (container runs are fully offline). SignalP 6 is the only
+weight you install yourself (see below).
 
 HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
 

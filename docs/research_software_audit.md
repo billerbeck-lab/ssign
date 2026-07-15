@@ -179,7 +179,7 @@ Items already in good shape — keep these intact through the v1.0.0 sprint.
 - CHANGELOG.md in Keep-a-Changelog format with `[Unreleased]` working section.
 - Diátaxis-shaped documentation, populated.
 - CI matrix across Python 3.10-3.13; ruff + mypy + import smoke-test (`ssign doctor --imports-only`).
-- Three install tiers, with rationale documented in pyproject comments and `data/README.md`.
+- Three install tiers, with rationale documented in pyproject comments and `docs/how-to/install.md`.
 - Per-dep pinning with comments explaining why bounds exist (e.g. `transformers<5.0`, `numpy<2.0`).
 - `ssign doctor` self-diagnostic surfaces missing externals with fix commands.
 - README cites every integrated upstream tool with DOI.

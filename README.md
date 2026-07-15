@@ -193,7 +193,7 @@ Zenodo DOIs for long-term reproducibility):
 bash scripts/fetch_databases.sh --tier base       # or: extended / full
 ```
 
-See [`data/README.md`](data/README.md) for per-tier contents.
+See [the database tier table](docs/how-to/install.md#database-tier-sizes) for per-tier contents.
 
 Then confirm everything is in place:
 

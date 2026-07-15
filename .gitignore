@@ -46,9 +46,9 @@ tests/e2e_work/
 htmlcov/
 .coverage
 
-# Large model / data files — contents of data/ and models/ are fetched
-# from Zenodo at install time, not committed. README.md + checksum files
-# in those dirs ARE committed.
+# Large model / data files — data/ and models/ are fetched at install time
+# (databases) or auto-downloaded/baked (weights), never committed. Their reference
+# content now lives in docs/how-to/install.md (#32); the dirs are fully local.
 *.pt
 *.bin
 *.safetensors
@@ -57,12 +57,8 @@ htmlcov/
 *.npy
 *.npz
 *.parquet
-data/**
-!data/README.md
-!data/checksums.sha256
-models/**
-!models/README.md
-!models/checksums.sha256
+data/
+models/
 
 # Container artifacts (built locally, not committed)
 *.sif
