@@ -1870,6 +1870,29 @@ itself; native users' tools auto-download). NOTE: scripts/README.md was already
 edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
 default-path reading), so resolve the script to match or re-edit the README.
 
+## 2026-07-15: coefficients.json packaging bug (ETA + timeout-scaling dead in installs)
+
+Teo spotted no ETA lines in the v7 interactive CX3 run. Root cause: `runtime/
+coefficients.json` was NOT in `[tool.setuptools.package-data]`, so it's absent
+from every wheel/container (present only in source checkouts). `load_coefficients`
+raises FileNotFoundError, which the effort model swallows → estimator=None (no
+ETA) AND `scaled_timeout` degrades every tool to the flat 4h `TOOL_TIMEOUT_S`
+floor (verified in-image: `scaled_timeout('deeplocpro',160k,'whole_genome')`=14400,
+not the sized ~11h). Fails SAFE (no crash), so single-genome runs are fine; the
+regression bites pooled/whole-genome steps that legitimately need >4h.
+
+FIXED (this commit): added `"runtime/*.json"` to package-data; verified the wheel
+now contains `ssign_app/runtime/coefficients.json` (uv build); added
+`tests/unit/test_package_data.py` guarding that every non-.py data file under
+src/ssign_app is covered by a package-data glob. CHANGELOG Fixed entry added.
+
+**STILL OWED: rebuild the image (v8).** ~/ssign_v7.sif was built BEFORE this fix,
+so it still lacks coefficients.json → the in-flight CX3 runs have no ETA + flat-4h
+timeouts. Fine for the single-genome base/extended/full runs now (small; HH-suite
+on one genome likely < 4h). But rebuild to v8 before any pooled/full-panel run,
+and re-upload. This bug lived in the (already-archived) adaptive-runtime-estimate
+change; it's a post-archive packaging fix, no need to reopen the change.
+
 ## 2026-07-15: v7 image built + validated; branches merged to main (DONE)
 
 **v7 container** (`~/ssign_v7.sif`, 19 GB) built with HH-suite baked (#35) +

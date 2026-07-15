@@ -30,6 +30,17 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 - Bakta minimum bumped from `>=1.5` (2022) to `>=1.10` (2024) — required
   to read the Bakta DB v6 schema. v1.5 cannot parse modern Bakta DBs.
 
+### Fixed
+
+- **Package `runtime/coefficients.json`** so it ships in the wheel. It was
+  omitted from `[tool.setuptools.package-data]`, so `pip install`ed and
+  containerised copies had no effort-model coefficients. That silently (the
+  effort model degrades rather than crashes) disabled the live runtime ETA and
+  reverted size-aware tool timeouts to the flat 4 h floor — the latter can kill
+  a legitimately-long pooled/whole-genome step. Source checkouts were
+  unaffected. Added a guard test that every non-`.py` data file under
+  `src/ssign_app` is covered by a package-data glob.
+
 ### Notes
 
 - **EggNOG database v7.0** (Hernández-Plaza et al., NAR 2025, 54:D402) is
