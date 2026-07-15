@@ -86,6 +86,20 @@ colab/
 docs/development/
 docs/research_software_audit.md
 
+# scripts/ slimmed to user-facing helpers — dev/ops scripts kept local (#32).
+# cx3/ = Imperial-cluster ops; the .py = dev tools (monitor_resources superseded
+# by core/resource_sampler.py; audit_* = size measurement; chop_genome/analyse_k12
+# = one-off QA). Their unit tests go with them.
+scripts/cx3/
+scripts/chop_genome.py
+scripts/audit_database_sizes.py
+scripts/audit_disk_sizes.py
+scripts/analyse_k12_runs.py
+scripts/monitor_resources.py
+tests/unit/test_audit_database_sizes.py
+tests/unit/test_audit_disk_sizes.py
+tests/unit/test_analyse_k12_runs.py
+
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
 

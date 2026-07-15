@@ -119,15 +119,10 @@ fetch the DBs + install SignalP once and run per job:
 scp ssign.sif you@cluster:$EPHEMERAL/ssign.sif
 ```
 
-On PBS/CX3 the ready wrapper `scripts/cx3/run_container_extended.pbs` stages the
-image to node-local disk, pins the RAM budget to the job's `mem`, adds `--nv`, and
-mounts only SignalP + the DB root:
-
-```bash
-qsub -v GENOME=$HOME/g.gbff,SIF=$EPHEMERAL/ssign.sif scripts/cx3/run_container_extended.pbs
-```
-
-See [`run_on_hpc.md`](run_on_hpc.md) for scheduler templates, walltime, and job arrays.
+On PBS/SLURM, submit one job per genome that calls `ssign-run` with `--stage-image`
+(copies the `.sif` to node-local disk first) and `--max-ram <job GB>`. See
+[`run_on_hpc.md`](run_on_hpc.md) for ready SLURM and PBS job templates, GPU requests,
+walltime, and per-job output dirs.
 
 ## Verify
 
@@ -165,8 +160,7 @@ Extended/full stay on Linux/HPC via the `.sif`.
 ## Without `ssign-run` (raw apptainer)
 
 `ssign-run` only assembles the command below; run it by hand if you can't use the
-wrapper. `scripts/cx3/run_container_extended.pbs` is the fully-worked reference
-(all binds + env vars); the essentials are:
+wrapper. The essentials are:
 
 ```bash
 apptainer run --nv --writable-tmpfs --containall \

@@ -1,59 +1,22 @@
-# `scripts/`: install fetchers and one-off analysis scripts
+# `scripts/`: helper scripts for installing and running ssign
 
-Scripts here either install ssign's external assets (databases, weights) or
-perform single-purpose analyses that produced results or figures in the
-ssign paper. They are **not** part of the ssign pipeline itself; the
-pipeline code lives in `src/ssign_app/` and is importable from the
-installed package.
+Small user-facing helpers that sit alongside the pip package. They are **not** part
+of the pipeline itself (that lives in `src/ssign_app/` and is importable from the
+installed package); these wrap external-asset setup and the container launcher.
 
-## When to put a script here vs in `src/ssign_app/`
+| Script | What it does |
+|---|---|
+| `fetch_databases.sh` | Tier-aware (`--tier base\|extended\|full`) downloader for the reference databases (Bakta, EggNOG, HH-suite, InterProScan, ECOD30, taxdump; BLAST NR opt-in). Model weights auto-download on first run or are baked into the container. |
+| `ssign-run` | One-line launcher for the ssign Apptainer/Singularity container: binds databases + SignalP, sets the tier and RAM budget, adds `--nv`, stages the image. |
+| `ssign-setup-dtu` | Installs the DTU predictors (DeepLocPro + SignalP 6) locally so ssign runs them on your machine, not the DTU webserver. |
 
-- **Here (`scripts/`):** one-off paper-specific analysis, figure-regeneration
-  wrappers, dataset-curation helpers. Not imported by other code. Runnable
-  standalone.
-- **In `src/ssign_app/`:** reusable modules, CLI entry points, code that any
-  ssign user would invoke as part of the pipeline.
-
-If a script becomes generally useful to multiple analyses, promote it into
-`src/ssign_app/` as a module.
-
-## Already shipped
-
-- `fetch_databases.sh`: tier-aware (`--tier base|extended|full`) downloader
-  for Bakta, EggNOG, HH-suite, InterProScan, BLAST NR, ECOD30, taxdump.
-  Model weights (DeepSecE checkpoint, DeepLocPro/DeepSecE ESM backbones,
-  pLM-BLAST ProtT5) auto-download on first run or are baked into the
-  container image.
-
-## To be populated in Phase 8
-
-- Per-figure regeneration scripts referenced from `figures/`.
-- Validation-set curation scripts.
-- Benchmark driver scripts.
-
-## Running
-
-Every script should be runnable from the repo root:
-
-```bash
-cd /path/to/ssign
-python scripts/<script>.py [args]
-# or
-bash scripts/<script>.sh
-```
-
-and should document its inputs, outputs, and any required environment at the
-top of the file.
+Usage is documented in the how-to guides:
+[`install.md`](../docs/how-to/install.md) (native/pip),
+[`install_container.md`](../docs/how-to/install_container.md) (container),
+[`run_on_hpc.md`](../docs/how-to/run_on_hpc.md) (clusters).
 
 ## Style
 
-- Python scripts: use the same deps as the main package; no separate venv.
-- Shell scripts: POSIX-compatible, `set -euo pipefail` at the top.
-- Document non-obvious assumptions in comments.
-- Record random seeds for any stochastic analysis.
-
-## Status
-
-Install fetcher (`fetch_databases.sh`) shipped.
-Paper-analysis scripts populated as the corresponding analyses are
-finalised before publication.
+- Shell: `set -euo pipefail` at the top; document inputs, outputs, and required
+  environment in the header comment.
+- Python (in the package, not here): same deps as the main package; no separate venv.

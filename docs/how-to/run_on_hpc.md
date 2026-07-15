@@ -297,7 +297,6 @@ schedule them in parallel up to your queue's array limit.
 
 The self-contained Apptainer/Singularity image is the recommended way to run on a
 cluster: no pip install, no host toolchain, every dependency baked in. It is fully
-documented in [`install_container.md`](install_container.md), including the "On HPC"
-section (copy the `.sif` up, `fetch-databases` once, `ssign-run` per job) and the
-ready PBS wrapper `scripts/cx3/run_container_extended.pbs`. Use the native pip path
-on this page only if the container doesn't fit your cluster.
+documented in [`install_container.md`](install_container.md), including its "On HPC"
+section (copy the `.sif` up, `fetch-databases` once, `ssign-run` per job). Use the
+native pip path on this page only if the container doesn't fit your cluster.

@@ -23,7 +23,7 @@ bash scripts/fetch_databases.sh --tier base       # or: extended / full
 
 ### Database tier sizes
 
-Real on-disk numbers, measured 2026-06-03 against the fetched databases on Imperial CX3 (`scripts/audit_disk_sizes.py`). Cumulative — each row includes everything from the rows above it:
+Real on-disk numbers, measured 2026-06-03 against the fetched databases. Cumulative — each row includes everything from the rows above it:
 
 | Tier | Cumulative size | Adds |
 |---|---|---|

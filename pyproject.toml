@@ -281,7 +281,3 @@ select = ["E", "F", "I", "W"]
 # legitimately import after sys.path mutation.
 "tests/unit/conftest.py" = ["E402"]
 "tests/unit/test_hmmsearch_shim.py" = ["E402"]
-# Log-line fixtures in this file are deliberately literal copies of
-# real ssign run output; splitting them across Python source lines
-# obscures what the test is checking.
-"tests/unit/test_analyse_k12_runs.py" = ["E501"]
