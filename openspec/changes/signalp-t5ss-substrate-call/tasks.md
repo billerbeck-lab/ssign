@@ -19,6 +19,7 @@
 - [x] 2.3 T5bSS translocator OM-only rule preserved on the DLP path (bug-fix #6 regression: extracellular-high/OM-low/no-signal T5bSS is dropped).
 - [x] 2.4 Full unit suite green (1413). `openspec validate signalp-t5ss-substrate-call --strict`.
 - [ ] 2.5 Regenerate the `t5ass_minimal` golden fixture: its T5 substrate (`dlp_extracellular_prob=0.60` < 0.8, `signalp=OTHER`) is now correctly dropped by the gate, so the frozen results change. Regenerate per `tests/fixtures/golden/REGENERATE.md` on a full install (the e2e test is integration-scoped and skips without tools). Alternatively bump the fixture input so the T5 component has evidence, to keep the T5 path exercised.
+  - **DEFERRED (Teo, 2026-07-15):** the golden test is integration-scoped and skipped in normal CI, so a stale fixture blocks nothing. Approach chosen = **regen-as-is** (let the weak T5 drop; unit tests 2.1/2.3 already cover the keep paths). It's a deterministic surgical edit (the DLP-derived reference files are unchanged; only the substrate-list files lose the `BIMENO_04457` row). Do it at the next full-install pass.
 
 ## 3. Docs
 
