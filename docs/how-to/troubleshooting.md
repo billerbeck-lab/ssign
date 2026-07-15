@@ -177,14 +177,13 @@ DeepSecE wraps a ~7.3 GB ESM-1b model. Free up memory or use a machine
 with at least 12 GB RAM. CPU is supported but slow; on a 16 GB laptop,
 close other heavy applications first.
 
-### `RuntimeError: CUDA out of memory` during PLM-Effector or pLM-BLAST
+### `RuntimeError: CUDA out of memory` during pLM-BLAST
 
-Your GPU does not have enough VRAM for the protein-language models.
-PLM-Effector wants ~16 GB VRAM; pLM-BLAST is similar. Options:
+Your GPU does not have enough VRAM for the protein-language model
+(pLM-BLAST's ProtT5 encoder wants ~16 GB VRAM). Options:
 
-- Run on CPU (slow but works for pLM-BLAST; PLM-Effector hard-skips on
-  CPU because runtime is impractical).
-- Skip the step: `--skip-plm-effector` or `--skip-plmblast`.
+- Run on CPU (slow but works).
+- Skip the step: `--skip-plmblast` (or `--skip-annotation` for all annotation tools).
 - Run on a GPU node with more VRAM (HPC).
 
 ### `nvidia-smi` works but ssign does not see the GPU

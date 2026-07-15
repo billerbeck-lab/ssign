@@ -8,8 +8,7 @@
 #   apptainer run --writable-tmpfs --containall -B <outdir>:/work \
 #     ssign.sif run <genome.gbff> --outdir /work \
 #       --use-input-annotations \
-#       --skip-deepsece --skip-signalp --skip-plm-effector --skip-blastp \
-#       --skip-hhsuite --skip-interproscan --skip-plmblast --skip-protparam
+#       --skip-deepsece --skip-signalp --skip-annotation
 #
 # The free toolchain is BAKED: Bakta 1.12.0 + its binary deps (tRNAscan-SE,
 # aragorn, INFERNAL, PilerCR, AMRFinderPlus, DIAMOND, real HMMER, BLAST+ 2.17) and
@@ -84,9 +83,20 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
         -c conda-forge -c bioconda --channel-priority strict bakta=1.12.0
     micromamba create -y -p /opt/conda/envs/eggnog \
         -c conda-forge -c bioconda --channel-priority strict eggnog-mapper=2.1.13
+    # HH-suite (full tier): run_hhsuite.py shells out to `hhblits` + `hhsearch`
+    # on PATH. Its own isolated env so the C++ toolchain can't perturb the
+    # validated bakta/eggnog solves. The DBs (Pfam/PDB70/UniRef30, ~340 GB) stay
+    # host-mounted (SSIGN_HHSUITE_*); only the software is baked.
+    micromamba create -y -p /opt/conda/envs/hhsuite \
+        -c conda-forge -c bioconda --channel-priority strict hhsuite=3.3.0
     # Freeze the exact solved versions inside the image (reproducibility lock).
-    micromamba env export -p /opt/conda/envs/bakta  > /opt/conda/bakta.lock.yml
-    micromamba env export -p /opt/conda/envs/eggnog > /opt/conda/eggnog.lock.yml
+    micromamba env export -p /opt/conda/envs/bakta   > /opt/conda/bakta.lock.yml
+    micromamba env export -p /opt/conda/envs/eggnog  > /opt/conda/eggnog.lock.yml
+    micromamba env export -p /opt/conda/envs/hhsuite > /opt/conda/hhsuite.lock.yml
+    # Build-time gate: the two binaries the wrapper invokes must resolve.
+    command -v /opt/conda/envs/hhsuite/bin/hhblits >/dev/null \
+        && command -v /opt/conda/envs/hhsuite/bin/hhsearch >/dev/null \
+        || { echo "FATAL: hhsuite env missing hhblits/hhsearch"; exit 1; }
     # Drop package tarballs + solver caches (several GB) so they don't bloat the image.
     micromamba clean -y --all
     rm -rf /opt/conda/pkgs
@@ -118,6 +128,23 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     export HOME=/opt/ssign_home
     mkdir -p /opt/ssign_home
     macsydata install --user TXSScan==1.1.4
+
+    # --- Build-weight cache (#36): reuse the ~10 GB of model downloads across
+    # rebuilds. Bind a host dir with `apptainer build --bind DIR:/build_cache`
+    # (build_sif.sh does this from $SSIGN_BUILD_CACHE). If present, PRE-SEED the
+    # image caches from it so the esm/DeepSecE/ProtT5 fetches below become no-ops
+    # (each checks its cache before downloading); the results are copied BACK after
+    # the bakes so the next rebuild reuses them. Absent -> everything downloads as
+    # before, so the build stays self-contained. cp -a preserves the exact layout
+    # torch.hub / huggingface_hub / _ensure_checkpoint expect.
+    BUILD_CACHE=/build_cache
+    if [ -d "$BUILD_CACHE" ]; then
+        echo "[#36] build-weight cache present -> pre-seeding image caches"
+        mkdir -p /opt/ssign_home/.cache /opt/ssign_home/.ssign
+        [ -e "$BUILD_CACHE/torch" ]       && cp -a "$BUILD_CACHE/torch"       /opt/ssign_home/.cache/ || true
+        [ -e "$BUILD_CACHE/huggingface" ] && cp -a "$BUILD_CACHE/huggingface" /opt/ssign_home/.cache/ || true
+        [ -e "$BUILD_CACHE/models" ]      && cp -a "$BUILD_CACHE/models"      /opt/ssign_home/.ssign/ || true
+    fi
 
     # --- DeepLocPro (baked) ----------------------------------------------------
     # DeepLocPro is the DEFAULT-ON localization predictor. Unlike the DTU-licensed
@@ -201,6 +228,16 @@ if total < 1_000_000_000:
 print("ProtT5 encoder baked: %d bytes; refs/main -> %s" % (total, REV), flush=True)
 PY
 
+    # Copy the freshly-baked weights BACK to the bound cache (#36) so the next
+    # rebuild pre-seeds from it and skips the downloads. No-op / harmless when the
+    # cache was already seeded (same bytes) or bound read-only (|| true).
+    if [ -d "$BUILD_CACHE" ]; then
+        echo "[#36] refreshing build-weight cache for next rebuild"
+        cp -a /opt/ssign_home/.cache/torch       "$BUILD_CACHE/" 2>/dev/null || true
+        cp -a /opt/ssign_home/.cache/huggingface "$BUILD_CACHE/" 2>/dev/null || true
+        cp -a /opt/ssign_home/.ssign/models      "$BUILD_CACHE/" 2>/dev/null || true
+    fi
+
     # Default mount points for host-provided databases/weights + work dir.
     mkdir -p /opt/ssign_home/.ssign/databases /opt/ssign_home/.ssign/models /work
     chmod -R a+rX /opt/ssign_home
@@ -217,7 +254,8 @@ PY
     # a real hmmsearch (ssign's pyhmmer stand-in stays a harmless fallback). ssign's
     # own scripts run via sys.executable (absolute), so the conda `python` on PATH
     # never shadows them. Mirrors the validated native CX3 prepend.
-    export PATH=/opt/conda/envs/bakta/bin:/opt/conda/envs/eggnog/bin:$PATH
+    # hhsuite last (unique binary names hhblits/hhsearch, no shadowing risk).
+    export PATH=/opt/conda/envs/bakta/bin:/opt/conda/envs/eggnog/bin:/opt/conda/envs/hhsuite/bin:$PATH
     # Baked pLM-BLAST clone (extended/full). Default-only (`:-`) so a
     # user-supplied SSIGN_PLMBLAST_SCRIPT (e.g. --env at run time) still wins.
     export SSIGN_PLMBLAST_SCRIPT=${SSIGN_PLMBLAST_SCRIPT:-/opt/pLM-BLAST/scripts/plmblast.py}
@@ -230,7 +268,7 @@ PY
     # encoder), so default to HF offline: transformers reads the baked hub cache
     # without probing the network or writing lock files into the read-only image
     # (this is what makes pLM-BLAST's ProtT5 load fully offline). Default-only, so a
-    # user wanting live HF downloads (e.g. an un-baked PLM-Effector model) sets BOTH
+    # user wanting live HF downloads (e.g. a future un-baked model) sets BOTH
     # HF_HUB_OFFLINE and TRANSFORMERS_OFFLINE to 0 (transformers honours either).
     export HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-1}
     export TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-1}

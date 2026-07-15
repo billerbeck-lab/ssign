@@ -1839,3 +1839,23 @@ log-analyzer, and historical K-12 validation logs contain PLM-E lines. Ripping i
 would lose the ability to re-analyze past runs. Decision for Teo: keep the historical
 parser, or strip it too for a fully-clean tree? Not a pipeline consumer, so out of the
 annotation-subsystem-cleanup scope.
+
+## 2026-07-15 — PLM-E residual: scripts/fetch_weights.sh needs untangling
+
+annotation-subsystem-cleanup removed PLM-E from src/tests/core-docs, and this
+session also cleaned scripts/fetch_databases.sh (removed the ~19 GB dead
+fetch_plm_effector_weights + URL + preflight + tier comments), troubleshooting.md,
+scripts/README.md, the run_batched_multi.pbs dead export, and an audit comment.
+STILL TODO: scripts/fetch_weights.sh. It's entangled — its default-path PLM
+fetches (ProtT5/ESM1b/ESM2 via fetch_hf_model) live UNDER a `$TARGET/plm_effector/
+transformers_pretrained/` directory, alongside PLM-E-only bits
+(fetch_plm_effector_trained_models = the 1.7 GB sourcecode.zip, fetch_protbert,
+PLM_EFFECTOR_SOURCECODE_URL, the SSIGN_PLM_EFFECTOR_WEIGHTS log). Decision for Teo:
+is fetch_weights.sh meant to pre-stage the DEFAULT-path weights (DeepSecE ESM1b /
+DeepLocPro ESM2 / pLM-BLAST ProtT5) for native offline use, or was it PLM-E-only?
+If default-path: drop only trained_models + protbert + the plm_effector URL/log,
+and rename the `plm_effector/` layout to something tool-neutral (check nothing reads
+that path). If PLM-E-only: the whole script goes (the container bakes those weights
+itself; native users' tools auto-download). NOTE: scripts/README.md was already
+edited to describe fetch_weights as fetching "DeepSecE, ProtT5, ESM" (the
+default-path reading), so resolve the script to match or re-edit the README.

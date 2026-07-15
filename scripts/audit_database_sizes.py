@@ -118,9 +118,9 @@ def audit(db_root: str, weights_root: str) -> list[dict]:
     for w in MODEL_WEIGHTS:
         base = db_root if w.under_db_root else weights_root
         candidate = os.path.join(base, w.default_subpath)
-        # MODEL_WEIGHTS entries can be either a directory (PLM-Effector
-        # weights tree) or a single file (DeepSecE checkpoint .pt). Accept
-        # both via os.path.exists; path_size_bytes handles each.
+        # MODEL_WEIGHTS entries can be either a directory (e.g. a weights
+        # tree) or a single file (DeepSecE checkpoint .pt). Accept both via
+        # os.path.exists; path_size_bytes handles each.
         path = candidate if os.path.exists(candidate) else None
         rows.append(
             {

@@ -26,6 +26,13 @@ BUILDTMP="${SSIGN_BUILD_TMPDIR:-$HOME/.ssign_sif_build}"
 mkdir -p "$BUILDTMP/tmp" "$BUILDTMP/cache"
 export APPTAINER_TMPDIR="$BUILDTMP/tmp" APPTAINER_CACHEDIR="$BUILDTMP/cache" TMPDIR="$BUILDTMP/tmp"
 
+# Persistent build-weight cache (#36): the def bakes ~10 GB of model weights
+# (ESM2, ESM1b, DeepSecE checkpoint, ProtT5). Bind this host dir to /build_cache
+# so the FIRST build populates it and every rebuild after reuses it instead of
+# re-downloading. Survives across builds (lives under $HOME, not the build tmp).
+SSIGN_BUILD_CACHE="${SSIGN_BUILD_CACHE:-$HOME/.ssign_build_weights}"
+mkdir -p "$SSIGN_BUILD_CACHE"
+
 echo "== 1/3  ensure uv.lock is current with pyproject.toml =="
 if ! uv lock --check 2>/dev/null; then
     echo "   uv.lock stale -> running uv lock"
@@ -33,7 +40,8 @@ if ! uv lock --check 2>/dev/null; then
 fi
 
 echo "== 2/3  apptainer build (fakeroot) -> $SIF =="
-apptainer build --fakeroot "$SIF" containers/ssign.def
+echo "   build-weight cache: $SSIGN_BUILD_CACHE ($(du -sh "$SSIGN_BUILD_CACHE" 2>/dev/null | cut -f1))"
+apptainer build --fakeroot --bind "$SSIGN_BUILD_CACHE:/build_cache" "$SIF" containers/ssign.def
 
 echo "== 3/3  smoke test (offline, --containall) =="
 apptainer run --containall "$SIF" --version
@@ -49,7 +57,7 @@ if [ -n "$DLP_PATH" ] && [ -d "$DLP_PATH" ]; then
         "$SIF" run /work/in.gbff --outdir /work/out \
             --use-input-annotations \
             --deeplocpro-mode local --deeplocpro-path /opt/deeplocpro \
-            --skip-deepsece --skip-signalp --skip-plm-effector --skip-blastp \
+            --skip-deepsece --skip-signalp --skip-blastp \
             --skip-hhsuite --skip-interproscan --skip-plmblast --skip-protparam
     if grep -q "$EXPECTED_SUBSTRATE" "$OUT"/*results*.csv 2>/dev/null; then
         echo "PASS: golden substrate $EXPECTED_SUBSTRATE found"

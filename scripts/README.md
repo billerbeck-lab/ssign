@@ -19,9 +19,9 @@ If a script becomes generally useful to multiple analyses, promote it into
 
 ## Already shipped
 
-- `fetch_weights.sh`: downloads DeepSecE checkpoint, ProtT5, ESM, and
-  PLM-Effector weights from their canonical sources (Zenodo at v1.0.0
-  release; upstream mirrors as fallback).
+- `fetch_weights.sh`: downloads DeepSecE checkpoint, ProtT5, and ESM
+  weights from their canonical sources (Zenodo at v1.0.0 release;
+  upstream mirrors as fallback).
 - `fetch_databases.sh`: tier-aware (`--tier base|extended|full`) downloader
   for Bakta, EggNOG, HH-suite, InterProScan, BLAST NR, ECOD30, taxdump.
 

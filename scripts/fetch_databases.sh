@@ -5,7 +5,7 @@
 #   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 #
 # Tier sizes (post-extraction):
-#   base       ~22 GB   NCBI taxdump + Bakta light + PLM-Effector weights
+#   base       ~4 GB    NCBI taxdump + Bakta light
 #   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
 #   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 #              (HH-suite extracted dominates; NR is opt-in, not fetched by default — see fetch_blast_nr)
@@ -61,11 +61,6 @@ ECOD_URL="http://ftp.tuebingen.mpg.de/ebio/protevo/toolkit/databases/plmblast_db
 # instead of relying on download_eggnog_data.py.
 EGGNOG_BASE_URL="http://eggnog5.embl.de/download/emapperdb-5.0.2"
 
-# PLM-Effector — trained model weights from upstream (slow Chinese academic
-# mirror at ~2 MB/s; ~11 min wall for the 1.5 GB sourcecode.zip). The PLMs
-# themselves come from HuggingFace (~17 GB across four repos).
-PLM_EFFECTOR_SOURCECODE_URL="https://www.mgc.ac.cn/PLM-Effector/download/sourcecode.zip"
-
 # InterProScan — pin version explicitly. Bump together with the
 # `interproscan-*-bin.tar.gz` checksum file from the EBI release page.
 IPS_VERSION="5.77-108.0"
@@ -87,7 +82,7 @@ Usage:
   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 
 Tier sizes (post-extraction):
-  base       ~22 GB   NCBI taxdump + Bakta light + PLM-Effector weights
+  base       ~4 GB    NCBI taxdump + Bakta light
   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 
@@ -282,9 +277,6 @@ _preflight_tier() {
         _require_command bakta_db "$_HINT_BAKTA_DB"
         _require_command amrfinder "$_HINT_AMRFINDER"
     fi
-    # PLM-Effector weights (every tier).
-    _require_command hf "$_HINT_HF"
-    _require_command unzip "$_HINT_UNZIP"
     # BLASTp DB — Swiss-Prot (full tier only; NR opt-in uses the same tool).
     if [[ "$tier" == "full" ]]; then
         _require_command update_blastdb.pl "$_HINT_UPDATE_BLASTDB"
@@ -456,63 +448,6 @@ fetch_ecod() {
     _log "OK — set SSIGN_ECOD_DB=$extracted"
 }
 
-fetch_plm_effector_weights() {
-    # PLM-Effector ships its own trained_models bundle plus four pretrained
-    # protein language models from HuggingFace. ssign reads them via
-    # SSIGN_PLM_EFFECTOR_WEIGHTS. GPU strongly recommended at runtime
-    # (~100x speedup over CPU).
-    _log "==> PLM-Effector weights (~19 GB total; mgc.ac.cn + HuggingFace)"
-    _require_command hf "$_HINT_HF"
-    _require_command unzip "$_HINT_UNZIP"
-
-    local dir="$TARGET/plm_effector_weights"
-    local hf_dir="$dir/transformers_pretrained"
-    _run mkdir -p "$dir" "$hf_dir"
-
-    # Part 1: trained_models (~1.7 GB, slow mirror).
-    if [[ ! -d "$dir/trained_models" ]]; then
-        local zip="$dir/sourcecode.zip"
-        _wget_with_fallback "$zip" "$PLM_EFFECTOR_SOURCECODE_URL"
-        _run unzip -q -d "$dir" "$zip"
-        _run mv "$dir/sourcecode/trained_models" "$dir/trained_models"
-        _run rm -rf "$dir/sourcecode" "$zip"
-    else
-        _log "Skipping trained_models (already present)"
-    fi
-
-    # Part 2: four pretrained PLMs from HuggingFace (~17 GB).
-    # prot_t5_xl_uniref50 carries a TF checkpoint we don't need; include-list
-    # trims the download to the PyTorch + tokenizer files.
-    if [[ ! -d "$hf_dir/prot_t5_xl_uniref50" ]]; then
-        _run hf download Rostlab/prot_t5_xl_uniref50 \
-            --include "config.json" "spiece.model" "tokenizer_config.json" \
-                "special_tokens_map.json" "pytorch_model.bin" \
-            --local-dir "$hf_dir/prot_t5_xl_uniref50"
-    else
-        _log "Skipping prot_t5_xl_uniref50 (already present)"
-    fi
-    if [[ ! -d "$hf_dir/esm1b_t33_650M_UR50S" ]]; then
-        _run hf download facebook/esm1b_t33_650M_UR50S \
-            --local-dir "$hf_dir/esm1b_t33_650M_UR50S"
-    else
-        _log "Skipping esm1b_t33_650M_UR50S (already present)"
-    fi
-    if [[ ! -d "$hf_dir/esm2_t33_650M_UR50D" ]]; then
-        _run hf download facebook/esm2_t33_650M_UR50D \
-            --local-dir "$hf_dir/esm2_t33_650M_UR50D"
-    else
-        _log "Skipping esm2_t33_650M_UR50D (already present)"
-    fi
-    if [[ ! -d "$hf_dir/prot_bert" ]]; then
-        _run hf download Rostlab/prot_bert \
-            --local-dir "$hf_dir/prot_bert"
-    else
-        _log "Skipping prot_bert (already present)"
-    fi
-
-    _log "OK — set SSIGN_PLM_EFFECTOR_WEIGHTS=$dir"
-}
-
 fetch_blast_swissprot() {
     # Swiss-Prot is the full-tier default BLASTp DB: ~300 MB curated, each
     # entry carrying a reviewed function name — far more useful for "what is
@@ -552,7 +487,6 @@ fetch_blast_nr() {
 run_base() {
     fetch_taxdump
     fetch_bakta light
-    fetch_plm_effector_weights
 }
 
 run_extended() {
@@ -570,7 +504,6 @@ run_full() {
     # light, so we don't call run_extended directly.
     fetch_taxdump
     fetch_bakta full
-    fetch_plm_effector_weights
     fetch_eggnog
     fetch_hhsuite_pfam
     fetch_hhsuite_pdb70
