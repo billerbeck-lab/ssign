@@ -164,18 +164,22 @@ produces:
 - **`<sample-id>_results_raw.csv`**: every column from the integrated
   CSV with no filtering.
 - **Annotation consensus voting.** Each substrate is classified into one
-  of 17 broad functional categories (Adhesin, Autotransporter,
-  Protease, ...) by keyword-matching tool descriptions. The
-  most-supported category becomes `broad_annotation`; tool names get
-  listed as evidence. See
-  [`design_decisions.md` § 4.1](design_decisions.md#41-17-category-broad-functional-voting).
-- **Enrichment testing.** A Fisher's exact test asks which functional
-  categories are over-represented near each SS type, vs the
-  whole-genome background. Output: `enrichment_fisher.csv` and a plain-
-  text summary.
-- **Five summary figures** (functional category, SS-component
-  composition, tool-coverage heatmap, substrate-count per SS,
-  functional summary). Toggle each with the `--fig-*` flags.
+  of 27 broad functional categories (Apparatus-associated, Protease/Peptidase,
+  Pore-forming toxin, Adhesin, Autotransporter passenger, ...) by
+  keyword-matching tool descriptions. The most-supported category becomes
+  `broad_annotation`; tool names get listed as evidence. See
+  [`design_decisions.md` § 4.1](design_decisions.md#41-27-category-broad-functional-voting).
+- **Enrichment testing** (opt-in, `--enrichment-stats`). A per-SS-type
+  circular-shift permutation test asks whether secreted-predicted proteins
+  cluster around each SS type's components more than a genome-structure-
+  preserving null (the exact circular rotations of the gene-ordered positivity
+  vector). It emits fold (enrichment) + permutation p + BH q per system type.
+  Output: `<sample-id>_enrichment_stats.tsv` (see
+  [`output_files.md`](../reference/output_files.md)).
+- **Up to six summary figures**, the curated `01`-`06` set: `01` secreted
+  proteins by SS type, `02` size & physicochemical properties, and `03`-`06`
+  functional categories (COG, KEGG, EggNOG, curated consensus). Toggle with the
+  `--fig-*` flags.
 - **HTML and text reports** that bring it together in a human-readable
   form.
 

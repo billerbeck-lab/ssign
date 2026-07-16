@@ -55,17 +55,17 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--use-input-annotations` | bool | `false` | Trust input GenBank annotations and skip Bakta re-annotation. |
-| `--run-bakta` | bool | `false` | Run Bakta on FASTA input or to re-annotate GenBank. |
+| `--run-bakta` | bool | `true` | Run Bakta on FASTA contigs input (default on). GenBank input is governed by `--use-input-annotations` instead. |
 | `--bakta-db` | path | `""` | Bakta database directory (required when `--run-bakta`). |
-| `--bakta-threads` | int | `4` | Threads passed to Bakta. |
+| `--bakta-threads` | int | `0` | Threads passed to Bakta. `0` = match `--cpu-per-genome` (the cgroup-allocated count). |
 
 ## DTU prediction tools (DeepLocPro and SignalP)
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--deeplocpro-mode` | choice | `local` | `local` (canonical, DTU academic licence required) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). |
+| `--deeplocpro-mode` | choice | auto (local when a local install is detected) | `local` (canonical, DTU academic licence required) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). Unset = auto: local if `deeplocpro` is on `PATH`/`--deeplocpro-path`/`$SSIGN_DEEPLOCPRO_PATH`, otherwise ssign stops with install instructions (it does not auto-submit to the webserver). |
 | `--deeplocpro-path` | path | `""` | Path to local DeepLocPro install. Empty falls back to `deeplocpro` on `PATH`. |
-| `--signalp-mode` | choice | `local` | `local` (canonical; obtain SignalP 6.0 from the DTU portal — DTU does not redistribute it) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). |
+| `--signalp-mode` | choice | auto (local when a local install is detected) | `local` (canonical; obtain SignalP 6.0 from the DTU portal, DTU does not redistribute it) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). Unset = auto: local if `signalp6` is on `PATH`/`--signalp-path`/`$SSIGN_SIGNALP_PATH`, otherwise ssign stops with install instructions (it does not auto-submit to the webserver). |
 | `--signalp-path` | path | `""` | Path to local SignalP 6 install. Empty falls back to `signalp6` on `PATH`. |
 | `--skip-signalp` | bool | `false` | Skip the SignalP step. |
 | `--skip-deepsece` | bool | `false` | Skip the DeepSecE step. |
@@ -77,7 +77,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-blastp` | bool | `false` | Skip BLASTp. |
+| `--skip-blastp` | bool | `true` (off), `false` at `--tier full` | Skip BLASTp. BLASTp is enabled only at `--tier full`; off at base/extended (the default tier is extended). |
 | `--blastp-db` | path | `""` | Path to BLAST database (NR or Swiss-Prot). |
 | `--blastp-exclude-taxid` | str | `""` | Comma-separated taxids to exclude (e.g. the query organism). |
 | `--blastp-min-pident` | float | `80.0` | BLASTp percent-identity floor. |
@@ -113,7 +113,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-eggnog` | bool | `true` | Skip EggNOG-mapper (off by default). |
+| `--skip-eggnog` | bool | `false` (on), `true` at `--tier base` | Skip EggNOG-mapper. EggNOG is on at the extended (default) and full tiers; off only at `--tier base`. Pass `--skip-eggnog` to disable it. |
 | `--eggnog-db` | path | `""` | EggNOG database directory. |
 | `--eggnog-dbmem` | bool | auto | Load `eggnog.db` into RAM (`--dbmem`, ~44 GB resident). Default auto: on only when the job's RAM share is >= 50 GB, else the on-disk SQLite is memory-mapped. Force with `--eggnog-dbmem` / `--no-eggnog-dbmem`. |
 
@@ -133,8 +133,6 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--dpi` | int | `300` | Figure resolution. |
-| `--fig-category` | bool | `true` | Render the functional-category figure. |
-| `--fig-ss-comp` | bool | `true` | Render the SS-component composition figure. |
-| `--fig-tool-heatmap` | bool | `true` | Render the tool-coverage heatmap. |
-| `--fig-substrate-count` | bool | `true` | Render the per-SS substrate-count figure. |
-| `--fig-func-summary` | bool | `true` | Render the functional-summary figure. |
+| `--fig-ss-comp` | bool | `true` | Render figure `01` (secreted proteins by SS type; per genome, stacked by SS type for a group). |
+| `--fig-physicochemical` | bool | `true` | Render figure `02` (size & physicochemical properties by SS type; length + ProtParam when present). |
+| `--fig-func-summary` | bool | `true` | Render figures `03`-`06` (functional categories by SS type: COG/KEGG/EggNOG/consensus). |

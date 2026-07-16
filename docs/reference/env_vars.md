@@ -24,8 +24,12 @@ CLI flags always take precedence: if both `--hhsuite-pfam-db` and
 ## Convenience aliases (set by the database fetcher)
 
 `scripts/fetch_databases.sh` exports these after a successful download so you
-can copy a one-liner into your shell rc file. They are not read by ssign at
-run time; the matching CLI flag is the load-bearing handle.
+can copy a one-liner into your shell rc file. Most of them ARE read at run
+time, as a fallback used only when the matching CLI flag is unset (the flag
+always wins): `SSIGN_BAKTA_DB`, `SSIGN_EGGNOG_DB`, `SSIGN_INTERPROSCAN_PATH`,
+`SSIGN_ECOD_DB`, `SSIGN_DEEPLOCPRO_PATH`, and `SSIGN_SIGNALP_PATH` each resolve
+their tool's database or install directory when the corresponding flag was not
+passed. `SSIGN_DEEPSECE_CHECKPOINT` is the exception: it is not read at run time.
 
 | Variable | CLI equivalent |
 |---|---|

@@ -312,19 +312,24 @@ Entries are organised by pipeline stage. Each has three parts:
 
 ## 4. Annotation consensus
 
-### 4.1 17-category broad functional voting
+### 4.1 27-category broad functional voting
 
-- **Decision:** Each substrate protein is classified into one of 17
-  broad functional categories (Adhesin, Autotransporter, Protease,
-  Lipase/Esterase, Nuclease, Glycoside hydrolase, Toxin, Transporter,
-  Secretion system, Flagellar, Oxidoreductase, Transferase, Chaperone,
-  Binding protein, Structural, Regulatory, Hypothetical) by keyword-
-  matching tool-specific description strings. Multiple tools vote;
-  the most-supported category becomes `broad_annotation`, with tool
-  names listed as evidence.
+- **Decision:** Each substrate protein is classified into one of 27
+  broad functional categories (the exact set is
+  `annotation_consensus.CATEGORY_NAMES`: Phage/mobile element,
+  Apparatus-associated, Peptidoglycan hydrolase, ADP-ribosyltransferase,
+  Glycosyltransferase, Phosphothreonine lyase, Ubiquitin-pathway,
+  GTPase modulator, Kinase/Phosphatase, Acyl/Acetyltransferase,
+  Beta-lactamase, Protease/Peptidase, Lipase/Phospholipase, Nuclease,
+  Glycoside hydrolase/CAZy, Oxidoreductase, Pore-forming toxin,
+  Toxin (other), Adhesin, Hemophore/metal uptake, S-layer, Lectin/CBM,
+  Autotransporter passenger, Chaperone, Regulatory, Transporter/channel,
+  Hypothetical) by keyword-matching tool-specific description strings.
+  Multiple tools vote; the most-supported category becomes
+  `broad_annotation`, with tool names listed as evidence.
 
 - **Rationale:**
-  - 17 categories is a pragmatic compromise between "too broad to be
+  - 27 categories is a pragmatic compromise between "too broad to be
     useful" (4-5 COG-style superclasses) and "too granular to vote"
     (hundreds of KEGG/GO terms). Keyword matching against descriptions
     is tool-agnostic: any new tool that produces a human-readable

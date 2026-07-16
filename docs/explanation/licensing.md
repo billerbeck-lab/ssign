@@ -110,8 +110,8 @@ EggNOG annotation install it separately on the host
 (`conda install -c bioconda eggnog-mapper` is the recommended path; the
 conda channel has shipped against modern biopython for years), then run
 `download_eggnog_data.py` to fetch the database. EggNOG annotation is
-off by default (`--skip-eggnog`), so the bundled image works out of the
-box for most users. In parallel, the Billerbeck Lab has emailed
+on by default at the extended (default) and full tiers (off only at
+`--tier base`), and the bundled image works out of the box for most users. In parallel, the Billerbeck Lab has emailed
 `eggnog@embl.de` to request explicit redistribution permission for the
 database files; if granted, a future release can revisit the bundling
 question.
@@ -188,5 +188,5 @@ the licensing decisions above:
   `--tier` invocation that reads the tier name and downloads each missing DB
   from its canonical source.
 
-Net user experience: `docker pull` → `ssign install-databases --tier extended`
+Net user experience: `docker pull` → `ssign fetch-databases --tier extended`
 → `ssign run input.gbff`. Three commands, two of them once-only.

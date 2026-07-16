@@ -28,7 +28,7 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases. Cumulat
 | Tier | Cumulative size | Adds |
 |---|---|---|
 | base | ~4 GB | NCBI taxdump (1.5 GB) + Bakta light DB (2.5 GB) |
-| extended | ~100 GB | + EggNOG (47 GB), InterProScan (35 GB), pLM-BLAST ECOD30 (11 GB) |
+| extended | ~100 GB | + EggNOG (47 GB), InterProScan (24 GB), pLM-BLAST ECOD30 (11 GB) |
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
 These are databases only. Model weights are separate and shared across all tiers,
@@ -134,7 +134,7 @@ mamba create -n bakta-deps -c bioconda bakta -y
 export PATH=~/.conda/envs/bakta-deps/bin:$PATH
 ```
 
-Then download the light database (~4 GB extracted):
+Then download the light database (~2-2.5 GB extracted):
 
 ```bash
 bakta_db download --output ~/bakta_db --type light
@@ -208,8 +208,8 @@ breakage. Tell ssign where the database lives:
 ssign run input.gbff --outdir results --eggnog-db ~/.ssign/databases/eggnog
 ```
 
-EggNOG annotation is off by default (`--skip-eggnog` defaults to `true`).
-Pass `--no-skip-eggnog` to enable it.
+EggNOG annotation is on by default at the extended (default) and full
+tiers; it is off only at `--tier base`. Pass `--skip-eggnog` to disable it.
 
 > **HPC / shared scratch users:** `--eggnog-dbmem` (loads `eggnog.db` into
 > RAM, ~44 GB resident) is now **auto** by default: on only when the job's
@@ -241,7 +241,7 @@ InterProScan (EBI) scans proteins against a panel of member databases
 to annotate domains, family memberships, and GO terms. ssign uses it to
 add domain-level annotation to substrate proteins. Java required.
 
-The bundle is large (~35 GB extracted) but installs as a single tarball:
+The bundle is large (~24 GB extracted) but installs as a single tarball:
 
 ```bash
 # 1. Java 11+ on PATH (Ubuntu / Debian):

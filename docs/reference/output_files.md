@@ -11,11 +11,12 @@ results/
 ├── <sample-id>_summary.txt          Combined report text + enrichment summary
 ├── figures/
 │   └── <sample-id>/
-│       ├── fig_category.png
-│       ├── fig_ss_comp.png
-│       ├── fig_tool_heatmap.png
-│       ├── fig_substrate_count.png
-│       └── fig_func_summary.png
+│       ├── 01_secreted_by_genome.png       Secreted proteins by SS type
+│       ├── 02_physicochemical.png          Size & physicochemical properties
+│       ├── 03_cog_category_by_sstype.png   COG functional category
+│       ├── 04_kegg_function_by_sstype.png  KEGG function
+│       ├── 05_eggnog_description_by_sstype.png  EggNOG description
+│       └── 06_consensus_function_by_sstype.png  Curated consensus function
 └── .ssign/
     └── <sample-id>_progress.json    Resume manifest (used by --resume)
 ```
@@ -38,6 +39,10 @@ results/
 ├── ssign_results_raw.csv            Combined raw annotations
 └── ssign_summary.txt                Combined summary
 ```
+
+Multi-genome runs also emit the curated figure set pooled over all genomes as
+`0N_pooled_*.png` (same `01`-`06` numbering), plus the enrichment charts
+`pooled_enrichment_fold[_combined].png` when `--enrichment-stats` is set.
 
 ## `<sample-id>_results.csv` (main results)
 

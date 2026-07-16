@@ -136,7 +136,7 @@ ecoli_results/
 ├── ecoli_k12_results_raw.csv   All columns, no filtering
 ├── ecoli_k12_summary.txt       Plain-text report
 ├── figures/
-│   └── ecoli_k12/*.png         Five summary figures
+│   └── ecoli_k12/*.png         Up to six summary figures (01-06)
 └── .ssign/
     └── ecoli_k12_progress.json Resume manifest
 ```
