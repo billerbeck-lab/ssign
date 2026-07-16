@@ -178,6 +178,29 @@ class MultiGenomeRunner:
             return self.results
         return self._run_multi()
 
+    def _emit_prerun_batch_eta(self, runners: dict) -> None:
+        """Print a rough machine-adjusted total for the whole batch before any
+        genome starts. Uses a representative genome's plan x genome count; the
+        pooled segments make this roughly linear in genomes. Never fatal."""
+        try:
+            from ssign_app.runtime import Estimator, load_coefficients
+
+            from .runner import _rough_eta_phrase
+
+            rep = next(iter(runners.values()))
+            est = Estimator.from_profile(load_coefficients())
+            stage_ids = rep._stage_ids(rep._build_stages())
+            per = rep._prerun_total_seconds(est, stage_ids)
+            if not per:
+                return
+            n = len(runners)
+            print(
+                f"[ssign] {n} genomes; rough total {_rough_eta_phrase(per * n)} (pre-run; refines as genomes run)",
+                flush=True,
+            )
+        except Exception:
+            pass
+
     def _run_multi(self) -> dict[str, list[StepResult]]:
         runners: dict[str, PipelineRunner] = {
             c.sample_id: PipelineRunner(
@@ -187,6 +210,8 @@ class MultiGenomeRunner:
             )
             for c in self.configs
         }
+
+        self._emit_prerun_batch_eta(runners)
 
         # Top-level outdir is the shared parent of all per-genome outdirs.
         # Pool runner artefacts land in <top_outdir>/_pool/.

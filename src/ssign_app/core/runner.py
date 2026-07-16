@@ -553,6 +553,17 @@ _RESULTS_CSV_OVERVIEW = (
 )
 
 
+def _rough_eta_phrase(seconds: float) -> str:
+    """Format a rough pre-run estimate: '~99 min (~50-198 min)' or, for long
+    runs, '~2.8 h (~1.4-5.5 h)'. The wide half-to-double band reflects the
+    typical-proteome prior it is built on."""
+    mins = seconds / 60.0
+    if mins >= 120:
+        h = mins / 60.0
+        return f"~{h:.1f} h (~{h * 0.5:.1f}-{h * 2.0:.1f} h)"
+    return f"~{mins:.0f} min (~{mins * 0.5:.0f}-{mins * 2.0:.0f} min)"
+
+
 def resolve_scratch_dir(scratch_dir: str, outdir: str) -> str:
     """Point $TMPDIR (and this process's tempfile) at real disk with room.
 
@@ -1121,6 +1132,17 @@ class PipelineRunner:
                 self._eta_stage_ids = self._stage_ids(stages)
             except Exception:
                 self._estimator = None
+
+            # A rough machine-adjusted total up front (before step 1), so the user
+            # gets a number immediately instead of waiting for the first step to
+            # finish. Refines once real sizes are known.
+            secs = self._prerun_total_seconds(self._estimator, self._eta_stage_ids)
+            if secs:
+                print(
+                    f"[ssign] [{self.config.sample_id}] time rough estimate "
+                    f"{_rough_eta_phrase(secs)} (pre-run; refines after the first step)",
+                    flush=True,
+                )
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -1858,6 +1880,36 @@ class PipelineRunner:
     # real substrate count is known (filtering runs ~2/3 through). Replaced by
     # the measured count once filtering completes, so the ETA refines.
     _SUBSTRATE_FRACTION_PRIOR = 0.02
+
+    # Typical gram-negative proteome, used only for the pre-run rough ETA before
+    # the genome is parsed. Replaced by the real count after extract_proteins.
+    _PRERUN_PROTEOME_PRIOR = 4000
+
+    def _prerun_total_seconds(self, estimator, stage_ids) -> Optional[float]:
+        """Rough whole-run seconds before any step has run, from a typical-proteome
+        prior fed through the machine-adjusted estimator (its t=0 prior already
+        accounts for this host's cores/GPU). None if not estimable, or if the
+        estimate is untrustworthy because the reference machine had a GPU and this
+        host has none: the GPU predictors then get scaled by a coarse ~50x
+        CPU-fallback penalty, so a pre-run number would mislead. On such hosts the
+        live ETA still appears once the first step's real duration lands."""
+        if estimator is None or not stage_ids:
+            return None
+        gpu_prior = getattr(estimator, "_prior_rates", {}).get("gpu")
+        if gpu_prior is not None and gpu_prior < 0.5:
+            return None
+        try:
+            from ssign_app.runtime.run_eta import build_plan
+
+            proteins = self._PRERUN_PROTEOME_PRIOR
+            sizes = {
+                "proteins": proteins,
+                "substrates": max(1, round(self._SUBSTRATE_FRACTION_PRIOR * proteins)),
+            }
+            res = estimator.eta(build_plan(stage_ids, sizes, self._whole_genome_tools()))
+            return res.total_s if res.total_s > 0 else None
+        except Exception:
+            return None
 
     @staticmethod
     def _stage_ids(stages: list) -> list[list[str]]:
