@@ -12,7 +12,12 @@ from pathlib import Path
 
 import streamlit as st
 
-from ssign_app.core.runner import PipelineConfig, PipelineRunner, StepResult
+from ssign_app.core.runner import (
+    _RESULTS_CSV_OVERVIEW,
+    PipelineConfig,
+    PipelineRunner,
+    StepResult,
+)
 from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: F401  (multiselect default below)
 
 # ─────────────────────────────────────────────────────────────────────
@@ -221,6 +226,7 @@ def _merge_genome_outputs(outdir: str, sample_names: list[str]):
 
     combined_csv = os.path.join(outdir, "ssign_results.csv")
     with open(combined_csv, "w", newline="") as f:
+        f.write(_RESULTS_CSV_OVERVIEW)
         written = False
         if "proteins" in merged and not merged["proteins"].empty:
             f.write("# Secreted Proteins\n")

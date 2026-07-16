@@ -540,6 +540,19 @@ class StepResult:
 # container tmpfs, not to size precisely.
 _SCRATCH_MIN_FREE_GB = 5
 
+# Prepended to <sample>_results.csv so a first-time reader understands the file
+# is three stacked tables, not one. Consumers that split on the "# Secreted
+# Proteins"/"# Secretion Systems" headers ignore this preamble (see Home.py
+# _merge_genome_outputs). Kept in sync with the golden fixture.
+_RESULTS_CSV_OVERVIEW = (
+    "# ssign results: 3 sections follow, each with its own header row, separated by a blank line.\n"
+    "#   1. Secreted Proteins: predicted secreted proteins (substrates) with annotations.\n"
+    "#   2. Secretion Systems (with secreted proteins): detected systems with a secreted protein nearby.\n"
+    "#   3. Secretion Systems (other): detected systems with no secreted protein called nearby.\n"
+    "# Tip: open in a spreadsheet and split on blank rows, or read one section at a time.\n"
+    "\n"
+)
+
 
 def resolve_scratch_dir(scratch_dir: str, outdir: str) -> str:
     """Point $TMPDIR (and this process's tempfile) at real disk with room.
@@ -3436,6 +3449,7 @@ class PipelineRunner:
 
         # ── Write chunked CSV ──
         with open(output_path, "w", newline="") as f:
+            f.write(_RESULTS_CSV_OVERVIEW)
             chunk_written = False
 
             # Chunk 1: Secreted proteins

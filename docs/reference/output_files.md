@@ -46,9 +46,11 @@ Multi-genome runs also emit the curated figure set pooled over all genomes as
 
 ## `<sample-id>_results.csv` (main results)
 
-Up to three chunks separated by blank lines, each with a `#`-prefixed
-header. Empty chunks are omitted (e.g. genomes with no "other" systems
-will not have a chunk 3):
+The file opens with a short `#`-prefixed overview block naming the three
+sections; readers and the GUI parser skip it. Below it are up to three
+chunks separated by blank lines, each with a `#`-prefixed header. Empty
+chunks are omitted (e.g. genomes with no "other" systems will not have a
+chunk 3):
 
 1. `# Secreted Proteins` — one row per predicted substrate.
 2. `# Secretion Systems (with secreted proteins)` — one row per system or
