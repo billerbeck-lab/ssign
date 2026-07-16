@@ -3029,6 +3029,8 @@ class PipelineRunner:
                 html_out,
                 "--out-txt",
                 txt_out,
+                "--tier",
+                self.config.tier or "",
             ],
         )
 
