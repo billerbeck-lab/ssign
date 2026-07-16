@@ -549,7 +549,6 @@ _RESULTS_CSV_OVERVIEW = (
     "#   1. Secreted Proteins: predicted secreted proteins (substrates) with annotations.\n"
     "#   2. Secretion Systems (with secreted proteins): detected systems with a secreted protein nearby.\n"
     "#   3. Secretion Systems (other): detected systems with no secreted protein called nearby.\n"
-    "# Tip: open in a spreadsheet and split on blank rows, or read one section at a time.\n"
     "\n"
 )
 
@@ -1953,8 +1952,8 @@ class PipelineRunner:
         band = res.rel_uncertainty
         lo = max(0.0, rem_min * (1 - band))
         hi = rem_min * (1 + band)
-        # Leading ⏳ + its own trailing line make the ETA easy to spot in the log.
-        return f"[ssign] [{self.config.sample_id}] ⏳ {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
+        # Leading "time" tag + its own trailing line make the ETA easy to spot.
+        return f"[ssign] [{self.config.sample_id}] time {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
 
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")

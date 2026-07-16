@@ -2,7 +2,6 @@
 #   1. Secreted Proteins: predicted secreted proteins (substrates) with annotations.
 #   2. Secretion Systems (with secreted proteins): detected systems with a secreted protein nearby.
 #   3. Secretion Systems (other): detected systems with no secreted protein called nearby.
-# Tip: open in a spreadsheet and split on blank rows, or read one section at a time.
 
 # Secreted Proteins
 locus_tag,sample_id,broad_consensus_annotation,broad_annotation,detailed_annotation,detailed_consensus_annotation,evidence_keywords,n_tools_agreeing,n_tools_with_hits,concordance_ratio,confidence_tier,aa_length,nearby_ss_types,predicted_localization,dlp_extracellular_prob,dlp_max_localization,dlp_max_probability,dse_ss_type,dse_max_prob,signalp_prediction,signalp_probability,signalp_cs_position,gbff_annotation,annotation_tools,product,substrate_source,tool,sequence
