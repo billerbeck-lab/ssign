@@ -3206,7 +3206,7 @@ class PipelineRunner:
         # 2. Raw results CSV (all columns from all tools)
         self._build_raw_csv(outdir / f"{sid}_results_raw.csv")
 
-        # 3. Summary — report text + enrichment summary + Fisher table
+        # 3. Summary: report text + enrichment (circular-shift) stats
         self._build_summary(outdir / f"{sid}_summary.txt")
 
         # 4. Figures directory (per-sample subfolder for parallel safety)

@@ -26,7 +26,7 @@ import socket
 import subprocess
 import sys
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: F401  (argparse default below)
 
@@ -663,7 +663,10 @@ def _run_pipeline(args: argparse.Namespace) -> int:
             print("\nInterrupted.", file=sys.stderr)
             return 130
 
-        return _report_single_genome(results)
+        rc = _report_single_genome(results)
+        if rc == 0:
+            _print_outputs_hint(config.outdir, config.sample_id)
+        return rc
 
     # Multi-genome path
     if args.sample_id:
@@ -709,7 +712,23 @@ def _run_pipeline(args: argparse.Namespace) -> int:
         print("\nInterrupted.", file=sys.stderr)
         return 130
 
-    return _report_multi_genome(results_by_sid)
+    rc = _report_multi_genome(results_by_sid)
+    if rc == 0:
+        _print_outputs_hint(top_outdir)
+    return rc
+
+
+def _print_outputs_hint(outdir: str, sample_id: Optional[str] = None) -> None:
+    """Point the user at the key output files after a successful run."""
+    outdir = os.path.abspath(outdir)
+    print(f"\nResults written to {outdir}", flush=True)
+    if sample_id:
+        print(f"  {sample_id}_results.csv   secreted proteins + secretion systems (3 sections)", flush=True)
+        print(f"  {sample_id}_summary.txt   readable summary + enrichment stats", flush=True)
+        print(f"  figures/{sample_id}/      figures 01-06", flush=True)
+    else:
+        print("  combined_results.csv     merged results table across genomes", flush=True)
+        print("  <genome>/                per-genome results.csv, summary.txt, figures/", flush=True)
 
 
 def _report_single_genome(results) -> int:
