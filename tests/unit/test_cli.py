@@ -64,11 +64,12 @@ class TestArgparseDefaults:
 
 
 class TestBanner:
-    def test_banner_contains_tagline(self):
-        # The "ssign" in the banner is ASCII art; the human-readable tagline
-        # is the only literal substring we can reliably pin against.
-        assert "Identification" in cli.BANNER
-        assert "Gram Negatives" in cli.BANNER
+    def test_banner_is_present(self):
+        # Pure ASCII-art wordmark spelling "ssign"; assert it is non-empty and
+        # built from the underscore/pipe strokes so an accidental blanking of
+        # the constant is caught.
+        assert cli.BANNER.strip()
+        assert "_|" in cli.BANNER
 
 
 # ---------------------------------------------------------------------------

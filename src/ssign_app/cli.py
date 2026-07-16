@@ -34,22 +34,42 @@ if TYPE_CHECKING:
     from ssign_app.core.runner import PipelineConfig
 
 BANNER = r"""
-   ___ ___ (_) __ _ _ __          ●   ○     secreted
-  / __/ __| |/ _` | '_ \       ○      ●      proteins
-  \__ \__ \ | (_| | | | |   ═══════╪═══════  ⇐ secretion system
-  |___/___/_|\__, |_| |_|   ▐▓ gram-negative cell ▓▌
-             |___/          ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▌
-
-  Secretion-System Identification for Gram Negatives
+  _|_|_|       _|_|_|      _|        _|_|_|     _|_|_
+_|_|         _|_|          _|      _|    _|     _|    _|
+  _|           _|          _|      _|    _|     _|    _|
+    _|_|         _|_|      _|      _|    _|     _|    _|
+_|_|_|       _|_|_|        _|        _|_|_|     _|    _|
+                                         _|
+                                     _|_|
+           .
+       `    .                   .    ::         ::
+     ,    .     *               .:   .:....::::=.
+   .    *     ,    .     :.      ::.:-:---=--==:..
+  `   .    *     .   *    -: ....:----:.      :+-.:
+       .     .    .-.     .:.:-==-:.      ..   .+-.:....
+         ,     .    -:....:-=-:::..   ..:...    -+ -
+                      .:-=-:        ....::     :=:
+               ..:..:-=-.      .::.::.:   .:::==: : ..:
+                 : --:      ...:.:.     ::-=-::.-:
+   ..            - +-    ... .      .-====:..
+  =---           .:-=.   ...    ..-+*=-.....::
+  -: .=         .--:-=:      .:-===-...-.    :-
+   +  .-       .:. ::-=---:---=-:: .   .-.
+   -:  :-     ..    ..::-::-*-   =:      .
+    +   --   :.       .-    .+    -:
+    -:   :-::.        .-
+    ::     .
+  .:-
+ :
 """
 
 
 def _print_banner(show_version: bool = True) -> None:
-    """Print the ssign wordmark + secretion-system motif at startup.
+    """Print the ssign wordmark art at startup.
 
-    Purely decorative, so it must never be fatal: some HPC log streams run a
-    non-UTF-8 locale where the box-drawing glyphs can't be encoded. Any failure
-    is swallowed (skip the banner) rather than taking down a real run.
+    Purely decorative, so it must never be fatal: if stdout is a redirected or
+    non-UTF-8 stream, any failure is swallowed (skip the banner) rather than
+    taking down a real run.
     """
     try:
         print(BANNER, flush=True)
