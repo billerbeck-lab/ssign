@@ -8,8 +8,30 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-16
+
 ### Added
 
+- Run-start ASCII banner with version line, shown by `ssign run` and on GUI
+  launch.
+- Pre-run rough runtime estimate printed before the first step, sized from
+  machine resources and genome count (it refines once the first step
+  completes). Suppressed on GPU-less hosts, where the GPU-based reference would
+  mislead more than help.
+- Per-step remaining-time ETA is now the last line printed for each step, so
+  it is easy to find.
+- Aggregated multi-genome `combined_summary.txt`: pooled secreted-protein
+  counts, per-type totals, per-tool annotation coverage, and pooled enrichment.
+- `results.csv` opens with a short `#`-prefixed overview block naming its three
+  sections (readers and the GUI parser skip it).
+- **SignalP as a third enrichment predictor track** (Sec signal peptide),
+  alongside DeepLocPro and DeepSecE.
+- `--scratch-dir` flag and automatic scratch resolution: keep `$TMPDIR` when it
+  has room, else fall back to a directory under `--outdir`. Stops tools (Bakta
+  especially) from dying with "No space left on device" when a container's
+  `/tmp` is a small tmpfs.
+- `--skip-annotation` master switch to turn off all six annotation tools
+  (BLASTp, HH-suite, InterProScan, pLM-BLAST, EggNOG, ProtParam) at once.
 - `taxopy>=0.12` for local NCBI taxdump lookup in `resolve_taxonomy.py`,
   replacing remote E-utilities. Dump defaults to `~/.ssign/taxdump/`;
   override with `SSIGN_TAXDUMP_DIR`. Pipeline degrades gracefully if the
@@ -20,14 +42,44 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 ### Changed
 
-- **Enrichment background**: default null sample bumped 200 → 1000; when predictors
-  run whole-genome the background now uses ALL non-neighborhood proteins (exact, free).
-  The 200-protein sample undersampled the ~1.5% genome rate and inflated significance.
+- **Enrichment test rewritten as a per-SS-type circular-shift permutation.**
+  Emits fold enrichment, permutation _p_, and BH _q_ per system type for each
+  predictor track (DeepLocPro, DeepSecE, SignalP) plus a `COMBINED` union track.
+  Replaces the old binomial / sampled-background test, which understated
+  significance by ignoring the way secreted genes cluster along the genome. The
+  exact rotation null needs whole-genome predictions, so `--enrichment-stats`
+  now forces whole-genome DeepLocPro / DeepSecE / SignalP (all run locally). The
+  old sampled-background machinery (`n_null_proteins`, `null_seed`,
+  `sample_null_proteins.py`) is retired.
+- **T5aSS/T5cSS enrichment emits two results**: a `self` result (autotransporter
+  self-detection, DLP-or-SignalP) and a `window` "hitchhiker" result (secreted
+  neighbours in the ±3 window that may piggyback the pore, DLP-or-DSE). The old
+  standalone autotransporter self-detection figure is gone; that signal is now
+  the `self` enrichment result.
+- **Run figures revamped** (`figures-v2`): curated per-genome set `01`–`06` on a
+  shared house style, adding size / physicochemical panels and functional-category
+  breakdowns (COG, KEGG, EggNOG, curated consensus). Multi-genome runs emit the
+  same set pooled over all genomes.
+- **Summary report reworked**: run-metadata header (version | tier | date),
+  secreted-protein count with per-type breakdown, and annotation coverage
+  grouped by tool.
+- **Tool subprocess timeouts are size-aware**: each modelled tool gets
+  `max(4 h floor, 2 × predicted runtime)` instead of a flat 4 h cap, so pooled
+  whole-genome steps no longer die mid-run.
+- DeepSecE inference auto-sizes its batch to available VRAM and falls back to
+  batch size 1 on CUDA out-of-memory.
+- **Extended/full container is now self-contained.** The image bakes the heavy
+  free toolchain (Bakta with its BLAST 2.17 / HMMER / tRNAscan-SE / diamond
+  stack, EggNOG-mapper, and HH-suite) into pinned micromamba envs, plus the
+  DeepLocPro, DeepSecE, and pLM-BLAST (ProtT5) model weights and their ESM
+  backbones. Extended/full runs now need only the licensed DTU tools and the
+  reference databases mounted from the host, instead of borrowing tools from
+  fragile host conda envs.
 - DeepSecE checkpoint fetched from a Zenodo mirror first (URL placeholder
   until the v1.0.0 deposit), SJTU origin retained as fallback.
 - Repository moved to the `billerbeck-lab` GitHub organisation. Old
   `reidmat/ssign` URLs continue to redirect.
-- Bakta minimum bumped from `>=1.5` (2022) to `>=1.10` (2024) — required
+- Bakta minimum bumped from `>=1.5` (2022) to `>=1.10` (2024), required
   to read the Bakta DB v6 schema. v1.5 cannot parse modern Bakta DBs.
 
 ### Fixed
@@ -36,7 +88,7 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   omitted from `[tool.setuptools.package-data]`, so `pip install`ed and
   containerised copies had no effort-model coefficients. That silently (the
   effort model degrades rather than crashes) disabled the live runtime ETA and
-  reverted size-aware tool timeouts to the flat 4 h floor — the latter can kill
+  reverted size-aware tool timeouts to the flat 4 h floor; the latter can kill
   a legitimately-long pooled/whole-genome step. Source checkouts were
   unaffected. Added a guard test that every non-`.py` data file under
   `src/ssign_app` is covered by a package-data glob.
@@ -45,12 +97,14 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 - **EggNOG database v7.0** (Hernández-Plaza et al., NAR 2025, 54:D402) is
   the new state-of-the-art, but ssign v1.0.0 ships against EggNOG v6.0.
-  Reason: eggnog-mapper 2.1.13 does not yet read v7 — see
+  Reason: eggnog-mapper 2.1.13 does not yet read v7; see
   [eggnog-mapper#588](https://github.com/eggnogdb/eggnog-mapper/issues/588).
   When upstream adds v7 support we'll bump to track it.
 - **DeepSecE error message** in `run_deepsece.py` previously pointed at
   `github.com/SijinHuang/DeepSecE` (404, dead fork). Fixed to point at the
   real upstream `github.com/zhangyumeng1sjtu/DeepSecE`.
+- **The distributed container image is non-commercial** (research use only),
+  because it bakes DeepLocPro (CC BY-NC-SA 4.0). The pip install is unaffected.
 
 ### Removed
 
