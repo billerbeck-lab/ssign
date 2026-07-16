@@ -2,8 +2,8 @@
 """Resolve organism names to NCBI taxonomy IDs using a local taxdump.
 
 Reads NCBI's `nodes.dmp` and `names.dmp` via the `taxopy` library. The
-taxdump is bundled with ssign's base-tier Zenodo deposit and fetched by
-`scripts/fetch_databases.sh`. Default location: ~/.ssign/taxdump/.
+taxdump is fetched from NCBI by `scripts/fetch_databases.sh`. Default
+location: ~/.ssign/taxdump/.
 Override with the SSIGN_TAXDUMP_DIR environment variable.
 
 Examples:

@@ -185,14 +185,19 @@ get them pre-baked in the image, so nothing downloads at run time.
 biopython pin clashes with Bakta's, so it can't be a pip extra). See
 [`docs/how-to/install.md`](docs/how-to/install.md#eggnog-mapper-separate-install--database).
 
-After pip install, fetch the matching database bundle (pulled from pinned
-Zenodo DOIs for long-term reproducibility):
+After pip install, fetch the matching database bundle (pulled from each
+provider's official server at versions pinned in the fetcher):
 
 ```bash
 bash scripts/fetch_databases.sh --tier base       # or: extended / full
 ```
 
 See [the database tier table](docs/how-to/install.md#database-tier-sizes) for per-tier contents.
+
+> Databases are fetched from their upstream providers at versions pinned in the
+> fetcher. If a provider retires an old version, re-fetching that exact version
+> can fail (a known reproducibility limitation: the container freezes ssign's
+> tools and model weights, but the reference databases are too large to bundle).
 
 Then confirm everything is in place:
 
@@ -277,7 +282,8 @@ itself.
 - **Zenodo deposits**: DOIs for the source-code archive and the container
   image (which bakes in the model weights); the paper cites them.
 - ✅ Tier-aware database fetcher (`scripts/fetch_databases.sh --tier
-  {base,extended,full}`; Zenodo DOIs land at release time).
+  {base,extended,full}`; pulls from each provider's official server at pinned
+  versions).
 - **FAIR-compliant repository layout** per
   [FAIR4RS](https://doi.org/10.1038/s41597-022-01710-x) (Barker et al. 2022,
   _Scientific Data_).
