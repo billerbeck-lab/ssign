@@ -292,6 +292,25 @@ class MultiGenomeRunner:
         # gate here too to skip a needless subprocess.
         integrated_csvs = [r.files.get("integrated", "") for r in runners.values()]
         integrated_csvs = [p for p in integrated_csvs if p and os.path.exists(p)]
+
+        # Aggregated cross-genome text summary: one report over ALL genomes'
+        # secreted proteins (counts, per-type totals, pooled tool coverage),
+        # mirroring the single-genome <sample>_summary.txt. Sits next to
+        # combined_results.csv; folds in the pooled enrichment table when present.
+        if self.write_combined_summary and integrated_csvs:
+            try:
+                from ssign_app.scripts.generate_report import generate_text_report
+
+                pooled_enrich = os.path.join(str(top_outdir), "pooled_enrichment_stats.tsv")
+                generate_text_report(
+                    integrated_csvs,
+                    pooled_enrich if os.path.exists(pooled_enrich) else "",
+                    os.path.join(str(top_outdir), "combined_summary.txt"),
+                    tier=getattr(self.configs[0], "tier", "") or "",
+                )
+            except Exception as e:
+                logger.warning("combined summary failed: %s", str(e)[:160])
+
         if len(integrated_csvs) >= 2:
             from ssign_app.core.runner import run_script
 

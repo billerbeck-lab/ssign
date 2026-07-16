@@ -40,6 +40,11 @@ results/
 └── ssign_summary.txt                Combined summary
 ```
 
+CLI batch runs name the combined files `combined_results.csv` and
+`combined_summary.txt` (an aggregated report over every genome's secreted
+proteins: pooled counts, per-type totals, and per-tool coverage). The GUI merge
+uses the `ssign_*` names above.
+
 Multi-genome runs also emit the curated figure set pooled over all genomes as
 `0N_pooled_*.png` (same `01`-`06` numbering), plus the enrichment charts
 `pooled_enrichment_fold[_combined].png` when `--enrichment-stats` is set.

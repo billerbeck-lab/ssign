@@ -728,6 +728,7 @@ def _print_outputs_hint(outdir: str, sample_id: Optional[str] = None) -> None:
         print(f"  figures/{sample_id}/      figures 01-06", flush=True)
     else:
         print("  combined_results.csv     merged results table across genomes", flush=True)
+        print("  combined_summary.txt     aggregated summary across all genomes", flush=True)
         print("  <genome>/                per-genome results.csv, summary.txt, figures/", flush=True)
 
 
