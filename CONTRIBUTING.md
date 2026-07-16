@@ -127,6 +127,6 @@ welcome.
 **Don't email the PI with bug reports or install trouble.** Those belong
 on GitHub Issues, where they're searchable.
 
-The active maintainer as of v0.9.0 is M. Teo Reid
+The active maintainer as of v1.0.0 is M. Teo Reid
 ([`@reidmat`](https://github.com/reidmat)). A lab successor will be named
 before September 2026.

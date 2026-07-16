@@ -9,7 +9,7 @@ security fixes.
 | Version | Supported |
 | ------- | --------- |
 | `main`  | ✅        |
-| `v0.9.x` | ✅       |
+| `v1.0.x` | ✅       |
 | older   | ❌        |
 
 ## Reporting a vulnerability

@@ -38,7 +38,7 @@ pip install ssign
 ssign --version
 ```
 
-The last line prints the installed version (e.g. `ssign 0.9.0`). If you
+The last line prints the installed version (e.g. `ssign 1.0.0`). If you
 see `command not found`, your venv is not active; rerun the `source` line.
 
 ## 2. Download E. coli K-12

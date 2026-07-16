@@ -11,9 +11,8 @@ the proteins they secrete, and annotates those proteins with functional and
 structural information from the major bioinformatics databases. Built for the
 [Billerbeck Lab](https://www.billerbecklab.com/) at Imperial College London.
 
-**Version `0.9.0` (pre-publication baseline).** The next release (`1.0.0`)
-is the publication version: fully offline-capable, SHA-pinned Docker image,
-Zenodo-DOI'd. See [Roadmap to v1.0.0](#roadmap-to-v100).
+**Version `1.0.0`.** The publication release: fully offline-capable, with a
+SHA-pinned container image and a Zenodo DOI. See [Roadmap to v1.0.0](#roadmap-to-v100).
 
 ---
 
