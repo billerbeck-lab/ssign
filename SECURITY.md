@@ -50,7 +50,7 @@ attack surfaces are:
   and the optional remote modes (DTU webserver for SignalP / DeepLocPro).
 
 The hosted web service (planned, post-v1.0.0) will have its own threat
-model documented in `SYSADMIN.md`.
+model, documented when it is built.
 
 Out of scope: vulnerabilities in upstream tools (BLAST, MacSyFinder, etc.) —
 please report those to their respective projects.

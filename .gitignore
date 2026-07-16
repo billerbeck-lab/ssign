@@ -100,6 +100,15 @@ tests/unit/test_audit_database_sizes.py
 tests/unit/test_audit_disk_sizes.py
 tests/unit/test_analyse_k12_runs.py
 
+# Root files kept local (#32): SYSADMIN = skeleton hosted-service runbook (service
+# not built); requirements-baseline = stale (old repo pin + removed pybiolib,
+# redundant w/ pyproject+uv.lock); env_signalp6.lock = pins a /home/teo file:// path;
+# .dockerignore = dead (no Dockerfile, build is Apptainer).
+SYSADMIN.md
+requirements-baseline.txt
+env_signalp6.lock.txt
+.dockerignore
+
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
 
