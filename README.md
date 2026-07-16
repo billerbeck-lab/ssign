@@ -274,8 +274,8 @@ itself.
 
 - **Docker bundle image**: SHA-pinned, reproducible for 5+ years, published
   to Docker Hub / GHCR.
-- **Zenodo deposits**: separate DOIs for source code, model weights, and
-  database bundle; paper cites all three.
+- **Zenodo deposits**: DOIs for the source-code archive and the container
+  image (which bakes in the model weights); the paper cites them.
 - ✅ Tier-aware database fetcher (`scripts/fetch_databases.sh --tier
   {base,extended,full}`; Zenodo DOIs land at release time).
 - **FAIR-compliant repository layout** per

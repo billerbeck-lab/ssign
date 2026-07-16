@@ -1061,8 +1061,9 @@ with tab_pipeline:
             st.warning(
                 "**DeepSecE package is installed but the model checkpoint is missing** "
                 f"(~2.5 GB, expected at `{_dse_path}`).\n\n"
-                "Download it manually from the SJTU origin server "
-                "(known-unreliable; ssign will mirror to Zenodo at v1.0.0):\n"
+                "Download it manually from the DeepSecE authors' origin server "
+                "(SJTU, known-unreliable; the container image bakes this in, so "
+                "container runs skip this download):\n"
                 "```bash\n"
                 "mkdir -p ~/.ssign/models\n"
                 "wget -c --tries=5 --timeout=60 \\\n"

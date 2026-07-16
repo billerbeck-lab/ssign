@@ -13,8 +13,8 @@ require the user to fetch it after pulling.
 
 | Component | License | In ssign Docker image? | If not bundled, fetch via |
 |---|---|---|---|
-| **DeepSecE checkpoint** | (vendored, MIT) | ✅ Bundled (mirrored to Zenodo) | — |
-| **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Bundled (mirrored to Zenodo) | — |
+| **DeepSecE checkpoint** | (vendored, MIT) | ✅ Baked into container | — |
+| **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Baked into container | — |
 | **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU response 2026-05-07) | DTU portal (manual) |
 | **DeepLocPro** (binary + weights) | DTU academic (separate) | ⏳ Pending DTU response (forwarded to Ole) | DTU portal (manual) |
 | **eggnog-mapper code** | AGPL-3.0 | ❌ Not bundled (biopython pin clash with bakta) | User: `conda install -c bioconda eggnog-mapper` |
@@ -27,7 +27,7 @@ require the user to fetch it after pulling.
 
 ---
 
-## ProtT5 weights — ✅ MIRROR + BUNDLE OK
+## ProtT5 weights — ✅ BUNDLE OK
 
 Used by pLM-BLAST. Released under the **Academic Free License
 3.0** (AFL-3.0), an OSI-approved permissive license.
@@ -40,10 +40,11 @@ AFL-3.0 explicitly grants public redistribution. No non-commercial or
 field-of-use restriction. Compatible with ssign's GPL-3.0. Ship with the
 AFL-3.0 license text and a citation pointer to Elnaggar et al. 2022 (TPAMI).
 ColabFold and bio_embeddings already redistribute these weights in their
-Docker images — established precedent.
+Docker images (established precedent).
 
-**Action:** mirror to ssign's Zenodo deposit + bake into the v1.0.0 Docker
-image.
+**Action:** bake into the v1.0.0 container image. The image itself is
+deposited on Zenodo, so the weights are archived inside it; ssign does not
+re-host them as a separate deposit.
 
 ## InterProScan — ❌ BUNDLE NOT OK, user fetches
 

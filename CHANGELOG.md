@@ -75,8 +75,10 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   backbones. Extended/full runs now need only the licensed DTU tools and the
   reference databases mounted from the host, instead of borrowing tools from
   fragile host conda envs.
-- DeepSecE checkpoint fetched from a Zenodo mirror first (URL placeholder
-  until the v1.0.0 deposit), SJTU origin retained as fallback.
+- DeepSecE checkpoint is baked into the container image (container runs never
+  download it); plain-pip installs fetch it from the authors' SJTU origin with
+  a retry + size check and the `SSIGN_DEEPSECE_CHECKPOINT_URL` override. ssign
+  does not re-host the checkpoint.
 - Repository moved to the `billerbeck-lab` GitHub organisation. Old
   `reidmat/ssign` URLs continue to redirect.
 - Bakta minimum bumped from `>=1.5` (2022) to `>=1.10` (2024), required
