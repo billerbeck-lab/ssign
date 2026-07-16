@@ -34,19 +34,31 @@ if TYPE_CHECKING:
     from ssign_app.core.runner import PipelineConfig
 
 BANNER = r"""
-  ┌─────────────────────────────────────────┐
-  │                                         │
-  │    ___  ___  _  __ _ _ __               │
-  │   / __|/ __|| |/ _` | '_ \              │
-  │   \__ \\__ \| | (_| | | | |             │
-  │   |___/|___/|_|\__, |_| |_|             │
-  │                |___/                    │
-  │                                         │
-  │   Secretion-System Identification       │
-  │   for Gram Negatives                    │
-  │                                         │
-  └─────────────────────────────────────────┘
+   ___ ___ (_) __ _ _ __          ●   ○     secreted
+  / __/ __| |/ _` | '_ \       ○      ●      proteins
+  \__ \__ \ | (_| | | | |   ═══════╪═══════  ⇐ secretion system
+  |___/___/_|\__, |_| |_|   ▐▓ gram-negative cell ▓▌
+             |___/          ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▌
+
+  Secretion-System Identification for Gram Negatives
 """
+
+
+def _print_banner(show_version: bool = True) -> None:
+    """Print the ssign wordmark + secretion-system motif at startup.
+
+    Purely decorative, so it must never be fatal: some HPC log streams run a
+    non-UTF-8 locale where the box-drawing glyphs can't be encoded. Any failure
+    is swallowed (skip the banner) rather than taking down a real run.
+    """
+    try:
+        print(BANNER, flush=True)
+        if show_version:
+            from ssign_app import __version__
+
+            print(f"  v{__version__}\n", flush=True)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -623,6 +635,8 @@ def _run_pipeline(args: argparse.Namespace) -> int:
     """Execute the `ssign run` subcommand. Returns the process exit code."""
     from ssign_app.core.runner import PipelineRunner
 
+    _print_banner()
+
     inputs: list[str] = list(args.input_path)
     for p in inputs:
         if not os.path.exists(p):
@@ -848,7 +862,7 @@ def _launch_gui(args: argparse.Namespace) -> int:
     """Launch the Streamlit GUI. Preserves the historical `ssign` UX:
     free-port detection, banner, stderr filtering, and pass-through of
     [ssign] log lines on stdout."""
-    print(BANNER, flush=True)
+    _print_banner()
 
     def _port_free(p: int) -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
