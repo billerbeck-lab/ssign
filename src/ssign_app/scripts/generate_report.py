@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 # simply not listed. Order = display order.
 _TOOL_COLUMN_PREFIXES = [
     ("SignalP", ("signalp_",)),
-    ("InterProScan", ("interpro_", "pfam_ids")),
+    ("InterProScan", ("interpro_",)),  # its Pfam col is interpro_pfam_ids
     ("pLM-BLAST (ECOD)", ("ecod_",)),
-    ("EggNOG", ("eggnog_", "cog_", "kegg_")),
+    ("EggNOG", ("eggnog_", "cog_", "kegg_", "pfam_ids")),  # bare pfam_ids is EggNOG's
     ("BLASTp", ("blastp_",)),
-    ("HH-suite", ("hhsuite_", "hh_", "pdb_")),
+    ("HH-suite", ("pdb_top1_", "pfam_top1_")),  # parse_hhr emits {pfam,pdb}_top1_*
 ]
 
 
