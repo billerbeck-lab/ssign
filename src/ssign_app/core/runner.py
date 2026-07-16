@@ -1199,10 +1199,11 @@ class PipelineRunner:
                         try:
                             result = future.result()
                             result.duration_s = time.monotonic() - t_step_start
+                            eta_msg = None
                             with self._state_lock:
                                 self._record_result(result)
                                 if result.success:
-                                    self._eta_step(stage_idx, step_id, result.duration_s)
+                                    eta_msg = self._eta_step(stage_idx, step_id, result.duration_s)
                             pct = int(100 * sc / total)
                             print(
                                 f"[ssign] [{self.config.sample_id}] Finished (parallel): {name} -> "
@@ -1215,6 +1216,8 @@ class PipelineRunner:
                                     pct,
                                     f"Done: {result.message} | {self._elapsed_str()} elapsed",
                                 )
+                                if eta_msg:
+                                    print(eta_msg, flush=True)
                             else:
                                 self.progress(name, pct, f"Failed: {result.message}")
                                 logger.error(f"Step '{name}' failed: {result.message}")
@@ -1256,8 +1259,9 @@ class PipelineRunner:
                         result = func()
                         result.duration_s = time.monotonic() - t_step
                         self._record_result(result)
+                        eta_msg = None
                         if result.success:
-                            self._eta_step(stage_idx, step_id, result.duration_s)
+                            eta_msg = self._eta_step(stage_idx, step_id, result.duration_s)
                         self._save_progress()
                         print(
                             f"[ssign] [{self.config.sample_id}] Finished step {sc}/{total}: "
@@ -1271,6 +1275,8 @@ class PipelineRunner:
                                 pct,
                                 f"Done: {result.message} | {self._elapsed_str()} elapsed",
                             )
+                            if eta_msg:
+                                print(eta_msg, flush=True)
                         else:
                             self.progress(name, pct, f"Failed: {result.message}")
                             logger.error(f"Step '{name}' failed: {result.message}")
@@ -1890,15 +1896,18 @@ class PipelineRunner:
             sizes["substrates"] = max(1, round(self._SUBSTRATE_FRACTION_PRIOR * sizes["proteins"]))
         return sizes
 
-    def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> None:
-        """Feed one completed step's duration to the estimator, then print the ETA.
+    def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> Optional[str]:
+        """Feed one completed step's duration to the estimator, then return the
+        ETA line to display (or None if no estimate is available).
 
-        Fully defensive: any failure is swallowed. The ETA is a convenience, so a
-        bug here must never take down a real pipeline run.
+        Returning (rather than printing) lets the caller emit the ETA as the very
+        last line of a step, after the "Finished" and progress output. Fully
+        defensive: any failure is swallowed. The ETA is a convenience, so a bug
+        here must never take down a real pipeline run.
         """
         est = self._estimator
         if est is None:
-            return
+            return None
         try:
             from ssign_app.runtime.run_eta import build_plan, step_to_plan
 
@@ -1911,27 +1920,28 @@ class PipelineRunner:
             plan = build_plan(self._eta_stage_ids, sizes, wg)
             res = est.eta(plan)
             if res.total_s <= 0:
-                return
+                return None
             prior = "proteins" in sizes and not self._eta_prior_shown
             elapsed = (time.monotonic() - self.start_time) if self.start_time else 0.0
             # Prior line reports the whole-run total; later lines report time left.
             display_s = res.total_s if prior else max(0.0, res.total_s - elapsed)
-            self._print_eta(display_s, res, prior=prior)
+            msg = self._format_eta(display_s, res, prior=prior)
             if "proteins" in sizes:
                 self._eta_prior_shown = True
+            return msg
         except Exception:
-            pass  # informational only
+            return None  # informational only
 
-    def _print_eta(self, display_s: float, res, *, prior: bool) -> None:
+    def _format_eta(self, display_s: float, res, *, prior: bool) -> str:
         approx = " (approx)" if res.n_unmodeled or res.rel_uncertainty > 0.4 else ""
         rem_min = display_s / 60.0
-        label = "estimated total" if prior else "estimated remaining"
+        label = "estimated total" if prior else "remaining"
         # A wide relative CI on the remaining time, floored so it reads sensibly.
         band = res.rel_uncertainty
         lo = max(0.0, rem_min * (1 - band))
         hi = rem_min * (1 + band)
-        msg = f"[ssign] [{self.config.sample_id}] {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
-        print(msg, flush=True)
+        # Leading ⏳ + its own trailing line make the ETA easy to spot in the log.
+        return f"[ssign] [{self.config.sample_id}] ⏳ {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
 
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")
