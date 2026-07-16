@@ -823,7 +823,7 @@ def _add_fetch_databases_parser(subparsers) -> None:
         "--tier",
         choices=("base", "extended", "full"),
         required=True,
-        help="Which tier's databases to download (base ~22 GB, extended ~100 GB, full ~500 GB).",
+        help="Which tier's databases to download (base ~4 GB, extended ~100 GB, full ~500 GB).",
     )
     p.add_argument(
         "--target",

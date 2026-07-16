@@ -3,12 +3,17 @@
 Complete flag list for the `ssign` command. For "how do I X" recipes, see
 [`how-to/configure.md`](../how-to/configure.md).
 
-`ssign` has two modes:
+`ssign` has one GUI mode and three subcommands:
 
 ```bash
 ssign                                # launch the Streamlit GUI
 ssign run input.gbff --outdir <dir>  # run the pipeline non-interactively
+ssign doctor --tier <tier>           # verify the install
+ssign fetch-databases --tier <tier>  # download reference databases
 ```
+
+Most flags below are for `ssign run`; `doctor` and `fetch-databases` are
+covered under [Other subcommands](#other-subcommands).
 
 Boolean flags use `argparse.BooleanOptionalAction`, so each `--<flag>`
 accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
@@ -30,6 +35,8 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | `--sample-id` | str | input stem | Prefix for output filenames. Defaults to the input filename's stem. |
 | `--original-filename` | str | `""` | Original filename when `INPUT_PATH` is a temp upload (informational). |
 | `--resume` | bool | `false` | Skip steps that already succeeded in a previous run (reads `<outdir>/.ssign/<sample-id>_progress.json`). |
+| `--tier` | choice | unset → `extended` | Install tier the run targets (`base`/`extended`/`full`); sets each tool's default on/off state to what that tier ships. Unset uses what `fetch-databases` recorded, else `extended`. |
+| `--combined-summary` | bool | `true` | (multi-genome) Write a top-level `combined_results.csv` aggregating every genome's substrates with a `source_genome` column. |
 
 ## SS detection (MacSyFinder)
 
@@ -49,6 +56,14 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | `--required-fraction-correct` | float | `0.8` | Fraction of SS components that must be correctly localized for the system to pass. |
 | `--deepsece-min-prob` | float | `0.8` | DeepSecE minimum probability to call a protein secreted. |
 | `--signalp-min-prob` | float | `0.5` | SignalP minimum probability for a signal peptide. |
+| `--dlp-confidence-threshold` | float | `0.8` | Minimum DeepLocPro max-probability for an SS-machinery component to count in the localization-correctness gate. Components below this are excluded from both sides of `fraction_correct`. Distinct from `--conf-threshold` (which gates extracellular calls). |
+| `--skip-localization-gate` | bool | `false` | Disable the literature-derived localization-correctness gate (debug / ad-hoc). |
+
+## Enrichment analysis
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--enrichment-stats` | bool | `false` | Per-SS-type circular-shift enrichment test: emits fold (enrichment) + permutation p + BH q per system type for DeepLocPro, DeepSecE, and SignalP, plus enrichment figures. Forces whole-genome DeepLocPro + DeepSecE + SignalP (local; the rotation null needs every gene's positivity in gene order), ~13 min/genome. Pool across genomes for statistical power. |
 
 ## ORF prediction and annotation
 
@@ -67,6 +82,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | `--deeplocpro-path` | path | `""` | Path to local DeepLocPro install. Empty falls back to `deeplocpro` on `PATH`. |
 | `--signalp-mode` | choice | auto (local when a local install is detected) | `local` (canonical; obtain SignalP 6.0 from the DTU portal, DTU does not redistribute it) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). Unset = auto: local if `signalp6` is on `PATH`/`--signalp-path`/`$SSIGN_SIGNALP_PATH`, otherwise ssign stops with install instructions (it does not auto-submit to the webserver). |
 | `--signalp-path` | path | `""` | Path to local SignalP 6 install. Empty falls back to `signalp6` on `PATH`. |
+| `--skip-deeplocpro` | bool | `false` | Skip the DeepLocPro step (overrides the `--tier` default). |
 | `--skip-signalp` | bool | `false` | Skip the SignalP step. |
 | `--skip-deepsece` | bool | `false` | Skip the DeepSecE step. |
 | `--dlp-whole-genome` | bool | `false` | Run DeepLocPro on every protein, not just the SS neighbourhood. |
@@ -108,6 +124,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 |---|---|---|---|
 | `--skip-plmblast` | bool | `false` | Skip pLM-BLAST. On by default at the extended tier (ECOD30, ~40 min/genome). |
 | `--plmblast-db` | path | `""` | Path to ECOD pLM-BLAST database (ECOD30 default; ECOD50/70/90 also supported). |
+| `--plmblast-cpc` | int | `90` | pLM-BLAST cosine percentile cutoff (Kamiński 2023 default). Drop to 70-80 for more permissive matching on short proteins (<200 aa), at the cost of longer search wallclock. |
 
 ## EggNOG-mapper
 
@@ -128,6 +145,14 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | `--ortholog-min-pident` | float | `40.0` | Ortholog grouping percent-identity floor. |
 | `--ortholog-min-qcov` | float | `70.0` | Ortholog grouping query-coverage floor. |
 
+## Runtime & diagnostics
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--scratch-dir` | path | `""` (auto) | Directory for scratch/temp files (tool working dirs). Auto-resolves: keep `$TMPDIR` if it has adequate free space, else a dir under `--outdir`. Set this when running in a container whose `/tmp` is a small tmpfs (avoids Bakta "No space left on device"). |
+| `--monitor-resources` | bool | `true` | Write `<outdir>/runtime_data/{step_timings,resource_samples}.csv` during a run. |
+| `--monitor-interval-s` | float | `5.0` | Sampling interval for `resource_samples.csv` (seconds). |
+
 ## Figures
 
 | Flag | Type | Default | Description |
@@ -136,3 +161,27 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 | `--fig-ss-comp` | bool | `true` | Render figure `01` (secreted proteins by SS type; per genome, stacked by SS type for a group). |
 | `--fig-physicochemical` | bool | `true` | Render figure `02` (size & physicochemical properties by SS type; length + ProtParam when present). |
 | `--fig-func-summary` | bool | `true` | Render figures `03`-`06` (functional categories by SS type: COG/KEGG/EggNOG/consensus). |
+
+## Other subcommands
+
+Besides `ssign run`, the CLI has two install helpers.
+
+### `ssign doctor`
+
+Verify the install: Python packages, external binaries, databases, model weights.
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--tier` | choice | `extended` | Install tier to verify against (`base`/`extended`/`full`). |
+| `--imports-only` | bool | `false` | Only check Python imports; skip binaries / DBs / weights (used by CI). |
+| `--data-root` | path | `~/.ssign` | Root for databases + models. `SSIGN_*` env vars override per-DB paths. |
+
+### `ssign fetch-databases`
+
+Download the reference databases for a tier (wraps `scripts/fetch_databases.sh`).
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--tier` | choice | `extended` | Which tier's databases to download (base ~4 GB, extended ~100 GB, full ~500 GB). |
+| `--target` | path | `~/.ssign/databases` | Destination directory. |
+| `--dry-run` | bool | `false` | Print what would be downloaded without downloading anything. |
