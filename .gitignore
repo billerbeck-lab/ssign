@@ -57,8 +57,8 @@ htmlcov/
 *.npy
 *.npz
 *.parquet
-data/
-models/
+/data/
+/models/
 
 # Container artifacts (built locally, not committed)
 *.sif
@@ -74,13 +74,15 @@ CLAUDE.md
 .claude/
 
 # Internal planning + scratch — kept locally, not in the public repo (#32 repo TLC)
-openspec/
-NOTES.md
+# Leading slash = root-anchored (a bare `data/`/`figures/` would also match nested
+# dirs like src/.../data or tests/figures, shadowing bundled package data).
+/openspec/
+/NOTES.md
 
 # Empty placeholder dirs removed from git until they hold real content (#32).
-results/
-figures/
-colab/
+/results/
+/figures/
+/colab/
 
 # Internal dev scaffolding + point-in-time audits — kept local, not public (#32)
 docs/development/
@@ -104,10 +106,10 @@ tests/unit/test_analyse_k12_runs.py
 # not built); requirements-baseline = stale (old repo pin + removed pybiolib,
 # redundant w/ pyproject+uv.lock); env_signalp6.lock = pins a /home/teo file:// path;
 # .dockerignore = dead (no Dockerfile, build is Apptainer).
-SYSADMIN.md
-requirements-baseline.txt
-env_signalp6.lock.txt
-.dockerignore
+/SYSADMIN.md
+/requirements-baseline.txt
+/env_signalp6.lock.txt
+/.dockerignore
 
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
@@ -117,4 +119,4 @@ macsyfinder_out/
 
 # Benchmark + validation sweeps — kept local, not in the public repo (#32).
 # Mid-flight; curated deliverables get re-added to a clean path when it closes.
-validation_sweeps/
+/validation_sweeps/
