@@ -2,13 +2,9 @@
 
 Spawned as a daemon thread by PipelineRunner. Samples system CPU / RAM /
 GPU / disk every N seconds and tags each row with the step that's
-currently active. Replaces the standalone `scripts/monitor_resources.py`
-wrapper for the in-pipeline use case — the runner sets `current_step`
-directly, so we skip the log-tail dance the standalone script needs.
-
-The standalone script still ships for users who want to monitor an
-arbitrary external command, but a default ssign run no longer requires
-the user to launch it manually.
+currently active. The runner sets `current_step` directly, so the sampler
+needs no external log-tailing. It runs inside a normal ssign run; the user
+does not launch a separate monitoring process.
 """
 
 from __future__ import annotations

@@ -357,7 +357,7 @@ def run_enrichment(order, idx, vecs, by_type, all_comp_idx, window):
             # two relevant predictors flags it. `enrich_combined_uses_signalp` is the
             # shared rule (Sec-dependent DLP-or-SignalP for autotransporter self +
             # T5bSS; DLP-or-DSE for other windows incl. the T5a/c hitchhiker); T3SS
-            # drops DSE. openspec: signalp-enrichment-track, t5-hitchhiker-enrichment.
+            # drops DSE. See docs/explanation/design_decisions.md §§ 3.1, 5.2.
             if enrich_combined_uses_signalp(dt, mode):
                 combined_pos = np.maximum(dlp_track, vecs["signalp"])
             elif dt in ENRICH_DSE_NO_WINDOW:

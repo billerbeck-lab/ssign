@@ -1,8 +1,7 @@
 """Unit tests for the shared parsing + TSV-io helpers under ssign_lib/.
 
 Consolidates what used to be three near-identical TSV loaders and two
-slightly-different int parsers (see NOTES.md "Shared TSV/parsing helpers"
-follow-up from the #75a simplify review).
+slightly-different int parsers into one shared module.
 """
 
 from __future__ import annotations

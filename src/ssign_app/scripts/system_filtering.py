@@ -73,7 +73,7 @@ def _t5_self_has_evidence(row: dict, conf_threshold: float) -> bool:
     detected T5 components were reported unconditionally). Preserves the
     per-component DeepLocPro rule (critical bug-fix #6): the T5bSS translocator
     (TpsB pore) passes on outer-membrane only, never extracellular; T5aSS/T5cSS
-    pass on extracellular OR outer-membrane. openspec: signalp-t5ss-substrate-call.
+    pass on extracellular OR outer-membrane.
     """
     ss_type = row.get("nearby_ss_types", "")
 
@@ -265,7 +265,7 @@ def main():
         # T5SS-self components must carry localization (DeepLocPro) or Sec-signal
         # (SignalP) evidence to be called substrates; a detected T5 component with
         # neither is dropped (previously every T5 component was kept
-        # unconditionally). openspec: signalp-t5ss-substrate-call.
+        # unconditionally).
         if s.get("substrate_source") == SUBSTRATE_SOURCE_T5_SELF and not _t5_self_has_evidence(
             s, args.dlp_confidence_threshold
         ):

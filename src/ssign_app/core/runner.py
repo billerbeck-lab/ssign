@@ -280,7 +280,7 @@ class PipelineConfig:
     # (enrichment_testing.py): fold + permutation p + BH q per system type, plus a
     # per-type null-distribution figure. This forces whole-genome DLP/DSE (see
     # __post_init__) because the rotation null needs every gene's positivity in gene
-    # order. openspec: enrichment-circular-shift-per-run.
+    # order. See docs/explanation/design_decisions.md § 3.1.
     enrichment_stats: bool = False
 
     # Phase 5: Annotation tools
@@ -393,8 +393,8 @@ class PipelineConfig:
         # Circular-shift enrichment needs every gene's positivity in gene order, so
         # turning on --enrichment-stats forces whole-genome DLP/DSE/SignalP. That is
         # the runtime cost the flag warns about (~13 min/genome on a ~5k-gene
-        # proteome). SignalP runs locally; no webserver. openspec:
-        # enrichment-circular-shift-per-run, signalp-enrichment-track.
+        # proteome). SignalP runs locally; no webserver. See
+        # docs/explanation/design_decisions.md § 3.1.
         if self.enrichment_stats and not (self.dlp_whole_genome and self.dse_whole_genome and self.sp_whole_genome):
             self.dlp_whole_genome = True
             self.dse_whole_genome = True
@@ -646,7 +646,7 @@ def run_script(
     except subprocess.TimeoutExpired:
         logger.warning(
             "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
-            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            "legitimately large, the size-aware cap needs a wider margin.",
             script_name,
             timeout,
         )
@@ -728,7 +728,7 @@ def _run_script_streaming(cmd: list, script_name: str, timeout: int) -> tuple:
         t_err.join(timeout=1)
         logger.warning(
             "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
-            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            "legitimately large, the size-aware cap needs a wider margin.",
             script_name,
             timeout,
         )
@@ -1836,7 +1836,7 @@ class PipelineRunner:
         proteome for predictors, the substrate count for annotation). Scales the
         cap so large inputs (e.g. a pooled 160k-protein whole-genome prediction)
         aren't killed by the flat 4h floor; unmodelled tools / unknown size fall
-        back to `floor`. openspec: size-aware-tool-timeouts.
+        back to `floor`.
         """
         regime = resolve_regime(tool, whole_genome=whole_genome)
         if regime is None or size is None or size < 0:

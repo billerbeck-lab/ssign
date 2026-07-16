@@ -233,8 +233,7 @@ Entries are organised by pipeline stage. Each has three parts:
   positivity in gene order, `--enrichment-stats` forces whole-genome DLP/DSE
   (~13 min/genome). Autotransporters (T5aSS/T5cSS) are tested by self-detection (the
   component is both machinery and substrate), other types by a ±3-gene window. A
-  per-type null-distribution figure is emitted. See openspec change
-  `enrichment-circular-shift-per-run`.
+  per-type null-distribution figure is emitted.
 
 ### 3.2 SignalP is evidence-only, not a trigger
 
@@ -263,7 +262,7 @@ Entries are organised by pipeline stage. Each has three parts:
   _not_ in `excluded_systems`); its substrate calls rely on
   MacSyFinder/TXSScan detection + DeepLocPro + proximity, not DeepSecE.
   (Earlier versions excluded T3SS entirely by default; that was changed
-  once TXSScan detection proved reliable — openspec `t3ss-detection`.)
+  once TXSScan detection proved reliable.)
 
 - **Why flagellar proteins specifically:** DeepSecE has no flagellum
   output class — its classes are non-secreted, T1SE, T2SE, T3SE, T4SE,

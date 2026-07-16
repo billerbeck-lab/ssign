@@ -146,7 +146,7 @@ def _dse_flag(dse_row: dict) -> tuple:
     only 2 effectors beyond DLP — while re-admitting the ~1,800-call flagellar FP
     flood. Low recall AND low precision, in-proximity included. The real T3SS
     recall gap is predictor sensitivity (T3SS effectors are injected /
-    Sec-independent), not DeepSecE trust. See NOTES.md 2026-07-15.
+    Sec-independent), not DeepSecE trust.
     """
     dse_type = dse_row.get("dse_ss_type", "Non-secreted") if dse_row else "Non-secreted"
     dse_max = _float_or_zero(dse_row.get("dse_max_prob", 0)) if dse_row else 0.0

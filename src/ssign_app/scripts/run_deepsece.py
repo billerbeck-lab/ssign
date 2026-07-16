@@ -390,7 +390,7 @@ def run_deepsece(input_fasta, output_dir, checkpoint_path=None, batch_size=1):
 
     # Run inference. DeepSecE batches by SEQUENCE COUNT (not token count), so a
     # batch of several long proteins can OOM the GPU — hence the halving fallback
-    # down to batch_size=1 (the always-safe rate). openspec: size-aware-tool-timeouts (7.1).
+    # down to batch_size=1 (the always-safe rate).
     def _infer_at(bs):
         loader = DataLoader(dataset, collate_fn=conv, batch_size=bs, num_workers=0)
         names: list[str] = []

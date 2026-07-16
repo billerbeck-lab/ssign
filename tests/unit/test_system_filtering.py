@@ -170,7 +170,7 @@ class TestExclusionFilter:
     def test_t5ss_self_with_evidence_kept_despite_excluded_only(self, monkeypatch, tmp_dir):
         # T5SS-self carve-out: even if nearby_ss_types is empty / fully excluded, a
         # T5SS substrate WITH evidence (here a Sec signal peptide) is kept (it IS
-        # its own system). openspec: signalp-t5ss-substrate-call.
+        # its own system).
         filtered, _ = _run_filter(
             monkeypatch,
             tmp_dir,

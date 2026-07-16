@@ -30,8 +30,7 @@ stay the same:
   - confidence_tier: from the winner's weighted support (High/Medium/Low/no_hits)
   - evidence_keywords: "Category[Tool1,Tool2]; Category2[Tool3]"
 
-See docs/development/consensus_annotation_audit.md and the openspec change
-`consensus-annotation-v2` for the rationale and validation.
+See docs/explanation/design_decisions.md § 4.1 for the rationale.
 """
 
 import re
