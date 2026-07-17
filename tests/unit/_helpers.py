@@ -54,8 +54,8 @@ def run_script_main(monkeypatch, main_fn, argv):
 # Field constants — match the canonical schemas the production scripts emit
 # ---------------------------------------------------------------------------
 # These mirror the inline `csv.DictWriter(fieldnames=...)` literals in
-# extract_gene_order.py, prodigal_to_gene_info.py, validate_macsyfinder_systems.py,
-# and cross_validate_predictions.py. Centralising the canonical column lists
+# extract_gene_order.py, validate_macsyfinder_systems.py, and
+# cross_validate_predictions.py. Centralising the canonical column lists
 # in a "ssign_lib/io_schemas.py" module is a future refactor.
 
 GENE_INFO_FIELDS = [
