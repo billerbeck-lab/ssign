@@ -31,10 +31,6 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   `/tmp` is a small tmpfs.
 - `--skip-annotation` master switch to turn off all six annotation tools
   (BLASTp, HH-suite, InterProScan, pLM-BLAST, EggNOG, ProtParam) at once.
-- `taxopy>=0.12` for local NCBI taxdump lookup in `resolve_taxonomy.py`,
-  replacing remote E-utilities. Dump defaults to `~/.ssign/taxdump/`;
-  override with `SSIGN_TAXDUMP_DIR`. Pipeline degrades gracefully if the
-  dump is missing.
 - `extended` install extras tier (pip extras for the ~130 GB workflow).
 - HH-suite per-protein parallelism via `ThreadPoolExecutor` (~4× speedup).
 - `SSIGN_DEEPSECE_CHECKPOINT_URL` env override for institutional mirrors.

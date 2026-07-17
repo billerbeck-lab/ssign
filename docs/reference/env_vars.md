@@ -16,7 +16,6 @@ These are the env vars ssign actually consults during a pipeline run:
 | `SSIGN_BLAST_SWISSPROT` | Directory holding the BLAST Swiss-Prot database (contains `swissprot.pdb`), the full-tier default BLASTp DB. When `--blastp-db` is unset, ssign resolves the `-db` prefix as `<this dir>/swissprot`. Fallback for `--blastp-db`; the flag wins. NR is opt-in: fetch it and pass `--blastp-db <nr-dir>/nr` (there is no auto-resolution for NR). |
 | `SSIGN_DEEPSECE_CHECKPOINT_URL` | Replace the canonical DeepSecE checkpoint URL with an institutional mirror. Useful inside firewalled networks. |
 | `SSIGN_PLMBLAST_SCRIPT` | Path to the upstream `plmblast.py` script (clone of `labstructbioinf/pLM-BLAST`). |
-| `SSIGN_TAXDUMP_DIR` | NCBI taxdump directory used by `resolve_taxonomy.py`. Defaults to a bundled snapshot if unset. |
 
 CLI flags always take precedence: if both `--hhsuite-pfam-db` and
 `SSIGN_HHSUITE_PFAM` are set, the CLI flag wins.

@@ -169,7 +169,6 @@ PYTHON_DEPS: tuple[PythonDep, ...] = (
     PythonDep("yaml", "pyyaml"),
     PythonDep("jinja2", "jinja2"),
     PythonDep("networkx", "networkx"),
-    PythonDep("taxopy", "taxopy"),
     PythonDep("pyhmmer", "pyhmmer"),
     PythonDep("pyrodigal", "pyrodigal"),
     PythonDep("macsylib", "macsyfinder", note="macsyfinder pip package ships the `macsylib` module"),

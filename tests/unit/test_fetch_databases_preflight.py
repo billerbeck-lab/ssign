@@ -74,7 +74,8 @@ class TestPreflight:
         r = _run(tmp_path, stub, "--tier", "full", "--dry-run")
         out = r.stdout + r.stderr
         assert "update_blastdb.pl" in out
-        assert out.index("update_blastdb.pl") < out.index("==> NCBI taxdump")
+        # The NR tool check must precede the first fetch step (Bakta, for full).
+        assert out.index("update_blastdb.pl") < out.index("==> Bakta DB")
 
 
 class TestBaktaVariantSkipGuard:

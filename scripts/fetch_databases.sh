@@ -5,7 +5,7 @@
 #   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 #
 # Tier sizes (post-extraction):
-#   base       ~4 GB    NCBI taxdump + Bakta light
+#   base       ~2.5 GB  Bakta light
 #   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
 #   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 #              (HH-suite extracted dominates; NR is opt-in, not fetched by default — see fetch_blast_nr)
@@ -30,8 +30,6 @@ set -euo pipefail
 # These are the upstream URLs as of 2026-04-30. v1.0.0 freezes against these
 # pins; newer versions land in v1.1.0+. Mirror-fallback chains documented in
 # the project plan (Addendum D.5 for HH-suite).
-
-NCBI_TAXDUMP_URL="https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz"
 
 # HH-suite — Tübingen MPI is the canonical fresher source per Söding lab
 # issue #382. GWDG is the older mirror; used only when Tübingen is down.
@@ -82,7 +80,7 @@ Usage:
   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 
 Tier sizes (post-extraction):
-  base       ~4 GB    NCBI taxdump + Bakta light
+  base       ~2.5 GB  Bakta light
   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 
@@ -283,24 +281,6 @@ _preflight_tier() {
     fi
 }
 
-fetch_taxdump() {
-    _log "==> NCBI taxdump (~1.5 GB)"
-    local dir="$TARGET/taxdump"
-    local tarball="$dir/taxdump.tar.gz"
-
-    _external_db_exists SSIGN_TAXDUMP_DIR "nodes.dmp" && return 0
-    _already_done "$dir" && return 0
-
-    _run mkdir -p "$dir"
-    _wget_with_fallback "$tarball" "$NCBI_TAXDUMP_URL"
-    # Selective extract — the full taxdump tarball is ~400 MB compressed but
-    # ssign only needs nodes.dmp + names.dmp via taxopy.
-    _run tar -xzf "$tarball" -C "$dir" nodes.dmp names.dmp
-    _run touch "$dir/$_FETCH_DONE"
-    _run rm -f "$tarball"
-    _log "OK — set SSIGN_TAXDUMP_DIR=$dir"
-}
-
 fetch_bakta() {
     # $1 = "light" or "full"
     local variant="$1"
@@ -485,7 +465,6 @@ fetch_blast_nr() {
 # ---------------------------------------------------------------------------
 
 run_base() {
-    fetch_taxdump
     fetch_bakta light
 }
 
@@ -502,7 +481,6 @@ run_full() {
     # and too slow to blast a real substrate set — see fetch_blast_swissprot);
     # the operator opts into NR manually. full uses Bakta full instead of
     # light, so we don't call run_extended directly.
-    fetch_taxdump
     fetch_bakta full
     fetch_eggnog
     fetch_hhsuite_pfam

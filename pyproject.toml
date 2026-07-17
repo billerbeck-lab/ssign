@@ -60,7 +60,6 @@ dependencies = [
     "psutil>=5.9",
     "jinja2>=3.0",
     "networkx>=3.0",
-    "taxopy>=0.12",
     # DeepSecE prediction is part of the base tier as of v1.0.0 — its
     # call complements DLP / SignalP on cross-validated secretion calls.
     # PyTorch and fair-esm together add ~3 GB to the install footprint.
@@ -231,7 +230,6 @@ module = [
     "scipy.*",
     "seaborn",
     "ssign_lib.*",
-    "taxopy",
     "torch.*",
 ]
 ignore_missing_imports = true
