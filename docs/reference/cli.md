@@ -15,8 +15,11 @@ ssign fetch-databases --tier <tier>  # download reference databases
 Most flags below are for `ssign run`; `doctor` and `fetch-databases` are
 covered under [Other subcommands](#other-subcommands).
 
-Boolean flags use `argparse.BooleanOptionalAction`, so each `--<flag>`
+Most boolean flags use `argparse.BooleanOptionalAction`, so each `--<flag>`
 accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
+The exceptions are `--resume`, `--skip-localization-gate`, and the top-level
+`--version` and `--no-browser`: these are plain on/off switches with no
+`--no-` form.
 
 ## Top-level flags
 
@@ -104,7 +107,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-hhsuite` | bool | `true` | Skip HH-suite (off by default; needs large databases). |
+| `--skip-hhsuite` | bool | `true` (off), `false` at `--tier full` | Skip HH-suite. HH-suite is enabled only at `--tier full`; off at base/extended (the default tier is extended). Its hhblits step needs UniRef30, which only ships with the full tier. |
 | `--hhsuite-pfam-db` | path | `""` | HH-suite Pfam database. Falls back to `$SSIGN_HHSUITE_PFAM`. |
 | `--hhsuite-pdb70-db` | path | `""` | HH-suite PDB70 database. Falls back to `$SSIGN_HHSUITE_PDB70`. |
 | `--hhsuite-uniclust-db` | path | `""` | UniClust / UniRef30 database. Falls back to `$SSIGN_HHSUITE_UNICLUST`. |
@@ -114,7 +117,7 @@ accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-interproscan` | bool | `false` | Skip InterProScan. |
+| `--skip-interproscan` | bool | `false` (on), `true` at `--tier base` | Skip InterProScan. InterProScan is on at the extended (default) and full tiers; off only at `--tier base`. |
 | `--interproscan-db` | path | `""` | InterProScan install directory. |
 | `--interproscan-min-evalue` | float | `1e-5` | InterProScan e-value threshold. |
 
@@ -182,6 +185,6 @@ Download the reference databases for a tier (wraps `scripts/fetch_databases.sh`)
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--tier` | choice | `extended` | Which tier's databases to download (base ~4 GB, extended ~100 GB, full ~500 GB). |
+| `--tier` | choice | required (must be passed) | Which tier's databases to download (base ~4 GB, extended ~100 GB, full ~500 GB). |
 | `--target` | path | `~/.ssign/databases` | Destination directory. |
 | `--dry-run` | bool | `false` | Print what would be downloaded without downloading anything. |

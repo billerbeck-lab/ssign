@@ -1,11 +1,10 @@
 # Secretion-system substrate localization (per type)
 
-Reference for how each secretion system ssign handles delivers its substrate, and
-therefore what each of ssign's three "secreted protein" signals (DeepLocPro
-localization, SignalP signal peptide, DeepSecE substrate-type) should and *does*
-report. Compiled 2026-06-22 from a literature sweep (citations below, DOIs
-gathered + PubMed-verified by research agents; not yet independently re-audited)
-cross-checked against ssign's own fleet predictions.
+Reference for how each secretion system that ssign handles delivers its
+substrate, and therefore what each of ssign's three "secreted protein" signals
+(DeepLocPro localization, SignalP signal peptide, DeepSecE substrate-type) should
+and *does* report. Compiled from a literature sweep (citations below, with DOIs),
+cross-checked against ssign's own predictions on a curated effector set.
 
 ## The two-family framework (biology)
 
@@ -41,15 +40,15 @@ the inner membrane via Sec/Tat with a cleavable N-terminal signal peptide.
 
 Notable exception: **pertussis-toxin / Ptl-type T4SS** is genuinely two-step (Sec →
 periplasm → Ptl across OM → extracellular), so its subunits are SignalP-positive and
-extracellular — the opposite of VirD4-dependent host-injected effectors.
+extracellular, the opposite of VirD4-dependent host-injected effectors.
 
 ## What DeepLocPro / DeepSecE actually predict (empirical)
 
-From ssign's own predictions on curated corpus effectors (Phase-2 panel; the fleet
-ran DLP/DSE on detected-system **neighbourhoods only**, so n is the subset of known
-effectors that landed in a neighbourhood — small for some types, and biased toward
-"near machinery". Indicative, not definitive; whole-genome predictions would tighten
-these):
+From ssign's own predictions on curated corpus effectors (ssign's default runs
+apply DLP/DSE to the ±3-gene **neighbourhood** of detected systems only, so n is
+the subset of known effectors that landed in a neighbourhood: small for some
+types, and biased toward "near machinery". Indicative, not definitive;
+whole-genome predictions would tighten these):
 
 | Type | DLP ran on | % called **Extracellular** (≥0.8) | DeepSecE call (where it ran) |
 |---|---|---|---|
@@ -87,10 +86,10 @@ them extracellular regardless of the injection nuance. This means:
    DeepSecE is genuinely the right sequence signal for T6SS (and would be for T3SS if
    the flagellar problem were solved).
 4. **To make these numbers definitive**, re-extract whole-genome DLP/DSE predictions
-   for known effectors per type (the fleet was neighbourhood-only). The CX3 Salmonella
-   LT2 whole-genome run is the natural source for a clean T3SS check.
+   for known effectors per type (the default runs are neighbourhood-only). A
+   whole-genome run (e.g. Salmonella LT2) is the natural source for a clean T3SS check.
 
-## Citations (per type; DOIs agent-gathered + PubMed-verified, pending independent re-audit)
+## Citations (per type; DOIs with PubMed verification)
 
 **T1SS:** Holland et al. 2016 EcoSal Plus 10.1128/ecosalplus.ESP-0019-2015; Spitz et al.
 2022 Front Physiol 10.3389/fphys.2021.804646; Zhang et al. 1995 Biochemistry

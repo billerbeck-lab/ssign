@@ -1,193 +1,156 @@
-# Licensing — ssign Dependencies & Redistribution
+# Licensing: ssign dependencies and redistribution
 
 This page documents the redistribution status of every external tool, model,
-and database ssign uses. The audits below answer the question
-**"Can the ssign Docker image bundle this, or must the user download it
-themselves?"** for each component.
+and database ssign uses. Each row answers **"Can the ssign container image
+bundle this, or must the user download it themselves?"**
 
-ssign itself is **GPL-3.0-or-later** (see `LICENSE`). Every dependency listed
-here is compatible with GPL-3.0 redistribution at the level of the ssign
-package; the per-component questions below are about whether **ssign's
-Docker image** can include the binary/weight/database file inside it, vs.
-require the user to fetch it after pulling.
+ssign's own code is **GPL-3.0-or-later** (see `LICENSE`). The **container image**
+is a separate matter: it bakes in DeepLocPro (CC BY-NC-SA 4.0, a non-commercial
+licence) and EggNOG-mapper (AGPL-3.0, strong copyleft). So **the image as a
+whole is for non-commercial / academic research use**, and anyone who
+redistributes it must honour the AGPL source-offer (satisfied by the public
+ssign + eggnog-mapper repositories). The rows below say whether the image can
+include each binary / weight / database, or whether the user fetches it after
+pulling the image.
 
-| Component | License | In ssign Docker image? | If not bundled, fetch via |
+| Component | License | In the container image? | If not, obtain via |
 |---|---|---|---|
-| **DeepSecE checkpoint** | (vendored, MIT) | ✅ Baked into container | — |
-| **ProtT5 weights** (Rostlab/prot_t5_xl_uniref50) | AFL-3.0 | ✅ Baked into container | — |
-| **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU response 2026-05-07) | DTU portal (manual) |
-| **DeepLocPro** (binary + weights) | DTU academic (separate) | ⏳ Pending DTU response (forwarded to Ole) | DTU portal (manual) |
-| **eggnog-mapper code** | AGPL-3.0 | ❌ Not bundled (biopython pin clash with bakta) | User: `conda install -c bioconda eggnog-mapper` |
-| **EggNOG database** | unspecified | ❌ Not bundled (size + ⏳ pending EMBL response) | `download_eggnog_data.py` |
-| **InterProScan tarball + member DBs** | Apache 2.0 (core) + mixed (members) | ❌ Not bundled | `scripts/fetch_databases.sh` |
-| **BLAST NR / Swiss-Prot** | NCBI public | ❌ Not bundled (size) | `scripts/fetch_databases.sh` |
-| **Bakta DB** | CC-BY 4.0 | ❌ Not bundled (size) | `bakta_db download` |
-| **HH-suite Pfam / PDB70 / UniRef30** | mixed (Söding lab + Tübingen) | ❌ Not bundled (size) | `scripts/fetch_databases.sh` |
-| **TXSScan models** | CECILL | Bundled with MacSyFinder install | — |
+| **ssign** (this package) | GPL-3.0-or-later | ✅ It is the image | n/a |
+| **DeepLocPro** (tool + weights) | CC BY-NC-SA 4.0 (non-commercial) | ✅ Baked (this is what makes the image non-commercial) | n/a |
+| **eggnog-mapper** (tool / code) | AGPL-3.0 | ✅ Baked in an isolated env (makes the image AGPL-copyleft) | n/a |
+| **DeepSecE** checkpoint (fine-tuned ESM-1b) | MIT | ✅ Baked | n/a |
+| **ProtT5** encoder (Rostlab/prot_t5_xl_half_uniref50-enc) | AFL-3.0 | ✅ Baked | n/a |
+| **ESM-1b / ESM2** backbones | MIT | ✅ Baked | n/a |
+| **Bakta / HH-suite / MacSyFinder** (tools) | GPL-family | ✅ Baked | n/a |
+| **TXSScan models** | CeCILL | ✅ Bundled with MacSyFinder | n/a |
+| **SignalP 6.0** (binary + weights) | DTU academic | ❌ Cannot redistribute (DTU reply 2026-05-07) | `ssign-setup-dtu` (DTU portal), or `--signalp-mode remote` |
+| **EggNOG database** (~50 GB) | unspecified | ❌ Not baked (size + licence) | `scripts/fetch_databases.sh` |
+| **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | ❌ Not baked (host-provided in full) | host install + `scripts/fetch_databases.sh` |
+| **Bakta DB** | CC-BY 4.0 | ❌ Not baked (size) | `scripts/fetch_databases.sh` |
+| **BLAST Swiss-Prot / NR** | NCBI public | ❌ Not baked (size) | `scripts/fetch_databases.sh` |
+| **HH-suite DBs** (Pfam / PDB70 / UniRef30) | mixed (Söding lab + Tübingen) | ❌ Not baked (size) | `scripts/fetch_databases.sh` |
 
 ---
 
-## ProtT5 weights — ✅ BUNDLE OK
+## DeepLocPro: baked (and the reason the image is non-commercial)
 
-Used by pLM-BLAST. Released under the **Academic Free License
-3.0** (AFL-3.0), an OSI-approved permissive license.
+DeepLocPro is **not** a DTU-licensed tool. It is open source
+([github.com/Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro)),
+released under **CC BY-NC-SA 4.0**, so ssign bakes both the tool and its weights
+(plus the ESM2 backbone it needs) into the image at a pinned commit. No portal,
+no acquisition step, and it runs fully offline.
+
+The catch is the licence's **non-commercial** clause: because a CC BY-NC-SA
+component is baked in, the **image as a whole is for non-commercial / academic
+research use**. This is the single biggest usage constraint on the image, and it
+comes from DeepLocPro, not from ssign's own GPL-3.0 code. A commercial user who
+cannot accept the NC term would run ssign from source and supply their own
+localization predictor rather than use the bundled image.
+
+## EggNOG: code is AGPL-3.0 (baked), database is ambiguous (not baked)
+
+These are two separate things:
+
+|     | What it is | License | In the image? |
+| --- | --- | --- | --- |
+| **eggnog-mapper code** | ~5,000-line Python tool that runs DIAMOND and parses output | AGPL-3.0 ([`LICENSE.txt`](https://github.com/eggnogdb/eggnog-mapper/blob/master/LICENSE.txt)) | ✅ Baked (isolated env) |
+| **EggNOG database** | ~50 GB of precomputed ortholog data the tool queries | **Unspecified** | ❌ Host-fetched |
+
+The v1.0.0 image **bakes the eggnog-mapper code** (AGPL-3.0) into its own
+micromamba environment. That isolation sidesteps the conflict that used to block
+it: eggnog-mapper hard-pins `biopython==1.76` while Bakta needs `biopython>=1.78`,
+so the two live in separate conda environments rather than one shared Python.
+Baking AGPL code is what gives the image its AGPL source-offer (satisfied by the
+public repository).
+
+The **database** is a different question. We checked the
+[EggNOG website](http://eggnog5.embl.de/), the full `/download/` tree, the
+`eggnog-mapper` repo (whose AGPL covers only the code), the EggNOG papers
+(Huerta-Cepas 2019 for v5.0, Hernández-Plaza 2023 for v6.0), and the wiki. **No
+license clause is stated anywhere for the data files.** Under default copyright
+law (EU / Germany, EMBL-Heidelberg), silence means all rights reserved, so the
+~50 GB database is **not** baked: users fetch it with
+`scripts/fetch_databases.sh` (which wraps `download_eggnog_data.py`), the same
+install path Bakta, Prokka, and nf-core/funcscan use. EggNOG annotation is on by
+default at the extended and full tiers (off only at `--tier base`). The
+Billerbeck Lab has asked `eggnog@embl.de` for explicit permission to
+redistribute the database files; if granted, a future release could bake those
+too.
+
+## ProtT5 weights: bundle OK
+
+Used by pLM-BLAST. Released under the **Academic Free License 3.0** (AFL-3.0),
+an OSI-approved permissive license.
 
 > "The ProtTrans pretrained models are released under the terms of the
 > Academic Free License v3.0 License."
-> — [ProtTrans README](https://github.com/agemagician/ProtTrans)
+> ([ProtTrans README](https://github.com/agemagician/ProtTrans))
 
-AFL-3.0 explicitly grants public redistribution. No non-commercial or
-field-of-use restriction. Compatible with ssign's GPL-3.0. Ship with the
-AFL-3.0 license text and a citation pointer to Elnaggar et al. 2022 (TPAMI).
-ColabFold and bio_embeddings already redistribute these weights in their
-Docker images (established precedent).
+AFL-3.0 explicitly grants public redistribution with no non-commercial or
+field-of-use restriction, and is compatible with ssign's GPL-3.0. ColabFold and
+bio_embeddings already redistribute these weights in their images (established
+precedent). The image is deposited on Zenodo, so the weights are archived inside
+it; ssign does not re-host them as a separate deposit.
 
-**Action:** bake into the v1.0.0 container image. The image itself is
-deposited on Zenodo, so the weights are archived inside it; ssign does not
-re-host them as a separate deposit.
+## InterProScan: not baked, user provides it
 
-## InterProScan — ❌ BUNDLE NOT OK, user fetches
+The core engine is **Apache 2.0** (redistribution-friendly), but the bundled
+member databases have mixed licenses, and the show-stoppers are:
 
-Core engine is **Apache 2.0** (redistribution-friendly). The bundled member
-databases have mixed licenses, and the show-stoppers are:
-
-- **ProSite (PROSITE Profiles + Patterns)** — SIB custom license: non-commercial,
-  no derivatives. Forbids redistribution outside the InterPro bundle.
-- **SMART** — EMBL academic-only; "redistribution path is via the InterPro
+- **PROSITE** (Profiles + Patterns): SIB custom license, non-commercial, no
+  derivatives; forbids redistribution outside the InterPro bundle.
+- **SMART**: EMBL academic-only; "redistribution path is via the InterPro
   consortium" per the SMART FAQ.
-- **SUPERFAMILY** — no formal license (flagged ambiguous by reusabledata.org).
+- **SUPERFAMILY**: no formal license (flagged ambiguous by reusabledata.org).
 
 **Industry signal:** EBI's own
-[`interpro/interproscan` Docker image](https://hub.docker.com/r/interpro/interproscan)
-does *not* bundle the data — it expects the user to mount it. Bakta avoids IPS
-entirely. No mainstream academic Docker image redistributes the IPS bundle.
+[`interpro/interproscan` image](https://hub.docker.com/r/interpro/interproscan)
+does *not* bundle the data; it expects the user to mount it. No mainstream
+academic image redistributes the IPS bundle.
 
-**Action:** ssign Docker image has IPS *binary* (Apache 2.0) but no member-DB
-data files. `scripts/fetch_databases.sh --tier extended` pulls the tarball
-from EBI FTP at first install. User experience is one extra command, run
-once.
+**Action:** ssign does **not** bake InterProScan. Both its engine and member
+databases are host-provided; the image ships only a Java runtime to run a
+host-mounted IPS install. `scripts/fetch_databases.sh --tier extended` pulls the
+IPS distribution from EBI FTP. One extra command, run once.
 
 Sources: [InterPro license](https://interpro-documentation.readthedocs.io/en/latest/license.html) ·
 [HowToDownload](https://interproscan-docs.readthedocs.io/en/v5/HowToDownload.html) ·
-[`interpro/interproscan` Docker](https://hub.docker.com/r/interpro/interproscan) ·
+[`interpro/interproscan` image](https://hub.docker.com/r/interpro/interproscan) ·
 [SMART FAQ](https://smart.embl.de/help/FAQ.shtml) ·
 [SUPERFAMILY reuse](https://reusabledata.org/supfam.html)
 
-## EggNOG — code is AGPL-3.0, database is ⚠️ AMBIGUOUS
+## SignalP 6.0: cannot bundle (DTU reply 2026-05-07)
 
-These are two separate things and only one is the licensing question we care
-about for the Docker image:
+DTU confirmed by email on 2026-05-07 that the SignalP 6.0 license does not
+permit redistribution, so ssign cannot bundle the binary or weights. It is the
+**only predictor not baked into the image**. Users who want a fully offline run
+install SignalP locally from the [DTU HealthTech portal](https://services.healthtech.dtu.dk/)
+(the `ssign-setup-dtu` helper walks through it) and wire it in with
+`--signalp-path <dir>`. For users without a DTU licence, the remote DTU
+webserver is an opt-in fallback (`--signalp-mode remote`) that needs no licence
+on the user's part. By default ssign runs SignalP locally and never contacts
+DTU. See `docs/how-to/install.md`.
 
-|     | What it is | License | Redistribution OK? |
-| --- | --- | --- | --- |
-| **eggnog-mapper code** | ~5,000-line Python tool that runs DIAMOND + parses output | AGPL-3.0 ([`LICENSE.txt`](https://github.com/eggnogdb/eggnog-mapper/blob/master/LICENSE.txt)) | ✅ Yes — standard AGPL terms (include LICENSE + source pointer) |
-| **EggNOG database** | ~50 GB of precomputed ortholog data the tool queries against | **Unspecified** | ⚠️ Ambiguous — see below |
+## Phobius and TMHMM omitted from ssign
 
-This split (open-source code, separately-licensed data) is the common
-bioinformatics pattern. Bakta does it (Apache code, Bakta DB), Prokka does it
-(GPL code, mixed-licence bundled DBs), InterProScan does it (Apache core,
-mixed-licence member DBs). Bundling the *code* is straightforward; bundling
-the *data files* is the question we have to ask EMBL.
-
-For the **database**: we checked the
-[EggNOG website](http://eggnog5.embl.de/), the entire download tree at
-`/download/`, the `eggnog-mapper` repo (which only carries the AGPL covering
-the *code*), the EggNOG papers (Huerta-Cepas 2019 for v5.0,
-Hernández-Plaza 2023 for v6.0), and the wiki. **No license clause is stated
-anywhere for the data files** — only the AGPL-3.0 on the code repo and
-third-party MIT notices for the website's bundled JS.
-
-Under default copyright law (EU/Germany, EMBL-Heidelberg), absence of a
-license on the data files means **all rights reserved** — silence is not
-permission. Bakta, Prokka, and nf-core/funcscan all use
-`download_eggnog_data.py` as the install path; no public Docker image
-redistributes the ~50 GB database itself.
-
-**Action:** v1.0.0 Docker image bundles **neither** the eggnog-mapper
-code nor the database. The code is technically bundleable under AGPL-3.0
-but cannot co-install via pip alongside Bakta: eggnog-mapper hard-pins
-`biopython==1.76` while Bakta needs `biopython>=1.78`. Users who want
-EggNOG annotation install it separately on the host
-(`conda install -c bioconda eggnog-mapper` is the recommended path; the
-conda channel has shipped against modern biopython for years), then run
-`download_eggnog_data.py` to fetch the database. EggNOG annotation is
-on by default at the extended (default) and full tiers (off only at
-`--tier base`), and the bundled image works out of the box for most users. In parallel, the Billerbeck Lab has emailed
-`eggnog@embl.de` to request explicit redistribution permission for the
-database files; if granted, a future release can revisit the bundling
-question.
-
-## SignalP 6.0 — ❌ Cannot bundle (DTU reply 2026-05-07)
-
-DTU confirmed via email on 2026-05-07 that the SignalP 6.0 license does
-not permit redistribution. ssign cannot bundle the binary or weights in
-its public Docker image. Users who want a fully offline run must
-acquire SignalP separately from the [DTU HealthTech portal](https://services.healthtech.dtu.dk/).
-
-ssign is offline-first; the canonical SignalP path is a local install
-the user obtains from the DTU portal. For users without a DTU licence,
-the **remote DTU webserver fallback** (HTTP submission to
-`services.healthtech.dtu.dk`) requires no licence on the user's part and
-is opt-in via `--signalp-mode remote`. Local-install users wire the
-binary in via `--signalp-path <dir>`.
-
-Documented in `docs/how-to/install.md`.
-
-## DeepLocPro — ⏳ Pending separate DTU reply
-
-DTU's 2026-05-07 reply noted DeepLocPro is under a different license
-than SignalP and forwarded the redistribution question to Ole (the
-DeepLocPro maintainer). Awaiting reply.
-
-Two possible outcomes:
-
-1. **DTU permits redistribution** — bundle DeepLocPro inside the Docker
-   image, document any academic-use restriction. One-line Dockerfile
-   edit per plan addendum E.6.
-2. **DTU requires per-user acquisition** — keeps the SignalP shape:
-   user obtains DeepLocPro from DTU and points ssign at it via
-   `--deeplocpro-path`; webserver fallback available for users without
-   a licence.
-
-Conservative plan stays the default until Ole replies; if the answer
-is yes, only DeepLocPro flips to bundled.
-
-## DTU/SignalP — Phobius and TMHMM omitted from ssign
-
-ssign's IPS configuration explicitly excludes Phobius, SignalP, and TMHMM
-from InterProScan analyses (see `DEFAULT_IPS_APPLICATIONS` in
-`run_interproscan.py`) — these member analyses each require their own
-license and the IPS distribution itself ships pre-stripped of them. Not
-relevant unless a user opts back in via `--applications`.
-
----
-
-## Outstanding correspondence
-
-External actions still in flight before v1.0.0 release (tracked under the
-license-audit task in the publication roadmap):
-
-- **DTU SignalP** — ✅ Replied 2026-05-07: cannot redistribute. Final.
-- **DTU DeepLocPro** — ⏳ Forwarded to Ole on 2026-05-07; awaiting reply.
-- **EMBL-EggNOG** (Sonja Billerbeck → eggnog@embl.de) — ⏳ Awaiting reply
-  on database redistribution.
-
-Once Ole and EMBL reply, this page gets updated and the Docker image
-either bundles more (if yes) or the fetch-script story stays the same
-(if no).
+ssign's InterProScan configuration explicitly excludes Phobius, SignalP, and
+TMHMM (see `DEFAULT_IPS_APPLICATIONS` in `run_interproscan.py`): these member
+analyses each require their own license, and the IPS distribution ships
+pre-stripped of them. Not relevant unless a user opts back in via
+`--applications`.
 
 ---
 
 ## How license decisions feed into the install experience
 
-Ssign's three-tier install (`pip install ssign[base|extended|full]`) maps onto
-the licensing decisions above:
+ssign's three database tiers (base / extended / full, selected with
+`scripts/fetch_databases.sh --tier`) map onto the licensing decisions above:
 
-- The Docker image carries everything the user is *legally* allowed to receive
-  from us in one pull.
-- `scripts/fetch_databases.sh` (Phase 4b) handles the rest in a single
-  `--tier` invocation that reads the tier name and downloads each missing DB
-  from its canonical source.
+- The container image carries every tool and model weight the user is *legally*
+  allowed to receive from us in one download (non-commercial, per the DeepLocPro
+  clause above).
+- `scripts/fetch_databases.sh` fetches the databases that are too large or not
+  licence-clear to bundle, each from its canonical source.
 
-Net user experience: `docker pull` → `ssign fetch-databases --tier extended`
-→ `ssign run input.gbff`. Three commands, two of them once-only.
+Net user experience: pull the image, `ssign fetch-databases --tier extended`,
+`ssign run input.gbff`. Two of the three are once-only.

@@ -116,7 +116,7 @@ Build the image off-cluster (an HPC compute node usually can't, see
 fetch the DBs + install SignalP once and run per job:
 
 ```bash
-scp ssign.sif you@cluster:$EPHEMERAL/ssign.sif
+scp ssign.sif you@cluster:/path/to/scratch/ssign.sif   # your cluster's scratch/work dir
 ```
 
 On PBS/SLURM, submit one job per genome that calls `ssign-run` with `--stage-image`
@@ -141,8 +141,10 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
 | `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB |
 
 **macOS / base tier without a container:** every base-tier tool is pip-installable, so
-macOS base needs no image, `python3 -m pip install -c containers/requirements-base.lock.txt ssign`.
-SignalP/DeepLocPro still come from DTU (install locally, or `--*-mode remote`).
+macOS base needs no image, `python3 -m pip install -c containers/requirements-base.lock.txt ssign`
+(available from PyPI at the v1.0.0 release; until then install from source, git clone +
+`pip install -e .`). SignalP 6 is DTU-licensed (install locally, or `--signalp-mode remote`);
+DeepLocPro is open source (install from its GitHub repo, or `--deeplocpro-mode remote`).
 Extended/full stay on Linux/HPC via the `.sif`.
 
 ## Troubleshooting

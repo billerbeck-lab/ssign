@@ -48,14 +48,16 @@ git clone https://github.com/billerbeck-lab/ssign.git
 cd ssign
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"   # pytest, pytest-cov, hypothesis
+# Lint + type-check tools (not in [dev]); stubs match .github/workflows/lint.yml
+pip install ruff mypy pandas-stubs types-PyYAML types-requests types-setuptools types-networkx
 ```
 
 Run tests before submitting:
 
 ```bash
-pytest tests/unit/ -v                  # fast unit tests
-pytest tests/integration/ -v           # integration tests (some need network)
+pytest tests/unit/ -v                       # fast unit tests
+pytest -m integration tests/integration/    # integration tests (need external tools installed)
 ```
 
 ---
@@ -65,8 +67,11 @@ pytest tests/integration/ -v           # integration tests (some need network)
 - **Python ≥ 3.10** (matches `pyproject.toml`'s `requires-python`). Pin
   versions in `pyproject.toml` when adding deps.
 - **Formatting / linting**: `ruff format` and `ruff check` are authoritative.
-- **Type hints** required for new public functions; `mypy --strict` should
-  pass on `src/ssign_app/`.
+- **Type hints** welcome on new public functions, but not gate-enforced
+  (the mypy config leaves `disallow_untyped_defs` off; it runs as a
+  bug-finder, checking bodies of untyped functions).
+- **Type check**: `mypy` (config in `pyproject.toml`) must pass. CI runs it
+  bare, with no arguments.
 - **Comments** only when the _why_ is non-obvious.
 - **Critical-path code** (listed in `docs/`) has regression tests; preserve
   the comment block documenting why each fragile section is fragile.

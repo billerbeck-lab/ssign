@@ -53,6 +53,8 @@ pip install ssign[extended]             # or: pip install ssign  (base only)
 ssign --version                         # verify install
 ```
 
+Available from PyPI at the v1.0.0 release; until then install from source.
+
 If the cluster firewalls outbound HTTPS, install from a pre-staged wheel
 or via a configured pip proxy. Most institutional clusters allow PyPI;
 ask your admin if `pip install` hangs.
@@ -67,9 +69,7 @@ export SSIGN_DBS=$SCRATCH/ssign-databases
 mkdir -p $SSIGN_DBS && cd $SSIGN_DBS
 
 # Run the fetcher at the tier matching your pip install.
-bash $(python -c "import ssign_app, os; print(os.path.dirname(ssign_app.__file__))")/../../scripts/fetch_databases.sh \
-    --tier extended \
-    --target $SSIGN_DBS
+ssign fetch-databases --tier extended --target $SSIGN_DBS
 ```
 
 Disk sizes per tier are in [`install.md`](install.md#database-tier-sizes)
@@ -97,16 +97,16 @@ module load python/3.11
 source ~/.ssign-env/bin/activate
 
 # Database paths (printed by the fetcher in step 2)
-export SSIGN_HHSUITE_PFAM=$SCRATCH/ssign-databases/pfam
-export SSIGN_HHSUITE_PDB70=$SCRATCH/ssign-databases/pdb70_from_mmcif_2026-02-20
-export SSIGN_HHSUITE_UNICLUST=$SCRATCH/ssign-databases/UniRef30_2023_02
+export SSIGN_HHSUITE_PFAM=$SCRATCH/ssign-databases/hhsuite/pfam
+export SSIGN_HHSUITE_PDB70=$SCRATCH/ssign-databases/hhsuite/pdb70
+export SSIGN_HHSUITE_UNICLUST=$SCRATCH/ssign-databases/hhsuite/uniref30
 
 ssign run /path/to/genome.gbff \
     --outdir $SCRATCH/ssign-out \
-    --bakta-db $SCRATCH/ssign-databases/bakta_light \
+    --bakta-db $SCRATCH/ssign-databases/bakta/db-light \
     --eggnog-db $SCRATCH/ssign-databases/eggnog \
-    --interproscan-db $SCRATCH/ssign-databases/interproscan-5.77-108.0 \
-    --plmblast-db $SCRATCH/ssign-databases/ECOD30 \
+    --interproscan-db $SCRATCH/ssign-databases/interproscan/interproscan-5.77-108.0 \
+    --plmblast-db $SCRATCH/ssign-databases/plm_blast/ECOD30 \
     --cpu-per-genome 16
 ```
 
@@ -127,12 +127,12 @@ module load anaconda3
 source ~/.ssign-env/bin/activate
 
 # Database paths (printed by the fetcher in step 2)
-export SSIGN_HHSUITE_PFAM=$EPHEMERAL/ssign-databases/pfam
+export SSIGN_HHSUITE_PFAM=$EPHEMERAL/ssign-databases/hhsuite/pfam
 # ... other SSIGN_* exports ...
 
 ssign run /path/to/genome.gbff \
     --outdir $EPHEMERAL/ssign-out \
-    --bakta-db $EPHEMERAL/ssign-databases/bakta_light \
+    --bakta-db $EPHEMERAL/ssign-databases/bakta/db-light \
     --cpu-per-genome 16
 ```
 
@@ -236,8 +236,9 @@ node:
 |---|---|
 | Bakta re-annotation | 10-20 min |
 | MacSyFinder | 5-10 min |
-| DeepLocPro + SignalP (local) | 2-5 min, GPU-accelerated |
-| DeepLocPro + SignalP (DTU webserver fallback) | 5-15 min, network-bound |
+| DeepLocPro (local) | 2-5 min, GPU-accelerated |
+| SignalP 6 (local) | 2-5 min, CPU-only |
+| DeepLocPro + SignalP (DTU webserver, opt-in via `--signalp-mode remote` / `--deeplocpro-mode remote`) | 5-15 min, network-bound |
 | DeepSecE (GPU / 16-core CPU / 1-core throttled) | seconds / ~10 min / ~90 min |
 | HH-suite (Pfam + PDB70) | 10-30 min |
 | InterProScan | 5-15 min |
@@ -251,17 +252,11 @@ Cohorts spanning hundreds of genomes need a job array (one job per
 genome) rather than a single long job.
 
 **Full tier (`--tier full`) needs more walltime headroom.** It adds
-BLASTp-vs-Swiss-Prot and HH-suite-vs-UniRef30 on the substrate set. Both are now
-in the runtime effort model as hand-set priors (added 2026-07-12: blastp
-a=20 s/substrate, hh_suite a=35 s/substrate), so their subprocess timeouts ARE
-size-scaled via `max(floor, 2× predicted)` off the substrate count. BLASTp
-scales its inner `--timeout` too; HH-suite has no `--timeout` flag, so only its
-outer subprocess cap scales, and each protein still keeps its per-protein caps
-(1 h hhblits + 30 min hhsearch). HH-suite runs one MSA per substrate through a
-thread pool, so on a large pooled cohort (hundreds to a thousand-plus
-substrates) it is the tail (Swiss-Prot BLASTp finishes in minutes). Size
+BLASTp-vs-Swiss-Prot and HH-suite-vs-UniRef30 on the substrate set. HH-suite runs
+one MSA per substrate, so on a large pooled cohort (hundreds to a thousand-plus
+substrates) it is the tail; Swiss-Prot BLASTp finishes in minutes. Size
 `--walltime` to 24 h+ for a full-tier panel, and validate on a 2-4 genome smoke
-test first to measure the real per-protein HH-suite time before committing a
+test first to measure the real per-substrate HH-suite time before committing a
 long job.
 
 Full tier also needs its databases present: Swiss-Prot at
@@ -289,7 +284,7 @@ GENOME=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $HOME/genomes.txt)
 
 ssign run $GENOME \
     --outdir $SCRATCH/ssign-out/$(basename $GENOME .gbff) \
-    --bakta-db $SCRATCH/ssign-databases/bakta_light \
+    --bakta-db $SCRATCH/ssign-databases/bakta/db-light \
     --cpu-per-genome 16
 ```
 

@@ -91,7 +91,7 @@ producing step was skipped or had no output.
 | InterProScan | `interpro_domains`, `interpro_go_terms`, `interpro_pfam_ids`, `interpro_descriptions` |
 | Ortholog groups | `ortholog_group`, `og_n_members`, `og_mean_pident` |
 | Tool inventory | `annotation_tools` |
-| T5aSS annotation source | `t5_annotation_source` (`passenger` or `full`; empty for non-T5aSS rows). See `design_decisions.md` § 4.3. |
+| T5aSS annotation source | `t5_annotation_source` (`passenger` or `full`; empty for non-T5aSS rows). See [`design_decisions.md` § 4.3](../explanation/design_decisions.md). |
 | T5aSS whole-protein second pass (opt-in via `--t5ass-annotate-whole`) | `t5ass_whole_eggnog_*`, `t5ass_whole_blastp_*`, `t5ass_whole_ecod_top1_*`, `t5ass_whole_pfam_top1_*`, `t5ass_whole_pdb_top1_*`, `t5ass_whole_<protparam>_*`. Each mirrors the corresponding default-pass column on T5aSS substrates only. |
 | Sequence | `sequence` (always last when present) |
 
@@ -129,8 +129,10 @@ Plain text concatenation of:
 1. The HTML report's text version (substrate counts, per-SS breakdowns, tool
    contribution summary).
 2. The enrichment-analysis table (only with `--enrichment-stats`): one row per
-   (SS type, predictor, `mode`) with `observed`, `n_mask`, `null_mean`, `fold`,
-   `p_perm`, `qvalue`, `significant`, `n_null`. `mode` is `window` for ordinary
+   (`sample_id`, `ss_type`, `tool`, `mode`) with `observed`, `n_mask`,
+   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`, `n_null`. The
+   predictor column is `tool` (DeepLocPro / DeepSecE / SignalP / `COMBINED`),
+   and `sample_id` is the leading column. `mode` is `window` for ordinary
    types (secreted-predicted proteins clustering near the components) or `self`
    for autotransporter self-detection. **T5aSS/T5cSS emit two results**: a `self`
    row-set (the autotransporter component detecting itself) AND a `window`
@@ -173,8 +175,7 @@ For a multi-genome run, the genomes' results are additionally pooled into
 
 Summary figures rendered at `--dpi` (default 300). Toggle individual figures
 with the `--fig-*` flags listed in [`reference/cli.md`](cli.md). These are
-summary-quality; paper-grade figures are regenerated separately from scripts
-in the top-level `figures/` directory.
+summary-quality.
 
 ## `.ssign/<sample-id>_progress.json`
 

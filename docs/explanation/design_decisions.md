@@ -127,7 +127,7 @@ Entries are organised by pipeline stage. Each has three parts:
   - [Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_ 38(12):5825–5829](https://doi.org/10.1093/molbev/msab293) — eggNOG-mapper v2, Prodigal integration noted as convenience feature.
   - eggnog-mapper GitHub README (accessed 2026-04-24) — describes the tool as a functional annotator.
 
-### 1.2 Re-annotate by default (Phase 3.3)
+### 1.2 Re-annotate by default
 
 - **Decision:** When the input is a GenBank file, `ssign` re-runs Bakta
   on the DNA sequences by default and treats Bakta's fresh CDS set as
@@ -229,15 +229,19 @@ Entries are organised by pipeline stage. Each has three parts:
   independence; the binomial gives the same fold but an anti-conservative p). The test
   now rotates each predictor's gene-ordered positivity vector through every circular
   offset (the exact permutation null, computed in one FFT pass; offset 0 is the
-  observed) and reports fold + permutation p + BH q. Because it needs every gene's
-  positivity in gene order, `--enrichment-stats` forces whole-genome DLP/DSE
-  (~13 min/genome). Autotransporters (T5aSS/T5cSS) are tested by self-detection (the
-  component is both machinery and substrate), other types by a ±3-gene window. A
-  per-type null-distribution figure is emitted.
+  observed) and reports fold + permutation p + BH q. It tests three per-tool tracks
+  (DLP, DSE, SignalP) plus a COMBINED per-type union track. Because it needs every
+  gene's positivity in gene order, `--enrichment-stats` forces whole-genome
+  DLP/DSE/SignalP (~13 min/genome). Window types use a ±3-gene window; autotransporters
+  (T5aSS/T5cSS) emit TWO results via a `mode` column: a `self` result (the component
+  is both machinery and substrate) and a `window` hitchhiker result (secreted-predicted
+  neighbours in the ±3 window), matching §5.2. The emitted figure is a fold /
+  significance bar chart (`_enrichment_fold.png`, plus the one-bar-per-type
+  `_enrichment_fold_combined.png`).
 
 ### 3.2 SignalP is evidence-only, not a trigger
 
-- **Decision (Phase 3.2.b):** SignalP is recorded as a separate
+- **Decision:** SignalP is recorded as a separate
   `signalp_supports_secretion` column but does **not** contribute to
   `is_secreted` or `n_prediction_tools_agreeing`.
 
@@ -333,9 +337,13 @@ Entries are organised by pipeline stage. Each has three parts:
     (hundreds of KEGG/GO terms). Keyword matching against descriptions
     is tool-agnostic: any new tool that produces a human-readable
     description string can contribute votes without a schema change.
-  - Confidence tiers (High ≥3 tools, Medium =2, Low =1, None =0)
-    provide a simple interpretable confidence signal that maps
-    directly to the `confidence_tier` column in the final output.
+  - Confidence tiers derive from the winning call's **weighted**
+    support, not a raw tool count (`_confidence_tier`): High ≥5,
+    Medium ≥3, else Low (there is no "None" tier). Tool weights reflect
+    credibility: BLASTp, EggNOG, Bakta, and GenBank score 3;
+    HHpred_Pfam and InterProScan score 2; pLM-BLAST and HHpred_PDB
+    score 1. This maps directly to the `confidence_tier` column in the
+    final output.
 
 - **Tools voting (8 sources):** Bakta product, EggNOG description,
   BLASTp top hit description, HH-suite top Pfam description, HH-suite
@@ -486,8 +494,9 @@ Entries are organised by pipeline stage. Each has three parts:
 
 ### 6.1 Offline-first
 
-- **Decision:** `ssign` v1.0.0 has no external API dependencies. All
-  tools run from local binaries and databases; no remote calls.
+- **Decision:** `ssign` v1.0.0 makes no remote calls on the default
+  path; all tools run from local binaries and databases. Remote is
+  opt-in only (the DTU webserver fallback for DeepLocPro/SignalP).
 
 - **Rationale:** Publication longevity. External services (NCBI remote
   BLAST, EBI InterProScan web, MPI Toolkit HHpred, BioLib-hosted DTU
@@ -521,9 +530,8 @@ Entries are organised by pipeline stage. Each has three parts:
 
 - **Rationale:** Maintaining two orchestrators (Python runner +
   Nextflow) forced double-bookkeeping of every script between `bin/`
-  and `src/ssign_app/scripts/`. Migration guidance for Nextflow users
-  will land alongside the dedicated HPC how-to in the Phase 5 docs
-  overhaul.
+  and `src/ssign_app/scripts/`. Nextflow users migrate to the
+  `ssign run` CLI; see the HPC how-to (`docs/how-to/run_on_hpc.md`).
 
 ---
 
@@ -579,4 +587,4 @@ For paper Methods section:
 
 ---
 
-_Last updated: with the Phase 3.2.d runner wiring + the Phase 3.3 CDS-calling research. Add new decisions here as they're made._
+_Last updated: with the runner wiring + CDS-calling research. Add new decisions here as they're made._

@@ -23,7 +23,7 @@ the general Ubuntu servers the base image's `apt` needs. Build once, copy the `.
 up.
 
 ```bash
-# needs apptainer + a real-disk build tmp (NOT a small tmpfs). ~20 GB image, ~30-60 min.
+# needs apptainer + a real-disk build tmp (NOT a small tmpfs). ~19 GB image, ~30-60 min.
 containers/build_sif.sh          # build + offline smoke test
 # ...or by hand:
 export APPTAINER_TMPDIR=$HOME/.ssign_build/tmp APPTAINER_CACHEDIR=$HOME/.ssign_build/cache TMPDIR=$APPTAINER_TMPDIR
@@ -31,8 +31,8 @@ mkdir -p "$APPTAINER_TMPDIR" "$APPTAINER_CACHEDIR"
 apptainer build --fakeroot ssign.sif containers/ssign.def
 ```
 
-- The build downloads ~7.5 GB of model weights (ESM2, the DeepSecE checkpoint from a
-  slow academic mirror, ProtT5). Keep the connection up: a container build has no
+- The build downloads ~10 GB of model weights (ESM2, ESM-1b (the DeepSecE backbone),
+  the DeepSecE checkpoint from a slow academic mirror, ProtT5). Keep the connection up: a container build has no
   resume, so a dropped download restarts that file from 0 and can abort the build.
   The DeepSecE mirror is the slow part; everyone who pulls the finished image skips it.
 - `--fakeroot` builds unprivileged (standard `/etc/subuid` mapping; no system root).
@@ -45,8 +45,9 @@ After this, others get the image with one `apptainer pull` (GHCR) or a download
 (Zenodo), then run per
 [`install_container.md`](../docs/how-to/install_container.md).
 
-**Gate:** publish ONLY after a tier-2 (extended) container run passes **23/23** on a
-real genome. A Zenodo DOI is permanent; publishing a broken image is not undoable.
+**Gate:** publish ONLY after a tier-2 (extended) container run passes the full
+extended-tier step count on a real genome. A Zenodo DOI is permanent; publishing a
+broken image is not undoable.
 
 You need:
 - The validated `.sif` (referred to below as `$SIF`).
@@ -55,7 +56,7 @@ You need:
 - **(Optional, GHCR)** a GitHub personal access token (classic) with `write:packages`.
 
 ```bash
-SIF=/path/to/validated.sif      # the image that passed 23/23
+SIF=/path/to/validated.sif      # the image that passed the full extended-tier run
 VERSION=1.0.0
 ```
 

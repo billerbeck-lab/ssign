@@ -8,7 +8,7 @@ check what ssign reports against what you already know.
 
 About 10-20 minutes on a typical laptop with the canonical local install
 of DeepLocPro and SignalP. The "quick taste" variant below skips the
-local DTU install and submits to DTU's webserver instead; that route adds
+local installs and submits to DTU's webserver instead; that route adds
 a network-bound wait and is fine for a single-genome trial run.
 
 ## Prerequisites
@@ -16,12 +16,14 @@ a network-bound wait and is fine for a single-genome trial run.
 - Linux or macOS
 - Python 3.10 or newer (`python3 --version`)
 - Local installs of SignalP 6.0 and DeepLocPro, set up per
-  [`how-to/install.md`](../how-to/install.md). Both are free with a DTU
-  academic licence and run fully offline. If you do not have a DTU
-  licence yet, the "Quick taste without DTU tools" section near the end
-  shows a webserver variant you can use instead.
-- ~10 GB of free disk: ~3 GB for the install (PyTorch + ESM) and ~7 GB
-  downloaded on first DeepSecE run for the cached ESM-1b language model
+  [`how-to/install.md`](../how-to/install.md). Both run fully offline.
+  SignalP 6.0 needs a free DTU academic licence; DeepLocPro is open source
+  (CC BY-NC-SA 4.0), cloned from public GitHub with no licence step. If you
+  do not have a DTU licence yet, the "Quick taste without DTU tools" section
+  near the end shows a webserver variant you can use instead.
+- ~15 GB of free disk: ~3 GB for the install (PyTorch + ESM), ~7.3 GB for
+  the ESM-1b language model cached on first DeepSecE run, plus the ESM-2
+  backbone (~2.5 GB) and DeepLocPro weights (~2 GB) pulled on first run
 
 > **Running on an HPC cluster?** Don't run from a login node or a
 > JupyterHub session — both are typically throttled to ~1 CPU and DeepSecE
@@ -37,6 +39,9 @@ source ~/.ssign-env/bin/activate
 pip install ssign
 ssign --version
 ```
+
+> `ssign` is available from PyPI at the v1.0.0 release; until then install
+> from source (git clone + `pip install -e .`).
 
 The last line prints the installed version (e.g. `ssign 1.0.0`). If you
 see `command not found`, your venv is not active; rerun the `source` line.
@@ -184,7 +189,9 @@ output:
   CSV. They are still listed in the raw CSV.
 
 `ecoli_k12_summary.txt` is the same information laid out for reading: a
-substrate count, per-SS breakdown, and the enrichment-test results.
+substrate count and per-SS breakdown. (Enrichment-test results appear only
+if you add `--enrichment-stats`, which also forces whole-genome DLP/DSE/SignalP,
++~13 min/genome; the command above does not, so they are absent here.)
 
 ## 5. What to try next
 

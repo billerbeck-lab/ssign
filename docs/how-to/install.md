@@ -11,9 +11,12 @@ The simplest path is one of the named tiers:
 
 ```bash
 pip install ssign                 # base
-pip install ssign[extended]       # base + DeepSecE + Bakta + pLM-BLAST + extended-tier pins
+pip install ssign[extended]       # base + Bakta + pLM-BLAST + extended-tier pins
 pip install ssign[full]           # extended deps + full database tier
 ```
+
+> Available from PyPI at the v1.0.0 release; until then install from source
+> (git clone + `pip install -e .`).
 
 After pip install, fetch the matching database bundle:
 
@@ -32,22 +35,26 @@ Real on-disk numbers, measured 2026-06-03 against the fetched databases. Cumulat
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
 These are databases only. Model weights are separate and shared across all tiers,
-~14 GB total, auto-downloaded on first run (or baked into the container):
+~18 GB total across every tier (the base default path pulls the DeepSecE and
+DeepLocPro weights; ProtT5 is extended-tier only). The "Acquired by" column says
+which weights auto-download on first run and which come from a user-provided local
+install; the container bakes all of them:
 
-| Model | Size | Used by |
-|---|---|---|
-| DeepSecE checkpoint (fine-tuned ESM-1b) | ~2.5 GB | DeepSecE |
-| ESM-1b | ~7.3 GB | DeepSecE backbone |
-| ESM-2 | ~2.5 GB | DeepLocPro backbone |
-| ProtT5 (half) | ~2.4 GB | pLM-BLAST query embedding (extended tier) |
-| DeepLocPro weights | ~2 GB | DeepLocPro (public GitHub, no licence) |
-| SignalP 6.0 weights | ~1.5 GB | SignalP (DTU academic licence, user-acquired) |
+| Model | Size | Used by | Acquired by |
+|---|---|---|---|
+| DeepSecE checkpoint (fine-tuned ESM-1b) | ~2.5 GB | DeepSecE | auto-download on first run |
+| ESM-1b | ~7.3 GB | DeepSecE backbone | auto-download on first run |
+| ESM-2 | ~2.5 GB | DeepLocPro backbone | auto-download on first run |
+| ProtT5 (half) | ~2.4 GB | pLM-BLAST query embedding (extended tier) | auto-download on first run |
+| DeepLocPro weights | ~2 GB | DeepLocPro (CC BY-NC-SA 4.0, cloned from public GitHub at a pinned commit; no acquisition step) | ships with the local DeepLocPro install |
+| SignalP 6.0 weights | ~1.5 GB | SignalP (DTU academic licence, user-acquired) | ships with the SignalP tarball |
 
 DeepLocPro/DeepSecE pull their ESM backbones via `esm.pretrained` (torch-hub cache),
 pLM-BLAST pulls ProtT5 via `huggingface_hub`, and the DeepSecE checkpoint downloads
-via `run_deepsece._ensure_checkpoint()`, so no separate fetch step is needed. The
-container bakes all of them (container runs are fully offline). SignalP 6 is the only
-weight you install yourself (see below).
+via `run_deepsece._ensure_checkpoint()`, so those need no separate fetch step. The
+container bakes all of them (container runs are fully offline). The two weights you
+provide yourself are SignalP 6 (DTU tarball) and DeepLocPro (its GitHub clone); their
+weights ship with those local installs (see below).
 
 HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
 
@@ -76,19 +83,16 @@ For environment variables (mirror URLs, database paths, dev-only flags), see
 
 ---
 
-## DeepSecE (pip extra)
+## DeepSecE (base tier, GPU recommended)
 
-DeepSecE predicts secretion-system type per protein. Runs as a second opinion
-alongside DeepLocPro. About 7.3 GB once installed (PyTorch plus the ESM
-protein language model).
+DeepSecE predicts secretion-system type per protein and runs as a second
+opinion alongside DeepLocPro. It ships in the base tier: `pip install ssign`
+already includes it (PyTorch plus the ESM protein language model add ~7.3 GB
+to the install), so there is no separate install step. The legacy
+`ssign[deepsece]` extra is a no-op alias kept only so old invocations keep
+working; it installs nothing.
 
-```bash
-source ~/.ssign-env/bin/activate
-pip install ssign[deepsece]
-```
-
-ssign auto-detects the install on the next launch. CUDA GPU strongly
-recommended; CPU runs are slow.
+CUDA GPU strongly recommended; CPU runs are slow.
 
 ---
 
@@ -482,10 +486,12 @@ errors out if no binary is found.
 
 ssign is offline-first, so the canonical path is a local DeepLocPro
 install (~5 GB of model files, GPU recommended for cohort speed).
-Unlike SignalP, DeepLocPro is not distributed through DTU's download
-portal — that URL is only the web prediction service. The local install
-is from the maintainer's GitHub repository
-[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro).
+Unlike SignalP, DeepLocPro is not DTU-licensed: it is open source
+(CC BY-NC-SA 4.0, non-commercial), cloned directly from the maintainer's
+public GitHub repository
+[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro) at a
+pinned commit. There is no acquisition or licence step; DTU's portal URL
+is only the web prediction service, not the source of the local install.
 
 If you don't want to install locally, opt into the DTU webserver
 fallback with `--deeplocpro-mode remote` (no install needed on your

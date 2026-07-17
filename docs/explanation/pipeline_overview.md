@@ -6,7 +6,9 @@ happens. For per-decision rationale and citations, see
 output reference, see [`reference/output_files.md`](../reference/output_files.md).
 
 ssign runs in six phases. Each phase produces an intermediate output that
-the next phase consumes. The whole flow:
+the next phase consumes. (Internally the runner expands these six phases into
+a ~16-step DAG, roughly one step per tool; the phase view is the right level
+for understanding the flow.) The whole flow:
 
 ```
 input → proteins + gene order
@@ -141,7 +143,7 @@ finish the pipeline at Phase 4 with no annotations.
 
 | Tool | What it adds |
 |---|---|
-| **BLASTp** | Best hit description against NR or Swiss-Prot. |
+| **BLASTp** | Best hit description against Swiss-Prot (default) or NR (opt-in). |
 | **HH-suite** | Best Pfam domain match and best PDB structural homolog via HMM-vs-HMM. |
 | **EggNOG-mapper** | Orthology, COG/KEGG categories, GO terms. |
 | **InterProScan** | Protein domain calls across all Pfam, SMART, PROSITE, etc. |

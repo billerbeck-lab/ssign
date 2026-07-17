@@ -15,6 +15,9 @@ ssign --port 8502            # custom port
 ssign --no-browser           # do not auto-open the browser
 ```
 
+`ssign` will be available from PyPI at the v1.0.0 release; until then,
+install from source (git clone + `pip install -e .`).
+
 ### CLI
 
 ```bash
@@ -33,9 +36,8 @@ single-genome interactive runs on a desktop.
 | GenBank       | `.gbff`, `.gbk`, `.gb`  | Recommended. Carries protein sequences and gene order; ssign re-annotates with Bakta by default unless `--use-input-annotations` is set. |
 | FASTA contigs | `.fasta`, `.fna`, `.fa` | Bakta (or pyrodigal as fallback) predicts ORFs. |
 
-GFF3 input requires a paired FASTA and is not yet wired through the
-top-level `ssign run` interface. `extract_proteins.py` supports it
-internally; v1.x will expose a paired-input flag.
+GFF3 works via `ssign run` when a same-stem nucleotide FASTA sits
+alongside it (e.g. `x.gff` + `x.fna`).
 
 ### `--use-input-annotations`: leave it off for most use cases
 

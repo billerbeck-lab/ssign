@@ -19,18 +19,21 @@ If the venv exists but `ssign --version` still fails, the install
 finished in a different env. Reinstall in the current one:
 `pip install ssign`.
 
-### `ModuleNotFoundError: No module named 'deepsece'` (or `bakta`, `plmblast`, etc.)
+### `ModuleNotFoundError: No module named 'bakta'` (or another optional tool)
 
-You are running a step whose pip extra is not installed. Either install
-the matching extra or skip the step:
+You are running a step whose pip extra is not installed. Install the
+matching extra, or skip the step (each tool has a `--skip-*` or off flag;
+see the CLI reference):
 
 ```bash
-pip install ssign[deepsece]            # add DeepSecE
-# or
-ssign run input.gbff --skip-deepsece   # skip it
+pip install ssign[bakta]               # add Bakta
 ```
 
-Same pattern for `bakta` and `plmblast`.
+DeepSecE ships in the base install (the `[deepsece]` extra is a no-op
+alias kept for backwards compatibility), so it never needs a separate
+extra. pLM-BLAST has no pip extra of its own: its Python deps come with
+`ssign[extended]` / `ssign[full]`, and the tool itself is a git clone
+(see [`how-to/install.md`](install.md#plm-blast-clone--database)).
 
 ### `emapper.py: command not found` (EggNOG-mapper)
 
@@ -70,7 +73,7 @@ point ssign at the binary via `--signalp-path`. Detailed steps in
 
 ## Database and path errors
 
-### `RuntimeError: hhblits not found on PATH`
+### `hhblits binary not found: ...`
 
 You enabled HH-suite (`--no-skip-hhsuite`) but HH-suite is not installed.
 
@@ -112,6 +115,10 @@ ssign run input.gbff --use-input-annotations
 ```
 
 ## DTU webserver errors (DeepLocPro, SignalP)
+
+These errors only occur if you opted into `--signalp-mode remote` /
+`--deeplocpro-mode remote`. By default ssign runs both locally and never
+contacts DTU.
 
 ### `DTU server returned HTTP 503` or `HTTP 504`
 
@@ -201,7 +208,7 @@ with `nvidia-smi`.)
 
 ## Output and parsing errors
 
-### `master_substrates.csv` is empty (only the header)
+### `<sample-id>_results.csv` is empty (only the header)
 
 ssign found no proteins that pass the secretion-prediction + proximity
 gates. Common causes:
@@ -228,10 +235,13 @@ locally.
 
 ## Cohort and multi-genome errors
 
-### `ortholog_groups.csv` is empty after a multi-genome run
+### `<sample-id>_ortholog_groups.csv` / `cross_genome_ortholog_groups.csv` shows only singletons
 
-The cross-genome ortholog step requires BLAST+ (for all-vs-all BLASTp).
-Install it:
+The per-genome `<sample-id>_ortholog_groups.csv` and the top-level
+`cross_genome_ortholog_groups.csv` come from an all-vs-all BLASTp that
+needs BLAST+. Without BLAST+ the step can't cluster, so every protein
+lands in its own group (singletons only) rather than producing an empty
+file. Install it:
 
 ```bash
 sudo apt install ncbi-blast+      # Debian/Ubuntu
@@ -239,9 +249,9 @@ brew install blast                 # macOS
 conda install -c bioconda blast    # cross-platform
 ```
 
-If BLAST+ is installed but ortholog grouping still produces no rows,
-check that each genome's `<sample-id>_results.csv` has substrates to
-group. Empty inputs produce empty groups.
+If BLAST+ is installed but grouping still yields only singletons, check
+that each genome's `<sample-id>_results.csv` has substrates to group.
+Empty inputs produce no multi-member groups.
 
 ### One genome in a cohort kills the whole batch
 
