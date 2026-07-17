@@ -254,6 +254,10 @@ ignore_errors = true
 # modern choice that doesn't force constant line-wrapping of error
 # strings, FRAGILE comments, or long fixture FASTA sequences.
 line-length = 120
+# The Streamlit GUI was retired (gitignored, kept local); it is no longer
+# tracked or linted. Excluded so a local checkout that still has the files
+# on disk doesn't report style errors for code that ships nowhere.
+extend-exclude = ["src/ssign_app/Home.py", "src/ssign_app/pages", "tests/unit/test_home_sanitize.py"]
 
 [tool.ruff.lint]
 # Start permissive: pyflakes (F) catches real bugs, pycodestyle (E/W)
