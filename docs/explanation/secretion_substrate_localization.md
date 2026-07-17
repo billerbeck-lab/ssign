@@ -1,26 +1,25 @@
 # Secretion-system substrate localization (per type)
 
-Reference for how each secretion system that ssign handles delivers its
-substrate, and therefore what each of ssign's three "secreted protein" signals
-(DeepLocPro localization, SignalP signal peptide, DeepSecE substrate-type) should
-and *does* report. Compiled from a literature sweep (citations below, with DOIs),
-cross-checked against ssign's own predictions on a curated effector set.
+How each secretion system ssign handles delivers its substrate, and therefore what
+ssign's three "secreted protein" signals (DeepLocPro localization, SignalP signal
+peptide, DeepSecE substrate-type) should and *does* report. From a literature sweep
+(citations below, with DOIs), cross-checked against ssign's predictions on a curated
+effector set.
 
 ## The two-family framework (biology)
 
-Secretion systems split cleanly by *where the substrate ends up*:
+Secretion systems split by *where the substrate ends up*:
 
-**Family A, envelope-crossing, substrate ends up outside the producing cell.**
-T1SS, T2SS, T5SS (a/b/c). The mature protein is extracellular or surface-attached.
-Localization predictors are the *right* instrument here.
+**Family A, envelope-crossing.** T1SS, T2SS, T5SS (a/b/c). The mature protein ends
+up extracellular or surface-attached. Localization predictors are the right
+instrument here.
 
-**Family B, injection, substrate is delivered into another cell.**
-T3SS, T4SS, T6SS. The effector is a cytoplasmic protein in the producing cell
-until it is fired/injected directly into a host or neighbouring cell; it never
-free-floats outside. By strict producer-cell biology these are cytoplasmic, so
-localization predictors "should" miss them. (But see the empirical section, in
-practice DeepLocPro calls many of them extracellular anyway, because it is trained
-on functional "secreted" annotations.)
+**Family B, injection.** T3SS, T4SS, T6SS. The effector stays cytoplasmic in the
+producing cell until it is fired directly into a host or neighbouring cell; it
+never free-floats outside. By strict producer-cell biology these are cytoplasmic,
+so localization predictors "should" miss them. (In practice DeepLocPro calls many
+of them extracellular anyway, because it is trained on functional "secreted"
+annotations; see the empirical section.)
 
 The SignalP axis is orthogonal: a substrate is SignalP-positive only if it crosses
 the inner membrane via Sec/Tat with a cleavable N-terminal signal peptide.
@@ -44,11 +43,10 @@ extracellular, the opposite of VirD4-dependent host-injected effectors.
 
 ## What DeepLocPro / DeepSecE actually predict (empirical)
 
-From ssign's own predictions on curated corpus effectors (ssign's default runs
-apply DLP/DSE to the ±3-gene **neighbourhood** of detected systems only, so n is
-the subset of known effectors that landed in a neighbourhood: small for some
-types, and biased toward "near machinery". Indicative, not definitive;
-whole-genome predictions would tighten these):
+From ssign's predictions on curated corpus effectors. Default runs apply DLP/DSE to
+the ±3-gene **neighbourhood** of detected systems only, so n is the subset of known
+effectors that fell in a neighbourhood: small for some types, biased toward "near
+machinery". Indicative, not definitive; whole-genome predictions would tighten these.
 
 | Type | DLP ran on | % called **Extracellular** (≥0.8) | DeepSecE call (where it ran) |
 |---|---|---|---|
@@ -60,34 +58,30 @@ whole-genome predictions would tighten these):
 
 **The load-bearing empirical finding:** DeepLocPro calls a *majority* of T1/T2/T3/T6
 effectors "Extracellular", **including the injected Family-B types T3SS and T6SS**.
-First-principles biology says injected effectors are cytoplasmic and a localization
-tool "should" miss them, but DeepLocPro is trained on database localization
-annotations, where virulence effectors are typically labelled secreted, so it flags
-them extracellular regardless of the injection nuance. This means:
+Biology says injected effectors are cytoplasmic and a localization tool "should" miss
+them, but DeepLocPro is trained on database annotations where virulence effectors are
+typically labelled secreted, so it flags them extracellular regardless. This means:
 
 - DLP-extracellular is a **usable** signal for T3SS and T6SS effectors, not a
   mismatch. (T4SS is the one type that empirically looks cytoplasmic, but n=1 here,
-  so it is unverified; T4SS deserves its own whole-genome check.)
+  so it is unverified and deserves its own whole-genome check.)
 - DeepSecE's sequence classifier independently flags T1/T6 well, and T3SS too, but
   T3SS-DSE is the flagellar-false-positive source (DeepSecE has no flagellum class, so
-  flagellar proteins, T3SS homologs, funnel into its T3SS bin and over-call it),
-  so ssign deliberately excludes DeepSecE for T3SS and relies on DLP + proximity.
+  flagellar proteins, T3SS homologs, funnel into its T3SS bin and over-call it), so
+  ssign excludes DeepSecE for T3SS and relies on DLP + proximity.
 
 ## Implications for ssign
 
-1. **Localization-based substrate calling works across both families in practice**,
-   because DeepLocPro empirically calls most effectors extracellular even for the
-   injected types. The strict "injected ⇒ cytoplasmic ⇒ unfindable" worry does not
-   hold for DLP as actually trained.
-2. **SignalP is informative only for Family A** (T2SS, T5SS, Ptl-T4SS). It is
-   correctly silent for T1SS (C-terminal signal) and the injected types, a
-   SignalP-negative is expected, not evidence against secretion, for those.
+1. **Localization-based calling works across both families in practice**: DeepLocPro
+   calls most effectors extracellular even for the injected types, so the "injected ⇒
+   cytoplasmic ⇒ unfindable" worry does not hold for DLP as trained.
+2. **SignalP is informative only for Family A** (T2SS, T5SS, Ptl-T4SS). It is correctly
+   silent for T1SS (C-terminal signal) and the injected types; there a SignalP-negative
+   is expected, not evidence against secretion.
 3. **DeepSecE T3SS stays excluded** (flagellar FPs); T3SS leans on DLP + proximity.
-   DeepSecE is genuinely the right sequence signal for T6SS (and would be for T3SS if
-   the flagellar problem were solved).
+   DeepSecE is the right sequence signal for T6SS.
 4. **To make these numbers definitive**, re-extract whole-genome DLP/DSE predictions
-   for known effectors per type (the default runs are neighbourhood-only). A
-   whole-genome run (e.g. Salmonella LT2) is the natural source for a clean T3SS check.
+   per type (e.g. Salmonella LT2 for a clean T3SS check).
 
 ## Citations (per type; DOIs with PubMed verification)
 

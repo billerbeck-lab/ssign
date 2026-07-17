@@ -1,15 +1,9 @@
 # Design decisions and defensible citations
 
-Living notes to seed the paper's Methods section. Each entry records a
-decision we've made in `ssign`, the scientific rationale, and the
-peer-reviewed citations that back it. When paper-writing starts, pull
-from here directly.
-
-Entries are organised by pipeline stage. Each has three parts:
-
-- **Decision**, what we do
-- **Rationale / evidence**, why, with peer-reviewed citations
-- **Methods-section draft**, drop-in paragraph (edit as needed)
+Each entry records a decision made in `ssign`, the scientific rationale, and
+the peer-reviewed citations that back it. Entries are organised by pipeline
+stage; each has a **Decision** (what we do) and **Rationale / evidence** (why,
+with peer-reviewed citations).
 
 ---
 
@@ -77,24 +71,6 @@ Entries are organised by pipeline stage. Each has three parts:
   - [Korandla et al. (2020). _Bioinformatics_ 36(4):1022–1029](https://doi.org/10.1093/bioinformatics/btz714), AssessORF.
   - [Yok & Rosen (2011). _BMC Bioinformatics_ 12:20](https://doi.org/10.1186/1471-2105-12-20), consensus CDS calling on metagenomic reads.
   - [Sommer & Salzberg (2021). _PLOS Comput Biol_ 17(2):e1008727](https://doi.org/10.1371/journal.pcbi.1008727), BALROG.
-
-- **Methods-section draft:**
-
-  > Coding sequences were predicted by Bakta v1.x (Schwengers et al.,
-  > 2021), which internally uses Pyrodigal (Larralde, 2022), a
-  > maintained Cython rebinding of Prodigal v2.6.3 (Hyatt et al., 2010)
-  >, plus a custom small-ORF (<30 aa) detector. We did not perform
-  > multi-caller consensus voting. The most comprehensive recent
-  > benchmark of fifteen prokaryotic gene predictors (Dimonaco et al., 2022) found that union-aggregation of the five top callers
-  > improved gene detection by only 0.47% on average while
-  > substantially increasing false-positive CDS, and concluded against
-  > aggregated ab initio annotation for genomes without pre-existing
-  > reference annotations. Inter-tool disagreement in this regime is
-  > dominated by start-codon selection within otherwise-concordant ORFs
-  > (Korandla et al., 2020), which does not materially affect
-  > secretion-substrate identification because downstream HMM,
-  > signal-peptide, and proximity analyses are robust to small
-  > N-terminal coordinate shifts.
 
 ### 1.1.1 EggNOG-mapper is not a CDS caller
 
@@ -543,7 +519,7 @@ Entries are organised by pipeline stage. Each has three parts:
 
 - **Rationale:** The binding constraint is Pyrodigal (imported
   directly in `extract_proteins.py:157`), which is GPL-3. All other
-  direct dependencies (biopython, pandas, numpy, streamlit, pyhmmer)
+  direct dependencies (biopython, pandas, numpy, pyhmmer)
   are permissive (BSD/MIT/Apache) and compatible with GPL-3.
   Switching to Apache 2.0 or MIT would require replacing
   `import pyrodigal` with a subprocess `prodigal` call, not worth the
@@ -562,29 +538,3 @@ Entries are organised by pipeline stage. Each has three parts:
   the full T1SS operon plus the substrate on a single contiguous DNA
   span. The whole contig fits inside 213 kb, which is a reasonable
   git-tracked fixture size.
-
----
-
-## Consolidated bibliography
-
-For paper Methods section:
-
-- Abby, S. S., et al. (2016). _Scientific Reports_, 6:23080. doi:[10.1038/srep23080](https://doi.org/10.1038/srep23080)., TXSScan.
-- Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_, 38(12):5825–5829. doi:[10.1093/molbev/msab293](https://doi.org/10.1093/molbev/msab293)., eggNOG-mapper v2.
-- Dimonaco, N. J., et al. (2022). _Bioinformatics_, 38(5):1198–1207. doi:[10.1093/bioinformatics/btab827](https://doi.org/10.1093/bioinformatics/btab827)., ORForise benchmark; no-aggregation recommendation.
-- Hyatt, D., et al. (2010). _BMC Bioinformatics_, 11:119. doi:[10.1186/1471-2105-11-119](https://doi.org/10.1186/1471-2105-11-119)., Prodigal.
-- Korandla, D. R., et al. (2020). _Bioinformatics_, 36(4):1022–1029. doi:[10.1093/bioinformatics/btz714](https://doi.org/10.1093/bioinformatics/btz714)., AssessORF.
-- Larralde, M. (2022). _Journal of Open Source Software_, 7(72):4296. doi:[10.21105/joss.04296](https://doi.org/10.21105/joss.04296)., Pyrodigal.
-- Lomsadze, A., et al. (2018). _Genome Research_, 28(7):1079–1089. doi:[10.1101/gr.230615.117](https://doi.org/10.1101/gr.230615.117)., GeneMarkS-2.
-- Moreno, J., et al. (2024). _Bioinformatics_, 40(12):btae677. doi:[10.1093/bioinformatics/btae677](https://doi.org/10.1093/bioinformatics/btae677)., DeepLocPro.
-- Neron, B., et al. (2023). _Peer Community Journal_, 3:e28. doi:[10.24072/pcjournal.250](https://doi.org/10.24072/pcjournal.250)., MacSyFinder v2.
-- Schwengers, O., et al. (2021). _Microbial Genomics_, 7(11):000685. doi:[10.1099/mgen.0.000685](https://doi.org/10.1099/mgen.0.000685)., Bakta.
-- Seemann, T. (2014). _Bioinformatics_, 30(14):2068–2069. doi:[10.1093/bioinformatics/btu153](https://doi.org/10.1093/bioinformatics/btu153)., Prokka.
-- Sommer, M. J., & Salzberg, S. L. (2021). _PLOS Computational Biology_, 17(2):e1008727. doi:[10.1371/journal.pcbi.1008727](https://doi.org/10.1371/journal.pcbi.1008727)., BALROG.
-- Teufel, F., et al. (2022). _Nature Biotechnology_, 40(7):1023–1025. doi:[10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3)., SignalP 6.0.
-- Yok, N. G., & Rosen, G. L. (2011). _BMC Bioinformatics_, 12:20. doi:[10.1186/1471-2105-12-20](https://doi.org/10.1186/1471-2105-12-20)., Combining gene prediction methods.
-- Zhang, Y., et al. (2023). _Research_, 6:0258. doi:[10.34133/research.0258](https://doi.org/10.34133/research.0258)., DeepSecE.
-
----
-
-_Last updated: with the runner wiring + CDS-calling research. Add new decisions here as they're made._

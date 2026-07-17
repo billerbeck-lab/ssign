@@ -8,21 +8,13 @@ developed by the Billerbeck Lab at Imperial College London.
 ## Ways to contribute
 
 - **Bug reports or unexpected behaviour:** GitHub issue.
-- **Feature requests:** GitHub issue tagged `enhancement`, before writing
-  code, so we can discuss scope.
+- **Feature requests:** GitHub issue tagged `enhancement` before writing
+  code, so we can discuss scope. Check open issues first, and flag anything
+  that would not fit the publication roadmap.
 - **Code or documentation fixes:** fork, branch, PR.
 - **New secretion-related tool or annotation source:** open an issue with a
   brief justification and a license check for the new dependency.
 - **Documentation improvements:** the lowest-friction way to contribute.
-
----
-
-## Before you start
-
-1. Check open issues and PRs first; if there's no thread for what you want
-   to do, open one to discuss scope before writing code.
-2. Large structural changes should fit the publication roadmap. Flag in
-   the issue if they don't.
 
 ---
 
@@ -123,15 +115,12 @@ welcome.
 
 ## Contact
 
-- **Bugs, feature requests, install troubles, code questions, PR review:**
-  [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues). Fastest
-  path to a technical answer.
-- **Scientific collaboration, data sharing, partnerships, authorship:**
-  Dr. Sonja Billerbeck (PI), [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk).
-
-**Don't email the PI with bug reports or install trouble.** Those belong
-on GitHub Issues, where they're searchable.
+- **Bugs, feature requests, install trouble, code questions, PR review:**
+  [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues) (searchable,
+  and the fastest path to a technical answer, not the PI's inbox).
+- **Scientific collaboration, data sharing, authorship:** Dr. Sonja Billerbeck
+  (PI), [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk).
 
 The active maintainer as of v1.0.0 is M. Teo Reid
-([`@reidmat`](https://github.com/reidmat)). A lab successor will be named
+([`@reidmat`](https://github.com/reidmat)); a lab successor will be named
 before September 2026.

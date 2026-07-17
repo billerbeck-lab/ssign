@@ -12,8 +12,7 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 ### Added
 
-- Run-start ASCII banner with version line, shown by `ssign run` and on GUI
-  launch.
+- Run-start ASCII banner with version line, shown by `ssign run`.
 - Pre-run rough runtime estimate printed before the first step, sized from
   machine resources and genome count (it refines once the first step
   completes). Suppressed on GPU-less hosts, where the GPU-based reference would
@@ -23,7 +22,7 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 - Aggregated multi-genome `combined_summary.txt`: pooled secreted-protein
   counts, per-type totals, per-tool annotation coverage, and pooled enrichment.
 - `results.csv` opens with a short `#`-prefixed overview block naming its three
-  sections (readers and the GUI parser skip it).
+  sections (skip it when parsing).
 - **SignalP as a third enrichment predictor track** (Sec signal peptide),
   alongside DeepLocPro and DeepSecE.
 - `--scratch-dir` flag and automatic scratch resolution: keep `$TMPDIR` when it
@@ -130,7 +129,10 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   (EBI web service). All three now require a local install.
 - Foldseek scaffolding (never reached first-class status; dropped for v1.0.0).
 - `pybiolib` dependency (unused in the codebase) and DTU diagnostic scripts.
-- GUI mode toggles for tools whose remote path has been removed.
+- **Streamlit GUI.** `ssign` with no subcommand no longer launches a desktop
+  GUI; it prints a usage hint, and ssign is CLI-only (`ssign run ...`). The GUI
+  predated local/HPC tool support and had drifted behind recent pipeline
+  changes, so it was cut from the public tree pending demand.
 - **Nextflow "Power Mode" pipeline.** `main.nf`, `nextflow.config`,
   `workflows/`, `modules/local/`, `bin/`, and the per-tool `containers/`
   Dockerfiles are gone. The pure-Python `ssign run` CLI plus a Phase 4b
@@ -140,7 +142,7 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
   `nextflow run main.nf --input X --outdir Y -profile docker` invocation
   with `ssign run X --outdir Y`. See `docs/explanation/design_decisions.md` § 6.3.
 
-## [0.9.0-prerefactor] — 2026-04-22
+## [0.9.0-prerefactor] - 2026-04-22
 
 Pre-publication baseline snapshot, tagged as `v0.9.0-prerefactor` on GitHub
 for regression testing throughout the publication roadmap.
@@ -163,7 +165,7 @@ for regression testing throughout the publication roadmap.
 
 ### Known limitations at baseline
 
-- Relies on external APIs (BioLib, NCBI, MPI, EBI) for several tools — will
+- Relies on external APIs (BioLib, NCBI, MPI, EBI) for several tools; will
   break if those services change. Addressed by v1.0.0 offline-first work.
 - DeepSecE checkpoint hosted on an unreliable SJTU server. Will be mirrored
   to Zenodo for v1.0.0.

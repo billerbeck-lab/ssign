@@ -8,9 +8,9 @@ security fixes.
 
 | Version | Supported |
 | ------- | --------- |
-| `main`  | ✅        |
-| `v1.0.x` | ✅       |
-| older   | ❌        |
+| `main`  | Yes       |
+| `v1.0.x` | Yes      |
+| older   | No        |
 
 ## Reporting a vulnerability
 
@@ -52,5 +52,5 @@ attack surfaces are:
 The hosted web service (planned, post-v1.0.0) will have its own threat
 model, documented when it is built.
 
-Out of scope: vulnerabilities in upstream tools (BLAST, MacSyFinder, etc.) —
+Out of scope: vulnerabilities in upstream tools (BLAST, MacSyFinder, etc.);
 please report those to their respective projects.
