@@ -30,7 +30,7 @@ Compared to a laptop install:
 > **Don't run from a JupyterHub or interactive session.** They look like
 > Linux shells but are typically cgroup-throttled to ~1 CPU's worth of
 > compute (even when `Cpus_allowed_list` says you can touch 4 cores).
-> `nproc` reports the true quota — if it returns 1 or 2 you are not on a
+> `nproc` reports the true quota, if it returns 1 or 2 you are not on a
 > compute node. On a 1-CPU session DeepSecE on a single genome takes
 > ~90 min instead of seconds on GPU or ~10 min on a 16-core CPU node.
 > Always submit a proper SLURM / PBS job for the actual run.
@@ -142,7 +142,7 @@ Submit with `qsub ssign-job.sh`.
 
 Both templates above use a fixed `--outdir`. That's fine for a one-shot
 submission, but the moment you submit multiple jobs that could land
-concurrently — array jobs, overnight bursts, parameter sweeps — each
+concurrently, array jobs, overnight bursts, parameter sweeps, each
 job needs its own output directory.
 
 If two jobs share the same `--outdir`, both ssign processes will read
@@ -159,7 +159,7 @@ Use the scheduler's job id in the path:
 # SLURM
 ssign run /path/to/genome.gbff --outdir $SCRATCH/ssign-out/$SLURM_JOB_ID ...
 
-# PBS — strip everything after the first dot in case PBS reports
+# PBS, strip everything after the first dot in case PBS reports
 # JOBID.server-name (e.g., 12345.pbs-7 -> 12345)
 ssign run /path/to/genome.gbff --outdir $EPHEMERAL/ssign-out/${PBS_JOBID%%.*} ...
 ```
@@ -199,7 +199,7 @@ silently for DeepSecE.
 ## 4a. Installing DTU tools on HPC
 
 SignalP 6.0 and DeepLocPro both come from DTU's research group but
-through different channels — SignalP via DTU HealthTech's portal,
+through different channels, SignalP via DTU HealthTech's portal,
 DeepLocPro via the maintainer's GitHub
 ([Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro)).
 Two HPC-specific gotchas to watch for:

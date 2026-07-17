@@ -7,9 +7,9 @@ from here directly.
 
 Entries are organised by pipeline stage. Each has three parts:
 
-- **Decision** — what we do
-- **Rationale / evidence** — why, with peer-reviewed citations
-- **Methods-section draft** — drop-in paragraph (edit as needed)
+- **Decision**, what we do
+- **Rationale / evidence**, why, with peer-reviewed citations
+- **Methods-section draft**, drop-in paragraph (edit as needed)
 
 ---
 
@@ -27,7 +27,7 @@ Entries are organised by pipeline stage. Each has three parts:
     regression-tested rebinding of Prodigal v2.6.3, not a
     reimplementation. Pyrodigal is actively released
     (v3.7.1, March 2026) while the original Prodigal binary has been
-    near-dormant since 2016 — Pyrodigal is the responsible choice for a
+    near-dormant since 2016, Pyrodigal is the responsible choice for a
     5-year reproducibility target.
   - **Prodigal's accuracy on Gram-negatives is well-characterised.**
     On _E. coli_ K-12 with experimentally verified genes: 100%
@@ -66,24 +66,24 @@ Entries are organised by pipeline stage. Each has three parts:
     2023 (zero releases, unanswered issues, first author moved on).
     Recent protein-language-model pipelines (Bacformer,
     Protein Set Transformer) _consume_ Pyrodigal output rather than
-    replacing it — a strong signal that the field still regards
+    replacing it, a strong signal that the field still regards
     Prodigal-class callers as canonical.
 
 - **Citations:**
-  - [Hyatt et al. (2010). _BMC Bioinformatics_ 11:119](https://doi.org/10.1186/1471-2105-11-119) — Prodigal.
-  - [Larralde (2022). _JOSS_ 7(72):4296](https://doi.org/10.21105/joss.04296) — Pyrodigal.
-  - [Schwengers et al. (2021). _Microbial Genomics_ 7(11):000685](https://doi.org/10.1099/mgen.0.000685) — Bakta.
-  - [Dimonaco et al. (2022). _Bioinformatics_ 38(5):1198–1207](https://doi.org/10.1093/bioinformatics/btab827) — ORForise benchmark.
-  - [Korandla et al. (2020). _Bioinformatics_ 36(4):1022–1029](https://doi.org/10.1093/bioinformatics/btz714) — AssessORF.
-  - [Yok & Rosen (2011). _BMC Bioinformatics_ 12:20](https://doi.org/10.1186/1471-2105-12-20) — consensus CDS calling on metagenomic reads.
-  - [Sommer & Salzberg (2021). _PLOS Comput Biol_ 17(2):e1008727](https://doi.org/10.1371/journal.pcbi.1008727) — BALROG.
+  - [Hyatt et al. (2010). _BMC Bioinformatics_ 11:119](https://doi.org/10.1186/1471-2105-11-119), Prodigal.
+  - [Larralde (2022). _JOSS_ 7(72):4296](https://doi.org/10.21105/joss.04296), Pyrodigal.
+  - [Schwengers et al. (2021). _Microbial Genomics_ 7(11):000685](https://doi.org/10.1099/mgen.0.000685), Bakta.
+  - [Dimonaco et al. (2022). _Bioinformatics_ 38(5):1198–1207](https://doi.org/10.1093/bioinformatics/btab827), ORForise benchmark.
+  - [Korandla et al. (2020). _Bioinformatics_ 36(4):1022–1029](https://doi.org/10.1093/bioinformatics/btz714), AssessORF.
+  - [Yok & Rosen (2011). _BMC Bioinformatics_ 12:20](https://doi.org/10.1186/1471-2105-12-20), consensus CDS calling on metagenomic reads.
+  - [Sommer & Salzberg (2021). _PLOS Comput Biol_ 17(2):e1008727](https://doi.org/10.1371/journal.pcbi.1008727), BALROG.
 
 - **Methods-section draft:**
 
   > Coding sequences were predicted by Bakta v1.x (Schwengers et al.,
-  > 2021), which internally uses Pyrodigal (Larralde, 2022) — a
+  > 2021), which internally uses Pyrodigal (Larralde, 2022), a
   > maintained Cython rebinding of Prodigal v2.6.3 (Hyatt et al., 2010)
-  > — plus a custom small-ORF (<30 aa) detector. We did not perform
+  >, plus a custom small-ORF (<30 aa) detector. We did not perform
   > multi-caller consensus voting. The most comprehensive recent
   > benchmark of fifteen prokaryotic gene predictors (Dimonaco et al., 2022) found that union-aggregation of the five top callers
   > improved gene detection by only 0.47% on average while
@@ -106,7 +106,7 @@ Entries are organised by pipeline stage. Each has three parts:
 - **Rationale:** The eggNOG-mapper v2 paper (Cantalapiedra et al., 2021)
   states explicitly: "ORF detection, only available for prokaryotic
   assemblies, is performed using Prodigal." Gene prediction is listed
-  as the 4th feature in the paper's abstract — a convenience add-on
+  as the 4th feature in the paper's abstract, a convenience add-on
   for users who want to start from contigs, not a primary capability.
   The paper makes **no accuracy claims for gene prediction** and does
   **not benchmark it against other callers**. The official GitHub
@@ -115,7 +115,7 @@ Entries are organised by pipeline stage. Each has three parts:
   exactly equivalent to Bakta's Pyrodigal (same upstream tool).
   `--genepred search` (blastx-based inference against the eggNOG
   database) has no peer-reviewed accuracy data published and is
-  homology-biased by construction — genes without eggNOG hits are
+  homology-biased by construction, genes without eggNOG hits are
   missed entirely and 5' boundaries are unreliable because the mode
   has no explicit start-codon model.
 
@@ -124,8 +124,8 @@ Entries are organised by pipeline stage. Each has three parts:
   even if its default ever changes.
 
 - **Citations:**
-  - [Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_ 38(12):5825–5829](https://doi.org/10.1093/molbev/msab293) — eggNOG-mapper v2, Prodigal integration noted as convenience feature.
-  - eggnog-mapper GitHub README (accessed 2026-04-24) — describes the tool as a functional annotator.
+  - [Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_ 38(12):5825–5829](https://doi.org/10.1093/molbev/msab293), eggNOG-mapper v2, Prodigal integration noted as convenience feature.
+  - eggnog-mapper GitHub README (accessed 2026-04-24), describes the tool as a functional annotator.
 
 ### 1.2 Re-annotate by default
 
@@ -137,7 +137,7 @@ Entries are organised by pipeline stage. Each has three parts:
   annotation-consensus. Users with curated GenBanks can skip the Bakta
   re-run via `--use-input-annotations`.
 
-- **Rationale:** Incoming GenBanks have untrusted provenance — they
+- **Rationale:** Incoming GenBanks have untrusted provenance, they
   may come from old Prokka runs, private pipelines, manual curation,
   or RefSeq at any vintage. Uniform Bakta re-annotation across a
   cohort is required for reproducible consensus voting; without it,
@@ -173,16 +173,16 @@ Entries are organised by pipeline stage. Each has three parts:
       sense; its components are not secretion machinery for proteins
       to be functionally secreted. Including it pollutes substrate
       lists with flagellar proteins.
-    - _Tad pilus:_ similar reasoning — its cargo is structural, not
+    - _Tad pilus:_ similar reasoning, its cargo is structural, not
       secreted effectors.
-    (T3SS is **not** in the default excluded set — it is detected and
+    (T3SS is **not** in the default excluded set, it is detected and
     substrate-called by default. The DeepSecE reliability issue below
     (§3.3) is handled by gating DeepSecE for T3SS, not by excluding the
     system.)
 
 - **Citations:**
-  - [Neron et al. (2023). _Peer Community Journal_ 3:e28](https://doi.org/10.24072/pcjournal.250) — MacSyFinder v2.
-  - [Abby et al. (2016). _Scientific Reports_ 6:23080](https://doi.org/10.1038/srep23080) — TXSScan.
+  - [Neron et al. (2023). _Peer Community Journal_ 3:e28](https://doi.org/10.24072/pcjournal.250), MacSyFinder v2.
+  - [Abby et al. (2016). _Scientific Reports_ 6:23080](https://doi.org/10.1038/srep23080), TXSScan.
 
 ---
 
@@ -200,20 +200,20 @@ Entries are organised by pipeline stage. Each has three parts:
   proteins) and **DSE** (secretion-type, trained on secretion-system
   effectors) measure different biological signals. A protein can be
   clearly secreted by cellular localisation without being a known
-  effector, and vice versa — treating them as equal predictors captures
+  effector, and vice versa, treating them as equal predictors captures
   both views. Equality with OR-logic suits secretion prediction, where
   false negatives from either tool are expensive (missed substrates) and
   false positives get filtered by downstream proximity analysis.
 
 - **Citations:**
-  - [Moreno et al. (2024). _Bioinformatics_ 40(12):btae677](https://doi.org/10.1093/bioinformatics/btae677) — DeepLocPro.
-  - [Zhang et al. (2023). _Research_ 6:0258](https://doi.org/10.34133/research.0258) — DeepSecE.
+  - [Moreno et al. (2024). _Bioinformatics_ 40(12):btae677](https://doi.org/10.1093/bioinformatics/btae677), DeepLocPro.
+  - [Zhang et al. (2023). _Research_ 6:0258](https://doi.org/10.34133/research.0258), DeepSecE.
 
 - **PLM-Effector: tested, then removed (2026-07-15).** A third predictor
   (PLM-Effector, an ESM-1b/ESM-2/ProtT5 + XGBoost ensemble) was trialled as
   an equal vote. On P. aeruginosa PAO1 it called ~25% of the proteome as
   effectors (18% even gated at high confidence), with no reliable enrichment
-  near real secretion systems — the documented failure mode of effector
+  near real secretion systems, the documented failure mode of effector
   predictors trained on balanced sets and applied genome-wide (PAO1 truly has
   ~4 T3SS effectors). It was first demoted to opt-in, then removed entirely
   once it earned its keep nowhere in the default pipeline. The downstream
@@ -254,13 +254,13 @@ Entries are organised by pipeline stage. Each has three parts:
   value without biasing the secretion call.
 
 - **Citations:**
-  - [Teufel et al. (2022). _Nature Biotechnology_ 40(7):1023–1025](https://doi.org/10.1038/s41587-021-01156-3) — SignalP 6.0.
+  - [Teufel et al. (2022). _Nature Biotechnology_ 40(7):1023–1025](https://doi.org/10.1038/s41587-021-01156-3), SignalP 6.0.
 
 ### 3.3 T3SS: DeepSecE not trusted (flagellar-misclassification guard)
 
 - **Decision:** T3SS predictions from DeepSecE are flagged
   (`dse_T3SS_flagged=True`) and excluded from the secretion-evidence
-  count **unconditionally** — independent of genome content, because a
+  count **unconditionally**, independent of genome content, because a
   genome-content condition would re-admit the flagellar false positives.
   T3SS itself is **detected and substrate-called by default** (it is
   _not_ in `excluded_systems`); its substrate calls rely on
@@ -269,7 +269,7 @@ Entries are organised by pipeline stage. Each has three parts:
   once TXSScan detection proved reliable.)
 
 - **Why flagellar proteins specifically:** DeepSecE has no flagellum
-  output class — its classes are non-secreted, T1SE, T2SE, T3SE, T4SE,
+  output class, its classes are non-secreted, T1SE, T2SE, T3SE, T4SE,
   T6SE (`run_deepsece.py` `PREDICTED_LABELS`). The flagellar export
   apparatus is an evolutionary T3SS homolog, so flagellar proteins share
   sequence features with injectisome effectors and, having no flagellum
@@ -280,15 +280,15 @@ Entries are organised by pipeline stage. Each has three parts:
 - **Rationale:** DeepSecE over-predicts T3SS at genome scale, dominated
   by flagellar homologs (see the mechanism above) plus hypothetical
   proteins. A 74-genome _Xanthobacter_ panel (2026-07-08 run) found **0
-  validated T3SS systems** — expected for an environmental non-pathogen
-  with no injectisome — yet DeepSecE still emits T3SS calls on such genomes.
+  validated T3SS systems**, expected for an environmental non-pathogen
+  with no injectisome, yet DeepSecE still emits T3SS calls on such genomes.
   Gating DSE T3SS on MacSyFinder validation prevents large-scale over-calling
   where there is no injectisome at all. The reliability issue is T3SS-
   specific; DSE calls for T1SS/T2SS/T4SS/T6SS are not gated.
 
 - **Provenance note:** an earlier draft of this section cited a specific
   over-call count ("1,808 across a 74-genome _Xanthomonas_ set"). That
-  provenance is wrong — no _Xanthomonas_ panel was ever run — so treat the
+  provenance is wrong, no _Xanthomonas_ panel was ever run, so treat the
   magnitude as unverified. Re-derive it from a whole-genome DeepSecE pass (the
   74-genome _Xanthobacter_ run is the natural source: count DeepSecE `T3SS`
   calls vs the 0 MacSyFinder-validated injectisomes) before using a number in
@@ -301,7 +301,7 @@ Entries are organised by pipeline stage. Each has three parts:
   manually, pass `--blastp-db <nr-dir>/nr`).
 
 - **Rationale:** The full-tier smoke test (2 genomes, ~24 substrates) measured
-  BLASTp-vs-NR at **>2 h and rising** — NR is ~800 GB (~700M sequences), and
+  BLASTp-vs-NR at **>2 h and rising**, NR is ~800 GB (~700M sequences), and
   search time scales with query count, so a real panel (~hundreds of
   substrates) would run for a day or more. Swiss-Prot is ~570k **curated,
   reviewed** sequences (~300 MB): it searches in minutes, and its reviewed
@@ -380,7 +380,7 @@ Entries are organised by pipeline stage. Each has three parts:
   translocator), and the barrel is highly conserved across the family.
   Tools that return a single best hit per query (DIAMOND-based EggNOG,
   blastp's bitscore-sorted top hit, pLM-BLAST's cosine-screened ECOD
-  best hit) preferentially match the barrel — for a typical AT, this
+  best hit) preferentially match the barrel, for a typical AT, this
   means the headline annotation collapses to "Outer membrane
   autotransporter barrel" (COG3210 or similar) and the functional
   passenger annotation (pertactin / IgA protease / hemoglobin protease
@@ -398,20 +398,20 @@ Entries are organised by pipeline stage. Each has three parts:
   InterProScan stays on the full protein because it is already
   domain-aware: it reports per-domain coordinates and Pfam hits
   separately, so a full-AT input gives the user both the passenger
-  Pfam(s) (pertactin etc.) and the barrel Pfam at distinct positions —
+  Pfam(s) (pertactin etc.) and the barrel Pfam at distinct positions;
   passenger-only input would lose the barrel confirmation without
   gaining any functional information.
 
 - **Fallback to full protein** for T5aSS substrates with:
   - any `t5_quality_flag` set (`barrel_only`, `no_signalp`,
-    `no_sec_signal`, `omp_porin_no_at`, `unclassified`) — the
+    `no_sec_signal`, `omp_porin_no_at`, `unclassified`), the
     handler couldn't fix the geometry and we don't trust the slice;
-  - `passenger_length < MIN_PASSENGER_FOR_ANNOTATION` (25 aa) —
+  - `passenger_length < MIN_PASSENGER_FOR_ANNOTATION` (25 aa):
     pLM-BLAST's cpc-90 pre-screen and blastp's bitscore would not
     find meaningful homology on a residue count this small.
 
   Non-T5aSS substrates (T5bSS, T5cSS, T1SS effectors, etc.) always
-  carry their full sequence — these don't have an autotransporter
+  carry their full sequence, these don't have an autotransporter
   passenger to begin with.
 
 - **Per-row provenance:** the `t5_annotation_source` column in the
@@ -450,7 +450,7 @@ Entries are organised by pipeline stage. Each has three parts:
 ### 5.1 Per-SS-component window, not full system span
 
 - **Decision:** Neighborhood proteins are defined as ±3 genes from
-  **each individual SS component's gene**, taking the union — not ±3
+  **each individual SS component's gene**, taking the union, not ±3
   from the full system-wide span.
 
 - **Rationale:** Using the system-wide span caused ~26 false positive
@@ -519,7 +519,7 @@ Entries are organised by pipeline stage. Each has three parts:
   BLASTp defaults to Swiss-Prot (curated, ~300 MB, fast, reviewed function
   names); full NR (~800 GB) is opt-in only because it is impractically slow to
   blast a real substrate set (the full-tier smoke test measured >2 h for ~24
-  substrates, which scales to days on a panel — see §3.4).
+  substrates, which scales to days on a panel, see §3.4).
 
 ### 6.3 Nextflow "power mode" deprecated
 
@@ -546,7 +546,7 @@ Entries are organised by pipeline stage. Each has three parts:
   direct dependencies (biopython, pandas, numpy, streamlit, pyhmmer)
   are permissive (BSD/MIT/Apache) and compatible with GPL-3.
   Switching to Apache 2.0 or MIT would require replacing
-  `import pyrodigal` with a subprocess `prodigal` call — not worth the
+  `import pyrodigal` with a subprocess `prodigal` call, not worth the
   engineering for a public research tool where GPL-3 is standard.
 
 ---
@@ -569,21 +569,21 @@ Entries are organised by pipeline stage. Each has three parts:
 
 For paper Methods section:
 
-- Abby, S. S., et al. (2016). _Scientific Reports_, 6:23080. doi:[10.1038/srep23080](https://doi.org/10.1038/srep23080). — TXSScan.
-- Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_, 38(12):5825–5829. doi:[10.1093/molbev/msab293](https://doi.org/10.1093/molbev/msab293). — eggNOG-mapper v2.
-- Dimonaco, N. J., et al. (2022). _Bioinformatics_, 38(5):1198–1207. doi:[10.1093/bioinformatics/btab827](https://doi.org/10.1093/bioinformatics/btab827). — ORForise benchmark; no-aggregation recommendation.
-- Hyatt, D., et al. (2010). _BMC Bioinformatics_, 11:119. doi:[10.1186/1471-2105-11-119](https://doi.org/10.1186/1471-2105-11-119). — Prodigal.
-- Korandla, D. R., et al. (2020). _Bioinformatics_, 36(4):1022–1029. doi:[10.1093/bioinformatics/btz714](https://doi.org/10.1093/bioinformatics/btz714). — AssessORF.
-- Larralde, M. (2022). _Journal of Open Source Software_, 7(72):4296. doi:[10.21105/joss.04296](https://doi.org/10.21105/joss.04296). — Pyrodigal.
-- Lomsadze, A., et al. (2018). _Genome Research_, 28(7):1079–1089. doi:[10.1101/gr.230615.117](https://doi.org/10.1101/gr.230615.117). — GeneMarkS-2.
-- Moreno, J., et al. (2024). _Bioinformatics_, 40(12):btae677. doi:[10.1093/bioinformatics/btae677](https://doi.org/10.1093/bioinformatics/btae677). — DeepLocPro.
-- Neron, B., et al. (2023). _Peer Community Journal_, 3:e28. doi:[10.24072/pcjournal.250](https://doi.org/10.24072/pcjournal.250). — MacSyFinder v2.
-- Schwengers, O., et al. (2021). _Microbial Genomics_, 7(11):000685. doi:[10.1099/mgen.0.000685](https://doi.org/10.1099/mgen.0.000685). — Bakta.
-- Seemann, T. (2014). _Bioinformatics_, 30(14):2068–2069. doi:[10.1093/bioinformatics/btu153](https://doi.org/10.1093/bioinformatics/btu153). — Prokka.
-- Sommer, M. J., & Salzberg, S. L. (2021). _PLOS Computational Biology_, 17(2):e1008727. doi:[10.1371/journal.pcbi.1008727](https://doi.org/10.1371/journal.pcbi.1008727). — BALROG.
-- Teufel, F., et al. (2022). _Nature Biotechnology_, 40(7):1023–1025. doi:[10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3). — SignalP 6.0.
-- Yok, N. G., & Rosen, G. L. (2011). _BMC Bioinformatics_, 12:20. doi:[10.1186/1471-2105-12-20](https://doi.org/10.1186/1471-2105-12-20). — Combining gene prediction methods.
-- Zhang, Y., et al. (2023). _Research_, 6:0258. doi:[10.34133/research.0258](https://doi.org/10.34133/research.0258). — DeepSecE.
+- Abby, S. S., et al. (2016). _Scientific Reports_, 6:23080. doi:[10.1038/srep23080](https://doi.org/10.1038/srep23080)., TXSScan.
+- Cantalapiedra, C. P., et al. (2021). _Molecular Biology and Evolution_, 38(12):5825–5829. doi:[10.1093/molbev/msab293](https://doi.org/10.1093/molbev/msab293)., eggNOG-mapper v2.
+- Dimonaco, N. J., et al. (2022). _Bioinformatics_, 38(5):1198–1207. doi:[10.1093/bioinformatics/btab827](https://doi.org/10.1093/bioinformatics/btab827)., ORForise benchmark; no-aggregation recommendation.
+- Hyatt, D., et al. (2010). _BMC Bioinformatics_, 11:119. doi:[10.1186/1471-2105-11-119](https://doi.org/10.1186/1471-2105-11-119)., Prodigal.
+- Korandla, D. R., et al. (2020). _Bioinformatics_, 36(4):1022–1029. doi:[10.1093/bioinformatics/btz714](https://doi.org/10.1093/bioinformatics/btz714)., AssessORF.
+- Larralde, M. (2022). _Journal of Open Source Software_, 7(72):4296. doi:[10.21105/joss.04296](https://doi.org/10.21105/joss.04296)., Pyrodigal.
+- Lomsadze, A., et al. (2018). _Genome Research_, 28(7):1079–1089. doi:[10.1101/gr.230615.117](https://doi.org/10.1101/gr.230615.117)., GeneMarkS-2.
+- Moreno, J., et al. (2024). _Bioinformatics_, 40(12):btae677. doi:[10.1093/bioinformatics/btae677](https://doi.org/10.1093/bioinformatics/btae677)., DeepLocPro.
+- Neron, B., et al. (2023). _Peer Community Journal_, 3:e28. doi:[10.24072/pcjournal.250](https://doi.org/10.24072/pcjournal.250)., MacSyFinder v2.
+- Schwengers, O., et al. (2021). _Microbial Genomics_, 7(11):000685. doi:[10.1099/mgen.0.000685](https://doi.org/10.1099/mgen.0.000685)., Bakta.
+- Seemann, T. (2014). _Bioinformatics_, 30(14):2068–2069. doi:[10.1093/bioinformatics/btu153](https://doi.org/10.1093/bioinformatics/btu153)., Prokka.
+- Sommer, M. J., & Salzberg, S. L. (2021). _PLOS Computational Biology_, 17(2):e1008727. doi:[10.1371/journal.pcbi.1008727](https://doi.org/10.1371/journal.pcbi.1008727)., BALROG.
+- Teufel, F., et al. (2022). _Nature Biotechnology_, 40(7):1023–1025. doi:[10.1038/s41587-021-01156-3](https://doi.org/10.1038/s41587-021-01156-3)., SignalP 6.0.
+- Yok, N. G., & Rosen, G. L. (2011). _BMC Bioinformatics_, 12:20. doi:[10.1186/1471-2105-12-20](https://doi.org/10.1186/1471-2105-12-20)., Combining gene prediction methods.
+- Zhang, Y., et al. (2023). _Research_, 6:0258. doi:[10.34133/research.0258](https://doi.org/10.34133/research.0258)., DeepSecE.
 
 ---
 

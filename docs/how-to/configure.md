@@ -122,7 +122,7 @@ SignalP), so a window-5 run does ~1.7x more prediction work than
 the default; window-10 is ~3x. Per-substrate annotation tools
 (InterProScan, EggNOG, pLM-BLAST) only run on the final filtered set,
 so their cost grows more slowly. False-positive count also grows with
-the window — substrates further from a system component are more often
+the window, substrates further from a system component are more often
 co-located by chance than because of secretion biology.
 
 ## Switching SignalP or DeepLocPro between local and webserver
@@ -153,7 +153,7 @@ ssign run input.gbff --outdir results \
 
 The webserver path is a convenience for users without a DTU licence and
 for first-time trials. It depends on DTU continuing to host the service,
-which we cannot guarantee long-term — for paper-grade or long-running
+which we cannot guarantee long-term, for paper-grade or long-running
 cohorts, install SignalP and DeepLocPro locally instead.
 
 See [`how-to/install.md`](install.md) for the SignalP / DeepLocPro local

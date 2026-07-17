@@ -57,11 +57,11 @@ chunks separated by blank lines, each with a `#`-prefixed header. Empty
 chunks are omitted (e.g. genomes with no "other" systems will not have a
 chunk 3):
 
-1. `# Secreted Proteins` — one row per predicted substrate.
-2. `# Secretion Systems (with secreted proteins)` — one row per system or
+1. `# Secreted Proteins`, one row per predicted substrate.
+2. `# Secretion Systems (with secreted proteins)`, one row per system or
    component, for systems whose neighbourhoods contained at least one
    substrate.
-3. `# Secretion Systems (other)` — systems detected without high-confidence
+3. `# Secretion Systems (other)`, systems detected without high-confidence
    substrates.
 
 > **T5SS substrates:** a detected T5SS component is reported as a substrate only

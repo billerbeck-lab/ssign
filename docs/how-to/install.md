@@ -1,7 +1,7 @@
 # Installing optional tools
 
 `pip install ssign` gets you the base pipeline: secretion-system detection,
-secreted-protein prediction (DeepLocPro, DeepSecE, and SignalP — see the
+secreted-protein prediction (DeepLocPro, DeepSecE, and SignalP, see the
 DeepLocPro and SignalP sections below for installing the DTU tools locally,
 or for the opt-in webserver fallback when you don't have a DTU licence),
 proximity analysis, and reporting. The tools below extend what the pipeline
@@ -26,7 +26,7 @@ bash scripts/fetch_databases.sh --tier base       # or: extended / full
 
 ### Database tier sizes
 
-Real on-disk numbers, measured 2026-06-03 against the fetched databases. Cumulative — each row includes everything from the rows above it:
+Real on-disk numbers, measured 2026-06-03 against the fetched databases. Cumulative, each row includes everything from the rows above it:
 
 | Tier | Cumulative size | Adds |
 |---|---|---|
@@ -56,7 +56,7 @@ container bakes all of them (container runs are fully offline). The two weights 
 provide yourself are SignalP 6 (DTU tarball) and DeepLocPro (its GitHub clone); their
 weights ship with those local installs (see below).
 
-HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set) — fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
+HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a real substrate set), fetch it via `fetch_blast_nr` and pass `--blastp-db <nr-dir>/nr`.
 
 If a tier doesn't fit your storage budget, pick individual tools below.
 
@@ -122,7 +122,7 @@ export PATH=~/.conda/envs/bakta/bin:$PATH    # if using a dedicated env
 Even if Bakta itself comes from `pip install ssign[bakta]`, you still
 need the binaries Bakta calls as subprocesses (tRNAscan-SE, aragorn,
 PilerCR, AMRFinderPlus, DIAMOND, HMMER, BLAST+). Building this set
-piecemeal misses tools — a fresh install hits errors like
+piecemeal misses tools, a fresh install hits errors like
 `ERROR: tRNAscan-SE not found`, then `ERROR: PilerCR not found`, etc.
 The reliable one-shot:
 
@@ -205,7 +205,7 @@ This wgets the three required files (`eggnog.db`, `eggnog.taxa.db`,
 `download_eggnog_data.py` because eggnog-mapper 2.1.13 (the latest on
 bioconda as of 2026-05) still hardcodes the retired `eggnogdb.embl.de`
 hostname and produces 0-byte files with exit-code 0. 2.1.14 fixed it
-upstream but never reached PyPI — so the fetch script bypasses that
+upstream but never reached PyPI, so the fetch script bypasses that
 breakage. Tell ssign where the database lives:
 
 ```bash
@@ -253,7 +253,7 @@ sudo apt install openjdk-17-jre-headless
 
 # 2. Fetch + extract via the helper script (pinned version, currently
 #    5.77-108.0; bump scripts/fetch_databases.sh `IPS_VERSION` when EBI
-#    rotates it off — old version dirs get 404'd after a few releases):
+#    rotates it off, old version dirs get 404'd after a few releases):
 scripts/fetch_databases.sh --tier extended --target ~/.ssign/databases
 ```
 
@@ -427,7 +427,7 @@ file signalp6.tar.gz          # "gzip compressed data"
 #    mamba, micromamba, conda. On HPC you typically `module load` one.
 mamba create -n signalp6 -c conda-forge python=3.10 pip "numpy<2" -y
 
-# 4. Use the env's binaries by absolute path — avoids needing `mamba init`
+# 4. Use the env's binaries by absolute path, avoids needing `mamba init`
 #    (which would permanently modify your shell rc). Works identically
 #    on a laptop and inside an HPC JupyterHub / batch job.
 #
@@ -460,7 +460,7 @@ $PYBIN/signalp6 --version
 ### Wire ssign to the local install
 
 If `signalp6` is on PATH (true after `mamba activate signalp6`), ssign
-auto-detects local mode — no flags needed:
+auto-detects local mode, no flags needed:
 
 ```bash
 ssign run input.gbff --outdir results
@@ -499,7 +499,7 @@ part, internet required). Same caveat as SignalP: this is a convenience
 path that depends on DTU keeping the service alive, so use it for trial
 runs and install locally for production / paper work.
 
-DeepLocPro's only hard pin is Python ≥ 3.6 — much more permissive than
+DeepLocPro's only hard pin is Python ≥ 3.6, much more permissive than
 SignalP 6.0's torch<2 constraint. It could technically live in the ssign
 venv, but we keep it in its own conda-family env for the same reasons
 we isolate SignalP: insulate ssign from any transformers / torch
@@ -528,8 +528,8 @@ ls $PYBIN/deeplocpro          # note this path for the --deeplocpro-path flag be
 
 If the GitHub install grows extra steps over time (model-weights
 download, license click-through, etc.), follow whatever the README at
-[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro) says
-— our recipe above is the minimum that worked at the v1.0 release.
+[Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro) says.
+Our recipe above is the minimum that worked at the v1.0 release.
 
 ### Wire ssign to the local install
 
@@ -564,7 +564,7 @@ The pre-flight log lists every external tool plus its detected version (or a
 warning if not found). A missing tool is non-fatal: the corresponding step is
 skipped at run time and the rest of the pipeline continues.
 
-## Canonical command — extended tier (every annotation tool on)
+## Canonical command, extended tier (every annotation tool on)
 
 After `fetch_databases.sh --tier extended` has run and every tool from the
 sections above is installed, the canonical command is just:
@@ -575,10 +575,10 @@ ssign run input.gbff --outdir results
 
 That's it. `fetch_databases.sh` records the tier at `~/.ssign/tier`; ssign
 reads it and enables exactly the tools the extended bundle ships (EggNOG,
-InterProScan, pLM-BLAST) while leaving BLASTp and HH-suite off —
+InterProScan, pLM-BLAST) while leaving BLASTp and HH-suite off;
 BLASTp-vs-Swiss-Prot and HH-suite UniRef30 are full-tier only.
 The database paths come from `~/.ssign/db_root` (also written by
-`fetch_databases.sh`) — no per-DB env var exports needed for the
+`fetch_databases.sh`), no per-DB env var exports needed for the
 common case.
 
 If your databases live somewhere other than what's recorded in
@@ -590,7 +590,7 @@ export BAKTA_DB=$DBROOT/bakta/db-light
 export SSIGN_INTERPROSCAN_PATH=$DBROOT/interproscan/interproscan-5.77-108.0
 export EGGNOG_DATA_DIR=$DBROOT/eggnog
 export SSIGN_ECOD_DB=$DBROOT/plm_blast/ECOD30
-# Full-tier-only DBs — uncomment if you've fetched them:
+# Full-tier-only DBs, uncomment if you've fetched them:
 # export SSIGN_HHSUITE_PFAM=$DBROOT/hhsuite/pfam
 # export SSIGN_HHSUITE_PDB70=$DBROOT/hhsuite/pdb70
 # export SSIGN_HHSUITE_UNICLUST=$DBROOT/hhsuite/uniref30
