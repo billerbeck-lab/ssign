@@ -269,11 +269,11 @@ verified against the primary literature cited in this README and in
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to file issues, propose features,
-and submit pull requests. Contributions are welcome, especially for
-documentation and new tool integrations. A [Code of Conduct](CODE_OF_CONDUCT.md)
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how to file issues, propose
+features, and submit pull requests. Contributions are welcome, especially for
+documentation and new tool integrations. A [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 applies to all project spaces; security issues should be reported privately per
-[SECURITY.md](SECURITY.md).
+[SECURITY.md](.github/SECURITY.md).
 
 ---
 
