@@ -542,8 +542,8 @@ _SCRATCH_MIN_FREE_GB = 5
 
 # Prepended to <sample>_results.csv so a first-time reader understands the file
 # is three stacked tables, not one. Consumers that split on the "# Secreted
-# Proteins"/"# Secretion Systems" headers ignore this preamble (see Home.py
-# _merge_genome_outputs). Kept in sync with the golden fixture.
+# Proteins"/"# Secretion Systems" headers ignore this preamble. Kept in sync
+# with the golden fixture.
 _RESULTS_CSV_OVERVIEW = (
     "# ssign results: 3 sections follow, each with its own header row, separated by a blank line.\n"
     "#   1. Secreted Proteins: predicted secreted proteins (substrates) with annotations.\n"

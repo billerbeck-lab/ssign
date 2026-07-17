@@ -13,6 +13,7 @@ test catches that class of omission without building a wheel.
 from __future__ import annotations
 
 import glob
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,20 +33,33 @@ def _declared_globs() -> list[str]:
     return data["tool"]["setuptools"]["package-data"]["ssign_app"]
 
 
+def _tracked_data_files() -> list[str]:
+    """Non-.py files under the package that git tracks (paths relative to
+    _PKG_DIR). The wheel ships tracked files only, so an untracked local file
+    (e.g. a gitignored dev leftover) can't be silently dropped and must not
+    count against package-data coverage."""
+    out = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=str(_PKG_DIR),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [
+        f
+        for f in out.stdout.split("\0")
+        if f and not f.endswith(".py") and not f.endswith(".pyc") and "__pycache__" not in f.split("/")
+    ]
+
+
 def test_all_data_files_covered_by_package_data():
-    """Fail if a shipped data file (non-.py) is not matched by any glob."""
+    """Fail if a shipped (git-tracked) data file is not matched by any glob."""
     covered: set[str] = set()
     for pattern in _declared_globs():
         # root_dir + non-recursive glob mirrors setuptools' segment-bounded `*`.
         covered.update(glob.glob(pattern, root_dir=str(_PKG_DIR)))
 
-    data_files = [
-        p.relative_to(_PKG_DIR).as_posix()
-        for p in _PKG_DIR.rglob("*")
-        if p.is_file() and p.suffix != ".py" and "__pycache__" not in p.parts and not p.name.endswith(".pyc")
-    ]
-
-    missing = sorted(f for f in data_files if f not in covered)
+    missing = sorted(f for f in _tracked_data_files() if f not in covered)
     assert not missing, (
         "Data files under src/ssign_app not covered by "
         "[tool.setuptools.package-data]; they would be dropped from the wheel: "

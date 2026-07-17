@@ -111,6 +111,14 @@ tests/unit/test_analyse_k12_runs.py
 /env_signalp6.lock.txt
 /.dockerignore
 
+# Streamlit GUI (#32): pre-HPC-era desktop UI, drifted behind recent pipeline
+# changes. Kept local, out of the public tree; revisit + update if there's demand.
+/src/ssign_app/Home.py
+/src/ssign_app/pages/
+/src/ssign_app/assets/
+/src/ssign_app/.streamlit/
+/tests/unit/test_home_sanitize.py
+
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
 

@@ -2,36 +2,31 @@
 """CLI entry point for ssign.
 
 Usage:
-    ssign                           # launch Streamlit GUI
+    ssign                           # print a usage hint and exit
     ssign --version                 # print version
     ssign run input.gbff --outdir results [flags...]
-                                    # run pipeline non-interactively (HPC,
-                                    # scripting, batch use)
+                                    # run pipeline (HPC, scripting, batch use)
     ssign run --help                # full list of run-mode flags
+    ssign doctor                    # verify the install
+    ssign fetch-databases --tier T  # download reference databases
 
-Two execution modes:
-  - GUI (default, no subcommand): launches Streamlit, suitable for desktop /
-    Easy Mode use.
-  - `run` subcommand: builds a PipelineConfig from CLI flags, drives
-    PipelineRunner directly. Suitable for HPC, batch, and scripting.
-
-The `run` subcommand exposes every PipelineConfig field as a flag, grouped
-by phase. See `ssign run --help` for the full list.
+The `run` subcommand builds a PipelineConfig from CLI flags and drives
+PipelineRunner directly. It exposes every PipelineConfig field as a flag,
+grouped by phase. See `ssign run --help` for the full list.
 """
 
 import argparse
 import os
-import re
-import socket
 import subprocess
 import sys
-import threading
 from typing import TYPE_CHECKING, Optional
 
 from ssign_app.scripts.ssign_lib.constants import DEFAULT_EXCLUDED_SYSTEMS  # noqa: F401  (argparse default below)
 
 if TYPE_CHECKING:
     from ssign_app.core.runner import PipelineConfig
+
+GITHUB_URL = "https://github.com/billerbeck-lab/ssign"
 
 BANNER = r"""
   _|_|_|       _|_|_|      _|        _|_|_|     _|_|_
@@ -894,119 +889,28 @@ def _fetch_databases(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
-# `ssign` (no subcommand) — Streamlit GUI launcher
+# `ssign` (no subcommand) — usage hint
 # ---------------------------------------------------------------------------
 
 
-def _launch_gui(args: argparse.Namespace) -> int:
-    """Launch the Streamlit GUI. Preserves the historical `ssign` UX:
-    free-port detection, banner, stderr filtering, and pass-through of
-    [ssign] log lines on stdout."""
+def _print_usage_hint() -> int:
+    """No subcommand given: ssign is a command-line tool, so show how to run it
+    and point at `ssign --help` for the full list."""
     _print_banner()
-
-    def _port_free(p: int) -> bool:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(("localhost", p))
-                return True
-            except OSError:
-                return False
-
-    port = args.port
-    if not _port_free(port):
-        for candidate in range(port + 1, port + 50):
-            if _port_free(candidate):
-                print(f"  Port {port} is in use, using {candidate} instead.", flush=True)
-                port = candidate
-                break
-        else:
-            print(f"Error: No free port found in range {port}-{port + 49}", file=sys.stderr)
-            return 1
-
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    app_file = os.path.join(app_dir, "Home.py")
-    config_dir = os.path.join(app_dir, ".streamlit")
-
-    if not os.path.exists(app_file):
-        print(f"Error: Could not find {app_file}", file=sys.stderr)
-        return 1
-
-    env = os.environ.copy()
-    if os.path.isdir(config_dir):
-        env["STREAMLIT_CONFIG_DIR"] = config_dir
-    env["STREAMLIT_SERVER_MAX_UPLOAD_SIZE"] = "500"
-    env["STREAMLIT_SERVER_MAX_MESSAGE_SIZE"] = "500"
-    env["STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION"] = "false"
-    env["STREAMLIT_SERVER_ENABLE_CORS"] = "false"
-    env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
-
-    cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        app_file,
-        "--server.port",
-        str(port),
-        "--server.headless",
-        "true" if args.no_browser else "false",
-        "--server.maxUploadSize",
-        "500",
-        "--server.maxMessageSize",
-        "500",
-        "--server.enableXsrfProtection",
-        "false",
-        "--server.enableCORS",
-        "false",
-    ]
-
-    url = f"http://localhost:{port}"
-    if args.no_browser:
-        print(f"  Open in browser: {url}", flush=True)
-    else:
-        print("  Opening... If nothing automatically opens, try pasting", flush=True)
-        print(f"  this into your browser: {url}", flush=True)
-    print(flush=True)
-
-    try:
-        _banner_re = re.compile(r"You can now view|Network URL|External URL|Local URL")
-        _ssign_line_re = re.compile(r"^\[ssign\]")
-
-        proc = subprocess.Popen(
-            cmd,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        def _filter_stderr() -> None:
-            for line in proc.stderr:
-                if _banner_re.search(line) or not line.strip():
-                    continue
-                sys.stderr.write(line)
-                sys.stderr.flush()
-
-        def _filter_stdout() -> None:
-            for line in proc.stdout:
-                if _ssign_line_re.match(line):
-                    sys.stdout.write(f"  {line}")
-                    sys.stdout.flush()
-
-        t1 = threading.Thread(target=_filter_stderr, daemon=True)
-        t2 = threading.Thread(target=_filter_stdout, daemon=True)
-        t1.start()
-        t2.start()
-        proc.wait()
-        t1.join(timeout=1)
-        t2.join(timeout=1)
-        return proc.returncode
-    except KeyboardInterrupt:
-        print("\nssign stopped.")
-        return 130
-    except FileNotFoundError:
-        print("Error: Streamlit not found. Install with: pip install ssign", file=sys.stderr)
-        return 1
+    print(
+        "ssign is a command-line tool. Common commands:\n"
+        "\n"
+        "  ssign run <genome.gbff> --outdir <out>   run the pipeline\n"
+        "  ssign doctor                             verify the install\n"
+        "  ssign fetch-databases --tier <tier>      download reference databases\n"
+        "\n"
+        "  ssign --help        full usage\n"
+        "  ssign run --help    every run-mode flag\n"
+        "\n"
+        f"Docs and source: {GITHUB_URL}",
+        flush=True,
+    )
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -1018,16 +922,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         prog="ssign",
         description="Secretion-system Identification for Gram Negatives. "
-        "Run with no subcommand to launch the GUI; use `ssign run` "
-        "for non-interactive / HPC use.",
+        "Use `ssign run` to run the pipeline; `ssign doctor` to check the "
+        "install; `ssign fetch-databases` to download reference databases.",
+        epilog=f"Docs and source: {GITHUB_URL}",
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit.")
-    parser.add_argument(
-        "--no-browser", action="store_true", help="(GUI mode) Start the GUI server without opening a browser."
-    )
-    parser.add_argument(
-        "--port", type=int, default=8501, help="(GUI mode) Port for the Streamlit server (default: 8501)."
-    )
 
     subparsers = parser.add_subparsers(dest="subcommand")
     _add_run_parser(subparsers)
@@ -1057,7 +956,7 @@ def main() -> int:
     if args.subcommand == "fetch-databases":
         return _fetch_databases(args)
 
-    return _launch_gui(args)
+    return _print_usage_hint()
 
 
 if __name__ == "__main__":

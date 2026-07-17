@@ -46,7 +46,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "streamlit>=1.30.0",
     "pandas>=2.0",
     "numpy>=1.24",
     "biopython>=1.80",
@@ -164,7 +163,7 @@ Changelog = "https://github.com/billerbeck-lab/ssign/blob/main/CHANGELOG.md"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "scripts/ssign_lib/data/*.tsv.gz", "shims/*.py", ".streamlit/*", "data/t5aSS/*.hmm", "runtime/*.json"]
+ssign_app = ["scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "scripts/ssign_lib/data/*.tsv.gz", "shims/*.py", "data/t5aSS/*.hmm", "runtime/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
@@ -232,7 +231,6 @@ module = [
     "scipy.*",
     "seaborn",
     "ssign_lib.*",
-    "streamlit.*",
     "taxopy",
     "torch.*",
 ]
@@ -271,11 +269,6 @@ select = ["E", "F", "I", "W"]
 # run both as standalone scripts and as installed-package code. The
 # mangling MUST happen before the ssign_lib import.
 "src/ssign_app/scripts/*" = ["E402"]
-# Streamlit GUI interleaves component imports with HTML/CSS rendering,
-# and the user-facing text strings (st.warning, st.markdown) carry full
-# GitHub URLs to docs which exceed 120 chars. Line-length doesn't carry
-# the same maintenance cost in user-facing prose as in code.
-"src/ssign_app/Home.py" = ["E402", "E501"]
 # conftest.py hoists scripts/ onto sys.path before any test-file imports
 # from it; test_hmmsearch_shim.py does the same for shims/. Both
 # legitimately import after sys.path mutation.

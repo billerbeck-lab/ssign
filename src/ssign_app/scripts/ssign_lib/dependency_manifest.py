@@ -159,7 +159,6 @@ class ModelWeights:
 
 PYTHON_DEPS: tuple[PythonDep, ...] = (
     # Base tier — installed by `pip install ssign`
-    PythonDep("streamlit", "streamlit"),
     PythonDep("pandas", "pandas"),
     PythonDep("numpy", "numpy"),
     PythonDep("Bio", "biopython", symbols=("Bio.SeqIO", "Bio.SeqUtils.ProtParam.ProteinAnalysis")),

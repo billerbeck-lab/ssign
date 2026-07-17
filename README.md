@@ -26,22 +26,21 @@ python3 -m venv .venv && source .venv/bin/activate
 # Install ssign (base tier)
 pip install ssign
 
-# Launch the GUI
-ssign
+# Run on a genome
+ssign run genome.gbff --outdir results
 ```
 
 > `ssign` is on PyPI from the v1.0.0 release; until then, install from source:
 > `git clone https://github.com/billerbeck-lab/ssign && cd ssign && pip install -e .`
 
-`ssign` opens a browser-based interface for uploading genomes and configuring
-the pipeline. Command-line mode is also supported (`ssign run --help`).
+`ssign` is a command-line tool. Run `ssign run --help` for every option, or
+`ssign doctor` to check your install.
 
 **System requirements:** Linux or macOS, Python >= 3.10. A CUDA-capable GPU is
 recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
 
-For an end-to-end walkthrough on a real genome, see the
-[first-run tutorial](docs/tutorials/first_run.md). Full install instructions
-(tiers, optional tool extras, HPC) are in the [install guide](docs/how-to/install.md).
+Full install instructions (tiers, optional tool extras, HPC) are in the
+[install guide](docs/how-to/install.md).
 
 ### Container quickstart (self-contained; recommended for HPC and the full pipeline)
 
@@ -138,10 +137,10 @@ Per genome, ssign writes to your `--outdir`:
   annotation tools have run), plus the enrichment fold/significance figures
   (per-tool and combined) when `--enrichment-stats` is on.
 
-Multi-genome batches also write combined `ssign_results.csv`,
-`ssign_results_raw.csv`, and `ssign_summary.txt` at the outdir root, plus the
-curated set over all genomes combined as `0N_pooled_*` (figure `01` is the
-cross-genome overview, one stacked bar per genome).
+Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
+subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
+at the outdir root and the curated figure set over all genomes as `0N_pooled_*`
+(figure `01` is the cross-genome overview, one stacked bar per genome).
 
 Full column reference: [output_files.md](docs/reference/output_files.md).
 
@@ -156,7 +155,7 @@ Full column reference: [output_files.md](docs/reference/output_files.md).
 | `proximity_window`    | `3`                  | +/-N genes around each SS component (same contig only). |
 | `wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
 
-All configurable in the GUI or via CLI flags. Full reference:
+All configurable via CLI flags. Full reference:
 [cli.md](docs/reference/cli.md) · [configure.md](docs/how-to/configure.md).
 
 ---
