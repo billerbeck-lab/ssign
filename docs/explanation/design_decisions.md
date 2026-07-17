@@ -531,7 +531,7 @@ Entries are organised by pipeline stage. Each has three parts:
 - **Rationale:** Maintaining two orchestrators (Python runner +
   Nextflow) forced double-bookkeeping of every script between `bin/`
   and `src/ssign_app/scripts/`. Nextflow users migrate to the
-  `ssign run` CLI; see the HPC how-to (`docs/how-to/run_on_hpc.md`).
+  `ssign run` CLI; see the HPC section of `docs/how-to/run.md`.
 
 ---
 

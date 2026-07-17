@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/run_tutorial.sh — verify the E. coli K-12 tutorial in docs/tutorials/first_run.md
+# tests/run_tutorial.sh — end-to-end smoke test on E. coli K-12.
 #
-# Runs the tutorial's "Quick taste without DTU tools" variant against a
-# real K-12 genome (so the smoke test does not require DTU installs in
-# CI), checks expected outputs exist + are non-empty, and spot-checks
-# that the T2SS gsp operon shows up in the secretion-systems section.
-# Use this as a smoke test before tagging a release, or after touching
-# anything in the run-pipeline path.
+# Runs ssign on a real K-12 genome via the DTU webserver fallback (so the
+# smoke test does not require local DTU installs in CI), checks expected
+# outputs exist + are non-empty, and spot-checks that the T2SS gsp operon
+# shows up in the secretion-systems section. Use this as a smoke test
+# before tagging a release, or after touching anything in the run-pipeline
+# path.
 #
 # Usage:
 #     bash tests/run_tutorial.sh            # ~30 min, internet required
@@ -53,7 +53,7 @@ if [[ -d "$OUTDIR" ]]; then
     fi
 fi
 
-# ── Run ssign (the exact tutorial command) ───────────────────────────────
+# ── Run ssign (base-tier command, webserver DTU fallback) ────────────────
 echo ">> Running ssign — DLP + SignalP via DTU webserver (opt-in fallback used here so CI does not need a DTU install), ~30 min total..."
 START=$(date +%s)
 ssign run "$GENBANK" --outdir "$OUTDIR" \

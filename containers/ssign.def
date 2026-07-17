@@ -15,11 +15,14 @@
 # EggNOG-mapper live in two micromamba envs on PATH; DeepLocPro (the default-on
 # localization predictor, open source) + its ESM2 backbone, the DeepSecE checkpoint
 # (fine-tuned ESM-1b), and the pLM-BLAST ProtT5 encoder are baked into ssign's env
-# and caches, so the default path runs fully offline. Only two things stay host-provided:
-#   * SignalP 6 (DTU academic licence — cannot be bundled) — install locally with
-#     scripts/ssign-setup-dtu, or run with --signalp-mode remote. It is the ONLY
+# and caches, so the default path runs fully offline. Host-provided pieces:
+#   * SignalP 6 (DTU academic licence, cannot be bundled): install locally with
+#     scripts/ssign-setup-dtu, or run with --signalp-mode remote. It is the only
 #     predictor not baked.
-#   * reference databases/weights (licence + up to 500 GB) — bind the host DB dir;
+#   * InterProScan (engine + member DBs): the image bakes only a Java runtime to
+#     run a host-mounted IPS install (SSIGN_INTERPROSCAN_PATH); the engine and its
+#     member databases are host-provided.
+#   * reference databases/weights (licence + up to 500 GB): bind the host DB dir.
 #     Apptainer passes host SSIGN_* env vars through, so `export SSIGN_*_DB=...` works.
 # LICENCE: baking DeepLocPro (CC BY-NC-SA 4.0) makes this image NON-COMMERCIAL
 # (academic/research use). See %labels/%help.
@@ -294,10 +297,12 @@ PY
     org.opencontainers.image.version 1.0.0
 
 %help
-    ssign v1.0.0 — reproducible Singularity image. Databases/weights are
-    bind-mounted (not bundled). SignalP 6 (DTU licence) is the only predictor not
-    baked: install it with scripts/ssign-setup-dtu or use --signalp-mode remote.
-    See containers/README.md for per-tier mounts and HPC usage.
+    ssign v1.0.0, reproducible Singularity image. Databases/weights are
+    bind-mounted (not bundled). Host-provided: SignalP 6 (DTU licence; the only
+    predictor not baked; install with scripts/ssign-setup-dtu or use
+    --signalp-mode remote) and InterProScan (the image bakes only a Java runtime;
+    the IPS engine + member DBs are host-mounted). See containers/README.md for
+    per-tier mounts and HPC usage.
 
     LICENCE: this image bundles DeepLocPro (CC BY-NC-SA 4.0) and EggNOG-mapper
     (AGPL), so it is for NON-COMMERCIAL academic/research use. ssign's own code is

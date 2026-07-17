@@ -46,9 +46,10 @@ Full install instructions (tiers, optional tool extras, HPC) are in the
 
 The Singularity/Apptainer image bundles the entire free toolchain (Bakta,
 EggNOG-mapper, BLAST+, MacSyFinder, HH-suite, DeepLocPro + its ESM2 weights, and
-more). You supply only a genome, the reference databases, and (for signal-peptide
-calls) the DTU-licensed SignalP 6. DeepLocPro is baked in; SignalP is the only
-predictor you install yourself.
+more). You supply the reference databases plus two host-provided tools: the
+DTU-licensed SignalP 6 (for signal-peptide calls) and InterProScan (the image
+ships only a Java runtime to run a host-mounted install). SignalP is the only
+predictor you install yourself; DeepLocPro and DeepSecE are baked in.
 
 ```bash
 # 0. Get the launcher scripts (ssign-run / ssign-setup-dtu wrap apptainer, so pip
@@ -78,7 +79,7 @@ to use the DTU webserver (this uploads your sequences). The image is for
 EggNOG-mapper, AGPL).
 
 Full container guide (hardware, HPC/PBS, verification, troubleshooting):
-[install_container.md](docs/how-to/install_container.md). Maintainer build and
+[install.md](docs/how-to/install.md). Maintainer build and
 publish steps: [containers/README.md](containers/README.md).
 
 ---
@@ -156,7 +157,7 @@ Full column reference: [output_files.md](docs/reference/output_files.md).
 | `wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
 
 All configurable via CLI flags. Full reference:
-[cli.md](docs/reference/cli.md) · [configure.md](docs/how-to/configure.md).
+[cli.md](docs/reference/cli.md) · [run.md](docs/how-to/run.md).
 
 ---
 

@@ -1,7 +1,7 @@
 # containers/
 
 Build artifacts for the **ssign** Singularity/Apptainer image. To **run** ssign,
-start at [`docs/how-to/install_container.md`](../docs/how-to/install_container.md)
+start at [`docs/how-to/install.md`](../docs/how-to/install.md)
 (install, fetch databases, run). This directory is for maintainers who **build and
 publish** the image.
 
@@ -43,7 +43,7 @@ apptainer build --fakeroot ssign.sif containers/ssign.def
 
 After this, others get the image with one `apptainer pull` (GHCR) or a download
 (Zenodo), then run per
-[`install_container.md`](../docs/how-to/install_container.md).
+[`install.md`](../docs/how-to/install.md).
 
 **Gate:** publish ONLY after a tier-2 (extended) container run passes the full
 extended-tier step count on a real genome. A Zenodo DOI is permanent; publishing a
@@ -96,7 +96,7 @@ apptainer pull oras://ghcr.io/billerbeck-lab/ssign:$VERSION   # verify a clean, 
 ### 3. Wire the docs + tag the release
 
 - Point the `apptainer pull` line in `README.md` and
-  `docs/how-to/install_container.md` at the source that actually worked (GHCR if the
+  `docs/how-to/install.md` at the source that actually worked (GHCR if the
   push took, otherwise `download from Zenodo: <DOI>`).
 - Add the DOI to the README badge + `CITATION.cff`.
 - Tag it: `git tag v$VERSION && git push origin v$VERSION`.

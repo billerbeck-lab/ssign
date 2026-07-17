@@ -1,13 +1,13 @@
 # CLI reference
 
 Complete flag list for the `ssign` command. For "how do I X" recipes, see
-[`how-to/configure.md`](../how-to/configure.md).
+[`how-to/run.md`](../how-to/run.md).
 
-`ssign` has one GUI mode and three subcommands:
+`ssign` is a command-line tool with three subcommands (running it with no
+subcommand prints a short usage hint):
 
 ```bash
-ssign                                # launch the Streamlit GUI
-ssign run input.gbff --outdir <dir>  # run the pipeline non-interactively
+ssign run input.gbff --outdir <dir>  # run the pipeline
 ssign doctor --tier <tier>           # verify the install
 ssign fetch-databases --tier <tier>  # download reference databases
 ```
@@ -17,17 +17,15 @@ covered under [Other subcommands](#other-subcommands).
 
 Most boolean flags use `argparse.BooleanOptionalAction`, so each `--<flag>`
 accepts a `--no-<flag>` inverse (e.g. `--skip-blastp` and `--no-skip-blastp`).
-The exceptions are `--resume`, `--skip-localization-gate`, and the top-level
-`--version` and `--no-browser`: these are plain on/off switches with no
-`--no-` form.
+The exceptions are `--resume`, `--skip-localization-gate`, `--imports-only`,
+`--dry-run`, and `--version`: these are plain on/off switches with no `--no-`
+form.
 
 ## Top-level flags
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--version` | bool | `false` | Print the ssign version and exit. |
-| `--no-browser` | bool | `false` | (GUI mode) Start the server without opening a browser. |
-| `--port` | int | `8501` | (GUI mode) Port for the Streamlit server. Falls forward to the next free port if `8501` is in use. |
 
 ## `ssign run` essentials
 

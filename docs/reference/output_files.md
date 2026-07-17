@@ -26,33 +26,33 @@ outputs, etc.) are written to a temporary work directory during the run and
 removed on success. On a failure they are kept under `/tmp/ssign_*` and the
 log line points at the location.
 
-## Multi-genome layout (GUI batch run)
+## Multi-genome layout
 
-When the GUI processes several genomes in one session, the per-genome files
-above are produced for each, and three combined files are added at the
-output-directory root:
+When you pass several genomes to one `ssign run`, each genome is written to its
+own subdirectory under `--outdir` (the single-genome layout above, one folder
+per genome), and combined files are added at the output-directory root:
 
 ```
 results/
-├── <each genome's files as above>
-├── ssign_results.csv                Combined results across all genomes
-├── ssign_results_raw.csv            Combined raw annotations
-└── ssign_summary.txt                Combined summary
+├── <genome-1>/                      per-genome files (as above)
+├── <genome-2>/
+├── ...
+├── combined_results.csv             Secreted proteins pooled across all genomes,
+│                                    with a leading source_genome column
+├── combined_summary.txt             Aggregated report: pooled counts, per-type
+│                                    totals, per-tool coverage
+└── figures/
+    ├── 0N_pooled_*.png              Curated set over all genomes (01-06 numbering)
+    └── pooled_enrichment_fold[_combined].png   (with --enrichment-stats)
 ```
 
-CLI batch runs name the combined files `combined_results.csv` and
-`combined_summary.txt` (an aggregated report over every genome's secreted
-proteins: pooled counts, per-type totals, and per-tool coverage). The GUI merge
-uses the `ssign_*` names above.
-
-Multi-genome runs also emit the curated figure set pooled over all genomes as
-`0N_pooled_*.png` (same `01`-`06` numbering), plus the enrichment charts
-`pooled_enrichment_fold[_combined].png` when `--enrichment-stats` is set.
+There is no combined raw CSV; each genome keeps its own
+`<genome>/<genome>_results_raw.csv`.
 
 ## `<sample-id>_results.csv` (main results)
 
 The file opens with a short `#`-prefixed overview block naming the three
-sections; readers and the GUI parser skip it. Below it are up to three
+sections; skip it when parsing. Below it are up to three
 chunks separated by blank lines, each with a `#`-prefixed header. Empty
 chunks are omitted (e.g. genomes with no "other" systems will not have a
 chunk 3):
@@ -100,13 +100,13 @@ appears alphabetically after the last priority group, before `sequence`.
 
 ### Chunk 2 + 3 column reference (Secretion Systems)
 
-Columns mirror MacSyFinder's output table with two added at the front:
+ssign writes its own condensed schema (not a MacSyFinder table passthrough). Each
+row is either a whole system or one of its components, tagged by `record_type`:
 
-| Column | Source |
+| `record_type` | Columns |
 |---|---|
-| `record_type` | `system` or `component` (added by ssign for chunked-CSV navigation). |
-| `sample_id` | Genome ID. |
-| `ss_type`, `wholeness_score`, `model_fqn`, `replicon`, `genes` etc. | MacSyFinder columns; see [MacSyFinder docs](https://macsyfinder.readthedocs.io/) for the full list. |
+| `system` | `record_type`, `sample_id`, `sys_id`, `ss_type`, `wholeness`, `n_components`, `excluded` |
+| `component` | `record_type`, `sample_id`, `sys_id`, `ss_type`, `locus_tag`, `gene_name`, `gene_status`, `wholeness`, `excluded` |
 
 Excluded systems (default: Flagellum, Tad, and the type-IV pili / uptake
 appendages T4aP, T4bP, MSH, ComM, Archaeal-T4P) and their components do not
@@ -142,14 +142,11 @@ Plain text concatenation of:
    relevant predictors per type: DLP-or-SignalP for the Sec-dependent T5 results
    (autotransporter self + T5bSS), DLP-or-DSE for every other window (including
    the T5a/c hitchhiker window), DLP-only for T3SS.
-   `n_null` is the null sample size: the exact per-genome rotations (~one per
-   gene) for a single genome, or 10000 Monte-Carlo draws when pooled. A single
-   genome enumerates every rotation (n genes -> n-1 offsets) exactly. Pooling
-   cannot: the pooled null would be every joint combination of per-genome
-   offsets, a product ((n1-1) x (n2-1) x ...) that is astronomically large, so
-   it is estimated by drawing 10000 random joint rotations (one random rotation
-   per genome, summed) instead of enumerating them. Each genome still
-   contributes its own exact rotation set; only the join is sampled.
+   `n_null` is the null sample size: the exact per-genome rotations (n genes give
+   n-1 offsets) for a single genome, or 10000 Monte-Carlo draws when pooled. The
+   exact pooled null (every joint combination of per-genome offsets) is too large
+   to enumerate, so random joint rotations are drawn instead; each genome still
+   contributes its own exact rotation set, only the join is sampled.
 
 > **Reading significance:** the test's power scales with how many genomes and
 > loci contribute. A **single-genome** run often shows `significant = False`

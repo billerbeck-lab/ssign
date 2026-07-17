@@ -41,18 +41,16 @@ Each of these is read at run time as a fallback used only when the matching CLI
 flag is unset (the flag always wins), resolving its tool's database or install
 directory. `scripts/fetch_databases.sh` prints a matching `set ...` line for the
 databases it downloads so you can copy a one-liner into your shell rc file.
-Bakta and EggNOG are read under their **native** tool env var names,
-`BAKTA_DB` and `EGGNOG_DATA_DIR` (the same names the fetcher prints), not a
-`SSIGN_`-prefixed alias. `SSIGN_DEEPSECE_CHECKPOINT` is the exception: it is not
-read at run time.
+Bakta and EggNOG are read under both their **native** tool env var names
+(`BAKTA_DB`, `EGGNOG_DATA_DIR`, the same names the fetcher prints) and a
+`SSIGN_`-prefixed alias (`SSIGN_BAKTA_DB`, `SSIGN_EGGNOG_DB`); either works.
 
 | Variable | CLI equivalent |
 |---|---|
-| `BAKTA_DB` | `--bakta-db` |
-| `EGGNOG_DATA_DIR` | `--eggnog-db` |
+| `BAKTA_DB` / `SSIGN_BAKTA_DB` | `--bakta-db` |
+| `EGGNOG_DATA_DIR` / `SSIGN_EGGNOG_DB` | `--eggnog-db` |
 | `SSIGN_INTERPROSCAN_PATH` | `--interproscan-db` |
 | `SSIGN_ECOD_DB` | `--plmblast-db` |
-| `SSIGN_DEEPSECE_CHECKPOINT` | (alternative to `SSIGN_DEEPSECE_CHECKPOINT_URL` for already-downloaded files) |
 | `SSIGN_DEEPLOCPRO_PATH` | `--deeplocpro-path` (also used by the DLP integration test) |
 | `SSIGN_SIGNALP_PATH` | `--signalp-path` (also used by the SignalP integration test) |
 
