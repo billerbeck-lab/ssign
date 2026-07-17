@@ -179,8 +179,15 @@ columns in the integrated CSV, and the groups are written to
 
 It runs automatically, but only when NCBI BLAST+ (`blastp` and `makeblastdb`)
 is on PATH. Without BLAST+ the step soft-skips: every substrate becomes its own
-singleton group and the run continues. There is no figure for ortholog
-grouping.
+singleton group and the run continues.
 
-Grouping is per-genome: a multi-genome run groups each genome's substrates
-independently.
+A multi-genome run adds a second, cross-genome pass on top of the per-genome
+grouping: it pools every genome's substrates, runs one all-vs-all BLASTp over the
+combined set, and clusters that. It writes `cross_genome_orthologs.csv` (each
+substrate with its `sample_id` and cross-genome group) and
+`cross_genome_ortholog_groups.csv` (per group: `n_members`, `n_genomes`,
+`genomes`, `members`, `mean_pident`), merges an `xg_ortholog_group` column into
+every genome's integrated CSV, and draws `figures/07_cross_genome_orthologs.png`:
+a two-panel conservation figure (group-size distribution + the most-conserved
+groups, stacked by secretion-system type and labelled by function). Same BLAST+
+requirement as the per-genome pass.

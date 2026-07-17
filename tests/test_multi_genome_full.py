@@ -62,7 +62,7 @@ def run_genome(genome_path, sample_id, outdir, enable_hhpred=True):
         icon = "OK" if r.success else "FAIL"
         logger.info(f"    [{icon}] {r.name}: {r.message}")
 
-    return results
+    return results, runner
 
 
 def main():
@@ -84,6 +84,7 @@ def main():
 
     all_results = []
     genome_outdirs = []
+    genome_specs = []  # (sample_id, integrated_csv, proteins_fasta) for cross-genome step
     total_start = time.time()
 
     for genome_path, sample_id, outdir in genomes:
@@ -93,11 +94,12 @@ def main():
         logger.info(f"{'=' * 60}")
 
         start = time.time()
-        results = run_genome(genome_path, sample_id, outdir, enable_hhpred=True)
+        results, runner = run_genome(genome_path, sample_id, outdir, enable_hhpred=True)
         elapsed = time.time() - start
 
         all_results.extend(results)
         genome_outdirs.append(outdir)
+        genome_specs.append((sample_id, runner.files.get("integrated", ""), runner.files.get("proteins", "")))
         logger.info(f"  Time: {elapsed:.0f}s ({elapsed / 60:.1f}m)")
 
     # Cross-genome ortholog grouping
@@ -107,7 +109,7 @@ def main():
 
     start = time.time()
     xg_result = run_cross_genome_orthologs(
-        genome_outdirs=genome_outdirs,
+        genome_specs,
         output_dir=base_outdir,
         min_pident=40.0,
         min_qcov=70.0,

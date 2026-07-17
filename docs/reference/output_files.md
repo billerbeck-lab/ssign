@@ -41,13 +41,24 @@ results/
 │                                    with a leading source_genome column
 ├── combined_summary.txt             Aggregated report: pooled counts, per-type
 │                                    totals, per-tool coverage
+├── cross_genome_orthologs.csv       Every pooled substrate with its sample_id and
+│                                    cross-genome ortholog_group (BLAST+ required)
+├── cross_genome_ortholog_groups.csv Per group: n_members, n_genomes, genomes,
+│                                    members, mean_pident
 └── figures/
     ├── 0N_pooled_*.png              Curated set over all genomes (01-06 numbering)
+    ├── 07_cross_genome_orthologs.png   Ortholog conservation, 2-panel (BLAST+ required)
     └── pooled_enrichment_fold[_combined].png   (with --enrichment-stats)
 ```
 
 There is no combined raw CSV; each genome keeps its own
 `<genome>/<genome>_results_raw.csv`.
+
+The cross-genome ortholog step pools every genome's substrates, runs one
+all-vs-all BLASTp, and clusters the result. It only runs for two or more genomes
+and only when NCBI BLAST+ (`blastp` + `makeblastdb`) is on PATH; otherwise it is
+skipped. Each genome's integrated CSV also gains an `xg_ortholog_group` column
+linking its substrates to the cross-genome groups.
 
 ## `<sample-id>_results.csv` (main results)
 

@@ -3633,7 +3633,7 @@ class PipelineRunner:
 
 
 def run_cross_genome_orthologs(
-    genome_outdirs: list[str],
+    genomes: list[tuple[str, str, str]],
     output_dir: str,
     min_pident: float = 40.0,
     min_qcov: float = 70.0,
@@ -3641,16 +3641,23 @@ def run_cross_genome_orthologs(
 ) -> dict:
     """Run cross-genome ortholog grouping on substrates from multiple genomes.
 
-    After each genome is processed individually, this function:
-    1. Collects all substrate sequences from all genome output directories
-    2. Runs all-vs-all BLASTp on the combined set
-    3. Clusters into ortholog groups using Union-Find
-    4. Merges cross-genome ortholog group IDs back into each genome's integrated CSV
+    ``genomes`` is a list of ``(sample_id, integrated_csv, proteins_fasta)``
+    tuples, one per genome. After each genome has been processed individually
+    this function:
+    1. Pools every genome's substrate sequences (locus_tags from its integrated
+       CSV, sequences from its protein FASTA) into one combined FASTA.
+    2. Runs all-vs-all BLASTp on the combined set.
+    3. Clusters into ortholog groups using Union-Find.
+    4. Adds ``sample_id`` (per protein) and ``n_genomes`` / ``genomes`` (per
+       group) columns, then merges the cross-genome group id back into each
+       genome's integrated CSV as ``xg_ortholog_group``.
 
     Returns dict with n_proteins, n_groups, genomes_updated, file paths.
     """
     import pandas as pd
     from Bio import SeqIO
+
+    from ssign_app.core._pool_utils import make_prefixed_id, split_prefixed_id
 
     result = {
         "n_proteins": 0,
@@ -3667,57 +3674,42 @@ def run_cross_genome_orthologs(
     os.makedirs(output_dir, exist_ok=True)
     combined_fasta = os.path.join(output_dir, "all_substrates_combined.faa")
 
-    # Step 1: Collect all substrate sequences
-    all_substrate_ids = {}  # locus_tag -> genome_outdir
+    # Step 1: Pool substrate sequences into one FASTA. Each id is prefixed with its
+    # sample_id (make_prefixed_id) so a locus_tag shared across genomes -- e.g. a
+    # RefSeq WP_ accession identical in two related strains -- stays two distinct
+    # records. Deduping on the bare locus_tag would drop the second copy and
+    # undercount conservation for exactly the most-conserved proteins.
+    seen_ids: set[str] = set()
     n_written = 0
 
     with open(combined_fasta, "w") as out_f:
-        for gdir in genome_outdirs:
-            gpath = Path(gdir)
-
-            # Find integrated CSV to get substrate locus_tags
-            integrated_csvs = list(gpath.glob("*_integrated.csv")) + list(gpath.glob("*integrated*.csv"))
-            if not integrated_csvs:
-                logger.warning(f"No integrated CSV in {gdir} -- skipping")
+        for sample_id, integrated_csv, proteins_fasta in genomes:
+            if not integrated_csv or not os.path.exists(integrated_csv):
+                logger.warning(f"No integrated CSV for {sample_id} -- skipping")
                 continue
-
-            integrated_csv = str(integrated_csvs[0])
-            substrate_ids = set()
+            if not proteins_fasta or not os.path.exists(proteins_fasta):
+                logger.warning(f"No protein FASTA for {sample_id} -- skipping")
+                continue
             try:
                 df = pd.read_csv(integrated_csv)
-                if "locus_tag" in df.columns:
-                    substrate_ids = set(df["locus_tag"].dropna().astype(str))
             except Exception as e:
                 logger.warning(f"Could not read {integrated_csv}: {e}")
                 continue
-
+            if "locus_tag" not in df.columns:
+                continue
+            substrate_ids = set(df["locus_tag"].dropna().astype(str))
             if not substrate_ids:
                 continue
 
-            # Find protein FASTA — check progress.json first, then glob
-            protein_fastas = []
-            progress_path = gpath / "ssign_progress.json"
-            if progress_path.exists():
-                try:
-                    with open(progress_path) as pf:
-                        prog = json.load(pf)
-                    proteins_path = prog.get("files", {}).get("proteins", "")
-                    if proteins_path and os.path.exists(proteins_path):
-                        protein_fastas.insert(0, Path(proteins_path))
-                except Exception:
-                    pass
-
-            protein_fastas.extend(list(gpath.glob("*.faa")))
-
-            for pf in protein_fastas:
-                try:
-                    for rec in SeqIO.parse(str(pf), "fasta"):
-                        if rec.id in substrate_ids and rec.id not in all_substrate_ids:
-                            SeqIO.write(rec, out_f, "fasta")
-                            all_substrate_ids[rec.id] = gdir
-                            n_written += 1
-                except Exception:
+            for rec in SeqIO.parse(proteins_fasta, "fasta"):
+                if rec.id not in substrate_ids:
                     continue
+                pid = make_prefixed_id(sample_id, rec.id)
+                if pid in seen_ids:
+                    continue
+                out_f.write(f">{pid}\n{rec.seq}\n")
+                seen_ids.add(pid)
+                n_written += 1
 
     result["combined_fasta"] = combined_fasta
     result["n_proteins"] = n_written
@@ -3761,6 +3753,47 @@ def run_cross_genome_orthologs(
     result["orthologs_csv"] = orthologs_csv
     result["ortholog_groups_csv"] = groups_csv
 
+    # Step 3: Split the sample_id back out of each prefixed id (so the per-protein
+    # CSV carries the original locus_tag + its genome), and add genome-count columns
+    # to the group CSV -- run_ortholog_grouping only sees the prefixed ids.
+    try:
+        df_og = pd.read_csv(orthologs_csv)
+        split = df_og["locus_tag"].map(split_prefixed_id)
+        df_og["sample_id"] = split.map(lambda t: t[0])
+        df_og["locus_tag"] = split.map(lambda t: t[1])
+        df_og = df_og[["locus_tag", "sample_id"] + [c for c in df_og.columns if c not in ("locus_tag", "sample_id")]]
+        df_og.to_csv(orthologs_csv, index=False)
+        result["n_groups"] = df_og["ortholog_group"].nunique()
+    except Exception as e:
+        logger.warning(f"Could not read ortholog results: {e}")
+        return result
+
+    try:
+        df_grp = pd.read_csv(groups_csv)
+
+        def _genomes_for(members: object) -> list[str]:
+            seen: list[str] = []
+            for m in str(members).split(";"):
+                m = m.strip()
+                if not m:
+                    continue
+                try:
+                    g = split_prefixed_id(m)[0]
+                except ValueError:
+                    continue
+                if g not in seen:
+                    seen.append(g)
+            return sorted(seen)
+
+        genome_lists = df_grp["members"].map(_genomes_for)
+        df_grp["n_genomes"] = genome_lists.map(len)
+        df_grp["genomes"] = genome_lists.map(";".join)
+        ordered = ["ortholog_group", "n_members", "n_genomes", "genomes", "members", "mean_pident"]
+        df_grp = df_grp[[c for c in ordered if c in df_grp.columns]]
+        df_grp.to_csv(groups_csv, index=False)
+    except Exception as e:
+        logger.warning(f"Could not add genome columns to groups CSV: {e}")
+
     if progress_callback:
         progress_callback(
             "Cross-genome orthologs",
@@ -3768,38 +3801,30 @@ def run_cross_genome_orthologs(
             "Merging ortholog groups into per-genome results...",
         )
 
-    # Step 3: Read ortholog assignments and merge into each genome's integrated CSV
-    try:
-        df_og = pd.read_csv(orthologs_csv)
-        result["n_groups"] = df_og["ortholog_group"].nunique()
-    except Exception as e:
-        logger.warning(f"Could not read ortholog results: {e}")
-        return result
-
-    # Prefix with "xg_" (cross-genome) to distinguish from per-genome groups
-    df_og = df_og.rename(
+    # Step 4: Merge the cross-genome group id back into each integrated CSV. Filter
+    # to the genome's own rows first (a locus_tag shared across genomes must attach
+    # its own group per genome), and prefix "xg_" so it never collides with the
+    # per-genome grouping columns.
+    df_merge = df_og.rename(
         columns={
             "ortholog_group": "xg_ortholog_group",
             "og_n_members": "xg_og_n_members",
             "og_mean_pident": "xg_og_mean_pident",
         }
-    )
+    )[["locus_tag", "sample_id", "xg_ortholog_group", "xg_og_n_members", "xg_og_mean_pident"]]
 
     genomes_updated = 0
-    for gdir in genome_outdirs:
-        gpath = Path(gdir)
-        integrated_csvs = list(gpath.glob("*_integrated.csv")) + list(gpath.glob("*integrated*.csv"))
-        if not integrated_csvs:
+    for sample_id, integrated_csv, _proteins in genomes:
+        if not integrated_csv or not os.path.exists(integrated_csv):
             continue
-
-        integrated_csv = str(integrated_csvs[0])
         try:
             df_int = pd.read_csv(integrated_csv)
             for col in ["xg_ortholog_group", "xg_og_n_members", "xg_og_mean_pident"]:
                 if col in df_int.columns:
                     df_int = df_int.drop(columns=[col])
 
-            df_merged = df_int.merge(df_og, on="locus_tag", how="left")
+            sub = df_merge[df_merge["sample_id"] == sample_id].drop(columns=["sample_id"])
+            df_merged = df_int.merge(sub, on="locus_tag", how="left")
             df_merged.to_csv(integrated_csv, index=False)
             genomes_updated += 1
             logger.info(f"Merged cross-genome orthologs into {integrated_csv}")

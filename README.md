@@ -141,7 +141,10 @@ Per genome, ssign writes to your `--outdir`:
 Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
 subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
 at the outdir root and the curated figure set over all genomes as `0N_pooled_*`
-(figure `01` is the cross-genome overview, one stacked bar per genome).
+(figure `01` is the cross-genome overview, one stacked bar per genome). With
+BLAST+ installed they also get cross-genome ortholog groups
+(`cross_genome_ortholog_groups.csv`) and a conservation figure
+(`figures/07_cross_genome_orthologs.png`).
 
 Full column reference: [output_files.md](docs/reference/output_files.md).
 

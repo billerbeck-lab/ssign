@@ -334,8 +334,83 @@ class MultiGenomeRunner:
             else:
                 logger.warning("pooled figures failed: %s", err[:160])
 
+        # Cross-genome ortholog grouping + conservation figure. Runs LAST because
+        # generate_figures.py's clear_figure_set (above) would otherwise wipe the
+        # numbered 07_ PNG this writes into the same figures dir.
+        self._step_cross_genome_orthologs(runners, top_outdir)
+
         self.results = {sid: r.results for sid, r in runners.items()}
         return self.results
+
+    def _step_cross_genome_orthologs(self, runners: dict[str, PipelineRunner], top_outdir: Path) -> None:
+        """Group orthologous secreted proteins across genomes and draw the
+        conservation figure.
+
+        Only meaningful for >=2 genomes; needs BLAST+ (blastp + makeblastdb) on
+        PATH for the all-vs-all search. Writes cross_genome_orthologs.csv +
+        cross_genome_ortholog_groups.csv to ``top_outdir``, merges
+        ``xg_ortholog_group`` into each genome's integrated CSV, and renders
+        ``figures/07_cross_genome_orthologs.png``. Never fatal.
+        """
+        import shutil
+
+        from ssign_app.core.runner import run_cross_genome_orthologs, run_script
+
+        genomes = [
+            (sid, r.files["integrated"], r.files["proteins"])
+            for sid, r in runners.items()
+            if r.files.get("integrated")
+            and os.path.exists(r.files["integrated"])
+            and r.files.get("proteins")
+            and os.path.exists(r.files["proteins"])
+        ]
+        if len(genomes) < 2:
+            return
+        if not (shutil.which("blastp") and shutil.which("makeblastdb")):
+            logger.info("cross-genome orthologs: BLAST+ (blastp/makeblastdb) not on PATH -- skipping")
+            return
+
+        try:
+            res = run_cross_genome_orthologs(
+                genomes,
+                str(top_outdir),
+                min_pident=self.configs[0].ortholog_min_pident,
+                min_qcov=self.configs[0].ortholog_min_qcov,
+            )
+        except Exception as e:
+            logger.warning("cross-genome orthologs failed: %s", str(e)[:160])
+            return
+
+        groups_csv = res.get("ortholog_groups_csv", "")
+        if not groups_csv or not os.path.exists(groups_csv):
+            return
+        logger.info(
+            "cross-genome orthologs: %d groups across %d substrates -> %s",
+            res.get("n_groups", 0),
+            res.get("n_proteins", 0),
+            groups_csv,
+        )
+
+        fig_dir = os.path.join(str(top_outdir), "figures")
+        os.makedirs(fig_dir, exist_ok=True)
+        outfile = os.path.join(fig_dir, "07_cross_genome_orthologs.png")
+        rc, _out, err = run_script(
+            "run_cross_genome_ortholog_figure.py",
+            [
+                "--groups-csv",
+                groups_csv,
+                "--integrated-csvs",
+                *[g[1] for g in genomes],
+                "--outfile",
+                outfile,
+                "--dpi",
+                str(self.configs[0].dpi),
+            ],
+        )
+        if rc == 0:
+            logger.info("cross-genome ortholog figure -> %s", outfile)
+        else:
+            logger.warning("cross-genome ortholog figure failed: %s", err[:160])
 
     def _make_pool_runner(self, top_outdir: Path) -> PipelineRunner:
         """Build a PipelineRunner whose work_dir holds pooled artefacts."""
