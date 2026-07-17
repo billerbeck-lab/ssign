@@ -3,7 +3,7 @@
 When an intentional pipeline change alters one or more outputs, follow these
 steps to refresh the frozen reference files.
 
-> **2026-07-09 — consensus-annotation-v2 vocabulary change.** The tool-weighted
+> **2026-07-09, consensus-annotation-v2 vocabulary change.** The tool-weighted
 > consensus renamed the broad categories.
 > The golden run drives consensus from GBFF only (every annotation tool is
 > disabled), so the sole affected cells are the consensus columns of the one

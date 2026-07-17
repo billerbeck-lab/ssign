@@ -500,9 +500,8 @@ with peer-reviewed citations).
 ### 6.3 Nextflow "power mode" deprecated
 
 - **Decision:** The Nextflow DSL2 pipeline (`bin/`, `modules/local/`,
-  `workflows/`, `main.nf`, `nextflow.config`) is being removed for
-  v1.0.0. The Python `ssign run` CLI + Singularity covers all HPC
-  batch use cases.
+  `workflows/`, `main.nf`, `nextflow.config`) was removed for v1.0.0. The
+  Python `ssign run` CLI + Singularity covers all HPC batch use cases.
 
 - **Rationale:** Maintaining two orchestrators (Python runner +
   Nextflow) forced double-bookkeeping of every script between `bin/`

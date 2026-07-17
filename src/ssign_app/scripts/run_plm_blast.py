@@ -79,7 +79,8 @@ def _write_empty_output(out_path):
 
 # pLM-BLAST output CSV columns (v1.x). Exact header names verified against
 # the upstream `scripts/plmblast.py` result-writer on first integration
-# run — see the TODO below if upstream renames columns. `sdesc` is added
+# run; if upstream renames columns, update the `_COL_*` constants below.
+# `sdesc` is added
 # by upstream `alntools/postprocess/format.py:prepare_output` when the DB
 # CSV has a `description` column (true for the public ECOD DB).
 # Sibling-file extensions plmblast.py probes for next to the DB directory.

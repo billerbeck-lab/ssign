@@ -1,8 +1,8 @@
 """Central constants and default thresholds for the ssign pipeline.
 
 All configurable thresholds are defined here so that (a) the Python scripts
-have sensible defaults when run standalone and (b) the Nextflow params
-override them at invocation time via CLI arguments.
+have sensible defaults when run standalone and (b) the CLI arguments
+override them at invocation time.
 """
 
 import os
