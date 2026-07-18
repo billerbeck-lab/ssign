@@ -6,110 +6,34 @@
 [![Tests](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml)
 [![Lint](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml)
 
-ssign detects secretion systems in Gram-negative bacterial genomes, identifies
-the proteins they secrete, and annotates those proteins with functional and
-structural information from the major bioinformatics databases. Built for the
-[Billerbeck Lab](https://www.billerbecklab.com/) at Imperial College London.
+ssign predicted secretion systems in Gram-negative bacterial genomes, 
+the proteins they secrete, and annotates those proteins.
 
-**Version `1.0.0`**, the publication release: fully offline-capable, with a
-SHA-pinned container image and a Zenodo DOI. A browser-based web service is
-planned post-publication; until then, run ssign locally (below).
-
----
-
-## Quickstart
-
-```bash
-# Create an isolated environment
-python3 -m venv .venv && source .venv/bin/activate
-
-# Install ssign (base tier)
-pip install ssign
-
-# Run on a genome
-ssign run genome.gbff --outdir results
-```
-
-> `ssign` is on PyPI from the v1.0.0 release; until then, install from source:
-> `git clone https://github.com/billerbeck-lab/ssign && cd ssign && pip install -e .`
-
-`ssign` is a command-line tool. Run `ssign run --help` for every option, or
-`ssign doctor` to check your install.
-
-**System requirements:** Linux or macOS, Python >= 3.10. A CUDA-capable GPU is
-recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
-
-Full install instructions (tiers, optional tool extras, HPC) are in the
-[install guide](docs/how-to/install.md).
-
-### Container quickstart (self-contained; recommended for HPC and the full pipeline)
-
-The Singularity/Apptainer image bundles the entire free toolchain (Bakta,
-EggNOG-mapper, BLAST+, MacSyFinder, HH-suite, DeepLocPro + its ESM2 weights, and
-more). You supply the reference databases plus two host-provided tools: the
-DTU-licensed SignalP 6 (for signal-peptide calls) and InterProScan (the image
-ships only a Java runtime to run a host-mounted install). SignalP is the only
-predictor you install yourself; DeepLocPro and DeepSecE are baked in.
-
-```bash
-# 0. Get the launcher scripts (ssign-run / ssign-setup-dtu wrap apptainer, so pip
-#    does not put them on PATH; they live in scripts/):
-git clone https://github.com/billerbeck-lab/ssign && cd ssign
-
-# 1. Get the image  (at release: apptainer pull oras://ghcr.io/billerbeck-lab/ssign:1.0.0)
-#    until then, build it once:  containers/build_sif.sh
-
-# 2. Fetch the databases for your tier (runs from the image, no host tools needed)
-apptainer run --writable-tmpfs --containall -B /data/ssign-databases:/data/ssign-databases \
-  ssign.sif fetch-databases --tier extended --target /data/ssign-databases
-
-# 3. Install SignalP 6, the only licence-gated tool (register + download once, then:)
-scripts/ssign-setup-dtu ~/Downloads/signalp-6.0i.fast.tar.gz --signalp-only
-
-# 4. Run  (--sif = your image path; on HPC add --max-ram <job RAM GB> and --stage-image)
-scripts/ssign-run genome.gbff out --tier extended --sif ssign.sif \
-  --db-root /data/ssign-databases --signalp-env ~/.conda/envs/signalp6
-```
-
-On a scheduler that hides the job's RAM from the container (e.g. PBS), pass
-`--max-ram <GB>` so ssign sizes tool memory to your allocation, not the whole
-node. Omit step 3 to run without signal-peptide calls, or add `--signalp-mode remote`
-to use the DTU webserver (this uploads your sequences). The image is for
-**non-commercial** research use (it bundles DeepLocPro, CC BY-NC-SA, and
-EggNOG-mapper, AGPL).
-
-Full container guide (hardware, HPC/PBS, verification, troubleshooting):
-[install.md](docs/how-to/install.md). Maintainer build and
-publish steps: [containers/README.md](containers/README.md).
-
----
+**Version `1.0.0`**
 
 ## What ssign does
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Stage 1: Secretion-System Detection                                    │
-│    MacSyFinder v2 + TXSScan models → validated secretion systems        │
+│  Stage 1: Secretion-**System** Prediction                               │
+│    MacSyFinder v2 + TXSScan models                                      │
 │                                                                         │
-│  Stage 2: Secreted-Protein Prediction                                   │
+│  Stage 2: Secreted **Protein** Prediction                               │
 │    DeepLocPro + DeepSecE + SignalP                                      │
-│    → candidate proteins, voted on by independent predictors             │
 │                                                                         │
-│  Stage 3: Cross-Validation + Proximity Analysis                         │
-│    Per-SS-component ±3-gene window, same contig only                    │
-│    → ranked list of candidate secreted proteins                         │
+│  Stage 3: Proximity Analysis                                            │
+│    Per-SS-component ± gene window                                       │
 │                                                                         │
 │  Stage 4: Optional Functional Annotation                                │
 │    BLASTp, HH-suite, InterProScan, Bakta, EggNOG, pLM-BLAST, ProtParam  │
-│    → integrated annotations + consensus voting across tools             │
 │                                                                         │
 │  Stage 5: Integration + Reporting                                       │
-│    → HTML report, result tables, summary figures                        │
+│      HTML report, result tables, summary figures                        │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 Per-stage detail in [pipeline_overview.md](docs/explanation/pipeline_overview.md).
-Per-decision rationale (with citations) in [design_decisions.md](docs/explanation/design_decisions.md).
+Per-decision rationale in [design_decisions.md](docs/explanation/design_decisions.md).
 
 ---
 
@@ -121,32 +45,6 @@ Per-decision rationale (with citations) in [design_decisions.md](docs/explanatio
 | FASTA contigs | `.fasta`, `.fna`, `.fa` |
 | Protein FASTA | `.faa`                  |
 | GFF3          | `.gff` (with a same-stem nucleotide FASTA alongside) |
-
----
-
-## Output
-
-Per genome, ssign writes to your `--outdir`:
-
-- `<sample-id>_results.csv`: main results (chunked: secreted proteins, then
-  associated systems, then other systems).
-- `<sample-id>_results_raw.csv`: every column, no filtering.
-- `<sample-id>_summary.txt`: plain-text report and enrichment summary.
-- `figures/<sample-id>/*.png`: the curated summary set, numbered `01`-`06`
-  (secreted proteins by SS type; size and physicochemical properties; and four
-  functional-category figures, COG / KEGG / EggNOG / curated consensus, when
-  annotation tools have run), plus the enrichment fold/significance figures
-  (per-tool and combined) when `--enrichment-stats` is on.
-
-Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
-subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
-at the outdir root and the curated figure set over all genomes as `0N_pooled_*`
-(figure `01` is the cross-genome overview, one stacked bar per genome). With
-BLAST+ installed they also get cross-genome ortholog groups
-(`cross_genome_ortholog_groups.csv`) and a conservation figure
-(`figures/07_cross_genome_orthologs.png`).
-
-Full column reference: [output_files.md](docs/reference/output_files.md).
 
 ---
 
@@ -186,29 +84,46 @@ After installing, fetch the matching database bundle and verify:
 ssign fetch-databases --tier extended    # or: base / full
 ssign doctor --tier extended             # reports any missing DB / binary / weight, with the fix
 ```
+---
 
-`ssign doctor` reads `~/.ssign/db_root` (written by the fetcher) automatically,
-so the common case needs no `SSIGN_*` env vars. Per-tier contents, the
-tool-by-tool install steps (BLAST+, HH-suite, InterProScan, EggNOG-mapper,
-SignalP 6, DeepLocPro), and platform notes are in the
+`ssign` is a command-line tool. Run `ssign run --help` for every option, or
+`ssign doctor` to check your install.
+
+**System requirements:** Linux or macOS, Python >= 3.10. A CUDA-capable GPU is
+recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
+
+Full install instructions (tiers, optional tool extras, HPC) are in the
 [install guide](docs/how-to/install.md).
+
+Full container guide (hardware, HPC/PBS, verification, troubleshooting):
+[install.md](docs/how-to/install.md). Maintainer build and
+publish steps: [containers/README.md](containers/README.md).
 
 ---
 
-## Roadmap to v1.0.0
+## Output
 
-v1.0.0 is the publication release. The pipeline is complete and on `main`;
-the remaining items are the release artifacts themselves:
+Per genome, ssign writes to your `--outdir`:
 
-- **Container image**: SHA-pinned Apptainer `.sif`, reproducible for years,
-  published to GHCR and archived on Zenodo.
-- **Zenodo deposits**: DOIs for the source-code archive and the container image
-  (which bakes in the model weights); the paper cites them.
-- **PyPI release** of `ssign` so `pip install ssign` resolves.
-- **Hosted web service** (post-publication): browser submission, job queue,
-  results page.
+- `<sample-id>_results.csv`: main results (chunked: secreted proteins, then
+  associated systems, then other systems).
+- `<sample-id>_results_raw.csv`: every column, no filtering.
+- `<sample-id>_summary.txt`: plain-text report and enrichment summary.
+- `figures/<sample-id>/*.png`: the curated summary set, numbered `01`-`06`
+  (secreted proteins by SS type; size and physicochemical properties; and four
+  functional-category figures, COG / KEGG / EggNOG / curated consensus, when
+  annotation tools have run), plus the enrichment fold/significance figures
+  (per-tool and combined) when `--enrichment-stats` is on.
 
-Track progress in [CHANGELOG.md](CHANGELOG.md).
+Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
+subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
+at the outdir root and the curated figure set over all genomes as `0N_pooled_*`
+(figure `01` is the cross-genome overview, one stacked bar per genome). With
+BLAST+ installed they also get cross-genome ortholog groups
+(`cross_genome_ortholog_groups.csv`) and a conservation figure
+(`figures/07_cross_genome_orthologs.png`).
+
+Full column reference: [output_files.md](docs/reference/output_files.md).
 
 ---
 
@@ -259,11 +174,9 @@ uses alongside ssign.
 ## AI usage disclosure
 
 Parts of the ssign codebase, documentation, and tests were drafted with the
-assistance of large language models (Anthropic's Claude family) acting as a
-pair-programming and review tool. All AI-assisted output was reviewed, edited,
-and verified by the human authors before being committed: code changes were
-validated against the test suite (`pytest tests/unit/` and the integration
-suite) and, for pipeline-affecting changes, against real-genome validation
+assistance of large language models. All AI-assisted output was reviewed, edited,
+and verified by the human authors: code changes were
+validated against the test (`pytest tests/unit/`) and, for pipeline-affecting changes, against real-genome validation
 runs. Scientific claims, default thresholds, and biological rationale were
 verified against the primary literature cited in this README and in
 [design_decisions.md](docs/explanation/design_decisions.md).
