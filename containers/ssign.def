@@ -56,6 +56,27 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # input and the consuming command then fails, aborting the build).
     set -e
     export DEBIAN_FRONTEND=noninteractive
+
+    # Resilient pinned clone: a bare `git clone` under `set -e` aborts the whole
+    # multi-hour build on one transient TLS/network blip (seen 2026-07-18: the
+    # pLM-BLAST clone hit "GnuTLS recv error / early EOF" AFTER the full torch/CUDA
+    # pip stack had already built, throwing ~15h of work away). Retry the
+    # clone+checkout a few times, cleaning partial state between attempts. The
+    # commits are SHA-pinned, so `--depth 1` is not usable (the pin may not be the
+    # branch tip). POSIX sh (dash) -- no bashisms.
+    clone_pinned() {  # url dest commit
+        _cp_n=0
+        until git clone "$1" "$2" && git -C "$2" checkout "$3"; do
+            _cp_n=$((_cp_n + 1))
+            if [ "$_cp_n" -ge 4 ]; then
+                echo "FATAL: clone of $1 failed after $_cp_n attempts" >&2
+                return 1
+            fi
+            echo "clone/checkout of $1 failed (attempt $_cp_n) -- retrying in 15s" >&2
+            rm -rf "$2"
+            sleep 15
+        done
+    }
     # openjdk-11-jre-headless: InterProScan's interproscan.sh shells out to
     # `java`, which must be on the container PATH under --containall. Java 11
     # matches the validated native CX3 path (module Java/11.0.25).
@@ -127,8 +148,7 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # commit for reproducibility. The wrapper prepends the repo root to
     # PYTHONPATH at run time so the in-repo `alntools` package resolves. The
     # ECOD database is host-mounted separately (SSIGN_ECOD_DB), not baked.
-    git clone https://github.com/labstructbioinf/pLM-BLAST.git /opt/pLM-BLAST
-    git -C /opt/pLM-BLAST checkout 4dddea3cf70fa60ece8c4dc6e454b7799887fa28
+    clone_pinned https://github.com/labstructbioinf/pLM-BLAST.git /opt/pLM-BLAST 4dddea3cf70fa60ece8c4dc6e454b7799887fa28
     rm -rf /opt/pLM-BLAST/.git
 
     # Bake TXSScan HMM profiles so the run is offline. The runner looks for them
@@ -164,8 +184,7 @@ From: nvidia/cuda@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e8366
     # numpy, pandas, biopython, matplotlib) are all in the pinned uv.lock stack, so
     # the pinned versions are untouched. Pinned commit for reproducibility; this
     # also MIRRORS the repo into the image so it survives if upstream disappears.
-    git clone https://github.com/Jaimomar99/deeplocpro.git /opt/deeplocpro-src
-    git -C /opt/deeplocpro-src checkout 32c0b37c7a31a0686ce022a697f48998fc2997b1
+    clone_pinned https://github.com/Jaimomar99/deeplocpro.git /opt/deeplocpro-src 32c0b37c7a31a0686ce022a697f48998fc2997b1
     rm -rf /opt/deeplocpro-src/.git
     python3 -m pip install --no-cache-dir --no-deps /opt/deeplocpro-src
     # Bake the ~2.5 GB ESM2-650M backbone DeepLocPro needs into the image torch
