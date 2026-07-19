@@ -11,14 +11,6 @@ There are two ways to install ssign:
   yourself, and those tool versions can drift over time. See
   [Secondary install options](install-secondary.md).
 
-Both paths run the same command-line pipeline. ssign is CLI-only:
-
-```bash
-ssign run <genome.gbff> --outdir <out>   # run the pipeline
-ssign doctor                             # verify the install
-ssign fetch-databases --tier <tier>      # download reference databases
-```
-
 ---
 
 # 1. Container install (recommended)
