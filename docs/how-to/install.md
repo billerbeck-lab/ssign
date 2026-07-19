@@ -630,7 +630,8 @@ below for you and drops SignalP in `~/.conda/envs/signalp6` (a location ssign
 auto-detects). The manual recipe follows for reference.
 
 SignalP 6.0 pins **Python <= 3.10** and **PyTorch < 2.0**, while ssign itself
-runs on Python 3.11+ with PyTorch 2.x. Installing SignalP into your ssign env
+runs on Python 3.10+ with PyTorch 2.x (the real conflict is PyTorch, not the
+interpreter version). Installing SignalP into your ssign env
 will downgrade PyTorch and break DeepSecE / DeepLocPro / pLM-BLAST. **Install
 SignalP into its own env** and point ssign at the binary.
 

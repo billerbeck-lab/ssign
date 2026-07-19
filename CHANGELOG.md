@@ -4,11 +4,9 @@ All notable changes to **ssign** are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
-
 ## [Unreleased]
 
-## [1.0.0] - 2026-07-16
+## [1.0.0] - 2026-07-19
 
 ### Added
 
@@ -92,11 +90,11 @@ Roadmap toward v1.0.0 lives in the [README](README.md#roadmap-to-v100).
 
 ### Notes
 
-- **EggNOG database v7.0** (Hernández-Plaza et al., NAR 2025, 54:D402) is
-  the new state-of-the-art, but ssign v1.0.0 ships against EggNOG v6.0.
-  Reason: eggnog-mapper 2.1.13 does not yet read v7; see
-  [eggnog-mapper#588](https://github.com/eggnogdb/eggnog-mapper/issues/588).
-  When upstream adds v7 support we'll bump to track it.
+- **EggNOG database version.** ssign v1.0.0 ships against EggNOG v5.0
+  (`emapperdb-5.0.2`), the release eggnog-mapper 2.1.13 reads by default.
+  Newer EggNOG data exists, but eggnog-mapper 2.1.13 does not yet package it;
+  see [eggnog-mapper#588](https://github.com/eggnogdb/eggnog-mapper/issues/588).
+  We'll track a newer version once upstream supports it.
 - **DeepSecE error message** in `run_deepsece.py` previously pointed at
   `github.com/SijinHuang/DeepSecE` (404, dead fork). Fixed to point at the
   real upstream `github.com/zhangyumeng1sjtu/DeepSecE`.

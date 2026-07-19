@@ -42,7 +42,7 @@ contact:
     affiliation: "Department of Bioengineering, Imperial College London"
     orcid: "https://orcid.org/0000-0002-3092-578X"
 version: "1.0.0"
-date-released: "2026-07-16"
+date-released: "2026-07-19"
 repository-code: "https://github.com/billerbeck-lab/ssign"
 url: "https://github.com/billerbeck-lab/ssign"
 license: "GPL-3.0-or-later"
