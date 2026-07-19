@@ -68,29 +68,25 @@ only in which databases you fetch, see [Tiers](#tiers).
 ## Install (extended)
 
 ```bash
-# 0a. Confirm apptainer runs. On many HPCs it is a module (harmless if it isn't):
+# 1. Confirm apptainer runs:
 module load apptainer 2>/dev/null; apptainer --version
 
-# 0b. Get the launcher scripts (ssign-run / ssign-setup-dtu wrap apptainer, so
-#     pip does not put them on PATH; a clone gives you scripts/ and the docs):
+# 2. Get the launcher scripts:
 git clone https://github.com/billerbeck-lab/ssign && cd ssign
 
-# 0c. Download the image (.sif, ~20 GB) from Zenodo (DOI 10.5281/zenodo.21441317;
-#     maintainers build it themselves, see containers/README.md), then point ssign-run at it:
+# 3. Download the image:
 wget -O $HOME/ssign.sif https://zenodo.org/records/21441318/files/ssign_1.0.0.sif
 export SSIGN_SIF=$HOME/ssign.sif
 
-# 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once).
-#    Create the target dir first: apptainer silently skips binding a missing dir,
-#    which would send the download into the container's throwaway space.
+# 4. Reference databases, can decide tier now (this is for extended):
 mkdir -p $HOME/ssign-databases
 apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
 
-# 2. SignalP 6, the only licence-gated tool (register + download the tarball first, then:)
+# 5. SignalP 6; register + download the tarball first, then:
 scripts/ssign-setup-dtu ~/signalp-6.0i.fast.tar.gz --signalp-only
 
-# 3. Run (one line per genome)
+# 6. Run
 scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
   --sif "$SSIGN_SIF" --db-root $HOME/ssign-databases --max-ram 60
 ```
