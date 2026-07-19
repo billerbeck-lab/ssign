@@ -68,8 +68,8 @@ only in which databases you fetch, see [Tiers](#tiers).
 ## Install (extended)
 
 ```bash
-# 0a. Load apptainer (on HPC it is a module) and confirm it runs
-module load apptainer && apptainer --version
+# 0a. Confirm apptainer runs. On many HPCs it is a module (harmless if it isn't):
+module load apptainer 2>/dev/null; apptainer --version
 
 # 0b. Get the launcher scripts (ssign-run / ssign-setup-dtu wrap apptainer, so
 #     pip does not put them on PATH; a clone gives you scripts/ and the docs):
