@@ -5,7 +5,7 @@
 #   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 #
 # Tier sizes (post-extraction):
-#   base       ~2.5 GB  Bakta light
+#   base       ~4 GB    Bakta light
 #   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
 #   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 #              (HH-suite extracted dominates; NR is opt-in, not fetched by default — see fetch_blast_nr)
@@ -80,7 +80,7 @@ Usage:
   bash scripts/fetch_databases.sh --tier {base,extended,full} [--target DIR] [--dry-run]
 
 Tier sizes (post-extraction):
-  base       ~2.5 GB  Bakta light
+  base       ~4 GB    Bakta light
   extended   ~100 GB  + EggNOG + InterProScan + ECOD30 (pLM-BLAST)
   full       ~500 GB  + Bakta full + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot
 
@@ -285,7 +285,7 @@ fetch_bakta() {
     # $1 = "light" or "full"
     local variant="$1"
     local size_hint
-    if [[ "$variant" == "light" ]]; then size_hint="~2 GB"; else size_hint="~84 GB"; fi
+    if [[ "$variant" == "light" ]]; then size_hint="~4 GB"; else size_hint="~84 GB"; fi
     _log "==> Bakta DB ($variant, $size_hint)"
 
     # Check externally-managed DB before requiring bakta_db on PATH —

@@ -81,7 +81,7 @@ with a new `--tier`.
 
 | Tier         | DB disk | Adds |
 | ------------ | ------- | ---- |
-| **base**     | ~2.5 GB | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
+| **base**     | ~4 GB   | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
 | **extended** | ~100 GB | base + EggNOG + InterProScan + pLM-BLAST |
 | **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
 

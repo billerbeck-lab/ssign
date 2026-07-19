@@ -181,7 +181,7 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
 
 | Tier | `fetch-databases` pulls | Approx DB size |
 | --- | --- | --- |
-| `base` | Bakta light | ~2.5 GB |
+| `base` | Bakta light | ~4 GB |
 | `extended` | + EggNOG + InterProScan + ECOD30 (pLM-BLAST) | ~100 GB |
 | `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB |
 
@@ -276,7 +276,7 @@ Cumulative, each row includes everything from the rows above it:
 
 | Tier | Cumulative size | Adds |
 |---|---|---|
-| base | ~2.5 GB | Bakta light DB (2.5 GB) |
+| base | ~4 GB | Bakta light DB (3.9 GB) |
 | extended | ~100 GB | + EggNOG (47 GB), InterProScan (24 GB), pLM-BLAST ECOD30 (11 GB) |
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
@@ -366,7 +366,7 @@ mamba create -n bakta-deps -c bioconda bakta -y     # or -n base to skip a new e
 export PATH=~/.conda/envs/bakta-deps/bin:$PATH       # only for a dedicated env
 ```
 
-Then download the light database (~2-2.5 GB extracted):
+Then download the light database (~3.9 GB extracted):
 
 ```bash
 bakta_db download --output ~/bakta_db --type light

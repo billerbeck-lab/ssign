@@ -483,7 +483,7 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
 
 - **Decision:** Three install tiers differ in which databases
   `scripts/fetch_databases.sh` downloads:
-  - **base** (~2.5 GB DBs): MacSyFinder + DLP + DSE + SignalP +
+  - **base** (~4 GB DBs): MacSyFinder + DLP + DSE + SignalP +
     Bakta light
   - **extended** (~100 GB): + EggNOG + InterProScan + pLM-BLAST (ECOD30)
   - **full** (~500 GB): + Bakta full DB + HH-suite (Pfam + PDB70 +

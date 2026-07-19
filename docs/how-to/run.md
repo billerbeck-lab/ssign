@@ -259,7 +259,7 @@ mkdir -p $SSIGN_DBS && cd $SSIGN_DBS
 ssign fetch-databases --tier extended --target $SSIGN_DBS
 ```
 
-Disk sizes per tier are in [`install.md`](install.md) (about 2.5 / 100 / 500 GB
+Disk sizes per tier are in [`install.md`](install.md) (about 4 / 100 / 500 GB
 for base / extended / full). Rough fetch time on a fast cluster link: base 15-30 min,
 extended 1-3 h, full 6-12 h. The fetcher prints a list of database-path exports
 at the end; copy them into your shell rc file or job script so the paths are set
