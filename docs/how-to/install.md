@@ -88,13 +88,13 @@ apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
 ```
 5. SignalP 6; register + download once from https://services.healthtech.dtu.dk/services/SignalP-6.0/,
-   put the tarball in your home dir or scratch space, then (auto-detects any
-   `signalp-6*.tar.gz` in `~`, `~/Downloads`, the current dir, or your HPC scratch
-   space `$EPHEMERAL`/`$SCRATCH`/`$WORK`, so the exact filename need not match):
+   put the tarball in your home dir or scratch space, then:
 ```
 scripts/ssign-setup-dtu --signalp-only
 ```
-   Or point it straight at the file: `scripts/ssign-setup-dtu /path/to/your-signalp.tar.gz --signalp-only`.
+Or point it straight at the file: 
+`scripts/ssign-setup-dtu /path/to/your-signalp.tar.gz --signalp-only`.
+
 6. Run
 ```
 scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
