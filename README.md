@@ -2,7 +2,7 @@
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Status: v1.0.0 pre-release](https://img.shields.io/badge/status-v1.0.0%20pre--release-orange)](#roadmap-to-v100)
+[![Status: v1.0.0 pre-release](https://img.shields.io/badge/status-v1.0.0%20pre--release-orange)](CHANGELOG.md)
 [![Tests](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml)
 [![Lint](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml)
 
@@ -81,13 +81,13 @@ with a new `--tier`.
 
 | Tier         | DB disk | Adds |
 | ------------ | ------- | ---- |
-| **base**     | ~4 GB   | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
+| **base**     | ~2.5 GB | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
 | **extended** | ~100 GB | base + EggNOG + InterProScan + pLM-BLAST |
-| **full**     | ~500 GB | extended + Bakta full DB + HH-tools (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
+| **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
 
 `ssign` is a command-line tool. Run `ssign run --help` for every option and `ssign doctor --tier (your tier)` for verification and troubleshooting.
 
-**System requirements:** Linux (base, extended, full) or macOS(only base), Python >= 3.10. A CUDA-capable GPU is
+**System requirements:** Linux (base, extended, full) or macOS (base only), Python >= 3.10. A CUDA-capable GPU is
 recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
 
 Full install instructions are in the

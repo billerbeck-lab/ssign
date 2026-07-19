@@ -183,6 +183,6 @@ Download the reference databases for a tier (wraps `scripts/fetch_databases.sh`)
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--tier` | choice | required (must be passed) | Which tier's databases to download (base ~4 GB, extended ~100 GB, full ~500 GB). |
+| `--tier` | choice | required (must be passed) | Which tier's databases to download (base ~2.5 GB, extended ~100 GB, full ~500 GB). |
 | `--target` | path | `~/.ssign/databases` | Destination directory. |
 | `--dry-run` | bool | `false` | Print what would be downloaded without downloading anything. |
