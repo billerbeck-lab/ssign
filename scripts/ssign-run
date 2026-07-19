@@ -215,11 +215,18 @@ fi
 if [ "$DOCTOR" -eq 1 ]; then
     echo "ssign-run: doctor  tier=$TIER  image=$SIF"
     [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
-    # Also mount the fetch marker (~/.ssign/db_root) so doctor can resolve db_root
-    # for any DB not covered by the SSIGN_* vars above (e.g. full-tier HH-suite).
-    [ -d "$HOME/.ssign" ] && BINDS+=( -B "$HOME/.ssign":"$HOME/.ssign":ro )
+    # Bind the host fetch marker (~/.ssign, holds the db_root pointer) and point
+    # doctor at it with --data-root. Inside the container $HOME is the image's own
+    # home, so doctor's default ~/.ssign lookup misses the host marker and falls
+    # back to an empty default root, reporting every DB missing. --data-root at the
+    # bound host marker makes it resolve the real db_root and find the databases.
+    DR_ARGS=()
+    if [ -d "$HOME/.ssign" ]; then
+        BINDS+=( -B "$HOME/.ssign":"$HOME/.ssign":ro )
+        DR_ARGS=( --data-root "$HOME/.ssign" )
+    fi
     exec apptainer run --writable-tmpfs --containall "${BINDS[@]}" \
-        "$SIF" doctor --tier "$TIER" "${PASSTHRU[@]}"
+        "$SIF" doctor --tier "$TIER" "${DR_ARGS[@]}" "${PASSTHRU[@]}"
 fi
 
 # --- scratch + (optional) torch cache --------------------------------------

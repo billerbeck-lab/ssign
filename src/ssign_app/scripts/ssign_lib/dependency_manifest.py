@@ -117,19 +117,27 @@ class DatabasePath:
             candidates.append(env_value)
         candidates.append(os.path.join(db_root, self.default_subpath))
         for cand in candidates:
-            if not cand or not os.path.isdir(cand):
+            if not cand:
                 continue
-            matches = glob.glob(os.path.join(cand, self.sentinel_file))
-            if matches:
-                # glob order is filesystem-arbitrary; take the
-                # lexicographically-greatest match for a deterministic pick that
-                # prefers the fuller/newer candidate when a `db*/`-style sentinel
-                # matches more than one. Relies on the sentinel's fixed trailing
-                # component (`/version.json`): Bakta `db/` beats `db-light/`
-                # ('/' > '-'); newest `interproscan-<ver>/` wins. It's a string
-                # sort, not semver — a 1-digit IPS minor (5.9 vs 5.10) would
-                # mis-order, harmless for the >=2-digit minors IPS ships.
-                return os.path.dirname(max(matches))
+            # A candidate may itself hold a glob (e.g. the versioned install dir
+            # interproscan/interproscan-*); expand it to real dirs before probing.
+            # os.path.isdir() would reject the literal pattern, so a plain path
+            # maps to itself and a wildcard one to its matches.
+            bases = sorted(glob.glob(cand)) if any(c in cand for c in "*?[") else [cand]
+            for base in bases:
+                if not os.path.isdir(base):
+                    continue
+                matches = glob.glob(os.path.join(base, self.sentinel_file))
+                if matches:
+                    # glob order is filesystem-arbitrary; take the
+                    # lexicographically-greatest match for a deterministic pick that
+                    # prefers the fuller/newer candidate when a `db*/`-style sentinel
+                    # matches more than one. Relies on the sentinel's fixed trailing
+                    # component (`/version.json`): Bakta `db/` beats `db-light/`
+                    # ('/' > '-'); newest `interproscan-<ver>/` wins. It's a string
+                    # sort, not semver — a 1-digit IPS minor (5.9 vs 5.10) would
+                    # mis-order, harmless for the >=2-digit minors IPS ships.
+                    return os.path.dirname(max(matches))
         return None
 
 
@@ -302,8 +310,13 @@ DATABASE_PATHS: tuple[DatabasePath, ...] = (
     DatabasePath(
         "InterProScan DB",
         "SSIGN_INTERPROSCAN_PATH",
-        "interproscan",
-        "interproscan-*/interproscan.properties",
+        # SSIGN_INTERPROSCAN_PATH points at the versioned install dir itself (that
+        # is where interproscan.sh + interproscan.properties live, and what the
+        # runner/tool consume), so the sentinel is the flat properties file. The
+        # default_subpath carries the version glob so the db-root fallback (no env
+        # var set) still descends into interproscan-<ver>/ on its own.
+        "interproscan/interproscan-*",
+        "interproscan.properties",
         "bash scripts/fetch_databases.sh --tier extended",
         tier="extended",
         tool="InterProScan",
