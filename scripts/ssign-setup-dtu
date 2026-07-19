@@ -21,9 +21,10 @@
 #
 #   SIGNALP_TARBALL   path to the signalp-6.0*.fast.tar.gz you downloaded from DTU.
 #                     If omitted, the script auto-detects any signalp-6*.tar.gz in
-#                     ~, ~/Downloads, or the current dir (so the exact filename /
-#                     version letter need not match); if none is found it prints
-#                     how to get it and installs only DeepLocPro.
+#                     ~, ~/Downloads, the current dir, or your HPC scratch space
+#                     ($EPHEMERAL/$SCRATCH/$WORK) (so the exact filename / version
+#                     letter need not match); if none is found it prints how to
+#                     get it and installs only DeepLocPro.
 # Options:
 #   --deeplocpro-only   install DeepLocPro, skip SignalP
 #   --signalp-only      install SignalP, skip DeepLocPro
@@ -111,13 +112,19 @@ install_deeplocpro() {
 # --- SignalP 6 (needs the licensed tarball) ---------------------------------
 find_signalp_tarball() {
     [ -n "$SIGNALP_TARBALL" ] && { echo "$SIGNALP_TARBALL"; return; }
-    # No explicit path: look in the usual drop spots. $HOME first (where an HPC
-    # user scp's the tarball), then ~/Downloads (laptop), then the current dir.
-    # Any name matching signalp-6*.tar.gz counts, so a version letter (6.0h/6.0i)
-    # or a renamed/duplicate suffix doesn't matter, the user need not get the
-    # exact filename right.
+    # No explicit path: scan the usual drop spots for a signalp-6*.tar.gz.
+    #   * $HOME, ~/Downloads, the current dir  -> a laptop / workstation.
+    #   * $EPHEMERAL (Imperial CX3), $SCRATCH (most SLURM/TACC/NERSC sites),
+    #     $WORK -> the big-file scratch space an HPC user scp's the tarball to.
+    #     Each is skipped when the var is unset, so this is a no-op off-cluster.
+    # Any matching name counts, so a version letter (6.0h/6.0i) or a renamed /
+    # duplicate suffix doesn't matter, the user need not get the exact name right.
     ls "$HOME"/signalp-6*.tar.gz "$HOME"/Downloads/signalp-6*.tar.gz \
-       ./signalp-6*.tar.gz 2>/dev/null | head -1 || true
+       ./signalp-6*.tar.gz \
+       ${EPHEMERAL:+"$EPHEMERAL"/signalp-6*.tar.gz} \
+       ${SCRATCH:+"$SCRATCH"/signalp-6*.tar.gz} \
+       ${WORK:+"$WORK"/signalp-6*.tar.gz} \
+       2>/dev/null | head -1 || true
 }
 
 install_signalp() {
