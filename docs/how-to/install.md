@@ -67,26 +67,32 @@ only in which databases you fetch, see [Tiers](#tiers).
 
 ## Install (extended)
 
-```bash
-# 1. Confirm apptainer runs:
+
+1. Confirm apptainer runs:
+```
 module load apptainer 2>/dev/null; apptainer --version
-
-# 2. Get the launcher scripts:
+```
+2. Get the launcher scripts:
+```
 git clone https://github.com/billerbeck-lab/ssign && cd ssign
-
-# 3. Download the image:
+```
+3. Download the image:
+```
 wget -O $HOME/ssign.sif https://zenodo.org/records/21441318/files/ssign_1.0.0.sif
 export SSIGN_SIF=$HOME/ssign.sif
-
-# 4. Reference databases, can decide tier now (this is for extended):
+```
+4. Reference databases, can decide tier now (this is for extended):
+```
 mkdir -p $HOME/ssign-databases
 apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
-
-# 5. SignalP 6; register + download first from https://services.healthtech.dtu.dk/services/SignalP-6.0/ then:
+```
+5. SignalP 6; register + download first from https://services.healthtech.dtu.dk/services/SignalP-6.0/ then:
+```
 scripts/ssign-setup-dtu ~/signalp-6.0i.fast.tar.gz --signalp-only
-
-# 6. Run
+```
+6. Run
+```
 scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
   --sif "$SSIGN_SIF" --db-root $HOME/ssign-databases --max-ram 60
 ```
