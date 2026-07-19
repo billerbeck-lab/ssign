@@ -83,7 +83,7 @@ mkdir -p $HOME/ssign-databases
 apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
 
-# 5. SignalP 6; register + download the tarball first, then:
+# 5. SignalP 6; register + download first from https://services.healthtech.dtu.dk/services/SignalP-6.0/ then:
 scripts/ssign-setup-dtu ~/signalp-6.0i.fast.tar.gz --signalp-only
 
 # 6. Run
