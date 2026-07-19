@@ -75,8 +75,7 @@ All configurable via CLI flags. Full reference:
 
 ## Install tiers
 
-ssign ships in three tiers, differing in which databases you fetch and which tools are automatically run. Pick
-the one matching your storage budget and compute access; upgrade later by re-running the fetcher
+ssign's image itself is ~20gb and then you add one of three tiers, differing in which databases you fetch and which tools are automatically run. Pick the one matching your storage budget and compute access; upgrade later by re-running the fetcher
 with a new `--tier`.
 
 | Tier         | DB disk | Adds |
