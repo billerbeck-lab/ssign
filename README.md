@@ -2,7 +2,7 @@
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Status: v1.0.0 pre-release](https://img.shields.io/badge/status-v1.0.0%20pre--release-orange)](CHANGELOG.md)
+[![Status: v1.0.0 released](https://img.shields.io/badge/status-v1.0.0%20released-brightgreen)](CHANGELOG.md)
 [![Tests](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml)
 [![Lint](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21441317.svg)](https://doi.org/10.5281/zenodo.21441317)
