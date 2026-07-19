@@ -80,7 +80,10 @@ git clone https://github.com/billerbeck-lab/ssign && cd ssign
 wget -O $HOME/ssign.sif https://zenodo.org/records/21441318/files/ssign_1.0.0.sif
 export SSIGN_SIF=$HOME/ssign.sif
 
-# 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once)
+# 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once).
+#    Create the target dir first: apptainer silently skips binding a missing dir,
+#    which would send the download into the container's throwaway space.
+mkdir -p $HOME/ssign-databases
 apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
 
