@@ -35,11 +35,10 @@ Two things are **host-provided** rather than baked into the image:
   only a Java runtime to run a host-mounted InterProScan install; the engine and
   its ~24 GB of member databases come with the reference-database set.
 
-SignalP is the only *predictor* not baked; InterProScan, an annotation engine,
-is also host-provided. Reference databases are likewise always fetched to the
-host (via `fetch-databases`), never baked. Everything else (Bakta and its
-toolchain, EggNOG-mapper, BLAST+, MacSyFinder, HH-suite, DeepLocPro + its ESM2
-weights, the DeepSecE checkpoint, pLM-BLAST + ProtT5) lives inside the image.
+Reference databases are likewise always fetched to the host (via
+`fetch-databases`), never baked. Everything else (Bakta and its toolchain,
+EggNOG-mapper, BLAST+, MacSyFinder, HH-suite, DeepLocPro + its ESM2 weights, the
+DeepSecE checkpoint, pLM-BLAST + ProtT5) lives inside the image.
 
 The image is for **non-commercial research use**: it bundles DeepLocPro
 (CC BY-NC-SA 4.0) and EggNOG-mapper (AGPL). ssign's own code is GPL-3.0-or-later.
@@ -282,10 +281,10 @@ Cumulative, each row includes everything from the rows above it:
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
 These are databases only. Model weights are separate and shared across all tiers,
-~18 GB total across every tier (the base default path pulls the DeepSecE and
-DeepLocPro weights; ProtT5 is extended-tier only). The "Acquired by" column says
-which weights auto-download on first run and which come from a user-provided
-local install; the container bakes all of them:
+~18 GB total (base auto-downloads the DeepSecE checkpoint and ESM backbones;
+ProtT5 is extended-tier only; DeepLocPro and SignalP weights ship with their own
+installs). The "Acquired by" column says which weights auto-download on first run
+and which come from a user-provided local install; the container bakes all of them:
 
 | Model | Size | Used by | Acquired by |
 |---|---|---|---|
@@ -357,32 +356,14 @@ tRNAscan-SE, aragorn) that aren't pip-installable. Without them, **even
 `bakta_db download` fails** because Bakta's startup runs the same dependency
 check as `bakta` itself.
 
-The cleanest install is **all of Bakta via conda**, which pulls every binary dep
-with one command:
+Building that binary set piecemeal always misses one (`ERROR: tRNAscan-SE not
+found`, then `ERROR: PilerCR not found`, ...). Install all of Bakta from conda in
+one shot, which pulls every binary (tRNAscan-SE, aragorn, PilerCR, AMRFinderPlus,
+DIAMOND, HMMER, BLAST+) at compatible versions:
 
 ```bash
-mamba install -n base -c bioconda bakta -y
-# or into its own env:
-mamba create -n bakta -c bioconda bakta -y
-export PATH=~/.conda/envs/bakta/bin:$PATH    # if using a dedicated env
-```
-
-Even if Bakta itself comes from `pip install ssign[bakta]`, you still need the
-binaries Bakta calls as subprocesses (tRNAscan-SE, aragorn, PilerCR,
-AMRFinderPlus, DIAMOND, HMMER, BLAST+). Building this set piecemeal misses tools,
-a fresh install hits errors like `ERROR: tRNAscan-SE not found`, then
-`ERROR: PilerCR not found`, etc. The reliable one-shot:
-
-```bash
-mamba install -c bioconda bakta -y
-```
-
-That brings every tool Bakta calls. Use a dedicated env if you don't want to
-pollute base:
-
-```bash
-mamba create -n bakta-deps -c bioconda bakta -y
-export PATH=~/.conda/envs/bakta-deps/bin:$PATH
+mamba create -n bakta-deps -c bioconda bakta -y     # or -n base to skip a new env
+export PATH=~/.conda/envs/bakta-deps/bin:$PATH       # only for a dedicated env
 ```
 
 Then download the light database (~2-2.5 GB extracted):
@@ -391,11 +372,9 @@ Then download the light database (~2-2.5 GB extracted):
 bakta_db download --output ~/bakta_db --type light
 ```
 
-Pass `--bakta-db ~/bakta_db` on the command line, or set
-`SSIGN_BAKTA_DB=~/bakta_db` (read by `scripts/fetch_databases.sh`).
-
-The full Bakta database (~84 GB extracted) is the `--type full` variant. The full
-tier in `fetch_databases.sh --tier full` pulls it.
+Pass `--bakta-db ~/bakta_db`, or set `SSIGN_BAKTA_DB=~/bakta_db` (read by
+`scripts/fetch_databases.sh`). The full database (~84 GB extracted) is the
+`--type full` variant; `fetch_databases.sh --tier full` pulls it.
 
 ---
 
