@@ -31,7 +31,7 @@ mkdir -p "$APPTAINER_TMPDIR" "$APPTAINER_CACHEDIR"
 apptainer build --fakeroot ssign.sif containers/ssign.def
 ```
 
-- The build downloads ~10 GB of model weights (ESM2, ESM-1b (the DeepSecE backbone),
+- The build downloads ~15 GB of model weights (ESM2, ESM-1b (the DeepSecE backbone),
   the DeepSecE checkpoint from a slow academic mirror, ProtT5). Keep the connection up: a container build has no
   resume, so a dropped download restarts that file from 0 and can abort the build.
   The DeepSecE mirror is the slow part; everyone who pulls the finished image skips it.
