@@ -5,6 +5,7 @@
 [![Status: v1.0.0 pre-release](https://img.shields.io/badge/status-v1.0.0%20pre--release-orange)](CHANGELOG.md)
 [![Tests](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml)
 [![Lint](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21441317.svg)](https://doi.org/10.5281/zenodo.21441317)
 
 ssign predicts secretion systems in Gram-negative bacterial genomes, 
 the proteins they secrete, and annotates those proteins.
@@ -98,8 +99,10 @@ Maintainer build and publish steps: [containers/README.md](containers/README.md)
 
 ## Citing
 
-Cite via [CITATION.cff](CITATION.cff). The Zenodo and paper DOIs will be added
-here at the v1.0.0 release.
+Cite via [CITATION.cff](CITATION.cff). The container image is archived on Zenodo:
+[doi:10.5281/zenodo.21441317](https://doi.org/10.5281/zenodo.21441317) (concept
+DOI, always resolves to the latest version). The paper DOI will be added on
+publication.
 
 ssign integrates many open-source tools. Please cite any tool your analysis
 uses alongside ssign.

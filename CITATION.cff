@@ -46,6 +46,7 @@ date-released: "2026-07-19"
 repository-code: "https://github.com/billerbeck-lab/ssign"
 url: "https://github.com/billerbeck-lab/ssign"
 license: "GPL-3.0-or-later"
+doi: "10.5281/zenodo.21441317"
 keywords:
   - "bioinformatics"
   - "secretion systems"
