@@ -130,15 +130,9 @@ pre-stripped of them. Not relevant unless a user opts back in via
 
 ---
 
-## How license decisions feed into the install experience
+## How this maps to install
 
-ssign's three database tiers (base / extended / full, selected with
-`scripts/fetch_databases.sh --tier`) map onto the licensing decisions above:
-
-- The image carries every tool and model weight we may *legally* redistribute,
-  in one download (non-commercial, as above).
-- `scripts/fetch_databases.sh` fetches the databases too large or not
-  licence-clear to bundle, each from its canonical source.
-
-Net user experience: pull the image, `ssign fetch-databases --tier extended`,
-`ssign run input.gbff`. Two of the three are once-only.
+The image carries every tool and weight ssign may *legally* redistribute (one
+download, non-commercial); `scripts/fetch_databases.sh` pulls the databases too
+large or not licence-clear to bundle, each from its canonical source. Net: pull
+the image, `ssign fetch-databases --tier extended`, `ssign run input.gbff`.

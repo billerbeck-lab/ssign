@@ -1,9 +1,8 @@
 # Design decisions and defensible citations
 
 Each entry records a decision made in `ssign`, the scientific rationale, and
-the peer-reviewed citations that back it. Entries are organised by pipeline
-stage; each has a **Decision** (what we do) and **Rationale / evidence** (why,
-with peer-reviewed citations).
+the peer-reviewed citations behind it, organised by pipeline stage. Every entry
+has a **Decision** (what we do) and **Rationale / evidence** (why).
 
 ---
 
@@ -532,8 +531,8 @@ with peer-reviewed citations).
   _Xanthobacter tagetidis_ ATCC 700314 (213 kb, 179 CDS). BIMENO_04457
   on this contig is the expected T1SS substrate.
 
-- **Rationale:** T1SS is Teo's research focus. The source assembly is
-  fragmented (87 contigs); contig_87 was chosen because it contains
+- **Rationale:** T1SS is the project's focus secretion system. The source
+  assembly is fragmented (87 contigs); contig_87 was chosen because it contains
   the full T1SS operon plus the substrate on a single contiguous DNA
   span. The whole contig fits inside 213 kb, which is a reasonable
   git-tracked fixture size.

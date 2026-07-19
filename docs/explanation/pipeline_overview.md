@@ -22,12 +22,11 @@ input → proteins + gene order
 
 ssign accepts annotated GenBank, paired GFF3, or raw FASTA contigs.
 
-For GenBank input, it reads the protein translations, locus tags, and each
-protein's contig coordinates straight from the file. By default it also
-re-annotates with Bakta, because incoming GenBank annotations have unknown
-provenance (old Prokka, recent PGAP, manual curation, a private pipeline); one
-consistent caller across a cohort is what makes downstream consensus voting
-comparable. Curated-GenBank users can opt out with `--use-input-annotations`.
+For GenBank, it reads protein translations, locus tags, and contig coordinates
+straight from the file, then by default re-annotates with Bakta: incoming
+annotations have unknown provenance (old Prokka, recent PGAP, manual curation),
+and one consistent caller across a cohort keeps downstream consensus voting
+comparable. Opt out with `--use-input-annotations`.
 
 For FASTA input, Bakta (or pyrodigal as a fallback) calls ORFs from scratch.
 
@@ -83,10 +82,10 @@ neighbourhood (Phase 4) to save compute. Three flags (`--dlp-whole-genome`,
 instead, which cohort-wide enrichment analysis needs.
 
 ssign is offline-first: the canonical path uses local DLP and SignalP installs.
-Users without a DTU academic licence can opt into the DTU webserver fallback
+Without a DTU academic licence you can opt into the DTU webserver fallback
 (`--deeplocpro-mode remote`, `--signalp-mode remote`; no licence needed,
-internet required), but its long-term availability depends on DTU, so local
-installs are the durable choice for publication and cohort work.
+internet required), but its availability depends on DTU, so local installs are
+the durable choice for publication and cohort work.
 
 ## Phase 4: substrate identification
 
