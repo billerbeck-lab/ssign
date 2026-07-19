@@ -87,10 +87,13 @@ mkdir -p $HOME/ssign-databases
 apptainer run --writable-tmpfs --containall -B $HOME/ssign-databases:$HOME/ssign-databases \
   "$SSIGN_SIF" fetch-databases --tier extended --target $HOME/ssign-databases
 ```
-5. SignalP 6; register + download first from https://services.healthtech.dtu.dk/services/SignalP-6.0/ then:
+5. SignalP 6; register + download once from https://services.healthtech.dtu.dk/services/SignalP-6.0/,
+   drop the tarball in your home dir, then (auto-detects any `signalp-6*.tar.gz`
+   in `~`, `~/Downloads`, or the current dir, so the exact filename need not match):
 ```
-scripts/ssign-setup-dtu ~/signalp-6.0i.fast.tar.gz --signalp-only
+scripts/ssign-setup-dtu --signalp-only
 ```
+   Or point it straight at the file: `scripts/ssign-setup-dtu /path/to/your-signalp.tar.gz --signalp-only`.
 6. Run
 ```
 scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
