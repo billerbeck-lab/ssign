@@ -30,6 +30,68 @@ _TOOL_COLUMN_PREFIXES = [
 ]
 
 
+def _summarize_enrichment(path, n_genomes=1):
+    """Distil the per-type enrichment test into a short human summary.
+
+    The full per-(type, tool, mode) table is kept verbatim in the standalone
+    ``*_enrichment_stats.tsv``; this reduces it to the headline COMBINED-predictor
+    track -- one fold + BH-q line per secretion-system type/mode, most significant
+    first. Returns report lines (empty if the file can't be summarised).
+    """
+    import sys
+
+    _d = os.path.dirname(os.path.abspath(__file__))
+    if _d not in sys.path:
+        sys.path.insert(0, _d)
+    from ssign_lib.constants import ENRICH_COMBINED_TOOL, ENRICH_MODE_SELF, T5_HITCH_TAG, T5_SELF_TAG
+
+    try:
+        df = pd.read_csv(path, sep="\t")
+    except Exception:
+        return []
+    if df.empty or "tool" not in df.columns or "ss_type" not in df.columns:
+        return []
+    comb = df[df["tool"] == ENRICH_COMBINED_TOOL]
+    if comb.empty:
+        return []
+
+    has_mode = "mode" in comb.columns
+    types_with_self = set(comb.loc[comb["mode"] == ENRICH_MODE_SELF, "ss_type"].astype(str)) if has_mode else set()
+
+    rows = []
+    for _, r in comb.iterrows():
+        try:
+            fold, q = float(r["fold"]), float(r["qvalue"])
+        except (KeyError, ValueError, TypeError):
+            continue
+        st = str(r["ss_type"])
+        mode = str(r["mode"]) if has_mode else "window"
+        if mode == ENRICH_MODE_SELF:
+            lbl = f"{st} {T5_SELF_TAG}"
+        elif st in types_with_self:
+            lbl = f"{st} {T5_HITCH_TAG}"
+        else:
+            lbl = st
+        rows.append((lbl, fold, q, q < 0.05))
+    if not rows:
+        return []
+
+    rows.sort(key=lambda t: (t[2], -t[1]))  # BH q ascending, then fold descending
+    width = max(len(lbl) for lbl, *_ in rows)
+    n_sig = sum(1 for *_, sig in rows if sig)
+
+    out = ["Secretion-system enrichment (per-type permutation test, COMBINED predictor):"]
+    for lbl, fold, q, sig in rows:
+        out.append(f"  {lbl:<{width}}  {fold:>5.1f}x   q={q:.3f}{'  *' if sig else ''}")
+    if n_sig:
+        out.append("  * enriched at Benjamini-Hochberg q < 0.05")
+    elif n_genomes <= 1:
+        out.append("  (nothing reached q < 0.05; single-genome power is low -- pool genomes)")
+    else:
+        out.append("  (nothing reached q < 0.05)")
+    return out
+
+
 def generate_text_report(master_csvs, enrichment_file, output_path, tier=""):
     """Generate plain text summary report."""
     # Load and combine all master CSVs
@@ -94,18 +156,19 @@ def generate_text_report(master_csvs, enrichment_file, output_path, tier=""):
             covered = int(df[cols].notna().any(axis=1).sum())
             cov.append((tool, covered))
     if cov:
-        lines.append(f"Annotation coverage (of {n} secreted proteins):")
+        lines.append("Annotation coverage:")
         width = max(len(t) for t, _ in cov)
         for tool, covered in cov:
             pct = 100 * covered / max(n, 1)
             lines.append(f"  {tool:<{width}}  {covered}/{n} ({pct:.0f}%)")
         lines.append("")
 
-    # Enrichment summary
+    # Enrichment summary -- distilled headline; the full per-tool table stays in
+    # the standalone *_enrichment_stats.tsv.
     if enrichment_file and os.path.exists(enrichment_file):
-        lines.append("Enrichment results:")
-        with open(enrichment_file) as f:
-            lines.append(f.read())
+        enrich_lines = _summarize_enrichment(enrichment_file, n_genomes=len(genomes))
+        if enrich_lines:
+            lines += enrich_lines + [""]
 
     lines.append("=" * 60)
 
