@@ -6,9 +6,9 @@ There are two ways to install ssign:
   the entire free toolchain and every model weight, version-locked. It is
   self-contained and reproducible: a run behaves the same today and in three
   years. This is the durable choice for paper-grade and HPC work. Start here.
-- **Native / pip (secondary).** Lighter to get going (`pip install ssign` plus a
-  few optional tools), but you assemble and maintain the external toolchain
-  yourself, and those tool versions can drift over time. See
+- **Native / from source (secondary).** Lighter-weight (clone the repo and
+  `pip install -e .`, plus a few optional tools), but you assemble and maintain
+  the external toolchain yourself, and those tool versions can drift over time. See
   [Secondary install options](install-secondary.md).
 
 ---
@@ -181,10 +181,9 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
 
 > **macOS or base tier?** You do not need the container. Every base-tier tool is
 > pip-installable, so macOS and base-tier runs use the native path (see
-> [Secondary install options](install-secondary.md)):
-> `python3 -m pip install -c containers/requirements-base.lock.txt ssign`
-> (available from PyPI at the v1.0.0 release; until then install from source,
-> git clone + `pip install -e .`). SignalP 6 is DTU-licensed (install locally, or
+> [Secondary install options](install-secondary.md)): clone the repo and
+> `pip install -e . -c containers/requirements-base.lock.txt` (the lock pins the
+> base deps). SignalP 6 is DTU-licensed (install locally, or
 > `--signalp-mode remote`); DeepLocPro is open source (install from its GitHub
 > repo, or `--deeplocpro-mode remote`). Extended/full stay on Linux/HPC via the
 > `.sif`.

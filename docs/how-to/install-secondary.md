@@ -3,30 +3,28 @@
 The recommended install is the self-contained container, see
 [`install.md`](install.md). Use this page only if you cannot use the container.
 
-This path is lighter-weight: `pip install ssign` plus a handful of optional tools.
-The trade-off is that you install and maintain the external toolchain yourself
-(Bakta, EggNOG-mapper, BLAST+, HH-suite, InterProScan, SignalP 6, DeepLocPro), and
-those tool versions can drift out of compatibility over time. For reproducible,
-paper-grade runs that behave identically years from now, use the
-[container](install.md#1-container-install-recommended) instead.
+This path is lighter-weight: install ssign from the cloned repo with `pip`, plus
+a handful of optional tools. The trade-off is that you install and maintain the
+external toolchain yourself (Bakta, EggNOG-mapper, BLAST+, HH-suite, InterProScan,
+SignalP 6, DeepLocPro), and those tool versions can drift out of compatibility
+over time. For reproducible, paper-grade runs that behave identically years from
+now, use the [container](install.md#1-container-install-recommended) instead.
 
-`pip install ssign` gets you the base pipeline: secretion-system detection,
+Installing from the clone gets you the base pipeline: secretion-system detection,
 secreted-protein prediction (DeepLocPro, DeepSecE, and SignalP, see the
 DeepLocPro and SignalP sections below for installing the DTU tools locally, or
 for the opt-in webserver fallback when you don't have a DTU licence), proximity
 analysis, and reporting. The tools below extend what the pipeline reports and how
 it runs.
 
-The simplest path is one of the named tiers:
+Clone the repo and install the tier you want:
 
 ```bash
-pip install ssign                 # base
-pip install ssign[extended]       # base + Bakta + pLM-BLAST + extended-tier pins
-pip install ssign[full]           # extended deps + full database tier
+git clone https://github.com/billerbeck-lab/ssign && cd ssign
+pip install -e .                 # base
+pip install -e '.[extended]'     # base + Bakta + pLM-BLAST + extended-tier pins
+pip install -e '.[full]'         # extended deps + full database tier
 ```
-
-> Available from PyPI at the v1.0.0 release; until then install from source
-> (git clone + `pip install -e .`).
 
 After pip install, fetch the matching database bundle:
 
@@ -99,7 +97,7 @@ For environment variables (mirror URLs, database paths, dev-only flags), see
 ## DeepSecE (base tier, GPU recommended)
 
 DeepSecE predicts secretion-system type per protein and runs as a second opinion
-alongside DeepLocPro. It ships in the base tier: `pip install ssign` already
+alongside DeepLocPro. It ships in the base tier: the base install already
 includes it (PyTorch plus the ESM protein language model add ~7.3 GB to the
 install), so there is no separate install step. The legacy `ssign[deepsece]`
 extra is a no-op alias kept only so old invocations keep working; it installs
@@ -115,7 +113,7 @@ Bakta provides annotation-grade gene calling and functional descriptions. ssign
 re-annotates inputs with Bakta by default; if Bakta is not installed, the
 pipeline falls back to a pyrodigal-only call without functional annotations.
 
-**Important:** `pip install ssign[bakta]` only installs the Bakta Python wrapper.
+**Important:** installing the `[bakta]` extra only installs the Bakta Python wrapper.
 Bakta also depends on several binary tools (AMRFinderPlus, DIAMOND, HMMER,
 tRNAscan-SE, aragorn) that aren't pip-installable. Without them, **even
 `bakta_db download` fails** because Bakta's startup runs the same dependency

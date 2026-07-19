@@ -33,9 +33,8 @@ ssign doctor                             # verify the install before running
 ssign fetch-databases --tier extended    # download reference databases
 ```
 
-Running `ssign` with no subcommand just prints a usage hint. `pip install ssign`
-lands at the v1.0.0 release; until then install from source (git clone +
-`pip install -e .`), see [`install.md`](install.md).
+Running `ssign` with no subcommand just prints a usage hint. Install ssign from
+source (git clone + `pip install -e .`), see [`install.md`](install.md).
 
 ### Resuming a failed run
 
@@ -239,7 +238,8 @@ python -m venv ~/.ssign-env
 source ~/.ssign-env/bin/activate
 which python                            # verify the venv is active
 
-pip install ssign[extended]             # or: pip install ssign  (base only)
+git clone https://github.com/billerbeck-lab/ssign && cd ssign
+pip install -e '.[extended]'            # or: pip install -e .  (base only)
 ssign --version                         # verify install
 ```
 

@@ -58,7 +58,7 @@ Bakta and EggNOG are read under both their **native** tool env var names
 These are not env vars but version constraints. Listed here so a maintainer
 debugging a fresh install knows where the upper bounds come from. They are
 captured in `[project.optional-dependencies].extended` in `pyproject.toml`,
-so `pip install ssign[extended]` resolves them automatically.
+so `pip install -e '.[extended]'` resolves them automatically.
 
 | Package | Pin | Reason |
 |---|---|---|

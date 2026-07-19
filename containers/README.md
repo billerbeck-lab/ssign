@@ -8,7 +8,7 @@ publish** the image.
 Contents:
 - **`ssign.def`** the image definition (digest-pinned CUDA base + frozen `uv.lock`).
 - **`build_sif.sh`** build + offline smoke-test helper.
-- **`requirements-base.lock.txt`** pinned deps for the macOS/base pip path.
+- **`requirements-base.lock.txt`** pinned deps for the macOS/base from-source install.
 - The launcher scripts users run (`ssign-run`, `ssign-setup-dtu`) live in `scripts/`
   and are baked into the image at `/opt/ssign/scripts/`.
 
