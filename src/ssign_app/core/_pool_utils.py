@@ -158,7 +158,7 @@ def pool_tsvs(
 
     for sample_id, src in sources:
         validate_sample_id(sample_id)
-        with open(src) as f:
+        with open(src, newline="") as f:
             reader = csv.DictReader(f, delimiter=_delimiter_for(src))
             source_fields = list(reader.fieldnames or [])
             if id_column not in source_fields:
@@ -210,7 +210,7 @@ def split_tsv_by_source(
     buffers: dict[str, list[dict[str, str]]] = {}
     fieldnames: list[str] = []
 
-    with open(pooled_tsv) as f:
+    with open(pooled_tsv, newline="") as f:
         reader = csv.DictReader(f, delimiter=delimiter)
         fieldnames = list(reader.fieldnames or [])
         if not fieldnames:

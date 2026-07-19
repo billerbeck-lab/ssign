@@ -261,7 +261,7 @@ class TestSchemaCompatibility:
 class TestShippedTable:
     """Smoke tests against the real component_localizations.tsv that ships."""
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def rules(self) -> dict:
         return load_component_localizations()
 
