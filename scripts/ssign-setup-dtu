@@ -118,6 +118,16 @@ install_signalp() {
     if [ -x "$prefix/bin/signalp6" ] && [ "$FORCE" -eq 0 ]; then
         info "SignalP 6 already installed at $prefix (use --force to reinstall)"; return 0
     fi
+    # If the user pointed us at a tarball explicitly, it MUST exist. A missing or
+    # mistyped path is a hard error naming the path, NOT the generic "go register"
+    # message below (which would wrongly imply they never downloaded it).
+    if [ -n "$SIGNALP_TARBALL" ] && [ ! -f "$SIGNALP_TARBALL" ]; then
+        die "SignalP tarball not found at: $SIGNALP_TARBALL
+  Nothing exists at that path. Check the exact filename and where you copied it
+  (e.g. 'ls -la $SIGNALP_TARBALL'); the scp destination or the version letter
+  (6.0h vs 6.0i) is the usual culprit. Expected a signalp-6.0*.fast.tar.gz.
+  Register + download: $SIGNALP_URL"
+    fi
     local tarball; tarball=$(find_signalp_tarball)
     if [ -z "$tarball" ] || [ ! -f "$tarball" ]; then
         step "SignalP 6 needs a one-time licensed download (can't be automated)"
