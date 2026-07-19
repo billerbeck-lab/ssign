@@ -215,21 +215,16 @@ fi
 if [ "$DOCTOR" -eq 1 ]; then
     echo "ssign-run: doctor  tier=$TIER  image=$SIF"
     [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
-    # doctor finds the databases via a db_root marker at its --data-root. Inside
-    # the container $HOME is the image's own home, and the marker fetch-databases
-    # writes there (unbound) does not persist to the host, so doctor's default
-    # ~/.ssign lookup misses it and reports every DB missing. Record the marker on
-    # the host from --db-root and point doctor at it. (A native install writes this
-    # marker directly on the host, so it persists there on its own.)
-    DR_ARGS=()
-    if [ -n "$DBROOT" ]; then
-        mkdir -p "$HOME/.ssign"
-        printf '%s\n' "$DBROOT" > "$HOME/.ssign/db_root"
-        BINDS+=( -B "$HOME/.ssign":"$HOME/.ssign":ro )
-        DR_ARGS=( --data-root "$HOME/.ssign" )
-    fi
+    # doctor derives the database root from its data root, which is the image's own
+    # ~/.ssign (/opt/ssign_home/.ssign) — the same place the baked model weights
+    # live (models/). We must NOT redirect the data root off the image (that hides
+    # the baked weights), so instead bind the host db-root onto the default
+    # databases/ path under it: doctor then finds the databases there via db_root
+    # while the baked weights under models/ stay visible. (/opt/ssign_home is the
+    # image HOME, same constant the torch-cache bind above uses.)
+    [ -n "$DBROOT" ] && BINDS+=( -B "$DBROOT":/opt/ssign_home/.ssign/databases )
     exec apptainer run --writable-tmpfs --containall "${BINDS[@]}" \
-        "$SIF" doctor --tier "$TIER" "${DR_ARGS[@]}" "${PASSTHRU[@]}"
+        "$SIF" doctor --tier "$TIER" "${PASSTHRU[@]}"
 fi
 
 # --- scratch + (optional) torch cache --------------------------------------
