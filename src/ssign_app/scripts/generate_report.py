@@ -82,7 +82,8 @@ def _summarize_enrichment(path, n_genomes=1):
 
     out = ["Secretion-system enrichment (per-type permutation test, COMBINED predictor):"]
     for lbl, fold, q, sig in rows:
-        out.append(f"  {lbl:<{width}}  {fold:>5.1f}x   q={q:.3f}{'  *' if sig else ''}")
+        q_str = "q<0.001" if q < 0.001 else f"q={q:.3f}"
+        out.append(f"  {lbl:<{width}}  {fold:>5.1f}x   {q_str}{'  *' if sig else ''}")
     if n_sig:
         out.append("  * enriched at Benjamini-Hochberg q < 0.05")
     elif n_genomes <= 1:

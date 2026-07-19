@@ -56,6 +56,14 @@ def test_summarize_enrichment_labels_sort_and_significance(tmp_dir):
     assert any("Benjamini-Hochberg q < 0.05" in line for line in out)
 
 
+def test_summarize_enrichment_tiny_q_rendered_as_lt(tmp_dir):
+    p = os.path.join(tmp_dir, "e.tsv")
+    _write(p, _ENR_HEADER, [["T1SS", "COMBINED", "window", "9.0", "0.0", "True"]])
+    out = gr._summarize_enrichment(p)
+    assert any("q<0.001" in line for line in out)
+    assert not any("q=0.000" in line for line in out)
+
+
 def test_summarize_enrichment_power_note_when_nothing_significant(tmp_dir):
     p = os.path.join(tmp_dir, "e.tsv")
     _write(p, _ENR_HEADER, [["T1SS", "COMBINED", "window", "2.0", "0.30", "False"]])
