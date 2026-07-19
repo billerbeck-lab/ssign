@@ -11,11 +11,12 @@ results/
 ├── <sample-id>_summary.txt          Combined report text + enrichment summary
 ├── figures/
 │   └── <sample-id>/
-│       ├── fig_category.png
-│       ├── fig_ss_comp.png
-│       ├── fig_tool_heatmap.png
-│       ├── fig_substrate_count.png
-│       └── fig_func_summary.png
+│       ├── 01_secreted_by_genome.png       Secreted proteins by SS type
+│       ├── 02_physicochemical.png          Size & physicochemical properties
+│       ├── 03_cog_category_by_sstype.png   COG functional category
+│       ├── 04_kegg_function_by_sstype.png  KEGG function
+│       ├── 05_eggnog_description_by_sstype.png  EggNOG description
+│       └── 06_consensus_function_by_sstype.png  Curated consensus function
 └── .ssign/
     └── <sample-id>_progress.json    Resume manifest (used by --resume)
 ```
@@ -25,31 +26,53 @@ outputs, etc.) are written to a temporary work directory during the run and
 removed on success. On a failure they are kept under `/tmp/ssign_*` and the
 log line points at the location.
 
-## Multi-genome layout (GUI batch run)
+## Multi-genome layout
 
-When the GUI processes several genomes in one session, the per-genome files
-above are produced for each, and three combined files are added at the
-output-directory root:
+When you pass several genomes to one `ssign run`, each genome is written to its
+own subdirectory under `--outdir` (the single-genome layout above, one folder
+per genome), and combined files are added at the output-directory root:
 
 ```
 results/
-├── <each genome's files as above>
-├── ssign_results.csv                Combined results across all genomes
-├── ssign_results_raw.csv            Combined raw annotations
-└── ssign_summary.txt                Combined summary
+├── <genome-1>/                      per-genome files (as above)
+├── <genome-2>/
+├── ...
+├── combined_results.csv             Secreted proteins pooled across all genomes,
+│                                    with a leading source_genome column
+├── combined_summary.txt             Aggregated report: pooled counts, per-type
+│                                    totals, per-tool coverage
+├── cross_genome_orthologs.csv       Every pooled substrate with its sample_id and
+│                                    cross-genome ortholog_group (BLAST+ required)
+├── cross_genome_ortholog_groups.csv Per group: n_members, n_genomes, genomes,
+│                                    members, mean_pident
+└── figures/
+    ├── 0N_pooled_*.png              Curated set over all genomes (01-06 numbering)
+    ├── 07_cross_genome_orthologs.png   Ortholog conservation, 2-panel (BLAST+ required)
+    └── pooled_enrichment_fold[_combined].png   (with --enrichment-stats)
 ```
+
+There is no combined raw CSV; each genome keeps its own
+`<genome>/<genome>_results_raw.csv`.
+
+The cross-genome ortholog step pools every genome's substrates, runs one
+all-vs-all BLASTp, and clusters the result. It only runs for two or more genomes
+and only when NCBI BLAST+ (`blastp` + `makeblastdb`) is on PATH; otherwise it is
+skipped. Each genome's integrated CSV also gains an `xg_ortholog_group` column
+linking its substrates to the cross-genome groups.
 
 ## `<sample-id>_results.csv` (main results)
 
-Up to three chunks separated by blank lines, each with a `#`-prefixed
-header. Empty chunks are omitted (e.g. genomes with no "other" systems
-will not have a chunk 3):
+The file opens with a short `#`-prefixed overview block naming the three
+sections; skip it when parsing. Below it are up to three
+chunks separated by blank lines, each with a `#`-prefixed header. Empty
+chunks are omitted (e.g. genomes with no "other" systems will not have a
+chunk 3):
 
-1. `# Secreted Proteins` — one row per predicted substrate.
-2. `# Secretion Systems (with secreted proteins)` — one row per system or
+1. `# Secreted Proteins`, one row per predicted substrate.
+2. `# Secretion Systems (with secreted proteins)`, one row per system or
    component, for systems whose neighbourhoods contained at least one
    substrate.
-3. `# Secretion Systems (other)` — systems detected without high-confidence
+3. `# Secretion Systems (other)`, systems detected without high-confidence
    substrates.
 
 > **T5SS substrates:** a detected T5SS component is reported as a substrate only
@@ -79,7 +102,7 @@ producing step was skipped or had no output.
 | InterProScan | `interpro_domains`, `interpro_go_terms`, `interpro_pfam_ids`, `interpro_descriptions` |
 | Ortholog groups | `ortholog_group`, `og_n_members`, `og_mean_pident` |
 | Tool inventory | `annotation_tools` |
-| T5aSS annotation source | `t5_annotation_source` (`passenger` or `full`; empty for non-T5aSS rows). See `design_decisions.md` § 4.3. |
+| T5aSS annotation source | `t5_annotation_source` (`passenger` or `full`; empty for non-T5aSS rows). See [`design_decisions.md` § 4.3](../explanation/design_decisions.md). |
 | T5aSS whole-protein second pass (opt-in via `--t5ass-annotate-whole`) | `t5ass_whole_eggnog_*`, `t5ass_whole_blastp_*`, `t5ass_whole_ecod_top1_*`, `t5ass_whole_pfam_top1_*`, `t5ass_whole_pdb_top1_*`, `t5ass_whole_<protparam>_*`. Each mirrors the corresponding default-pass column on T5aSS substrates only. |
 | Sequence | `sequence` (always last when present) |
 
@@ -88,13 +111,13 @@ appears alphabetically after the last priority group, before `sequence`.
 
 ### Chunk 2 + 3 column reference (Secretion Systems)
 
-Columns mirror MacSyFinder's output table with two added at the front:
+ssign writes its own condensed schema (not a MacSyFinder table passthrough). Each
+row is either a whole system or one of its components, tagged by `record_type`:
 
-| Column | Source |
+| `record_type` | Columns |
 |---|---|
-| `record_type` | `system` or `component` (added by ssign for chunked-CSV navigation). |
-| `sample_id` | Genome ID. |
-| `ss_type`, `wholeness_score`, `model_fqn`, `replicon`, `genes` etc. | MacSyFinder columns; see [MacSyFinder docs](https://macsyfinder.readthedocs.io/) for the full list. |
+| `system` | `record_type`, `sample_id`, `sys_id`, `ss_type`, `wholeness`, `n_components`, `excluded` |
+| `component` | `record_type`, `sample_id`, `sys_id`, `ss_type`, `locus_tag`, `gene_name`, `gene_status`, `wholeness`, `excluded` |
 
 Excluded systems (default: Flagellum, Tad, and the type-IV pili / uptake
 appendages T4aP, T4bP, MSH, ComM, Archaeal-T4P) and their components do not
@@ -117,8 +140,10 @@ Plain text concatenation of:
 1. The HTML report's text version (substrate counts, per-SS breakdowns, tool
    contribution summary).
 2. The enrichment-analysis table (only with `--enrichment-stats`): one row per
-   (SS type, predictor, `mode`) with `observed`, `n_mask`, `null_mean`, `fold`,
-   `p_perm`, `qvalue`, `significant`, `n_null`. `mode` is `window` for ordinary
+   (`sample_id`, `ss_type`, `tool`, `mode`) with `observed`, `n_mask`,
+   `null_mean`, `fold`, `p_perm`, `qvalue`, `significant`, `n_null`. The
+   predictor column is `tool` (DeepLocPro / DeepSecE / SignalP / `COMBINED`),
+   and `sample_id` is the leading column. `mode` is `window` for ordinary
    types (secreted-predicted proteins clustering near the components) or `self`
    for autotransporter self-detection. **T5aSS/T5cSS emit two results**: a `self`
    row-set (the autotransporter component detecting itself) AND a `window`
@@ -128,14 +153,11 @@ Plain text concatenation of:
    relevant predictors per type: DLP-or-SignalP for the Sec-dependent T5 results
    (autotransporter self + T5bSS), DLP-or-DSE for every other window (including
    the T5a/c hitchhiker window), DLP-only for T3SS.
-   `n_null` is the null sample size: the exact per-genome rotations (~one per
-   gene) for a single genome, or 10000 Monte-Carlo draws when pooled. A single
-   genome enumerates every rotation (n genes -> n-1 offsets) exactly. Pooling
-   cannot: the pooled null would be every joint combination of per-genome
-   offsets, a product ((n1-1) x (n2-1) x ...) that is astronomically large, so
-   it is estimated by drawing 10000 random joint rotations (one random rotation
-   per genome, summed) instead of enumerating them. Each genome still
-   contributes its own exact rotation set; only the join is sampled.
+   `n_null` is the null sample size: the exact per-genome rotations (n genes give
+   n-1 offsets) for a single genome, or 10000 Monte-Carlo draws when pooled. The
+   exact pooled null (every joint combination of per-genome offsets) is too large
+   to enumerate, so random joint rotations are drawn instead; each genome still
+   contributes its own exact rotation set, only the join is sampled.
 
 > **Reading significance:** the test's power scales with how many genomes and
 > loci contribute. A **single-genome** run often shows `significant = False`
@@ -161,8 +183,7 @@ For a multi-genome run, the genomes' results are additionally pooled into
 
 Summary figures rendered at `--dpi` (default 300). Toggle individual figures
 with the `--fig-*` flags listed in [`reference/cli.md`](cli.md). These are
-summary-quality; paper-grade figures are regenerated separately from scripts
-in the top-level `figures/` directory.
+summary-quality.
 
 ## `.ssign/<sample-id>_progress.json`
 

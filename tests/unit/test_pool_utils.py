@@ -57,14 +57,13 @@ sequences = st.text(
     max_size=80,
 )
 
-# TSV cell values: any printable text EXCEPT CR/LF/tab (those need
-# quoting to round-trip through csv.DictReader/DictWriter and we're
-# testing the pool/split layer, not csv quoting) and surrogates (which
-# aren't UTF-8 encodable).
+# TSV cell values: printable text only. Control characters (category Cc,
+# which covers tab / CR / LF and NUL) don't round-trip through a plain csv
+# TSV, and surrogates (Cs) aren't UTF-8 encodable; real annotation data has
+# neither, and this layer tests pool/split, not csv's control-char handling.
 tsv_cell_values = st.text(
     alphabet=st.characters(
-        blacklist_characters="\r\n\t",
-        blacklist_categories=("Cs",),
+        blacklist_categories=("Cs", "Cc"),
     ),
     min_size=0,
     max_size=12,
@@ -262,7 +261,7 @@ def _write_tsv(path, fieldnames, rows):
 
 
 def _read_tsv(path):
-    with open(path) as f:
+    with open(path, newline="") as f:
         return list(csv.DictReader(f, delimiter="\t"))
 
 

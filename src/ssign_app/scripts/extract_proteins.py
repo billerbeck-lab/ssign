@@ -342,7 +342,7 @@ def main():
 
     # Fallback: infer organism from filename if only genus was found
     # Handles filenames like "Xanthobacter_tagetidis_strain_genomic.gbff"
-    # Use --original-filename if provided (Streamlit uploads lose the filename)
+    # Use --original-filename if provided (temp-upload inputs lose the filename)
     if not organism or len(organism.split()) < 2:
         fname = args.original_filename if args.original_filename else str(input_path.name)
         stem = Path(fname).stem

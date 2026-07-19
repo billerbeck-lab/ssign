@@ -1,7 +1,0 @@
-ss_type	n_testable	ceiling_n3	ceiling_n5	ceiling_n7	actual_emitted	emit_reach3	emit_unreach3	miss_reach3	miss_unreach3
-T1SS	25	20	20	20	15	15	0	5	5
-T2SS	77	1	2	3	4	1	3	0	73
-T3SS	227	48	66	75	3	0	3	48	176
-T4SS	98	6	8	10	0	0	0	6	92
-T6SS	72	16	17	19	17	5	12	11	44
-ALL	499	91	113	127	39	21	18	70	390

@@ -92,24 +92,23 @@ def test_eta_sizes_uses_measured_substrates_after_filtering(tmp_path, monkeypatc
     assert r._eta_sizes()["substrates"] == 7  # measured, not the 2% prior
 
 
-def test_eta_step_observes_and_prints(tmp_path, capsys):
+def test_eta_step_observes_and_returns_line(tmp_path):
     r = PipelineRunner(PipelineConfig(outdir=str(tmp_path), sample_id="x"))
     r.files["proteins"] = _write_fasta(tmp_path / "p.faa", 4000)
     r.start_time = time.monotonic()
     r._estimator = Estimator(load_coefficients())
     r._eta_stage_ids = [["deeplocpro", "deepsece", "signalp"], ["eggnog"]]
-    r._eta_step(0, "deeplocpro", 120.0)  # a real GPU completion
+    msg = r._eta_step(0, "deeplocpro", 120.0)  # a real GPU completion
     # The gpu rate is now inferred from the observation...
     assert r._estimator.rate("gpu") is not None
-    # ...and a one-line ETA was printed.
-    assert "estimated" in capsys.readouterr().out
+    # ...and a one-line ETA was returned for the caller to print last.
+    assert msg is not None and "estimated" in msg
 
 
-def test_eta_step_is_silent_when_estimator_absent(tmp_path, capsys):
+def test_eta_step_returns_none_when_estimator_absent(tmp_path):
     r = PipelineRunner(PipelineConfig(outdir=str(tmp_path), sample_id="x"))
     r._estimator = None
-    r._eta_step(0, "deeplocpro", 120.0)  # must be a no-op, no crash
-    assert capsys.readouterr().out == ""
+    assert r._eta_step(0, "deeplocpro", 120.0) is None  # no-op, no crash
 
 
 def test_eta_step_never_raises_on_bad_state(tmp_path):

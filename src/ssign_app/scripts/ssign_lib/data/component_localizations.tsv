@@ -12,8 +12,8 @@
 #
 # Schema (tab-separated):
 #   ss_type                  TXSScan model name (matches ss_components.tsv ss_type col).
-#   txsscan_gene_name        TXSScan v2.1 component name from the model XMLs at
-#                              /home/teo/.macsyfinder/models/TXSScan/.
+#   txsscan_gene_name        TXSScan v2.1 component name from the model XMLs in the
+#                              installed MacSyFinder TXSScan models directory.
 #   protein_alias            Common name(s) — informational only, not matched.
 #   acceptable_localizations Pipe-separated set in DLP's exact 5-class vocab:
 #                              "Cytoplasmic", "Cytoplasmic Membrane", "Periplasmic",

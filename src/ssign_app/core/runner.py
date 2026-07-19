@@ -280,7 +280,7 @@ class PipelineConfig:
     # (enrichment_testing.py): fold + permutation p + BH q per system type, plus a
     # per-type null-distribution figure. This forces whole-genome DLP/DSE (see
     # __post_init__) because the rotation null needs every gene's positivity in gene
-    # order. openspec: enrichment-circular-shift-per-run.
+    # order. See docs/explanation/design_decisions.md § 3.1.
     enrichment_stats: bool = False
 
     # Phase 5: Annotation tools
@@ -393,8 +393,8 @@ class PipelineConfig:
         # Circular-shift enrichment needs every gene's positivity in gene order, so
         # turning on --enrichment-stats forces whole-genome DLP/DSE/SignalP. That is
         # the runtime cost the flag warns about (~13 min/genome on a ~5k-gene
-        # proteome). SignalP runs locally; no webserver. openspec:
-        # enrichment-circular-shift-per-run, signalp-enrichment-track.
+        # proteome). SignalP runs locally; no webserver. See
+        # docs/explanation/design_decisions.md § 3.1.
         if self.enrichment_stats and not (self.dlp_whole_genome and self.dse_whole_genome and self.sp_whole_genome):
             self.dlp_whole_genome = True
             self.dse_whole_genome = True
@@ -540,6 +540,29 @@ class StepResult:
 # container tmpfs, not to size precisely.
 _SCRATCH_MIN_FREE_GB = 5
 
+# Prepended to <sample>_results.csv so a first-time reader understands the file
+# is three stacked tables, not one. Consumers that split on the "# Secreted
+# Proteins"/"# Secretion Systems" headers ignore this preamble. Kept in sync
+# with the golden fixture.
+_RESULTS_CSV_OVERVIEW = (
+    "# ssign results: 3 sections follow, each with its own header row, separated by a blank line.\n"
+    "#   1. Secreted Proteins: predicted secreted proteins (substrates) with annotations.\n"
+    "#   2. Secretion Systems (with secreted proteins): detected systems with a secreted protein nearby.\n"
+    "#   3. Secretion Systems (other): detected systems with no secreted protein called nearby.\n"
+    "\n"
+)
+
+
+def _rough_eta_phrase(seconds: float) -> str:
+    """Format a rough pre-run estimate: '~99 min (~50-198 min)' or, for long
+    runs, '~2.8 h (~1.4-5.5 h)'. The wide half-to-double band reflects the
+    typical-proteome prior it is built on."""
+    mins = seconds / 60.0
+    if mins >= 120:
+        h = mins / 60.0
+        return f"~{h:.1f} h (~{h * 0.5:.1f}-{h * 2.0:.1f} h)"
+    return f"~{mins:.0f} min (~{mins * 0.5:.0f}-{mins * 2.0:.0f} min)"
+
 
 def resolve_scratch_dir(scratch_dir: str, outdir: str) -> str:
     """Point $TMPDIR (and this process's tempfile) at real disk with room.
@@ -623,7 +646,7 @@ def run_script(
     except subprocess.TimeoutExpired:
         logger.warning(
             "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
-            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            "legitimately large, the size-aware cap needs a wider margin.",
             script_name,
             timeout,
         )
@@ -705,7 +728,7 @@ def _run_script_streaming(cmd: list, script_name: str, timeout: int) -> tuple:
         t_err.join(timeout=1)
         logger.warning(
             "%s hit its %ss timeout and was killed — a hard cap, not a tool crash. If the input is "
-            "legitimately large, the size-aware cap (openspec size-aware-tool-timeouts) needs a wider margin.",
+            "legitimately large, the size-aware cap needs a wider margin.",
             script_name,
             timeout,
         )
@@ -1110,6 +1133,17 @@ class PipelineRunner:
             except Exception:
                 self._estimator = None
 
+            # A rough machine-adjusted total up front (before step 1), so the user
+            # gets a number immediately instead of waiting for the first step to
+            # finish. Refines once real sizes are known.
+            secs = self._prerun_total_seconds(self._estimator, self._eta_stage_ids)
+            if secs:
+                print(
+                    f"[ssign] [{self.config.sample_id}] time rough estimate "
+                    f"{_rough_eta_phrase(secs)} (pre-run; refines after the first step)",
+                    flush=True,
+                )
+
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         for stage_idx, stage in enumerate(stages):
@@ -1199,10 +1233,11 @@ class PipelineRunner:
                         try:
                             result = future.result()
                             result.duration_s = time.monotonic() - t_step_start
+                            eta_msg = None
                             with self._state_lock:
                                 self._record_result(result)
                                 if result.success:
-                                    self._eta_step(stage_idx, step_id, result.duration_s)
+                                    eta_msg = self._eta_step(stage_idx, step_id, result.duration_s)
                             pct = int(100 * sc / total)
                             print(
                                 f"[ssign] [{self.config.sample_id}] Finished (parallel): {name} -> "
@@ -1215,6 +1250,8 @@ class PipelineRunner:
                                     pct,
                                     f"Done: {result.message} | {self._elapsed_str()} elapsed",
                                 )
+                                if eta_msg:
+                                    print(eta_msg, flush=True)
                             else:
                                 self.progress(name, pct, f"Failed: {result.message}")
                                 logger.error(f"Step '{name}' failed: {result.message}")
@@ -1256,8 +1293,9 @@ class PipelineRunner:
                         result = func()
                         result.duration_s = time.monotonic() - t_step
                         self._record_result(result)
+                        eta_msg = None
                         if result.success:
-                            self._eta_step(stage_idx, step_id, result.duration_s)
+                            eta_msg = self._eta_step(stage_idx, step_id, result.duration_s)
                         self._save_progress()
                         print(
                             f"[ssign] [{self.config.sample_id}] Finished step {sc}/{total}: "
@@ -1271,6 +1309,8 @@ class PipelineRunner:
                                 pct,
                                 f"Done: {result.message} | {self._elapsed_str()} elapsed",
                             )
+                            if eta_msg:
+                                print(eta_msg, flush=True)
                         else:
                             self.progress(name, pct, f"Failed: {result.message}")
                             logger.error(f"Step '{name}' failed: {result.message}")
@@ -1796,7 +1836,7 @@ class PipelineRunner:
         proteome for predictors, the substrate count for annotation). Scales the
         cap so large inputs (e.g. a pooled 160k-protein whole-genome prediction)
         aren't killed by the flat 4h floor; unmodelled tools / unknown size fall
-        back to `floor`. openspec: size-aware-tool-timeouts.
+        back to `floor`.
         """
         regime = resolve_regime(tool, whole_genome=whole_genome)
         if regime is None or size is None or size < 0:
@@ -1840,6 +1880,36 @@ class PipelineRunner:
     # real substrate count is known (filtering runs ~2/3 through). Replaced by
     # the measured count once filtering completes, so the ETA refines.
     _SUBSTRATE_FRACTION_PRIOR = 0.02
+
+    # Typical gram-negative proteome, used only for the pre-run rough ETA before
+    # the genome is parsed. Replaced by the real count after extract_proteins.
+    _PRERUN_PROTEOME_PRIOR = 4000
+
+    def _prerun_total_seconds(self, estimator, stage_ids) -> Optional[float]:
+        """Rough whole-run seconds before any step has run, from a typical-proteome
+        prior fed through the machine-adjusted estimator (its t=0 prior already
+        accounts for this host's cores/GPU). None if not estimable, or if the
+        estimate is untrustworthy because the reference machine had a GPU and this
+        host has none: the GPU predictors then get scaled by a coarse ~50x
+        CPU-fallback penalty, so a pre-run number would mislead. On such hosts the
+        live ETA still appears once the first step's real duration lands."""
+        if estimator is None or not stage_ids:
+            return None
+        gpu_prior = getattr(estimator, "_prior_rates", {}).get("gpu")
+        if gpu_prior is not None and gpu_prior < 0.5:
+            return None
+        try:
+            from ssign_app.runtime.run_eta import build_plan
+
+            proteins = self._PRERUN_PROTEOME_PRIOR
+            sizes = {
+                "proteins": proteins,
+                "substrates": max(1, round(self._SUBSTRATE_FRACTION_PRIOR * proteins)),
+            }
+            res = estimator.eta(build_plan(stage_ids, sizes, self._whole_genome_tools()))
+            return res.total_s if res.total_s > 0 else None
+        except Exception:
+            return None
 
     @staticmethod
     def _stage_ids(stages: list) -> list[list[str]]:
@@ -1890,15 +1960,18 @@ class PipelineRunner:
             sizes["substrates"] = max(1, round(self._SUBSTRATE_FRACTION_PRIOR * sizes["proteins"]))
         return sizes
 
-    def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> None:
-        """Feed one completed step's duration to the estimator, then print the ETA.
+    def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> Optional[str]:
+        """Feed one completed step's duration to the estimator, then return the
+        ETA line to display (or None if no estimate is available).
 
-        Fully defensive: any failure is swallowed. The ETA is a convenience, so a
-        bug here must never take down a real pipeline run.
+        Returning (rather than printing) lets the caller emit the ETA as the very
+        last line of a step, after the "Finished" and progress output. Fully
+        defensive: any failure is swallowed. The ETA is a convenience, so a bug
+        here must never take down a real pipeline run.
         """
         est = self._estimator
         if est is None:
-            return
+            return None
         try:
             from ssign_app.runtime.run_eta import build_plan, step_to_plan
 
@@ -1911,27 +1984,28 @@ class PipelineRunner:
             plan = build_plan(self._eta_stage_ids, sizes, wg)
             res = est.eta(plan)
             if res.total_s <= 0:
-                return
+                return None
             prior = "proteins" in sizes and not self._eta_prior_shown
             elapsed = (time.monotonic() - self.start_time) if self.start_time else 0.0
             # Prior line reports the whole-run total; later lines report time left.
             display_s = res.total_s if prior else max(0.0, res.total_s - elapsed)
-            self._print_eta(display_s, res, prior=prior)
+            msg = self._format_eta(display_s, res, prior=prior)
             if "proteins" in sizes:
                 self._eta_prior_shown = True
+            return msg
         except Exception:
-            pass  # informational only
+            return None  # informational only
 
-    def _print_eta(self, display_s: float, res, *, prior: bool) -> None:
+    def _format_eta(self, display_s: float, res, *, prior: bool) -> str:
         approx = " (approx)" if res.n_unmodeled or res.rel_uncertainty > 0.4 else ""
         rem_min = display_s / 60.0
-        label = "estimated total" if prior else "estimated remaining"
+        label = "estimated total" if prior else "remaining"
         # A wide relative CI on the remaining time, floored so it reads sensibly.
         band = res.rel_uncertainty
         lo = max(0.0, rem_min * (1 - band))
         hi = rem_min * (1 + band)
-        msg = f"[ssign] [{self.config.sample_id}] {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
-        print(msg, flush=True)
+        # Leading "time" tag + its own trailing line make the ETA easy to spot.
+        return f"[ssign] [{self.config.sample_id}] time {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
 
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")
@@ -3007,6 +3081,8 @@ class PipelineRunner:
                 html_out,
                 "--out-txt",
                 txt_out,
+                "--tier",
+                self.config.tier or "",
             ],
         )
 
@@ -3183,7 +3259,7 @@ class PipelineRunner:
         # 2. Raw results CSV (all columns from all tools)
         self._build_raw_csv(outdir / f"{sid}_results_raw.csv")
 
-        # 3. Summary — report text + enrichment summary + Fisher table
+        # 3. Summary: report text + enrichment (circular-shift) stats
         self._build_summary(outdir / f"{sid}_summary.txt")
 
         # 4. Figures directory (per-sample subfolder for parallel safety)
@@ -3426,6 +3502,7 @@ class PipelineRunner:
 
         # ── Write chunked CSV ──
         with open(output_path, "w", newline="") as f:
+            f.write(_RESULTS_CSV_OVERVIEW)
             chunk_written = False
 
             # Chunk 1: Secreted proteins
@@ -3556,7 +3633,7 @@ class PipelineRunner:
 
 
 def run_cross_genome_orthologs(
-    genome_outdirs: list[str],
+    genomes: list[tuple[str, str, str]],
     output_dir: str,
     min_pident: float = 40.0,
     min_qcov: float = 70.0,
@@ -3564,16 +3641,23 @@ def run_cross_genome_orthologs(
 ) -> dict:
     """Run cross-genome ortholog grouping on substrates from multiple genomes.
 
-    After each genome is processed individually, this function:
-    1. Collects all substrate sequences from all genome output directories
-    2. Runs all-vs-all BLASTp on the combined set
-    3. Clusters into ortholog groups using Union-Find
-    4. Merges cross-genome ortholog group IDs back into each genome's integrated CSV
+    ``genomes`` is a list of ``(sample_id, integrated_csv, proteins_fasta)``
+    tuples, one per genome. After each genome has been processed individually
+    this function:
+    1. Pools every genome's substrate sequences (locus_tags from its integrated
+       CSV, sequences from its protein FASTA) into one combined FASTA.
+    2. Runs all-vs-all BLASTp on the combined set.
+    3. Clusters into ortholog groups using Union-Find.
+    4. Adds ``sample_id`` (per protein) and ``n_genomes`` / ``genomes`` (per
+       group) columns, then merges the cross-genome group id back into each
+       genome's integrated CSV as ``xg_ortholog_group``.
 
     Returns dict with n_proteins, n_groups, genomes_updated, file paths.
     """
     import pandas as pd
     from Bio import SeqIO
+
+    from ssign_app.core._pool_utils import make_prefixed_id, split_prefixed_id
 
     result = {
         "n_proteins": 0,
@@ -3590,57 +3674,42 @@ def run_cross_genome_orthologs(
     os.makedirs(output_dir, exist_ok=True)
     combined_fasta = os.path.join(output_dir, "all_substrates_combined.faa")
 
-    # Step 1: Collect all substrate sequences
-    all_substrate_ids = {}  # locus_tag -> genome_outdir
+    # Step 1: Pool substrate sequences into one FASTA. Each id is prefixed with its
+    # sample_id (make_prefixed_id) so a locus_tag shared across genomes -- e.g. a
+    # RefSeq WP_ accession identical in two related strains -- stays two distinct
+    # records. Deduping on the bare locus_tag would drop the second copy and
+    # undercount conservation for exactly the most-conserved proteins.
+    seen_ids: set[str] = set()
     n_written = 0
 
     with open(combined_fasta, "w") as out_f:
-        for gdir in genome_outdirs:
-            gpath = Path(gdir)
-
-            # Find integrated CSV to get substrate locus_tags
-            integrated_csvs = list(gpath.glob("*_integrated.csv")) + list(gpath.glob("*integrated*.csv"))
-            if not integrated_csvs:
-                logger.warning(f"No integrated CSV in {gdir} -- skipping")
+        for sample_id, integrated_csv, proteins_fasta in genomes:
+            if not integrated_csv or not os.path.exists(integrated_csv):
+                logger.warning(f"No integrated CSV for {sample_id} -- skipping")
                 continue
-
-            integrated_csv = str(integrated_csvs[0])
-            substrate_ids = set()
+            if not proteins_fasta or not os.path.exists(proteins_fasta):
+                logger.warning(f"No protein FASTA for {sample_id} -- skipping")
+                continue
             try:
                 df = pd.read_csv(integrated_csv)
-                if "locus_tag" in df.columns:
-                    substrate_ids = set(df["locus_tag"].dropna().astype(str))
             except Exception as e:
                 logger.warning(f"Could not read {integrated_csv}: {e}")
                 continue
-
+            if "locus_tag" not in df.columns:
+                continue
+            substrate_ids = set(df["locus_tag"].dropna().astype(str))
             if not substrate_ids:
                 continue
 
-            # Find protein FASTA — check progress.json first, then glob
-            protein_fastas = []
-            progress_path = gpath / "ssign_progress.json"
-            if progress_path.exists():
-                try:
-                    with open(progress_path) as pf:
-                        prog = json.load(pf)
-                    proteins_path = prog.get("files", {}).get("proteins", "")
-                    if proteins_path and os.path.exists(proteins_path):
-                        protein_fastas.insert(0, Path(proteins_path))
-                except Exception:
-                    pass
-
-            protein_fastas.extend(list(gpath.glob("*.faa")))
-
-            for pf in protein_fastas:
-                try:
-                    for rec in SeqIO.parse(str(pf), "fasta"):
-                        if rec.id in substrate_ids and rec.id not in all_substrate_ids:
-                            SeqIO.write(rec, out_f, "fasta")
-                            all_substrate_ids[rec.id] = gdir
-                            n_written += 1
-                except Exception:
+            for rec in SeqIO.parse(proteins_fasta, "fasta"):
+                if rec.id not in substrate_ids:
                     continue
+                pid = make_prefixed_id(sample_id, rec.id)
+                if pid in seen_ids:
+                    continue
+                out_f.write(f">{pid}\n{rec.seq}\n")
+                seen_ids.add(pid)
+                n_written += 1
 
     result["combined_fasta"] = combined_fasta
     result["n_proteins"] = n_written
@@ -3684,6 +3753,47 @@ def run_cross_genome_orthologs(
     result["orthologs_csv"] = orthologs_csv
     result["ortholog_groups_csv"] = groups_csv
 
+    # Step 3: Split the sample_id back out of each prefixed id (so the per-protein
+    # CSV carries the original locus_tag + its genome), and add genome-count columns
+    # to the group CSV -- run_ortholog_grouping only sees the prefixed ids.
+    try:
+        df_og = pd.read_csv(orthologs_csv)
+        split = df_og["locus_tag"].map(split_prefixed_id)
+        df_og["sample_id"] = split.map(lambda t: t[0])
+        df_og["locus_tag"] = split.map(lambda t: t[1])
+        df_og = df_og[["locus_tag", "sample_id"] + [c for c in df_og.columns if c not in ("locus_tag", "sample_id")]]
+        df_og.to_csv(orthologs_csv, index=False)
+        result["n_groups"] = df_og["ortholog_group"].nunique()
+    except Exception as e:
+        logger.warning(f"Could not read ortholog results: {e}")
+        return result
+
+    try:
+        df_grp = pd.read_csv(groups_csv)
+
+        def _genomes_for(members: object) -> list[str]:
+            seen: list[str] = []
+            for m in str(members).split(";"):
+                m = m.strip()
+                if not m:
+                    continue
+                try:
+                    g = split_prefixed_id(m)[0]
+                except ValueError:
+                    continue
+                if g not in seen:
+                    seen.append(g)
+            return sorted(seen)
+
+        genome_lists = df_grp["members"].map(_genomes_for)
+        df_grp["n_genomes"] = genome_lists.map(len)
+        df_grp["genomes"] = genome_lists.map(";".join)
+        ordered = ["ortholog_group", "n_members", "n_genomes", "genomes", "members", "mean_pident"]
+        df_grp = df_grp[[c for c in ordered if c in df_grp.columns]]
+        df_grp.to_csv(groups_csv, index=False)
+    except Exception as e:
+        logger.warning(f"Could not add genome columns to groups CSV: {e}")
+
     if progress_callback:
         progress_callback(
             "Cross-genome orthologs",
@@ -3691,38 +3801,30 @@ def run_cross_genome_orthologs(
             "Merging ortholog groups into per-genome results...",
         )
 
-    # Step 3: Read ortholog assignments and merge into each genome's integrated CSV
-    try:
-        df_og = pd.read_csv(orthologs_csv)
-        result["n_groups"] = df_og["ortholog_group"].nunique()
-    except Exception as e:
-        logger.warning(f"Could not read ortholog results: {e}")
-        return result
-
-    # Prefix with "xg_" (cross-genome) to distinguish from per-genome groups
-    df_og = df_og.rename(
+    # Step 4: Merge the cross-genome group id back into each integrated CSV. Filter
+    # to the genome's own rows first (a locus_tag shared across genomes must attach
+    # its own group per genome), and prefix "xg_" so it never collides with the
+    # per-genome grouping columns.
+    df_merge = df_og.rename(
         columns={
             "ortholog_group": "xg_ortholog_group",
             "og_n_members": "xg_og_n_members",
             "og_mean_pident": "xg_og_mean_pident",
         }
-    )
+    )[["locus_tag", "sample_id", "xg_ortholog_group", "xg_og_n_members", "xg_og_mean_pident"]]
 
     genomes_updated = 0
-    for gdir in genome_outdirs:
-        gpath = Path(gdir)
-        integrated_csvs = list(gpath.glob("*_integrated.csv")) + list(gpath.glob("*integrated*.csv"))
-        if not integrated_csvs:
+    for sample_id, integrated_csv, _proteins in genomes:
+        if not integrated_csv or not os.path.exists(integrated_csv):
             continue
-
-        integrated_csv = str(integrated_csvs[0])
         try:
             df_int = pd.read_csv(integrated_csv)
             for col in ["xg_ortholog_group", "xg_og_n_members", "xg_og_mean_pident"]:
                 if col in df_int.columns:
                     df_int = df_int.drop(columns=[col])
 
-            df_merged = df_int.merge(df_og, on="locus_tag", how="left")
+            sub = df_merge[df_merge["sample_id"] == sample_id].drop(columns=["sample_id"])
+            df_merged = df_int.merge(sub, on="locus_tag", how="left")
             df_merged.to_csv(integrated_csv, index=False)
             genomes_updated += 1
             logger.info(f"Merged cross-genome orthologs into {integrated_csv}")

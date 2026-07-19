@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ssign"
-version = "0.9.0"
+version = "1.0.0"
 description = "Secretion-system Identification for Gram-negative bacterial genomes"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
@@ -46,7 +46,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "streamlit>=1.30.0",
     "pandas>=2.0",
     "numpy>=1.24",
     "biopython>=1.80",
@@ -61,7 +60,6 @@ dependencies = [
     "psutil>=5.9",
     "jinja2>=3.0",
     "networkx>=3.0",
-    "taxopy>=0.12",
     # DeepSecE prediction is part of the base tier as of v1.0.0 — its
     # call complements DLP / SignalP on cross-validated secretion calls.
     # PyTorch and fair-esm together add ~3 GB to the install footprint.
@@ -164,7 +162,7 @@ Changelog = "https://github.com/billerbeck-lab/ssign/blob/main/CHANGELOG.md"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ssign_app = ["assets/*", "scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "scripts/ssign_lib/data/*.tsv.gz", "shims/*.py", ".streamlit/*", "data/t5aSS/*.hmm", "runtime/*.json"]
+ssign_app = ["scripts/*.py", "scripts/ssign_lib/*.py", "scripts/ssign_lib/data/*.tsv", "scripts/ssign_lib/data/*.tsv.gz", "shims/*.py", "data/t5aSS/*.hmm", "runtime/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
@@ -232,8 +230,6 @@ module = [
     "scipy.*",
     "seaborn",
     "ssign_lib.*",
-    "streamlit.*",
-    "taxopy",
     "torch.*",
 ]
 ignore_missing_imports = true
@@ -256,6 +252,10 @@ ignore_errors = true
 # modern choice that doesn't force constant line-wrapping of error
 # strings, FRAGILE comments, or long fixture FASTA sequences.
 line-length = 120
+# The Streamlit GUI was retired (gitignored, kept local); it is no longer
+# tracked or linted. Excluded so a local checkout that still has the files
+# on disk doesn't report style errors for code that ships nowhere.
+extend-exclude = ["src/ssign_app/Home.py", "src/ssign_app/pages", "tests/unit/test_home_sanitize.py"]
 
 [tool.ruff.lint]
 # Start permissive: pyflakes (F) catches real bugs, pycodestyle (E/W)
@@ -271,17 +271,8 @@ select = ["E", "F", "I", "W"]
 # run both as standalone scripts and as installed-package code. The
 # mangling MUST happen before the ssign_lib import.
 "src/ssign_app/scripts/*" = ["E402"]
-# Streamlit GUI interleaves component imports with HTML/CSS rendering,
-# and the user-facing text strings (st.warning, st.markdown) carry full
-# GitHub URLs to docs which exceed 120 chars. Line-length doesn't carry
-# the same maintenance cost in user-facing prose as in code.
-"src/ssign_app/Home.py" = ["E402", "E501"]
 # conftest.py hoists scripts/ onto sys.path before any test-file imports
 # from it; test_hmmsearch_shim.py does the same for shims/. Both
 # legitimately import after sys.path mutation.
 "tests/unit/conftest.py" = ["E402"]
 "tests/unit/test_hmmsearch_shim.py" = ["E402"]
-# Log-line fixtures in this file are deliberately literal copies of
-# real ssign run output; splitting them across Python source lines
-# obscures what the test is checking.
-"tests/unit/test_analyse_k12_runs.py" = ["E501"]

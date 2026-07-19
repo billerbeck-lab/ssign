@@ -1,8 +1,0 @@
-[server]
-maxUploadSize = 500
-maxMessageSize = 500
-enableXsrfProtection = false
-enableCORS = false
-
-[browser]
-gatherUsageStats = false

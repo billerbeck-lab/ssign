@@ -132,10 +132,9 @@ class TestCountSequences:
 
 
 class TestReadFastaRecords:
-    """read_fasta_records yields (full_header, sequence) tuples — used by
-    prodigal_to_gene_info to parse Prodigal-style headers
-    `>contig_N_M # start # end # strand # attrs` where read_fasta's
-    first-token-only behaviour would discard the metadata."""
+    """read_fasta_records yields (full_header, sequence) tuples, needed to parse
+    Prodigal-style headers `>contig_N_M # start # end # strand # attrs` where
+    read_fasta's first-token-only behaviour would discard the metadata."""
 
     def test_preserves_full_header_after_gt(self, tmp_dir):
         path = os.path.join(tmp_dir, "x.fasta")

@@ -1,9 +1,0 @@
-row_id	ss_type	subtype	gene	uniprot	organism	primary_ref	citation_quote
-T2SS_01	T2SS		lipoprotein	Q9KPR8	Vibrio cholerae N16961	doi:10.1074/jbc.M110.211078	three hypothetical proteins encoded by VCA0583, VCA0738, and VC2298
-T2SS_02	T2SS		tagA-related	Q9KN18	Vibrio cholerae N16961	doi:10.1074/jbc.M110.211078	16 new putative T2S substrates, including sialidase, several proteins participating in chitin utilization, two aminopeptidases, TagA-related protein, cytolysin
-T2SS_03	T2SS		lapA	P35482	Pseudomonas aeruginosa PAO1	doi:10.3389/fmicb.2011.00155	there is only one Hxc-dependent substrate, namely LapA, known as low-molecular weight alkaline phosphatase (Ball et al.,)
-T2SS_04	T2SS		paAP	Q9HZQ8	Pseudomonas aeruginosa PAO1	doi:10.3389/fmicb.2011.00155	achieves the secretion of all Xcp substrates but the aminopeptidase PaAP (Michel et al.,). This is another indication of a specific interaction between the XcpP/XcpQ-like subcomplex and T2SS substrates.
-T2SS_05	T2SS		plaA	Q5ZT22	Legionella pneumophila Philadelphia-1	10.1128/IAI.70.11.6094-6106.2002	We previously showed that Legionella pneumophila secretes, via its type II secretion system, phospholipase A activities ... we identified and characterized plaA, a gene encoding a phospholipase A that cleaves fatty acids from lysophospholipids.
-T2SS_09	T2SS		aerA	P09167	Aeromonas hydrophila ATCC 7966	10.1074/jbc.272.17.11109	Aeromonas spp. secrete the channel-forming protein proaerolysin across their inner and outer membranes in separate steps using the general secretion pathway.
-T2SS_13	T2SS		stmPr1	Q93IQ4	Stenotrophomonas maltophilia K279a	10.1128/IAI.00672-15	the serine proteases StmPr1 and StmPr2, which were confirmed to be Xps substrates, are predominantly responsible for secreted proteolytic activities exhibited by strain K279a
-T2SS_15	T2SS		pelI	E0SM75	Dickeya dadantii 3937	10.1128/jb.179.23.7321-7330.1997	PelI is an extracellular protein secreted by the Out secretory pathway of E. chrysanthemi.

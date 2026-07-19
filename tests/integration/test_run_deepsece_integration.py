@@ -4,8 +4,9 @@ DeepSecE is a single ESM-1b-derived classifier predicting one of
 {T1SE, T2SE, T3SE, T4SE, T6SE, Non-secreted} per input protein. The
 wrapper auto-downloads its checkpoint to ~/.ssign/models/ on first
 run. The SJTU origin URL (`tool2-mml.sjtu.edu.cn/DeepSecE/checkpoint.pt`)
-is the active source until the Zenodo mirror is populated at v1.0.0
-release.
+is the download source for plain-pip installs; the container image bakes the
+checkpoint in, so container runs never hit the network for it. ssign does not
+re-host the checkpoint. Override the URL with SSIGN_DEEPSECE_CHECKPOINT_URL.
 
 Test skips cleanly unless:
   - `deepsece` package is importable (pip install ssign[extended]

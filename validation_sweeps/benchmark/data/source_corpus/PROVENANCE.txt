@@ -1,9 +1,0 @@
-Source corpus for the effector-recovery benchmark.
-Copied 2026-06-10T11:19:02Z from the secretion-classifier repo.
-
-repo:   git@github.com:reidmat/secretion-classifier.git
-branch: main
-commit: 2064659eaa8388c88a17d4a34d8744a448f706c5
-
-Files: T{1,2,3,4,6}SS_verified.tsv (949 rows total), AUDIT_2026-06-08.md.
-These are read-only inputs; the benchmark never writes back here.

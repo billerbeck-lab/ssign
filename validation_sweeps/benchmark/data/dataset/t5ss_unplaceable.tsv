@@ -1,7 +1,0 @@
-gene	organism	refseq_genome	locus_tag	subtype	primary_ref	reason
-hap	Haemophilus influenzae Rd KW20	NC_000907.1	HI_0248	T5aSS	10.1099/mic.0.077784-0	locus_tag 'HI_0248'/gene 'hap' not found in NC_000907.1
-tsh	Escherichia coli O1:K1:H7 (APEC O1)	NC_009838.1	APECO1_O1CoBM73	T5aSS	10.1128/MMBR.68.4.692-744.2004	locus_tag 'APECO1_O1CoBM73'/gene 'tsh' not found in NC_009838.1
-hia	Haemophilus influenzae nontypeable str. 1209		NTHI1209_01464	T5cSS	10.1128/JB.187.13.4656-4664.2005	locus_tag 'NTHI1209_01464'/gene 'hia' not found in 
-invA	Yersinia enterocolitica subsp. enterocolitica 8081	NC_008800.1		T5eSS	10.1371/journal.pone.0047069	locus_tag ''/gene 'invA' not found in NC_008800.1
-badA	Bartonella henselae str. Marseille			T5cSS	10.1111/j.1462-5822.2008.01201.x	locus_tag ''/gene 'badA' not found in 
-uspA1	Moraxella catarrhalis			T5cSS	10.1093/emboj/19.22.5989	locus_tag ''/gene 'uspA1' not found in 

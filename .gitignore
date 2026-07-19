@@ -39,8 +39,6 @@ ssign_progress.json
 .nextflow/
 .nextflow.log*
 work/
-# Note: top-level `results/` is tracked (paper analysis outputs + README).
-# Nextflow's own outputs go in `work/` above.
 
 # Test artifacts
 tests/e2e_work/
@@ -48,9 +46,9 @@ tests/e2e_work/
 htmlcov/
 .coverage
 
-# Large model / data files — contents of data/ and models/ are fetched
-# from Zenodo at install time, not committed. README.md + checksum files
-# in those dirs ARE committed.
+# Large model / data files — data/ and models/ are fetched at install time
+# (databases) or auto-downloaded/baked (weights), never committed. Their reference
+# content now lives in docs/how-to/install.md (#32); the dirs are fully local.
 *.pt
 *.bin
 *.safetensors
@@ -59,12 +57,8 @@ htmlcov/
 *.npy
 *.npz
 *.parquet
-data/**
-!data/README.md
-!data/checksums.sha256
-models/**
-!models/README.md
-!models/checksums.sha256
+/data/
+/models/
 
 # Container artifacts (built locally, not committed)
 *.sif
@@ -79,11 +73,58 @@ models/**
 CLAUDE.md
 .claude/
 
+# Internal planning + scratch — kept locally, not in the public repo (#32 repo TLC)
+# Leading slash = root-anchored (a bare `data/`/`figures/` would also match nested
+# dirs like src/.../data or tests/figures, shadowing bundled package data).
+/openspec/
+/NOTES.md
+
+# Empty placeholder dirs removed from git until they hold real content (#32).
+/results/
+/figures/
+/colab/
+
+# Internal dev scaffolding + point-in-time audits — kept local, not public (#32)
+docs/development/
+docs/research_software_audit.md
+
+# scripts/ slimmed to user-facing helpers — dev/ops scripts kept local (#32).
+# cx3/ = Imperial-cluster ops; the .py = dev tools (monitor_resources superseded
+# by core/resource_sampler.py; audit_* = size measurement; chop_genome/analyse_k12
+# = one-off QA). Their unit tests go with them.
+scripts/cx3/
+scripts/chop_genome.py
+scripts/audit_database_sizes.py
+scripts/audit_disk_sizes.py
+scripts/analyse_k12_runs.py
+scripts/monitor_resources.py
+tests/unit/test_audit_database_sizes.py
+tests/unit/test_audit_disk_sizes.py
+tests/unit/test_analyse_k12_runs.py
+
+# Root files kept local (#32): SYSADMIN = skeleton hosted-service runbook (service
+# not built); requirements-baseline = stale (old repo pin + removed pybiolib,
+# redundant w/ pyproject+uv.lock); env_signalp6.lock = pins a /home/teo file:// path;
+# .dockerignore = dead (no Dockerfile, build is Apptainer).
+/SYSADMIN.md
+/requirements-baseline.txt
+/env_signalp6.lock.txt
+/.dockerignore
+
+# Streamlit GUI (#32): pre-HPC-era desktop UI, drifted behind recent pipeline
+# changes. Kept local, out of the public tree; revisit + update if there's demand.
+/src/ssign_app/Home.py
+/src/ssign_app/pages/
+/src/ssign_app/assets/
+/src/ssign_app/.streamlit/
+/tests/unit/test_home_sanitize.py
+
 # Local drafts (correspondence, WIP notes not intended for commit)
 .drafts/
 
 # Stray pipeline outputs from interactive testing
 macsyfinder_out/
 
-# Regenerable Phase-2 enrichment-validation work dir (macsyfinder output + synth TSVs)
-validation_sweeps/benchmark/analysis/**/phase2_work/
+# Benchmark + validation sweeps — kept local, not in the public repo (#32).
+# Mid-flight; curated deliverables get re-added to a clean path when it closes.
+/validation_sweeps/

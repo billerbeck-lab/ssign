@@ -13,27 +13,43 @@ These are the env vars ssign actually consults during a pipeline run:
 | `SSIGN_HHSUITE_PFAM` | Path to HH-suite Pfam database. Fallback for `--hhsuite-pfam-db`. |
 | `SSIGN_HHSUITE_PDB70` | Same, for PDB70. Fallback for `--hhsuite-pdb70-db`. |
 | `SSIGN_HHSUITE_UNICLUST` | Same, for UniRef30 / UniClust30. Fallback for `--hhsuite-uniclust-db`. |
-| `SSIGN_BLAST_SWISSPROT` | Directory holding the BLAST Swiss-Prot database (contains `swissprot.pdb`) — the full-tier default BLASTp DB. When `--blastp-db` is unset, ssign resolves the `-db` prefix as `<this dir>/swissprot`. Fallback for `--blastp-db`; the flag wins. NR is opt-in: fetch it and pass `--blastp-db <nr-dir>/nr` (there is no auto-resolution for NR). |
+| `SSIGN_BLAST_SWISSPROT` | Directory holding the BLAST Swiss-Prot database (contains `swissprot.pdb`), the full-tier default BLASTp DB. When `--blastp-db` is unset, ssign resolves the `-db` prefix as `<this dir>/swissprot`. Fallback for `--blastp-db`; the flag wins. NR is opt-in: fetch it and pass `--blastp-db <nr-dir>/nr` (there is no auto-resolution for NR). |
 | `SSIGN_DEEPSECE_CHECKPOINT_URL` | Replace the canonical DeepSecE checkpoint URL with an institutional mirror. Useful inside firewalled networks. |
 | `SSIGN_PLMBLAST_SCRIPT` | Path to the upstream `plmblast.py` script (clone of `labstructbioinf/pLM-BLAST`). |
-| `SSIGN_TAXDUMP_DIR` | NCBI taxdump directory used by `resolve_taxonomy.py`. Defaults to a bundled snapshot if unset. |
 
 CLI flags always take precedence: if both `--hhsuite-pfam-db` and
 `SSIGN_HHSUITE_PFAM` are set, the CLI flag wins.
 
-## Convenience aliases (set by the database fetcher)
+## Runtime tuning / hardware
 
-`scripts/fetch_databases.sh` exports these after a successful download so you
-can copy a one-liner into your shell rc file. They are not read by ssign at
-run time; the matching CLI flag is the load-bearing handle.
+These control device selection and resource sizing. None have a CLI flag;
+they exist for HPC and mixed-hardware environments.
+
+| Variable | Purpose |
+|---|---|
+| `SSIGN_DEEPLOCPRO_FORCE_CPU` | Set to `1`/`true`/`yes` to force DeepLocPro onto CPU even when a CUDA GPU is visible. Default: auto-detect (GPU if torch sees one, else CPU). |
+| `SSIGN_DEEPSECE_FORCE_CPU` | Same, for DeepSecE's ESM-1b step. Default: auto-detect. |
+| `SSIGN_PLMBLAST_FORCE_CPU` | Same, for pLM-BLAST's ProtT5 embedding (`--cuda`). Default: auto-detect. CPU embedding is ~100x slower. |
+| `SSIGN_MAX_RAM_GB` | Override the detected RAM budget (GB). ssign otherwise takes the minimum of the SLURM/PBS allocation, cgroup limit, and host total; set this on an HPC where none of those report the real cap. |
+| `SSIGN_PARALLEL_GROUP_SIZE` | Divisor `N` (>= 2) each tool wrapper uses to self-limit its CPU/RAM share when the runner launches prediction/annotation tools concurrently. Set by the runner automatically; rarely set by hand. Unset or <= 1 means "standalone, use full budget". |
+| `SSIGN_DEEPLOCPRO_MAX_AA` | Max protein length (aa) DeepLocPro will embed; longer sequences are withheld and marked "not predicted" to avoid O(L^2) attention OOM. Default 5000. |
+
+## Database paths read as CLI-flag fallbacks
+
+Each of these is read at run time as a fallback used only when the matching CLI
+flag is unset (the flag always wins), resolving its tool's database or install
+directory. `scripts/fetch_databases.sh` prints a matching `set ...` line for the
+databases it downloads so you can copy a one-liner into your shell rc file.
+Bakta and EggNOG are read under both their **native** tool env var names
+(`BAKTA_DB`, `EGGNOG_DATA_DIR`, the same names the fetcher prints) and a
+`SSIGN_`-prefixed alias (`SSIGN_BAKTA_DB`, `SSIGN_EGGNOG_DB`); either works.
 
 | Variable | CLI equivalent |
 |---|---|
-| `SSIGN_BAKTA_DB` | `--bakta-db` |
-| `SSIGN_EGGNOG_DB` | `--eggnog-db` |
+| `BAKTA_DB` / `SSIGN_BAKTA_DB` | `--bakta-db` |
+| `EGGNOG_DATA_DIR` / `SSIGN_EGGNOG_DB` | `--eggnog-db` |
 | `SSIGN_INTERPROSCAN_PATH` | `--interproscan-db` |
 | `SSIGN_ECOD_DB` | `--plmblast-db` |
-| `SSIGN_DEEPSECE_CHECKPOINT` | (alternative to `SSIGN_DEEPSECE_CHECKPOINT_URL` for already-downloaded files) |
 | `SSIGN_DEEPLOCPRO_PATH` | `--deeplocpro-path` (also used by the DLP integration test) |
 | `SSIGN_SIGNALP_PATH` | `--signalp-path` (also used by the SignalP integration test) |
 

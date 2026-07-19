@@ -85,8 +85,7 @@ class DatabasePath:
     tier: Tier = "extended"
     # Canonical tool this database belongs to (e.g. "HH-suite" for all
     # three HH-suite DBs). Used by audit/reporting consumers to roll up
-    # per-tool sizes. Empty default means "uncategorised" — drives a
-    # test failure in test_audit_disk_sizes.
+    # per-tool sizes. Empty default means "uncategorised".
     tool: str = ""
 
     def resolve_path(self, db_root: str, *extra_paths: str) -> Optional[str]:
@@ -160,7 +159,6 @@ class ModelWeights:
 
 PYTHON_DEPS: tuple[PythonDep, ...] = (
     # Base tier — installed by `pip install ssign`
-    PythonDep("streamlit", "streamlit"),
     PythonDep("pandas", "pandas"),
     PythonDep("numpy", "numpy"),
     PythonDep("Bio", "biopython", symbols=("Bio.SeqIO", "Bio.SeqUtils.ProtParam.ProteinAnalysis")),
@@ -171,7 +169,6 @@ PYTHON_DEPS: tuple[PythonDep, ...] = (
     PythonDep("yaml", "pyyaml"),
     PythonDep("jinja2", "jinja2"),
     PythonDep("networkx", "networkx"),
-    PythonDep("taxopy", "taxopy"),
     PythonDep("pyhmmer", "pyhmmer"),
     PythonDep("pyrodigal", "pyrodigal"),
     PythonDep("macsylib", "macsyfinder", note="macsyfinder pip package ships the `macsylib` module"),
