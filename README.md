@@ -6,7 +6,7 @@
 [![Tests](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/test.yml)
 [![Lint](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml/badge.svg)](https://github.com/billerbeck-lab/ssign/actions/workflows/lint.yml)
 
-ssign predicted secretion systems in Gram-negative bacterial genomes, 
+ssign predicts secretion systems in Gram-negative bacterial genomes, 
 the proteins they secrete, and annotates those proteins.
 
 **Version `1.0.0`**
@@ -39,12 +39,23 @@ Per-decision rationale in [design_decisions.md](docs/explanation/design_decision
 
 ## Supported inputs
 
-| Format        | Extensions              |
-| ------------- | ----------------------- |
-| GenBank       | `.gbff`, `.gbk`, `.gb`  |
-| FASTA contigs | `.fasta`, `.fna`, `.fa` |
-| Protein FASTA | `.faa`                  |
-| GFF3          | `.gff` (with a same-stem nucleotide FASTA alongside) |
+`.gbff`, `.gbk`, `.gb`, `.fasta`, `.fna`, `.fa`, `.faa`, `.gff`
+
+## Output
+
+Per genome, ssign writes to your `--outdir`:
+
+- `<sample-id>_results.csv`: main results (chunked: secreted proteins, then
+  associated systems, then other systems).
+- `<sample-id>_results_raw.csv`: raw outputs of all tools run.
+- `<sample-id>_summary.txt`: plain-text report and enrichment summary.
+- `figures/<sample-id>/*.png`: summary set of overview figures & enrichment fold/significance figures when `--enrichment-stats` is on.
+
+Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
+subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
+at the outdir root.
+
+Full column reference: [output_files.md](docs/reference/output_files.md).
 
 ---
 
@@ -52,9 +63,9 @@ Per-decision rationale in [design_decisions.md](docs/explanation/design_decision
 
 | Parameter             | Default              | Meaning |
 | --------------------- | -------------------- | ------- |
-| `excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default (not protein secretion systems). T3SS is detected by default; DeepSecE is never trusted for T3SS (it over-calls flagellar proteins), so T3SS relies on MacSyFinder + DeepLocPro + proximity. Add `T3SS` to exclude it entirely. |
-| `conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability. |
-| `proximity_window`    | `3`                  | +/-N genes around each SS component (same contig only). |
+| `excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
+| `conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
+| `proximity_window`    | `3`                  | +/-N genes around each SS component. |
 | `wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
 
 All configurable via CLI flags. Full reference:
@@ -64,75 +75,32 @@ All configurable via CLI flags. Full reference:
 
 ## Install tiers
 
-ssign ships in three tiers, differing only in which databases you fetch. Pick
-the one matching your storage budget; upgrade later by re-running the fetcher
+ssign ships in three tiers, differing in which databases you fetch and which tools are automatically run. Pick
+the one matching your storage budget and compute access; upgrade later by re-running the fetcher
 with a new `--tier`.
 
 | Tier         | DB disk | Adds |
 | ------------ | ------- | ---- |
 | **base**     | ~4 GB   | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
 | **extended** | ~100 GB | base + EggNOG + InterProScan + pLM-BLAST |
-| **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot (NR opt-in) |
+| **full**     | ~500 GB | extended + Bakta full DB + HH-tools (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
 
-Add ~18 GB of model weights (ESM2, DeepSecE checkpoint + ESM-1b backbone,
-DeepLocPro, ProtT5), downloaded automatically on first run and shared across
-tiers. Container users get them pre-baked, so nothing downloads at run time.
+`ssign` is a command-line tool. Run `ssign run --help` for every option and `ssign doctor --tier (your tier)` for verification and troubleshooting.
 
-After installing, fetch the matching database bundle and verify:
-
-```bash
-ssign fetch-databases --tier extended    # or: base / full
-ssign doctor --tier extended             # reports any missing DB / binary / weight, with the fix
-```
----
-
-`ssign` is a command-line tool. Run `ssign run --help` for every option, or
-`ssign doctor` to check your install.
-
-**System requirements:** Linux or macOS, Python >= 3.10. A CUDA-capable GPU is
+**System requirements:** Linux (base, extended, full) or macOS(only base), Python >= 3.10. A CUDA-capable GPU is
 recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
 
-Full install instructions (tiers, optional tool extras, HPC) are in the
+Full install instructions are in the
 [install guide](docs/how-to/install.md).
 
-Full container guide (hardware, HPC/PBS, verification, troubleshooting):
-[install.md](docs/how-to/install.md). Maintainer build and
-publish steps: [containers/README.md](containers/README.md).
+Maintainer build and publish steps: [containers/README.md](containers/README.md).
 
 ---
 
-## Output
-
-Per genome, ssign writes to your `--outdir`:
-
-- `<sample-id>_results.csv`: main results (chunked: secreted proteins, then
-  associated systems, then other systems).
-- `<sample-id>_results_raw.csv`: every column, no filtering.
-- `<sample-id>_summary.txt`: plain-text report and enrichment summary.
-- `figures/<sample-id>/*.png`: the curated summary set, numbered `01`-`06`
-  (secreted proteins by SS type; size and physicochemical properties; and four
-  functional-category figures, COG / KEGG / EggNOG / curated consensus, when
-  annotation tools have run), plus the enrichment fold/significance figures
-  (per-tool and combined) when `--enrichment-stats` is on.
-
-Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
-subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
-at the outdir root and the curated figure set over all genomes as `0N_pooled_*`
-(figure `01` is the cross-genome overview, one stacked bar per genome). With
-BLAST+ installed they also get cross-genome ortholog groups
-(`cross_genome_ortholog_groups.csv`) and a conservation figure
-(`figures/07_cross_genome_orthologs.png`).
-
-Full column reference: [output_files.md](docs/reference/output_files.md).
-
----
-
-## Citing ssign
+## Citing
 
 Cite via [CITATION.cff](CITATION.cff). The Zenodo and paper DOIs will be added
 here at the v1.0.0 release.
-
-### Citing the underlying tools
 
 ssign integrates many open-source tools. Please cite any tool your analysis
 uses alongside ssign.
@@ -178,7 +146,7 @@ assistance of large language models. All AI-assisted output was reviewed, edited
 and verified by the human authors: code changes were
 validated against the test (`pytest tests/unit/`) and, for pipeline-affecting changes, against real-genome validation
 runs. Scientific claims, default thresholds, and biological rationale were
-verified against the primary literature cited in this README and in
+verified against the primary literature, see
 [design_decisions.md](docs/explanation/design_decisions.md).
 
 ---
@@ -186,8 +154,7 @@ verified against the primary literature cited in this README and in
 ## Contributing
 
 See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how to file issues, propose
-features, and submit pull requests. Contributions are welcome, especially for
-documentation and new tool integrations. A [Code of Conduct](.github/CODE_OF_CONDUCT.md)
+features, and submit pull requests. A [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 applies to all project spaces; security issues should be reported privately per
 [SECURITY.md](.github/SECURITY.md).
 
