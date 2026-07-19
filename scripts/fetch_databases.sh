@@ -323,7 +323,7 @@ fetch_eggnog() {
     # Three files match what download_eggnog_data.py would fetch for the
     # default (non-HMMER, non-novel-families, non-MMseqs) install path —
     # the same defaults ssign's eggnog wrapper relies on at runtime.
-    _log "==> EggNOG database (~25 GB extracted; emapperdb v5.0.2)"
+    _log "==> EggNOG database (~47 GB extracted; emapperdb v5.0.2)"
     local dir="$TARGET/eggnog"
 
     _external_db_exists EGGNOG_DATA_DIR "eggnog.db" && return 0

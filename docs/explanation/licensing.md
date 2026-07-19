@@ -23,7 +23,7 @@ include each binary / weight / database, or whether the user fetches it later.
 | **Bakta / HH-suite / MacSyFinder** (tools) | GPL-family | Baked | n/a |
 | **TXSScan models** | CeCILL | Bundled with MacSyFinder | n/a |
 | **SignalP 6.0** (binary + weights) | DTU academic | Not baked (cannot redistribute; DTU reply 2026-05-07) | `ssign-setup-dtu` (DTU portal), or `--signalp-mode remote` |
-| **EggNOG database** (~50 GB) | unspecified | Not baked (size + licence) | `scripts/fetch_databases.sh` |
+| **EggNOG database** (~47 GB) | unspecified | Not baked (size + licence) | `scripts/fetch_databases.sh` |
 | **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | Not baked (host-provided in full) | host install + `scripts/fetch_databases.sh` |
 | **Bakta DB** | CC-BY 4.0 | Not baked (size) | `scripts/fetch_databases.sh` |
 | **BLAST Swiss-Prot / NR** | NCBI public | Not baked (size) | `scripts/fetch_databases.sh` |
@@ -50,7 +50,7 @@ These are two separate things:
 |     | What it is | License | In the image? |
 | --- | --- | --- | --- |
 | **eggnog-mapper code** | ~5,000-line Python tool that runs DIAMOND and parses output | AGPL-3.0 ([`LICENSE.txt`](https://github.com/eggnogdb/eggnog-mapper/blob/master/LICENSE.txt)) | Baked (isolated env) |
-| **EggNOG database** | ~50 GB of precomputed ortholog data the tool queries | **Unspecified** | Host-fetched |
+| **EggNOG database** | ~47 GB of precomputed ortholog data the tool queries | **Unspecified** | Host-fetched |
 
 The v1.0.0 image **bakes the eggnog-mapper code** (AGPL-3.0) into its own
 micromamba environment. That isolation sidesteps a version conflict: eggnog-mapper
@@ -63,7 +63,7 @@ The **database** is a different question. We checked the
 `eggnog-mapper` repo (whose AGPL covers only the code), the EggNOG papers
 (Huerta-Cepas 2019, Hernández-Plaza 2023), and the wiki: **no license clause is
 stated anywhere for the data files.** Under default copyright law (EU / Germany,
-EMBL-Heidelberg), silence means all rights reserved, so the ~50 GB database is
+EMBL-Heidelberg), silence means all rights reserved, so the ~47 GB database is
 **not** baked. Users fetch it with `scripts/fetch_databases.sh` (which wraps
 `download_eggnog_data.py`), the same install path Bakta, Prokka, and
 nf-core/funcscan use. EggNOG annotation is on by default at the extended and full
