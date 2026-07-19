@@ -75,10 +75,9 @@ module load apptainer && apptainer --version
 #     pip does not put them on PATH; a clone gives you scripts/ and the docs):
 git clone https://github.com/billerbeck-lab/ssign && cd ssign
 
-# 0c. Download the image (.sif, ~20 GB) from Zenodo and point ssign-run at it:
-#       wget -O $HOME/ssign.sif https://zenodo.org/records/21441318/files/ssign_1.0.0.sif
-#     Record + DOI: https://doi.org/10.5281/zenodo.21441317
-#     Building it yourself is a maintainer task: see containers/README.md.
+# 0c. Download the image (.sif, ~20 GB) from Zenodo (DOI 10.5281/zenodo.21441317;
+#     maintainers build it themselves, see containers/README.md), then point ssign-run at it:
+wget -O $HOME/ssign.sif https://zenodo.org/records/21441318/files/ssign_1.0.0.sif
 export SSIGN_SIF=$HOME/ssign.sif
 
 # 1. Reference databases, fetched FROM the image (no host tools needed; ~100 GB, once)
