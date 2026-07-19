@@ -170,12 +170,18 @@ templates, GPU requests, walltime, and per-job output dirs.
 ## Verify
 
 ```bash
-apptainer run --writable-tmpfs --containall "$SSIGN_SIF" doctor --tier extended
+scripts/ssign-run --doctor --tier extended --db-root $HOME/ssign-databases
 ```
 
-`ssign doctor` checks every dependency and reports what is missing with the fix
-command; it exits non-zero on failure so you can chain
-`... doctor && ... run ...` in a job script.
+`--doctor` checks every dependency (Python packages, baked binaries, your fetched
+databases, model weights) and reports what is missing with the fix command. It
+binds the databases + SignalP env exactly as a real run does, so it verifies what
+a run would actually see. It exits non-zero on failure, so you can chain
+`ssign-run --doctor ... && ssign-run genome ...` in a job script.
+
+(Running `doctor` by hand via raw `apptainer` needs the same `-B` database binds a
+run uses, or it reports the databases as missing; `ssign-run --doctor` handles
+that for you.)
 
 ## Tiers
 

@@ -44,6 +44,10 @@
 #                          allocation from --containall (e.g. PBS): pass your job's
 #                          RAM, else ssign reads the whole node and may OOM. Defaults
 #                          from $SSIGN_MAX_RAM_GB, then SLURM_MEM_PER_NODE.
+#   --doctor               verify the install instead of running: bind the DBs +
+#                          SignalP env and run `ssign doctor --tier <tier>` (no
+#                          genome/OUTDIR needed). Exits non-zero on any failure, so
+#                          `ssign-run --doctor ... && ssign-run genome ...` gates a job.
 #   -h, --help             show this help
 #   --                     pass everything after it straight to `ssign run`
 #
@@ -51,6 +55,9 @@
 #   ssign-run genome.gbff out --tier extended \
 #     --db-root /data/ssign-databases \
 #     --signalp-env ~/.conda/envs/signalp6
+#
+# Verify the install (no genome needed):
+#   ssign-run --doctor --tier extended --db-root /data/ssign-databases
 
 set -euo pipefail
 
@@ -69,6 +76,8 @@ USE_NV=1
 MAXRAM="${SSIGN_MAX_RAM_GB:-}"
 GENOME=""
 OUTDIR=""
+DOCTOR=0
+NV_FLAG=()
 PASSTHRU=()
 
 # --- parse args -------------------------------------------------------------
@@ -86,18 +95,22 @@ while [ $# -gt 0 ]; do
         --scratch)        SCRATCH="$2"; shift 2 ;;
         --max-ram)        MAXRAM="$2"; shift 2 ;;
         --cpu)            USE_NV=0; shift ;;
+        --doctor)         DOCTOR=1; shift ;;
         --)               shift; PASSTHRU=("$@"); break ;;
         -*)               die "unknown option: $1 (use --help)" ;;
         *)                POSITIONAL+=("$1"); shift ;;
     esac
 done
-[ "${#POSITIONAL[@]}" -ge 2 ] || usage 1
-GENOME="${POSITIONAL[0]}"
-OUTDIR="${POSITIONAL[1]}"
+# --doctor verifies the install (no genome/outdir); a normal run needs both.
+if [ "$DOCTOR" -eq 0 ]; then
+    [ "${#POSITIONAL[@]}" -ge 2 ] || usage 1
+    GENOME="${POSITIONAL[0]}"
+    OUTDIR="${POSITIONAL[1]}"
+fi
 
 # --- validate ---------------------------------------------------------------
 command -v apptainer >/dev/null || die "apptainer not on PATH (install it, or 'module load apptainer')"
-[ -f "$GENOME" ] || die "genome not found: $GENOME"
+[ "$DOCTOR" -eq 1 ] || [ -f "$GENOME" ] || die "genome not found: $GENOME"
 [ -f "$SIF" ]    || die "image not found: $SIF (pass --sif or set \$SSIGN_SIF)"
 case "$TIER" in base|extended|full) ;; *) die "invalid --tier '$TIER' (base|extended|full)" ;; esac
 if [ "$TIER" != "base" ] && [ -z "$DBROOT" ]; then
@@ -105,34 +118,37 @@ if [ "$TIER" != "base" ] && [ -z "$DBROOT" ]; then
 fi
 [ -z "$DBROOT" ] || [ -d "$DBROOT" ] || die "db-root not a directory: $DBROOT"
 
-GENOME=$(readlink -f "$GENOME")
-mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
-SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
+# Genome I/O, scratch, image staging and GPU are run-only; --doctor skips them
+# (it only inspects the image + bound databases, needs no genome or GPU).
+if [ "$DOCTOR" -eq 0 ]; then
+    GENOME=$(readlink -f "$GENOME")
+    mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
+    SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
 
-# --- optional image staging -------------------------------------------------
-# On HPC a .sif on a slow/network filesystem is read as thousands of small
-# squashfs/Python-import reads, which can add tens of minutes of pure startup.
-# --stage-image copies it once to fast local disk (a sibling of --scratch, so
-# point --scratch at node-local storage) and runs from there. Falls back to the
-# original path if the copy fails.
-if [ "$STAGE_IMAGE" -eq 1 ]; then
-    stage_dir="${SCRATCH}.img"; mkdir -p "$stage_dir"
-    local_sif="$stage_dir/$(basename "$SIF")"
-    echo "ssign-run: staging image to $local_sif (one-time copy for faster startup)"
-    if cp "$SIF" "$local_sif" 2>/dev/null; then
-        SIF="$local_sif"
-    else
-        echo "ssign-run: staging failed; running from $SIF" >&2
+    # --- optional image staging ---------------------------------------------
+    # On HPC a .sif on a slow/network filesystem is read as thousands of small
+    # squashfs/Python-import reads, which can add tens of minutes of pure startup.
+    # --stage-image copies it once to fast local disk (a sibling of --scratch, so
+    # point --scratch at node-local storage) and runs from there. Falls back to
+    # the original path if the copy fails.
+    if [ "$STAGE_IMAGE" -eq 1 ]; then
+        stage_dir="${SCRATCH}.img"; mkdir -p "$stage_dir"
+        local_sif="$stage_dir/$(basename "$SIF")"
+        echo "ssign-run: staging image to $local_sif (one-time copy for faster startup)"
+        if cp "$SIF" "$local_sif" 2>/dev/null; then
+            SIF="$local_sif"
+        else
+            echo "ssign-run: staging failed; running from $SIF" >&2
+        fi
     fi
-fi
 
-# --- GPU --------------------------------------------------------------------
-NV_FLAG=()
-if [ "$USE_NV" -eq 1 ]; then
-    if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
-        NV_FLAG=(--nv)
-    else
-        echo "ssign-run: no GPU detected, running CPU-only (predictors will be slower)" >&2
+    # --- GPU ----------------------------------------------------------------
+    if [ "$USE_NV" -eq 1 ]; then
+        if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
+            NV_FLAG=(--nv)
+        else
+            echo "ssign-run: no GPU detected, running CPU-only (predictors will be slower)" >&2
+        fi
     fi
 fi
 
@@ -149,8 +165,12 @@ if [ -n "$DBROOT" ]; then
     BINDS+=( -B "$DBROOT":"$DBROOT" )
     _ecod=$(ls -d "$DBROOT"/plm_blast/ECOD* 2>/dev/null | head -1 || true)
     _ips=$(ls -d "$DBROOT"/interproscan/interproscan-* 2>/dev/null | head -1 || true)
-    [ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta"
-    [ -d "$DBROOT/eggnog" ]          && export APPTAINERENV_EGGNOG_DATA_DIR="$DBROOT/eggnog"
+    # Bakta/EggNOG: set both the native tool var (read by the tool + runner at run
+    # time) and the SSIGN_-prefixed alias (the name `ssign doctor` looks up); ECOD
+    # and InterProScan already use the SSIGN_ name for both. Without the aliases,
+    # doctor can't find Bakta/EggNOG under --containall (no ~/.ssign marker mounted).
+    [ -d "$DBROOT/bakta" ]           && export APPTAINERENV_BAKTA_DB="$DBROOT/bakta" APPTAINERENV_SSIGN_BAKTA_DB="$DBROOT/bakta"
+    [ -d "$DBROOT/eggnog" ]          && export APPTAINERENV_EGGNOG_DATA_DIR="$DBROOT/eggnog" APPTAINERENV_SSIGN_EGGNOG_DB="$DBROOT/eggnog"
     [ -n "$_ecod" ]                  && export APPTAINERENV_SSIGN_ECOD_DB="$_ecod"
     [ -n "$_ips" ]                   && export APPTAINERENV_SSIGN_INTERPROSCAN_PATH="$_ips"
     [ -d "$DBROOT/blast_swissprot" ] && export APPTAINERENV_SSIGN_BLAST_SWISSPROT="$DBROOT/blast_swissprot"
@@ -182,6 +202,24 @@ if [ -n "$SP6ENV" ]; then
     [ -x "$SP6ENV/bin/signalp6" ] || die "no bin/signalp6 in --signalp-env: $SP6ENV"
     BINDS+=( -B "$SP6ENV":"$SP6ENV":ro )
     DTU_ARGS+=( --signalp-mode local --signalp-path "$SP6ENV/bin" )
+    # doctor reads the SSIGN_SIGNALP_PATH env var (not the run-only flag above),
+    # so set it too and its optional SignalP check finds the local install.
+    export APPTAINERENV_SSIGN_SIGNALP_PATH="$SP6ENV/bin"
+fi
+
+# --- doctor: verify the install and exit ------------------------------------
+# BINDS now holds the DB root + its SSIGN_* path env vars and the SignalP env,
+# which is everything doctor inspects. exec here so the run-only scratch/genome/
+# GPU/RAM setup below is skipped. Same --containall as a real run, so this
+# verifies exactly what a run would see.
+if [ "$DOCTOR" -eq 1 ]; then
+    echo "ssign-run: doctor  tier=$TIER  image=$SIF"
+    [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
+    # Also mount the fetch marker (~/.ssign/db_root) so doctor can resolve db_root
+    # for any DB not covered by the SSIGN_* vars above (e.g. full-tier HH-suite).
+    [ -d "$HOME/.ssign" ] && BINDS+=( -B "$HOME/.ssign":"$HOME/.ssign":ro )
+    exec apptainer run --writable-tmpfs --containall "${BINDS[@]}" \
+        "$SIF" doctor --tier "$TIER" "${PASSTHRU[@]}"
 fi
 
 # --- scratch + (optional) torch cache --------------------------------------
