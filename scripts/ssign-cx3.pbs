@@ -1,0 +1,42 @@
+#!/bin/bash
+#PBS -N ssign
+#PBS -l select=1:ncpus=32:mem=64gb:ngpus=1:gpu_type=RTX6000
+#PBS -l walltime=08:00:00
+#PBS -j oe
+#
+# Example PBS job: one extended-tier ssign container run on a GPU node.
+# Written for Imperial CX3 (PBS Pro). Other clusters: adjust the queue and the
+# `#PBS -l select` line to your site (see below), the body is portable.
+#
+# WHY gpu_type is on the select line: on CX3's v1_gpu72 a GPU request WITHOUT
+# gpu_type queues forever ("Placement set is too small"). It must be baked into
+# the #PBS directive above, a command-line `-l` override is dropped when a long
+# qsub line gets mangled on paste. Not all clusters need it; drop it if yours
+# doesn't use typed GPUs.
+#
+# Submit from your repo checkout (so PBS_O_WORKDIR points at it):
+#   cd /path/to/ssign
+#   qsub -v GENOME=$HOME/mygenome.gbff scripts/ssign-cx3.pbs
+#
+# Then confirm the job is placeable (MANDATORY on CX3):
+#   qstat -f <jobid> | grep -E 'job_state|Resource_List.select'   # want gpu_type=RTX6000
+#
+# Override any variable below with -v VAR=val,VAR=val (comma-separated, NO spaces):
+REPO="${REPO:-$PBS_O_WORKDIR}"                       # repo checkout (defaults to the submit dir)
+SIF="${SIF:-$HOME/ssign.sif}"                        # the .sif image
+DBROOT="${DBROOT:-$HOME/ssign-databases}"            # fetch-databases output
+GENOME="${GENOME:?set -v GENOME=/absolute/path/to/genome.gbff (must be absolute)}"
+OUTDIR="${OUTDIR:-$EPHEMERAL/ssign_out/${PBS_JOBID%%.*}}"   # results (EPHEMERAL has room for intermediates)
+TIER="${TIER:-extended}"
+MAXRAM="${MAXRAM:-60}"                               # GB; must match the mem you requested (< 64)
+
+set -euo pipefail
+module load apptainer 2>/dev/null || true
+cd "$REPO"
+
+# --stage-image copies the .sif to node-local $TMPDIR first (a .sif on the RDS
+# network FS is read as thousands of slow random reads, minutes of pure startup);
+# --scratch keeps tool temp files on that same fast local disk, not the network FS.
+scripts/ssign-run "$GENOME" "$OUTDIR" \
+    --tier "$TIER" --sif "$SIF" --db-root "$DBROOT" \
+    --max-ram "$MAXRAM" --scratch "${TMPDIR:-/tmp}/ssign_scratch" --stage-image
