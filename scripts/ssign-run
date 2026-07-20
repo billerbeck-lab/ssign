@@ -39,6 +39,8 @@
 #                          running. Use on HPC when the image sits on a slow/network
 #                          filesystem: it turns a long import-startup into one copy.
 #   --cpu                  run without a GPU (drops --nv)
+#   --bind SRC:DST[:ro]    extra apptainer bind mount (repeatable); e.g. overlay a
+#                          patched file onto the baked image, or expose a data dir
 #   --max-ram GB           RAM budget passed into the container (sizes tool heaps /
 #                          EggNOG --dbmem). REQUIRED on schedulers that hide the
 #                          allocation from --containall (e.g. PBS): pass your job's
@@ -78,6 +80,7 @@ GENOME=""
 OUTDIR=""
 DOCTOR=0
 NV_FLAG=()
+EXTRA_BINDS=()
 PASSTHRU=()
 
 # --- parse args -------------------------------------------------------------
@@ -96,6 +99,7 @@ while [ $# -gt 0 ]; do
         --max-ram)        MAXRAM="$2"; shift 2 ;;
         --cpu)            USE_NV=0; shift ;;
         --doctor)         DOCTOR=1; shift ;;
+        --bind|-B)        EXTRA_BINDS+=( -B "$2" ); shift 2 ;;
         --)               shift; PASSTHRU=("$@"); break ;;
         -*)               die "unknown option: $1 (use --help)" ;;
         *)                POSITIONAL+=("$1"); shift ;;
@@ -158,6 +162,9 @@ fi
 # is set only when the matching sub-tree exists under --db-root, so a base run
 # (no DBs) or a partially-populated root simply skips the ones it lacks.
 BINDS=()
+# User-supplied --bind SRC:DST[:ro] mounts (e.g. overlay a patched file onto the
+# baked image, or expose an extra data dir). Added first so nothing shadows them.
+[ "${#EXTRA_BINDS[@]}" -gt 0 ] && BINDS+=( "${EXTRA_BINDS[@]}" )
 if [ -n "$DBROOT" ]; then
     DBROOT=$(readlink -f "$DBROOT")
     # $DBROOT is bound rw (no :ro): InterProScan's launcher writes scratch under
