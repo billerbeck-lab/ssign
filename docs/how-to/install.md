@@ -164,17 +164,8 @@ scp ssign.sif you@cluster:/path/to/scratch/ssign.sif   # your cluster's scratch/
 
 On PBS/SLURM, submit one job per genome that calls `ssign-run` with
 `--stage-image` (copies the `.sif` to node-local disk first) and
-`--max-ram <job GB>`. A ready PBS example is
-[`scripts/ssign-cx3.pbs`](../../scripts/ssign-cx3.pbs) (written for a GPU node;
-edit the `#PBS -l select` line for your cluster):
-
-```bash
-cd /path/to/ssign
-qsub -v GENOME=$HOME/mygenome.gbff scripts/ssign-cx3.pbs
-```
-
-See [`run.md`](run.md) for the native (non-container) SLURM and PBS templates and
-notes on GPU requests, walltime, and per-job output dirs.
+`--max-ram <job GB>`. See [`run.md`](run.md) for ready SLURM and PBS job
+templates, GPU requests, walltime, and per-job output dirs.
 
 ## Verify
 
