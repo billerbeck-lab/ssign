@@ -30,6 +30,7 @@ they exist for HPC and mixed-hardware environments.
 | `SSIGN_DEEPLOCPRO_FORCE_CPU` | Set to `1`/`true`/`yes` to force DeepLocPro onto CPU even when a CUDA GPU is visible. Default: auto-detect (GPU if torch sees one, else CPU). |
 | `SSIGN_DEEPSECE_FORCE_CPU` | Same, for DeepSecE's ESM-1b step. Default: auto-detect. |
 | `SSIGN_PLMBLAST_FORCE_CPU` | Same, for pLM-BLAST's ProtT5 embedding (`--cuda`). Default: auto-detect. CPU embedding is ~100x slower. |
+| `SSIGN_GPU_SERIALIZE` | Force the GPU-bound steps (DeepLocPro/DeepSecE/pLM-BLAST) to run one at a time (`1`) or fully parallel (`0`). Default: auto-detect from the GPU compute mode — serialize on an exclusive-process GPU (it rejects a second CUDA context with `cudaErrorDevicesUnavailable`), stay parallel on a shareable Default-mode GPU. Set `1` if you ever see that CUDA error. |
 | `SSIGN_MAX_RAM_GB` | Override the detected RAM budget (GB). ssign otherwise takes the minimum of the SLURM/PBS allocation, cgroup limit, and host total; set this on an HPC where none of those report the real cap. |
 | `SSIGN_PARALLEL_GROUP_SIZE` | Divisor `N` (>= 2) each tool wrapper uses to self-limit its CPU/RAM share when the runner launches prediction/annotation tools concurrently. Set by the runner automatically; rarely set by hand. Unset or <= 1 means "standalone, use full budget". |
 | `SSIGN_DEEPLOCPRO_MAX_AA` | Max protein length (aa) DeepLocPro will embed; longer sequences are withheld and marked "not predicted" to avoid O(L^2) attention OOM. Default 5000. |

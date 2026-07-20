@@ -2367,12 +2367,18 @@ class PipelineRunner:
     def _gpu_needs_serial(self) -> bool:
         """Whether GPU-bound steps must run one at a time. An exclusive-process /
         prohibited GPU rejects a second CUDA context (cudaErrorDevicesUnavailable),
-        so DeepLocPro/DeepSecE/pLM-BLAST can't overlap there. Memoized. A shareable
-        "Default"-mode GPU returns False (steps stay parallel); no GPU returns False;
-        an unreadable compute mode returns True (serialise, the safe default)."""
+        so DeepLocPro/DeepSecE/pLM-BLAST can't overlap there. Memoized. Precedence:
+        the ``SSIGN_GPU_SERIALIZE`` env override (1/0) wins; else no GPU -> False;
+        else the compute mode (shareable "Default" -> False, steps stay parallel;
+        exclusive/prohibited/unreadable -> True, serialise, the safe default)."""
         cached = getattr(self, "_gpu_needs_serial_cache", None)
         if cached is None:
-            if not self._gpu_present():
+            override = os.environ.get("SSIGN_GPU_SERIALIZE", "").strip().lower()
+            if override in ("1", "true", "yes"):
+                cached = True  # force-on: escape hatch + reproduces the path on a Default GPU
+            elif override in ("0", "false", "no"):
+                cached = False
+            elif not self._gpu_present():
                 cached = False
             else:
                 from ssign_app.scripts.ssign_lib.resources import cuda_compute_mode

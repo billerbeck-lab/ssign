@@ -74,3 +74,17 @@ class TestGpuSerializeDecision:
         r._gpu_present_cache = True
         monkeypatch.setattr(_MODE_FN, lambda: None)
         assert r._gpu_needs_serial() is True
+
+    def test_env_override_forces_on_over_default_mode(self, tmp_dir, monkeypatch):
+        r = self._runner(tmp_dir)
+        r._gpu_present_cache = True
+        monkeypatch.setattr(_MODE_FN, lambda: "Default")  # would stay parallel...
+        monkeypatch.setenv("SSIGN_GPU_SERIALIZE", "1")  # ...but the override forces serial
+        assert r._gpu_needs_serial() is True
+
+    def test_env_override_forces_off_over_exclusive_mode(self, tmp_dir, monkeypatch):
+        r = self._runner(tmp_dir)
+        r._gpu_present_cache = True
+        monkeypatch.setattr(_MODE_FN, lambda: "Exclusive_Process")  # would serialise...
+        monkeypatch.setenv("SSIGN_GPU_SERIALIZE", "0")  # ...but the override forces off
+        assert r._gpu_needs_serial() is False
