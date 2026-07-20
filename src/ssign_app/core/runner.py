@@ -15,6 +15,7 @@ import sys
 import tempfile
 import threading
 import time
+from contextlib import nullcontext
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
@@ -788,6 +789,12 @@ class PipelineRunner:
         # parallel-group append doesn't race with another thread's
         # _save_progress() iteration.
         self._state_lock = threading.Lock()
+        # Single-slot GPU lock. On an exclusive-process GPU (the HPC norm) two
+        # processes can't both hold the device — the loser dies with CUDA
+        # cudaErrorDevicesUnavailable — and DeepLocPro/DeepSecE (and pLM-BLAST)
+        # run as parallel groups, so GPU-bound subprocesses take turns. Engaged
+        # only when the GPU actually needs it (see _gpu_serialize).
+        self._gpu_lock = threading.Lock()
 
     def progress(self, step: str, pct: int, msg: str) -> None:
         with self._state_lock:
@@ -2055,7 +2062,8 @@ class PipelineRunner:
         )
         args.extend(["--timeout", str(timeout_s)])
         try:
-            rc, stdout, stderr = run_script("run_deeplocpro.py", args, timeout=timeout_s)
+            with self._gpu_serialize():
+                rc, stdout, stderr = run_script("run_deeplocpro.py", args, timeout=timeout_s)
         finally:
             if held:
                 sem.release()
@@ -2069,20 +2077,21 @@ class PipelineRunner:
 
         input_proteins = self._resolve_step_input_fasta(self.config.dse_whole_genome)
 
-        rc, stdout, stderr = run_script(
-            "run_deepsece.py",
-            [
-                "--input",
-                input_proteins,
-                "--sample",
-                self.config.sample_id,
-                "--output",
-                output,
-            ],
-            timeout=self._scaled_tool_timeout(
-                "deepsece", count_sequences(input_proteins), whole_genome=self.config.dse_whole_genome
-            ),
-        )
+        with self._gpu_serialize():
+            rc, stdout, stderr = run_script(
+                "run_deepsece.py",
+                [
+                    "--input",
+                    input_proteins,
+                    "--sample",
+                    self.config.sample_id,
+                    "--output",
+                    output,
+                ],
+                timeout=self._scaled_tool_timeout(
+                    "deepsece", count_sequences(input_proteins), whole_genome=self.config.dse_whole_genome
+                ),
+            )
 
         if rc == 0:
             self.files["deepsece"] = output
@@ -2354,6 +2363,29 @@ class PipelineRunner:
             cached = probe_cuda_device()[0] is not None
             self._gpu_present_cache = cached
         return cached
+
+    def _gpu_needs_serial(self) -> bool:
+        """Whether GPU-bound steps must run one at a time. An exclusive-process /
+        prohibited GPU rejects a second CUDA context (cudaErrorDevicesUnavailable),
+        so DeepLocPro/DeepSecE/pLM-BLAST can't overlap there. Memoized. A shareable
+        "Default"-mode GPU returns False (steps stay parallel); no GPU returns False;
+        an unreadable compute mode returns True (serialise, the safe default)."""
+        cached = getattr(self, "_gpu_needs_serial_cache", None)
+        if cached is None:
+            if not self._gpu_present():
+                cached = False
+            else:
+                from ssign_app.scripts.ssign_lib.resources import cuda_compute_mode
+
+                cached = "default" not in (cuda_compute_mode() or "").lower()
+            self._gpu_needs_serial_cache = cached
+        return cached
+
+    def _gpu_serialize(self):
+        """Context manager serialising GPU-bound subprocesses behind ``_gpu_lock``
+        when the device can't be shared; a no-op otherwise, so CPU-only and
+        shareable-GPU runs keep the prediction/annotation groups fully parallel."""
+        return self._gpu_lock if self._gpu_needs_serial() else nullcontext()
 
     def _annotation_cpu_budget(self) -> int:
         """Per-tool CPU budget when annotation_steps run in parallel.
@@ -2680,7 +2712,8 @@ class PipelineRunner:
 
         timeout_s = self._scaled_tool_timeout("plm_blast", self._substrate_count(), floor=PLMBLAST_TIMEOUT_S)
         args.extend(["--timeout", str(timeout_s)])
-        rc, stdout, stderr = run_script("run_plm_blast.py", args, timeout=timeout_s)
+        with self._gpu_serialize():
+            rc, stdout, stderr = run_script("run_plm_blast.py", args, timeout=timeout_s)
         if rc == 0:
             self.files["plm_blast"] = output
             return StepResult("plm_blast", True, "pLM-BLAST complete")

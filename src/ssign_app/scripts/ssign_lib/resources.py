@@ -71,6 +71,25 @@ def probe_cuda_device() -> tuple[str | None, float | None]:
     return (name, total_gib)
 
 
+def cuda_compute_mode() -> "str | None":
+    """CUDA device 0's compute mode via nvidia-smi: "Default", "Exclusive_Process"
+    or "Prohibited" (None if it can't be read). An Exclusive_Process / Prohibited
+    GPU rejects a second process's CUDA context with cudaErrorDevicesUnavailable,
+    so callers must serialise their GPU subprocesses in that case."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=compute_mode", "--format=csv,noheader", "-i", "0"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except Exception:
+        return None
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() or None
+
+
 def auto_batch_size_from_vram(default_when_no_gpu: int = 4) -> int:
     """Pick a GPU-predictor batch size from the active CUDA device's total VRAM.
 
