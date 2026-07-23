@@ -41,6 +41,10 @@
 #   --cpu                  run without a GPU (drops --nv)
 #   --bind SRC:DST[:ro]    extra apptainer bind mount (repeatable); e.g. overlay a
 #                          patched file onto the baked image, or expose a data dir
+#   --no-writable-tmpfs    drop --writable-tmpfs from the apptainer command. Use on
+#                          clusters whose Apptainer can't set up the tmpfs overlay
+#                          (container creation fails mounting /dev). The image
+#                          redirects its caches to /tmp, so no writable root is needed.
 #   --max-ram GB           RAM budget passed into the container (sizes tool heaps /
 #                          EggNOG --dbmem). REQUIRED on schedulers that hide the
 #                          allocation from --containall (e.g. PBS): pass your job's
@@ -80,6 +84,7 @@ GENOME=""
 OUTDIR=""
 DOCTOR=0
 NV_FLAG=()
+WT_FLAG=(--writable-tmpfs)
 EXTRA_BINDS=()
 PASSTHRU=()
 
@@ -100,6 +105,7 @@ while [ $# -gt 0 ]; do
         --cpu)            USE_NV=0; shift ;;
         --doctor)         DOCTOR=1; shift ;;
         --bind|-B)        EXTRA_BINDS+=( -B "$2" ); shift 2 ;;
+        --no-writable-tmpfs) WT_FLAG=(); shift ;;
         --)               shift; PASSTHRU=("$@"); break ;;
         -*)               die "unknown option: $1 (use --help)" ;;
         *)                POSITIONAL+=("$1"); shift ;;
@@ -230,7 +236,7 @@ if [ "$DOCTOR" -eq 1 ]; then
     # while the baked weights under models/ stay visible. (/opt/ssign_home is the
     # image HOME, same constant the torch-cache bind above uses.)
     [ -n "$DBROOT" ] && BINDS+=( -B "$DBROOT":/opt/ssign_home/.ssign/databases )
-    exec apptainer run --writable-tmpfs --containall "${BINDS[@]}" \
+    exec apptainer run "${WT_FLAG[@]}" --containall "${BINDS[@]}" \
         "$SIF" doctor --tier "$TIER" "${PASSTHRU[@]}"
 fi
 
@@ -267,6 +273,6 @@ echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
 [ -n "$MAXRAM" ] && echo "ssign-run: RAM budget SSIGN_MAX_RAM_GB=${MAXRAM} GB"
 [ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local SignalP env found; DeepLocPro is baked, but the SignalP step will stop the run unless you install it (ssign-setup-dtu) or add '-- --signalp-mode remote'"
 
-exec apptainer run "${NV_FLAG[@]}" --writable-tmpfs --containall "${BINDS[@]}" \
+exec apptainer run "${NV_FLAG[@]}" "${WT_FLAG[@]}" --containall "${BINDS[@]}" \
     "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
     "${DTU_ARGS[@]}" "${PASSTHRU[@]}"

@@ -293,6 +293,14 @@ PY
     # alntools` raises "no locator available". Redirect the numba cache to a
     # writable tmpdir (/tmp is a private tmpfs under --containall). Default-only.
     export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-/tmp/ssign_numba_cache}
+    # matplotlib (generate_figures.py) writes its config + font cache under HOME
+    # by default, which is the read-only image root under --containall. Redirect
+    # to a writable tmpdir so a run needs no writable image root, letting
+    # --writable-tmpfs be dropped on clusters where its overlay/dev-mount is
+    # unavailable (BUG 7). MPLCONFIGDIR-only on purpose: do NOT set XDG_CACHE_HOME,
+    # which torch/HF resolve their baked ESM2/ProtT5/DeepSecE caches through.
+    # Default-only.
+    export MPLCONFIGDIR=${MPLCONFIGDIR:-/tmp/ssign_mpl_cache}
     # Everything a default run needs is baked (ESM2, DeepSecE checkpoint, ProtT5
     # encoder), so default to HF offline: transformers reads the baked hub cache
     # without probing the network or writing lock files into the read-only image
