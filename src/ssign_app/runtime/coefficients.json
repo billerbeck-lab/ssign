@@ -16,7 +16,7 @@
       "gpu_vram_gb": 48
     },
     "units": "reference-machine seconds; effort = a*size + b",
-    "manual_overrides": "2026-07-03: signalp.whole_genome was method=mean (a=0, n=4, size<=5572) -> floored large runs at the 4h TOOL_TIMEOUT_S and killed the 160,831-protein pooled SignalP (run 3165431). Proxied to deeplocpro.whole_genome rate (a=0.1214, b=28.9) since both are transformers on the same input and SignalP was killed incomplete (true time unmeasured; concurrent DLP took 5.56h). low_confidence kept True -> 3x margin -> ~16h cap. Refit officially once the rerun measures SignalP directly. || 2026-07-12: hh_suite.substrates added as a hand-set PRIOR (a=35, b=600, method=prior, n=0) because there is still no clean HH-suite calibration point (the only rows are wallclock=null). Previously hh_suite had no block, so its outer timeout was hardcoded flat at 4h and killed the pooled full-tier reruns 3261357 (74 genomes, ~593 substrates) + 3261459 (57, ~768) mid-step. a=35 s/substrate sits just above the observed >=24 s/substrate lower bound (kill point) and between plm_blast (38) and eggnog (19); with the low_confidence 3x margin a ~600-substrate pool caps at ~18h, small runs stay at the 4h floor. Refit once a full-tier run COMPLETES hh_suite and yields a real point. || 2026-07-12: blastp moved from the _WHOLE (fixed) set to _ANNOT (substrates) — it BLASTs the substrate/passenger set, not the whole proteome — and given a hand-set PRIOR (a=20, b=300, method=prior, n=0). No blastp calibration point exists. Sized for the slow opt-in NR path (Swiss-Prot, the full-tier default, finishes in minutes and stays well under any timeout); small runs keep the 4h floor, a ~768-substrate NR run caps at ~13h. Refit once an NR run yields a real point. || 2026-07-15: eggnog refit VERIFICATION (adaptive-runtime-estimate). Recomputed the OLS fit over all 74 fittable rows in runs.jsonl (wallclock_s present, success!=false, n_substrates present, non-excluded): result is IDENTICAL to the shipped a=19.2616/b=320.939/LOO=137.5, i.e. the current fit is already optimal for the data. The 137% LOO is intrinsic, not stale: eggnog wall-clock is dominated by cold-vs-warm DB cache (39 GB load: warm ~90-400s, NFS-cold ~1000-8500s) independent of substrate count, which a linear a*size+b cannot capture. The scratch-staging fix (annotation-subsystem-cleanup: DB copied to local SSD, no NFS mmap) removes the worst cold outliers going forward. No coefficient change made. Revisit only if a dbmem-on/off split or a cache-state feature is added to the model. || 2026-07-24: added range_s (p10/p50/p90 pooled wallclock seconds) to eggnog/interproscan/plm_blast (eta-recalibration). The estimator uses this fixed band /machine-rate INSTEAD of a*size+b for these three (FIXED_RANGE_TOOLS): their runtime is cache/domain-driven, not substrate-count-driven, so the linear effort produced a ~1693 min pre-filtering over-estimate. Values = percentiles over the same clean points the a/b fit uses (fit.py _range_s). LANDMINE: this coefficients.json carries THREE hand-set manual overrides above (signalp.whole_genome proxy, hh_suite prior, blastp prior) that fit.py does NOT reproduce (it would revert them: signalp->mean-only, hh_suite/blastp->absent). So do NOT blindly overwrite this file with fit.py: a write-mode refit reverts the overrides above AND (under the venv) trips a pre-existing GPU_BOUND_TOOLS/plm_effector drift assert (see NOTES.md). range_s is computed by fit.py._range_s over the same clean points; regenerate it from there and re-apply the overrides by hand rather than running fit.py write-mode."
+    "manual_overrides": "2026-07-03: signalp.whole_genome was method=mean (a=0, n=4, size<=5572) -> floored large runs at the 4h TOOL_TIMEOUT_S and killed the 160,831-protein pooled SignalP (run 3165431). Proxied to deeplocpro.whole_genome rate (a=0.1214, b=28.9) since both are transformers on the same input and SignalP was killed incomplete (true time unmeasured; concurrent DLP took 5.56h). low_confidence kept True -> 3x margin -> ~16h cap. Refit officially once the rerun measures SignalP directly. || 2026-07-12: hh_suite.substrates added as a hand-set PRIOR (a=35, b=600, method=prior, n=0) because there is still no clean HH-suite calibration point (the only rows are wallclock=null). Previously hh_suite had no block, so its outer timeout was hardcoded flat at 4h and killed the pooled full-tier reruns 3261357 (74 genomes, ~593 substrates) + 3261459 (57, ~768) mid-step. a=35 s/substrate sits just above the observed >=24 s/substrate lower bound (kill point) and between plm_blast (38) and eggnog (19); with the low_confidence 3x margin a ~600-substrate pool caps at ~18h, small runs stay at the 4h floor. Refit once a full-tier run COMPLETES hh_suite and yields a real point. || 2026-07-12: blastp moved from the _WHOLE (fixed) set to _ANNOT (substrates) — it BLASTs the substrate/passenger set, not the whole proteome — and given a hand-set PRIOR (a=20, b=300, method=prior, n=0). No blastp calibration point exists. Sized for the slow opt-in NR path (Swiss-Prot, the full-tier default, finishes in minutes and stays well under any timeout); small runs keep the 4h floor, a ~768-substrate NR run caps at ~13h. Refit once an NR run yields a real point. || 2026-07-15: eggnog refit VERIFICATION (adaptive-runtime-estimate). Recomputed the OLS fit over all 74 fittable rows in runs.jsonl (wallclock_s present, success!=false, n_substrates present, non-excluded): result is IDENTICAL to the shipped a=19.2616/b=320.939/LOO=137.5, i.e. the current fit is already optimal for the data. The 137% LOO is intrinsic, not stale: eggnog wall-clock is dominated by cold-vs-warm DB cache (39 GB load: warm ~90-400s, NFS-cold ~1000-8500s) independent of substrate count, which a linear a*size+b cannot capture. The scratch-staging fix (annotation-subsystem-cleanup: DB copied to local SSD, no NFS mmap) removes the worst cold outliers going forward. No coefficient change made. Revisit only if a dbmem-on/off split or a cache-state feature is added to the model. || 2026-07-24: added range_s (p10/p50/p90 pooled wallclock seconds) to eggnog/interproscan/plm_blast (eta-recalibration). The estimator uses this fixed band /machine-rate INSTEAD of a*size+b for these three (FIXED_RANGE_TOOLS): their runtime is cache/domain-driven, not substrate-count-driven, so the linear effort produced a ~1693 min pre-filtering over-estimate. Values = percentiles over the same clean points the a/b fit uses (fit.py _range_s). LANDMINE: this coefficients.json carries THREE hand-set manual overrides above (signalp.whole_genome proxy, hh_suite prior, blastp prior) that fit.py does NOT reproduce (it would revert them: signalp->mean-only, hh_suite/blastp->absent). So do NOT blindly overwrite this file with fit.py: a write-mode refit reverts the overrides above AND (under the venv) trips a pre-existing GPU_BOUND_TOOLS/plm_effector drift assert (see NOTES.md). range_s is computed by fit.py._range_s over the same clean points; regenerate it from there and re-apply the overrides by hand rather than running fit.py write-mode. || 2026-07-24 (later): range_s USED RAW (no machine-rate division) since these tools are DB-load/startup-bound not CPU-bound (a 1-substrate Xanthobacter run still took eggnog 368s / plm_blast 1697s / IPS 1756s); the estimator also no longer infers a CPU rate from extract_proteins (its wall-clock includes Bakta, which caused a 661-min post-Bakta spike). range_s refreshed with 6 recent slow-interactive points (this run + a v10-era interactive run) -> eggnog p90 1124->1182, IPS 1072->1091, plm 1685->1740."
   },
   "models": {
     "bakta": {
@@ -103,10 +103,10 @@
         "method": "linear",
         "n": 74,
         "range_s": {
-          "n": 74,
+          "n": 76,
           "p10": 97,
-          "p50": 304,
-          "p90": 1124
+          "p50": 311,
+          "p90": 1182
         },
         "size_max": 93,
         "size_min": 0
@@ -148,10 +148,10 @@
         "method": "linear",
         "n": 79,
         "range_s": {
-          "n": 79,
-          "p10": 208,
-          "p50": 383,
-          "p90": 1072
+          "n": 81,
+          "p10": 210,
+          "p50": 389,
+          "p90": 1091
         },
         "size_max": 93,
         "size_min": 1
@@ -180,10 +180,10 @@
         "method": "linear",
         "n": 64,
         "range_s": {
-          "n": 64,
-          "p10": 285,
-          "p50": 778,
-          "p90": 1685
+          "n": 66,
+          "p10": 290,
+          "p50": 820,
+          "p90": 1740
         },
         "size_max": 92,
         "size_min": 0

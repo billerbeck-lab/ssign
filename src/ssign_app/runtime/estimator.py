@@ -79,10 +79,12 @@ class Estimator:
     def observe(self, stage_idx: int, tool: str, regime: str, size: int, wallclock: float) -> None:
         """Record a completed tool's real wall-clock and update its limiting-factor rate."""
         self._actual[(stage_idx, tool)] = wallclock
-        # Fixed-range tools are projected from a band, not a*size+b, so effort/wallclock
-        # would be a meaningless rate (their runtime isn't count-driven). Skip them, exactly
-        # where the projection does, so a garbage sample can't pollute the factor's rate.
-        if fixed_range(tool, regime, self.coeffs) is not None:
+        # Don't infer a machine rate from a tool whose measured wall-clock doesn't match
+        # its effort model, or the rate is garbage and poisons every tool sharing the factor:
+        #   - extract_proteins internally runs Bakta (minutes) but is modelled as a ~second
+        #     parse -> effort/wallclock reads as a ~90x-slow CPU (the 661 min post-Bakta spike).
+        #   - fixed-range tools are DB/startup-bound, not count- or CPU-bound.
+        if tool == "extract_proteins" or fixed_range(tool, regime, self.coeffs) is not None:
             return
         e = effort(tool, size, regime, self.coeffs)
         # Skip negligible/zero-effort tools: effort/wallclock is unstable near zero.
@@ -110,23 +112,20 @@ class Estimator:
     def _project(self, step: Step) -> tuple[float, float, float] | None:
         """(point_s, lo_s, hi_s) for a not-yet-run step, or None if unmodelled.
 
-        Fixed-range annotation tools (eggnog/interproscan/plm_blast) project a
-        historical p10/p50/p90 wall-clock band instead of a*size+b: their runtime is
-        driven by DB cache state and domain complexity, not substrate count, so a
-        linear-in-count effort misleads (it produced the ~1693 min over-estimate).
-        The band is still divided by the machine rate so a slow/CPU box widens it.
+        Fixed-range annotation tools (eggnog/interproscan/plm_blast) project a raw
+        historical p10/p50/p90 wall-clock band instead of a*size+b. Their runtime is
+        DB-load/startup-bound, not substrate-count- or CPU-speed-bound (a 1-substrate
+        run still took ~28 min), so neither the linear effort NOR a machine-rate
+        division applies: the cross-machine percentile spread already IS the band.
         """
-        r, is_observed = self._effective_rate(limiting_factor(step.tool))
         rng = fixed_range(step.tool, step.regime, self.coeffs)
         if rng is not None:
             p10, p50, p90 = rng
-            div = r if r else 1.0
-            # The percentile spread already spans machines + cache states, so it IS the
-            # band; no extra symmetric machine-uncertainty term is added on top.
-            return p50 / div, p10 / div, p90 / div
+            return p50, p10, p90
         e = effort(step.tool, step.size, step.regime, self.coeffs)
         if e is None:
             return None
+        r, is_observed = self._effective_rate(limiting_factor(step.tool))
         # Divide reference-machine effort by this machine's rate (any r>0: r>1 faster
         # than reference, r<1 slower). r is None only when no prior AND no observation.
         seconds = e.seconds / r if r else e.seconds

@@ -288,11 +288,23 @@ def test_fixed_range_is_size_independent():
     assert small == large == 300.0  # substrate count no longer drives the estimate
 
 
-def test_fixed_range_scales_with_machine_rate():
-    # eggnog's limiting factor is 'io'; a 2x io rate halves the whole band.
+def test_fixed_range_ignores_machine_rate():
+    # Fixed-range tools are DB/startup-bound, NOT compute-bound, so the inferred machine
+    # rate must NOT scale their band (a fast MacSyFinder must not shrink a slow IPS).
     est = Estimator(COEFFS_RANGE, prior_rates={"io": 2.0})
     r = est.eta([[Step("eggnog", "substrates", 30)]])
-    assert (r.lo_s, r.total_s, r.hi_s) == (50.0, 150.0, 600.0)
+    assert (r.lo_s, r.total_s, r.hi_s) == (100.0, 300.0, 1200.0)  # raw band, rate ignored
+
+
+def test_extract_proteins_excluded_from_rate_inference():
+    # extract_proteins runs Bakta internally (its wall-clock >> its parse-only effort),
+    # so observing it must NOT infer a (wildly slow) cpu rate -> no 661-min-style spike.
+    est = Estimator(COEFFS)
+    est.observe(0, "extract_proteins", "fixed", 4000, 240.0)  # 240 s (mostly Bakta)
+    assert est.rate("cpu") is None  # not sampled
+    # a real cpu tool still sets the rate normally
+    est.observe(1, "macsyfinder", "fixed", 4000, 50.0)
+    assert est.rate("cpu") == 2.0  # 100 / 50, unaffected by the extract_proteins observation
 
 
 def test_bundled_coefficients_carry_ranges():
