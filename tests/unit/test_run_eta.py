@@ -6,8 +6,6 @@ effort (tool, regime, size), it refines the substrate size once filtering runs,
 and a failure inside it never propagates out of a run.
 """
 
-import time
-
 from ssign_app.core.runner import PipelineConfig, PipelineRunner
 from ssign_app.runtime.effort_model import load_coefficients
 from ssign_app.runtime.estimator import Estimator, Step
@@ -77,11 +75,11 @@ def _write_fasta(path, n):
 
 def test_eta_sizes_uses_substrate_prior_before_filtering(tmp_path):
     r = PipelineRunner(PipelineConfig(outdir=str(tmp_path), sample_id="x"))
-    r.files["proteins"] = _write_fasta(tmp_path / "p.faa", 100)
+    r.files["proteins"] = _write_fasta(tmp_path / "p.faa", 1000)
     r.files["neighborhood_proteins"] = _write_fasta(tmp_path / "n.faa", 20)
     sizes = r._eta_sizes()
-    assert sizes["proteins"] == 100 and sizes["neighborhood"] == 20
-    assert sizes["substrates"] == 2  # round(0.02 * 100), the pre-filtering prior
+    assert sizes["proteins"] == 1000 and sizes["neighborhood"] == 20
+    assert sizes["substrates"] == 6  # round(0.006 * 1000), the pre-filtering prior
 
 
 def test_eta_sizes_uses_measured_substrates_after_filtering(tmp_path, monkeypatch):
@@ -89,13 +87,12 @@ def test_eta_sizes_uses_measured_substrates_after_filtering(tmp_path, monkeypatc
     r.files["proteins"] = _write_fasta(tmp_path / "p.faa", 100)
     r.files["substrates_filtered"] = "whatever.tsv"  # presence flips to the measured path
     monkeypatch.setattr(r, "_substrate_count", lambda: 7)
-    assert r._eta_sizes()["substrates"] == 7  # measured, not the 2% prior
+    assert r._eta_sizes()["substrates"] == 7  # measured count, not the fraction prior
 
 
 def test_eta_step_observes_and_returns_line(tmp_path):
     r = PipelineRunner(PipelineConfig(outdir=str(tmp_path), sample_id="x"))
     r.files["proteins"] = _write_fasta(tmp_path / "p.faa", 4000)
-    r.start_time = time.monotonic()
     r._estimator = Estimator(load_coefficients())
     r._eta_stage_ids = [["deeplocpro", "deepsece", "signalp"], ["eggnog"]]
     msg = r._eta_step(0, "deeplocpro", 120.0)  # a real GPU completion
@@ -114,7 +111,6 @@ def test_eta_step_returns_none_when_estimator_absent(tmp_path):
 def test_eta_step_never_raises_on_bad_state(tmp_path):
     # No proteins file, garbage stage ids: the hook must swallow everything.
     r = PipelineRunner(PipelineConfig(outdir=str(tmp_path), sample_id="x"))
-    r.start_time = time.monotonic()
     r._estimator = Estimator(load_coefficients())
     r._eta_stage_ids = [["not_a_real_step"]]
     r._eta_step(0, "not_a_real_step", 5.0)  # should not raise

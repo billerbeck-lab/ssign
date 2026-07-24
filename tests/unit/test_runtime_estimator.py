@@ -251,3 +251,102 @@ def test_from_profile_no_reference_profile_is_parity():
     # COEFFS lacks _meta.reference_profile -> prior is parity, same as bare Estimator.
     est = Estimator.from_profile(COEFFS, current=MachineProfile(12, None, None))
     assert est.eta([[Step("macsyfinder", "fixed", 4000)]]).total_s == 100.0
+
+
+# --- fixed-range annotation tools (eggnog/interproscan/plm_blast) ---------
+
+# eggnog is a FIXED_RANGE_TOOL: when its block carries range_s the estimator must use
+# the p10/p50/p90 band, NOT a*size+b. The a/b here are deliberately large so a
+# regression to the linear path would be obvious.
+COEFFS_RANGE = {
+    "models": {
+        "eggnog": {
+            "substrates": {
+                "a": 10.0,
+                "b": 1000.0,
+                "method": "linear",
+                "low_confidence": True,
+                "loo_med_pct": 85.0,
+                "range_s": {"p10": 100, "p50": 300, "p90": 1200, "n": 50},
+            }
+        }
+    }
+}
+
+
+def test_fixed_range_tool_uses_band_not_linear():
+    est = Estimator(COEFFS_RANGE)
+    r = est.eta([[Step("eggnog", "substrates", 30)]])
+    assert r.total_s == 300.0  # p50, NOT 10*30 + 1000 = 1300
+    assert (r.lo_s, r.hi_s) == (100.0, 1200.0)  # p10 / p90, asymmetric band
+
+
+def test_fixed_range_is_size_independent():
+    est = Estimator(COEFFS_RANGE)
+    small = est.eta([[Step("eggnog", "substrates", 5)]]).total_s
+    large = est.eta([[Step("eggnog", "substrates", 500)]]).total_s
+    assert small == large == 300.0  # substrate count no longer drives the estimate
+
+
+def test_fixed_range_scales_with_machine_rate():
+    # eggnog's limiting factor is 'io'; a 2x io rate halves the whole band.
+    est = Estimator(COEFFS_RANGE, prior_rates={"io": 2.0})
+    r = est.eta([[Step("eggnog", "substrates", 30)]])
+    assert (r.lo_s, r.total_s, r.hi_s) == (50.0, 150.0, 600.0)
+
+
+def test_bundled_coefficients_carry_ranges():
+    c = em.load_coefficients()
+    for tool in ("eggnog", "interproscan", "plm_blast"):
+        rng = c["models"][tool]["substrates"].get("range_s")
+        assert rng is not None, f"{tool} missing range_s"
+        assert 0 < rng["p10"] < rng["p50"] < rng["p90"]
+        assert em.fixed_range(tool, "substrates", c) == (
+            float(rng["p10"]),
+            float(rng["p50"]),
+            float(rng["p90"]),
+        )
+    # a non-fixed-range annotation tool must NOT get a band
+    assert em.fixed_range("blastp", "substrates", c) is None
+
+
+# --- remaining_s: never underflows to ~0 while work is left ---------------
+
+
+def _three_stage_plan():
+    return [
+        [Step("macsyfinder", "fixed", 4000)],  # 100
+        [Step("deeplocpro", "neighborhood", 200)],  # 250
+        [Step("eggnog", "substrates", 30)],  # 1300 (linear in COEFFS)
+    ]
+
+
+def test_remaining_excludes_observed_stages():
+    est = Estimator(COEFFS)
+    plan = _three_stage_plan()
+    est.observe(0, "macsyfinder", "fixed", 4000, 50.0)  # stage 0 done
+    r = est.eta(plan)
+    # total counts the observed 50 + two projections; remaining counts only the two.
+    assert r.remaining_s == r.total_s - 50.0
+    assert 0 < r.remaining_s < r.total_s
+
+
+def test_remaining_does_not_collapse_when_elapsed_exceeds_projection():
+    # An absurdly long completed step (the case that drove the old total-minus-elapsed
+    # to ~0) must not zero out the remaining projection for the un-run stages.
+    est = Estimator(COEFFS)
+    plan = _three_stage_plan()
+    est.observe(0, "macsyfinder", "fixed", 4000, 100_000.0)
+    r = est.eta(plan)
+    # remaining is the two future stages' projections (250 + 1300), unaffected by the
+    # huge observed macsyfinder time — the old total-minus-elapsed would have gone <0.
+    assert r.remaining_s == 250.0 + 1300.0
+
+
+def test_remaining_zero_when_all_modelled_done():
+    est = Estimator(COEFFS)
+    plan = [[Step("macsyfinder", "fixed", 4000)]]
+    est.observe(0, "macsyfinder", "fixed", 4000, 42.0)
+    r = est.eta(plan)
+    assert r.remaining_s == 0.0  # nothing left -> caller shows no ETA line
+    assert r.total_s == 42.0

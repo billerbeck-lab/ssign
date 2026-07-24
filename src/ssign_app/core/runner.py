@@ -1886,11 +1886,20 @@ class PipelineRunner:
     # Rough substrate:proteome ratio used to size annotation tools BEFORE the
     # real substrate count is known (filtering runs ~2/3 through). Replaced by
     # the measured count once filtering completes, so the ETA refines.
-    _SUBSTRATE_FRACTION_PRIOR = 0.02
+    # 0.006 = median-ish substrate fraction across the calibration genomes
+    # (run-median 0.0039, per-genome-median 0.0108); the old 0.02 seeded ~7x too
+    # many substrates (86 vs ~12 for K-12), inflating the pre-filtering ETA. Only
+    # feeds the ETA display, never a tool's kill-timeout (that uses the real size).
+    _SUBSTRATE_FRACTION_PRIOR = 0.006
 
     # Typical gram-negative proteome, used only for the pre-run rough ETA before
     # the genome is parsed. Replaced by the real count after extract_proteins.
     _PRERUN_PROTEOME_PRIOR = 4000
+
+    def _substrate_size_prior(self, proteins: int) -> int:
+        """Rough substrate count from a proteome, used to size annotation tools until
+        filtering measures the real count. One place so the two ETA sites can't drift."""
+        return max(1, round(self._SUBSTRATE_FRACTION_PRIOR * proteins))
 
     def _prerun_total_seconds(self, estimator, stage_ids) -> Optional[float]:
         """Rough whole-run seconds before any step has run, from a typical-proteome
@@ -1911,7 +1920,7 @@ class PipelineRunner:
             proteins = self._PRERUN_PROTEOME_PRIOR
             sizes = {
                 "proteins": proteins,
-                "substrates": max(1, round(self._SUBSTRATE_FRACTION_PRIOR * proteins)),
+                "substrates": self._substrate_size_prior(proteins),
             }
             res = estimator.eta(build_plan(stage_ids, sizes, self._whole_genome_tools()))
             return res.total_s if res.total_s > 0 else None
@@ -1964,7 +1973,7 @@ class PipelineRunner:
         if "substrates_filtered" in self.files:
             sizes["substrates"] = self._substrate_count()  # measured (may be 0)
         elif "proteins" in sizes:
-            sizes["substrates"] = max(1, round(self._SUBSTRATE_FRACTION_PRIOR * sizes["proteins"]))
+            sizes["substrates"] = self._substrate_size_prior(sizes["proteins"])
         return sizes
 
     def _eta_step(self, stage_idx: int, step_id: str, duration_s: float) -> Optional[str]:
@@ -1993,26 +2002,32 @@ class PipelineRunner:
             if res.total_s <= 0:
                 return None
             prior = "proteins" in sizes and not self._eta_prior_shown
-            elapsed = (time.monotonic() - self.start_time) if self.start_time else 0.0
-            # Prior line reports the whole-run total; later lines report time left.
-            display_s = res.total_s if prior else max(0.0, res.total_s - elapsed)
-            msg = self._format_eta(display_s, res, prior=prior)
+            if prior:
+                # First line once the proteome is known: the whole-run total + band.
+                msg = self._format_eta(res.total_s, res.lo_s, res.hi_s, res, prior=True)
+            else:
+                # Later lines report wall-clock still owed (un-observed stages). Unlike
+                # the old total-minus-elapsed, this never underflows to ~0 mid-run
+                # (unmodelled tail steps count in elapsed but not in the modelled total).
+                if res.remaining_s <= 0:
+                    return None  # only unmodelled tail steps left -> no meaningful ETA
+                msg = self._format_eta(res.remaining_s, res.remaining_lo_s, res.remaining_hi_s, res, prior=False)
             if "proteins" in sizes:
                 self._eta_prior_shown = True
             return msg
         except Exception:
             return None  # informational only
 
-    def _format_eta(self, display_s: float, res, *, prior: bool) -> str:
+    def _format_eta(self, mid_s: float, lo_s: float, hi_s: float, res, *, prior: bool) -> str:
         approx = " (approx)" if res.n_unmodeled or res.rel_uncertainty > 0.4 else ""
-        rem_min = display_s / 60.0
         label = "estimated total" if prior else "remaining"
-        # A wide relative CI on the remaining time, floored so it reads sensibly.
-        band = res.rel_uncertainty
-        lo = max(0.0, rem_min * (1 - band))
-        hi = rem_min * (1 + band)
+        # lo/hi come straight from the estimator's aggregated band (asymmetric for the
+        # fixed-range annotation tools), so a slow EggNOG/IPS/pLM-BLAST is bracketed by hi.
         # Leading "time" tag + its own trailing line make the ETA easy to spot.
-        return f"[ssign] [{self.config.sample_id}] time {label} ~{rem_min:.0f} min (range {lo:.0f}-{hi:.0f}){approx}"
+        return (
+            f"[ssign] [{self.config.sample_id}] time {label} "
+            f"~{mid_s / 60.0:.0f} min (range {lo_s / 60.0:.0f}-{hi_s / 60.0:.0f}){approx}"
+        )
 
     def _step_deeplocpro(self) -> StepResult:
         output = self._wf(f"{self.config.sample_id}_deeplocpro.tsv")

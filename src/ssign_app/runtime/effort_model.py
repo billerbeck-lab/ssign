@@ -53,6 +53,16 @@ _ANNOT = {
     "blastp",  # BLASTs the substrate/passenger set, not the whole proteome
 }  # run on the substrate set -> "substrates"
 
+# Annotation tools whose wall-clock is driven by DB cache state / domain complexity,
+# NOT by substrate count: a linear a*size+b effort is misleading for them (it produced
+# the ~1693 min pre-run over-estimate when the substrate count was still a rough prior).
+# For these, the estimator uses a fixed historical p10/p50/p90 wallclock band (still
+# divided by the inferred machine rate, so a slow/CPU box widens it) instead of a*size+b.
+# eggnog/interproscan/plm_blast are the three with enough real calibration points to fit
+# a percentile band; blastp/hh_suite are hand-set priors with no data (they stay on the
+# effort path). See coefficients.json _meta and calibration fit.py.
+FIXED_RANGE_TOOLS = frozenset({"eggnog", "interproscan", "plm_blast"})
+
 
 class Effort(NamedTuple):
     seconds: float  # reference-machine seconds
@@ -108,3 +118,25 @@ def effort(tool: str, size: int, regime: str, coeffs: dict) -> Effort | None:
         n=int(block.get("n", 0)),
         loo_pct=block.get("loo_med_pct"),
     )
+
+
+def fixed_range(tool: str, regime: str, coeffs: dict) -> tuple[float, float, float] | None:
+    """Historical (p10, p50, p90) wall-clock seconds for a fixed-range annotation tool,
+    or None if the tool isn't fixed-range or the block carries no ``range_s``.
+
+    These are pooled raw seconds across calibration machines (like the a/b fits); the
+    estimator divides them by the inferred machine rate. Returned in reference-ish
+    seconds, count-independent.
+    """
+    if tool not in FIXED_RANGE_TOOLS:
+        return None
+    block = coeffs.get("models", {}).get(tool, {}).get(regime)
+    if not block:
+        return None
+    rng = block.get("range_s")
+    if not rng:
+        return None
+    try:
+        return float(rng["p10"]), float(rng["p50"]), float(rng["p90"])
+    except (KeyError, TypeError, ValueError):
+        return None
