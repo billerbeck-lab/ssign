@@ -1,8 +1,7 @@
 # Licensing: ssign dependencies and redistribution
 
 This page documents the redistribution status of every external tool, model, and
-database ssign uses: **can the container image bundle each, or must the user
-download it themselves?**
+database ssign uses.
 
 ssign's own code is **GPL-3.0-or-later** (see `LICENSE`). The **container image**
 is a separate matter: it bakes in DeepLocPro (CC BY-NC-SA 4.0, a non-commercial
@@ -22,9 +21,9 @@ include each binary / weight / database, or whether the user fetches it later.
 | **ESM-1b / ESM2** backbones | MIT | Baked | n/a |
 | **Bakta / HH-suite / MacSyFinder** (tools) | GPL-family | Baked | n/a |
 | **TXSScan models** | CeCILL | Bundled with MacSyFinder | n/a |
+| **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | Baked | n/a |
 | **SignalP 6.0** (binary + weights) | DTU academic | Not baked (cannot redistribute; DTU reply 2026-05-07) | `ssign-setup-dtu` (DTU portal), or `--signalp-mode remote` |
 | **EggNOG database** (~47 GB) | unspecified | Not baked (size + licence) | `scripts/fetch_databases.sh` |
-| **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | Not baked (host-provided in full) | host install + `scripts/fetch_databases.sh` |
 | **Bakta DB** | CC-BY 4.0 | Not baked (size) | `scripts/fetch_databases.sh` |
 | **BLAST Swiss-Prot / NR** | NCBI public | Not baked (size) | `scripts/fetch_databases.sh` |
 | **HH-suite DBs** (Pfam / PDB70 / UniRef30) | mixed (Söding lab + Tübingen) | Not baked (size) | `scripts/fetch_databases.sh` |
@@ -33,15 +32,10 @@ include each binary / weight / database, or whether the user fetches it later.
 
 ## DeepLocPro: baked, open source
 
-DeepLocPro is **not** a DTU-licensed tool. It is open source
+DeepLocPro is open source
 ([github.com/Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro)),
 released under **CC BY-NC-SA 4.0**, so ssign bakes both the tool and its weights
-(plus the ESM2 backbone it needs) into the image at a pinned commit. No portal,
-no acquisition step, and it runs fully offline.
-
-The image's non-commercial status traces to this CC BY-NC-SA clause (see intro).
-A commercial user who cannot accept the NC term would run ssign from source and
-supply their own localization predictor rather than use the bundled image.
+(plus the ESM2 backbone it needs) into the image at a pinned commit.
 
 ## EggNOG: code is AGPL-3.0 (baked), database is ambiguous (not baked)
 
@@ -62,14 +56,12 @@ The **database** is a different question. We checked the
 [EggNOG website](http://eggnog5.embl.de/), the `/download/` tree, the
 `eggnog-mapper` repo (whose AGPL covers only the code), the EggNOG papers
 (Huerta-Cepas 2019, Hernández-Plaza 2023), and the wiki: **no license clause is
-stated anywhere for the data files.** Under default copyright law (EU / Germany,
-EMBL-Heidelberg), silence means all rights reserved, so the ~47 GB database is
+stated anywhere for the data files.** Under default copyright law (EU), silence means all rights reserved, so the ~47 GB database is
 **not** baked. Users fetch it with `scripts/fetch_databases.sh` (which wraps
 `download_eggnog_data.py`), the same install path Bakta, Prokka, and
 nf-core/funcscan use. EggNOG annotation is on by default at the extended and full
 tiers (off only at `--tier base`). The Billerbeck Lab has asked `eggnog@embl.de`
-for permission to redistribute the database files; if granted, a future release
-could bake those too.
+for permission to redistribute the database files, no response was received.
 
 ## ProtT5 weights: bundle OK
 
@@ -112,7 +104,7 @@ Sources: [InterPro license](https://interpro-documentation.readthedocs.io/en/lat
 
 DTU confirmed by email on 2026-05-07 that the SignalP 6.0 license does not
 permit redistribution, so ssign cannot bundle the binary or weights. It is the
-**only predictor not baked into the image**. For a fully offline run, install
+**only predictor not baked into the image**. Install
 SignalP locally from the [DTU HealthTech portal](https://services.healthtech.dtu.dk/)
 (the `ssign-setup-dtu` helper walks through it) and wire it in with
 `--signalp-path <dir>`. Without a DTU licence, the remote DTU webserver is an
@@ -120,19 +112,9 @@ opt-in fallback (`--signalp-mode remote`) needing no licence on the user's part.
 By default ssign runs SignalP locally and never contacts DTU. See
 `docs/how-to/install.md`.
 
-## Phobius and TMHMM omitted from ssign
-
-ssign's InterProScan configuration explicitly excludes Phobius, SignalP, and
-TMHMM (see `DEFAULT_IPS_APPLICATIONS` in `run_interproscan.py`): these member
-analyses each require their own license, and the IPS distribution ships
-pre-stripped of them. Not relevant unless a user opts back in via
-`--applications`.
-
 ---
 
 ## How this maps to install
 
-The image carries every tool and weight ssign may *legally* redistribute (one
-download, non-commercial); `scripts/fetch_databases.sh` pulls the databases too
-large or not licence-clear to bundle, each from its canonical source. Net: pull
-the image, `ssign fetch-databases --tier extended`, `ssign run input.gbff`.
+The image carries every tool and weight ssign may *legally* redistribute; `scripts/fetch_databases.sh` pulls the databases too
+large or not licence-clear to bundle, each from its canonical source.
