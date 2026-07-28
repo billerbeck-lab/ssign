@@ -16,13 +16,13 @@ the proteins they secrete, and annotates those proteins.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Stage 1: Secretion-**System** Prediction                               │
+│  Stage 1: Secretion-System Prediction                                   │
 │    MacSyFinder v2 + TXSScan models                                      │
 │                                                                         │
-│  Stage 2: Secreted **Protein** Prediction                               │
+│  Stage 2: Secreted Protein Prediction                                   │
 │    DeepLocPro + DeepSecE + SignalP                                      │
 │                                                                         │
-│  Stage 3: Proximity Analysis                                            │
+│  Stage 3: Proximity Analysis & Optional Statistical Analysis            │
 │    Per-SS-component ± gene window                                       │
 │                                                                         │
 │  Stage 4: Optional Functional Annotation                                │
@@ -64,13 +64,16 @@ Full column reference: [output_files.md](docs/reference/output_files.md).
 
 | Parameter             | Default              | Meaning |
 | --------------------- | -------------------- | ------- |
-| `excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
-| `conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
-| `proximity_window`    | `3`                  | +/-N genes around each SS component. |
-| `wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
+| `--excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
+| `--conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
+| `--proximity_window`    | `3`                  | +/-N genes around each SS component. |
+| `--wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
+| `--enrichment-stats`  | `off`                | Increases compute time to have on but tells you secreted protein enrichment. |
 
 All configurable via CLI flags. Full reference:
 [cli.md](docs/reference/cli.md) · [run.md](docs/how-to/run.md).
+
+`ssign` is a command-line tool. Run `ssign run --help` for every option and `ssign doctor --tier (your tier)` for verification and troubleshooting.
 
 ---
 
@@ -85,8 +88,6 @@ with a new `--tier`.
 | **extended** | ~100 GB | base + EggNOG + InterProScan + pLM-BLAST |
 | **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
 
-`ssign` is a command-line tool. Run `ssign run --help` for every option and `ssign doctor --tier (your tier)` for verification and troubleshooting.
-
 **System requirements:** Linux (base, extended, full) or macOS (base only), Python >= 3.10. A CUDA-capable GPU is
 recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
 
@@ -100,9 +101,7 @@ Maintainer build and publish steps: [containers/README.md](containers/README.md)
 ## Citing
 
 Cite via [CITATION.cff](CITATION.cff). The container image is archived on Zenodo:
-[doi:10.5281/zenodo.21441317](https://doi.org/10.5281/zenodo.21441317) (concept
-DOI, always resolves to the latest version). The paper DOI will be added on
-publication.
+[doi:10.5281/zenodo.21441317](https://doi.org/10.5281/zenodo.21441317).
 
 ssign integrates many open-source tools. Please cite any tool your analysis
 uses alongside ssign.
@@ -145,7 +144,7 @@ uses alongside ssign.
 
 Parts of the ssign codebase, documentation, and tests were drafted with the
 assistance of large language models. All AI-assisted output was reviewed, edited,
-and verified by the human authors: code changes were
+and verified by human authors. Code changes were
 validated against the test (`pytest tests/unit/`) and, for pipeline-affecting changes, against real-genome validation
 runs. Scientific claims, default thresholds, and biological rationale were
 verified against the primary literature, see
