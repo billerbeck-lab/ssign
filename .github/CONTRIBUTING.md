@@ -33,18 +33,6 @@ Open an issue with:
 
 ---
 
-## Development setup
-
-```bash
-git clone https://github.com/billerbeck-lab/ssign.git
-cd ssign
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"   # pytest, pytest-cov, hypothesis
-# Lint + type-check tools (not in [dev]); stubs match .github/workflows/lint.yml
-pip install ruff mypy pandas-stubs types-PyYAML types-requests types-setuptools types-networkx
-```
-
 Run tests before submitting:
 
 ```bash
@@ -58,7 +46,7 @@ pytest -m integration tests/integration/    # integration tests (need external t
 
 - **Python ≥ 3.10** (matches `pyproject.toml`'s `requires-python`). Pin
   versions in `pyproject.toml` when adding deps.
-- **Formatting / linting**: `ruff format` and `ruff check` are authoritative.
+- **Formatting / linting**: `ruff format` and `ruff check`.
 - **Type hints** welcome on new public functions, but not gate-enforced
   (the mypy config leaves `disallow_untyped_defs` off; it runs as a
   bug-finder, checking bodies of untyped functions).
@@ -72,9 +60,8 @@ pytest -m integration tests/integration/    # integration tests (need external t
 
 ## Tests
 
-- New features **must** include unit tests (Arrange-Act-Assert).
-- Keep fixtures small and real (prefer a 3-gene test genome over a mock).
-  See `tests/fixtures/`.
+- New features **must** include unit tests.
+- Keep fixtures small and real. See `tests/fixtures/`.
 - Integration tests that hit external services: `@pytest.mark.integration`.
 - CI must pass on your PR.
 
@@ -91,8 +78,6 @@ pytest -m integration tests/integration/    # integration tests (need external t
 5. Rebase rather than merge `main` back in.
 6. Signed commits preferred (GPG or SSH).
 
-Merges are squash-merge into `main`. Expect review within ~1 week.
-
 ---
 
 ## License
@@ -101,8 +86,7 @@ ssign is distributed under **GPL-3.0-or-later** (`LICENSE`). By submitting a
 PR, you agree your contribution is licensed under the same terms.
 
 Substantial contributions (new tool integrations, new analysis modules) are
-added to `CITATION.cff`. Drive-by fixes appear in the GitHub contributor
-graph.
+added to `CITATION.cff`.
 
 ---
 
@@ -116,11 +100,7 @@ welcome.
 ## Contact
 
 - **Bugs, feature requests, install trouble, code questions, PR review:**
-  [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues) (searchable,
-  and the fastest path to a technical answer, not the PI's inbox).
+  [GitHub Issues](https://github.com/billerbeck-lab/ssign/issues).
 - **Scientific collaboration, data sharing, authorship:** Dr. Sonja Billerbeck
   (PI), [`s.billerbeck@imperial.ac.uk`](mailto:s.billerbeck@imperial.ac.uk).
-
-The active maintainer as of v1.0.0 is M. Teo Reid
-([`@reidmat`](https://github.com/reidmat)); a lab successor will be named
-before September 2026.
+- **The active maintainer** as of v1.0.0 is M. Teo Reid ([`@reidmat`](https://github.com/reidmat)).
