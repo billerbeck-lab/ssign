@@ -13,7 +13,7 @@ include each binary / weight / database, or whether the user fetches it later.
 
 | Component | License | In the container image? | If not, obtain via |
 |---|---|---|---|
-| **ssign** (this package) | GPL-3.0-or-later | Yes (it is the image) | n/a |
+| **ssign** (this package) | GPL-3.0-or-later | Yes | n/a |
 | **DeepLocPro** (tool + weights) | CC BY-NC-SA 4.0 (non-commercial) | Baked | n/a |
 | **eggnog-mapper** (tool / code) | AGPL-3.0 | Baked (isolated env; makes the image AGPL-copyleft) | n/a |
 | **DeepSecE** checkpoint (fine-tuned ESM-1b) | MIT | Baked | n/a |
@@ -84,15 +84,9 @@ member databases have mixed licenses, and the show-stoppers are:
   consortium" per the SMART FAQ.
 - **SUPERFAMILY**: no formal license (flagged ambiguous by reusabledata.org).
 
-**Industry signal:** EBI's own
-[`interpro/interproscan` image](https://hub.docker.com/r/interpro/interproscan)
-does *not* bundle the data either; no mainstream academic image redistributes
-the IPS bundle.
-
-**Action:** ssign does **not** bake InterProScan. Both its engine and member
-databases are host-provided; the image ships only a Java runtime to run a
+**Action:** ssign does **not** bake InterProScan; the image ships only a Java runtime to run a
 host-mounted IPS install. `scripts/fetch_databases.sh --tier extended` pulls the
-IPS distribution from EBI FTP, one extra command run once.
+IPS distribution from EBI FTP automatically for you.
 
 Sources: [InterPro license](https://interpro-documentation.readthedocs.io/en/latest/license.html) ·
 [HowToDownload](https://interproscan-docs.readthedocs.io/en/v5/HowToDownload.html) ·
