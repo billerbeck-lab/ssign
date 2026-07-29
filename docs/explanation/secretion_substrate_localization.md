@@ -29,42 +29,24 @@ annotations.
 | **T5cSS** | Trimeric autotransporter, Sec → periplasm → OM trimer | **Yes** | Surface-retained | A |
 | **T6SS** | 1-step contractile injection, cytoplasm → target | **No** | Target-cell cytoplasm or periplasm | B |
 
-## What DeepLocPro & DeepSecE actually predict
+## How this maps to ssign's signals
 
-| Type | DLP ran on | % called **Extracellular** (≥0.8) | DeepSecE call (where it ran) |
-|---|---|---|---|
-| T1SS | 15 | **100%** (15/15), mean prob 0.97 | 15/15 → T1SS |
-| T2SS | 4 | **100%** (4/4), mean 0.92 | 3/4 → T2SS |
-| T3SS | 21 | **71%** (15/21), mean 0.66 | 13/21 → T3SS (we flag/exclude these) |
-| T4SS | 1 | 0% (0/1) → Cytoplasmic Membrane | 1/1 → T4SS |
-| T6SS | 40 | **68%** (27/40), mean 0.55 | 28/40 → T6SS |
+- **DeepLocPro** (localization) is the primary "is this secreted?" signal. In
+  practice it flags many injected Family-B effectors (T3SS, T6SS) as extracellular
+  too, not just the envelope-crossing Family-A types, because it is trained on
+  functional "secreted" annotations rather than strict producer-cell localization.
+  So a localization call is usable across both families.
+- **SignalP** is informative only for Family A (T2SS, T5SS, and the two-step
+  Ptl-type T4SS). A SignalP-negative for T1SS or the injected types is expected
+  biology, not evidence against secretion, which is why ssign treats SignalP as
+  evidence rather than a trigger. The one exception is T5SS self-detection, where a
+  Sec signal *is* a positive trigger (see
+  [`design_decisions.md` § 3.2](design_decisions.md#32-signalp-is-evidence-only-not-a-trigger)).
+- **DeepSecE** is excluded for T3SS (flagellar proteins funnel into its T3SS bin
+  and over-call it) and relied on for T6SS.
 
-**The load-bearing empirical finding:** DeepLocPro calls a *majority* of T1/T2/T3/T6
-effectors "Extracellular", **including the injected Family-B types T3SS and T6SS**.
-Biology says injected effectors are cytoplasmic and a localization tool "should" miss
-them, but DeepLocPro is trained on database annotations where virulence effectors are
-typically labelled secreted, so it flags them extracellular regardless. This means:
-
-- DLP-extracellular is a **usable** signal for T3SS and T6SS effectors, not a
-  mismatch. (T4SS is the one type that empirically looks cytoplasmic, but n=1 here,
-  so it is unverified and deserves its own whole-genome check.)
-- DeepSecE's sequence classifier independently flags T1/T6 well, and T3SS too, but
-  T3SS-DSE is the flagellar-false-positive source (DeepSecE has no flagellum class, so
-  flagellar proteins, T3SS homologs, funnel into its T3SS bin and over-call it), so
-  ssign excludes DeepSecE for T3SS and relies on DLP + proximity.
-
-## Implications for ssign
-
-1. **Localization-based calling works across both families in practice**: DeepLocPro
-   calls most effectors extracellular even for the injected types, so the "injected ⇒
-   cytoplasmic ⇒ unfindable" worry does not hold for DLP as trained.
-2. **SignalP is informative only for Family A** (T2SS, T5SS, Ptl-T4SS). It is correctly
-   silent for T1SS (C-terminal signal) and the injected types; there a SignalP-negative
-   is expected, not evidence against secretion.
-3. **DeepSecE T3SS stays excluded** (flagellar FPs); T3SS leans on DLP + proximity.
-   DeepSecE is the right sequence signal for T6SS.
-4. **To make these numbers definitive**, re-extract whole-genome DLP/DSE predictions
-   per type (e.g. Salmonella LT2 for a clean T3SS check).
+How often each of these signals actually recovers a validated effector, per system
+type, is measured in [`benchmarks.md`](benchmarks.md).
 
 ## Citations (per type; DOIs with PubMed verification)
 

@@ -35,6 +35,7 @@ the proteins they secrete, and annotates those proteins.
 
 Per-stage detail in [pipeline_overview.md](docs/explanation/pipeline_overview.md).
 Per-decision rationale in [design_decisions.md](docs/explanation/design_decisions.md).
+Recovery benchmark and validation in [benchmarks.md](docs/explanation/benchmarks.md).
 
 ---
 
