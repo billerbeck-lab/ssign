@@ -46,7 +46,7 @@ annotations.
   and over-call it) and relied on for T6SS.
 
 How often each of these signals actually recovers a validated effector, per system
-type, is measured in [`benchmarks.md`](benchmarks.md).
+type, is measured in [`benchmarks.md`](../benchmark/benchmarks.md).
 
 ## Citations (per type; DOIs with PubMed verification)
 

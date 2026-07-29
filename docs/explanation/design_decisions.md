@@ -454,7 +454,7 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
 - **Validation:** The effector-recovery benchmark measures how much this
   proximity rule recovers per system type against a gold set of validated
   effectors, and the biological ceiling it cannot exceed; see
-  [`benchmarks.md`](benchmarks.md).
+  [`benchmarks.md`](../benchmark/benchmarks.md).
 
 ### 5.2 T5aSS/T5cSS "hitchhikers"
 

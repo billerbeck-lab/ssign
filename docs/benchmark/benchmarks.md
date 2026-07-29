@@ -7,7 +7,7 @@ secreted proteins?
 
 The answer is bounded by design. ssign only calls a substrate if a
 secreted-looking protein sits within a few genes of detected secretion-system
-machinery (Phase 4, [`pipeline_overview.md`](pipeline_overview.md#phase-4-substrate-identification)).
+machinery (Phase 4, [`pipeline_overview.md`](../explanation/pipeline_overview.md#phase-4-substrate-identification)).
 That proximity filter is what keeps false positives down, but it also means an
 effector encoded far from its own apparatus is unreachable no matter how good
 the predictors are. So the benchmark runs in two parts: first the **ceiling**
@@ -16,7 +16,7 @@ the predictors are. So the benchmark runs in two parts: first the **ceiling**
 
 ## The benchmarking list
 
-[`ssign_benchmarking_list.csv`](../assets/benchmark/ssign_benchmarking_list.csv)
+[`ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv)
 holds **85 experimentally-validated effectors**, one per secretion-system
 instance, spanning
 T1–T6SS. Every row carries a UniProt accession, the source genome + contig + CDS
@@ -100,7 +100,7 @@ found if ssign emits at least one of its verified effectors), ssign recovers
 into found, reachable-but-missed, and unreachable (own machinery more than three
 genes away); the grey unreachable band is the proximity ceiling made visible.
 
-![Per-system recall by secretion-system type: ssign recovers 45 of 60 reachable system instances, with the unreachable (machinery >3 genes away) share stacked on top of each bar.](../assets/benchmark/06_recall_systems.png)
+![Per-system recall by secretion-system type: ssign recovers 45 of 60 reachable system instances, with the unreachable (machinery >3 genes away) share stacked on top of each bar.](06_recall_systems.png)
 
 ## Reading the result
 
@@ -150,7 +150,7 @@ where that filter is the right instrument, recovery is high.
 
 ## Reproduce
 
-The benchmarking list is [`docs/assets/benchmark/ssign_benchmarking_list.csv`](../assets/benchmark/ssign_benchmarking_list.csv).
+The benchmarking list is [`docs/benchmark/ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv).
 The recall matcher tests each listed effector's coordinates against the run's emitted
 secreted proteins (`emitted_overlap`), with three verified RefSeq↔INSDC contig
 aliases reconciled first so all 85 rows resolve. Ceiling positions come from
