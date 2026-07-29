@@ -4,21 +4,15 @@ There are two ways to install ssign:
 
 - **Container (recommended).** A single Singularity/Apptainer image that bakes
   the entire free toolchain and every model weight, version-locked. It is
-  self-contained and reproducible: a run behaves the same today and in three
-  years. This is the durable choice for paper-grade and HPC work. Start here.
-- **Native / from source (secondary).** Lighter-weight (clone the repo and
-  `pip install -e .`, plus a few optional tools), but you assemble and maintain
+  self-contained and reproducible. Recommended path.
+- **Native / from source (secondary).** Clone the repo and
+  `pip install -e .`, plus a few optional tools) but you assemble and maintain
   the external toolchain yourself, and those tool versions can drift over time. See
   [Secondary install options](install-secondary.md).
 
 ---
 
-# 1. Container install (recommended)
-
-The image is **self-contained and reproducible**: the entire free toolchain and
-all model weights are baked in and version-locked (digest-pinned CUDA base,
-`uv.lock`, pinned tool commits, baked ESM/ProtT5 weights), so a run reproduces
-over time.
+# 1. Container install
 
 Two things are **host-provided** rather than baked into the image:
 
@@ -26,7 +20,7 @@ Two things are **host-provided** rather than baked into the image:
   locally with `scripts/ssign-setup-dtu`, or run with `--signalp-mode remote`.
 - **InterProScan** (the scan engine plus its member databases). The image ships
   only a Java runtime to run a host-mounted InterProScan install; the engine and
-  its ~24 GB of member databases come with the reference-database set.
+  its ~24 GB of member databases come with the reference-database set (obtained via `fetch-databases`)
 
 Reference databases are likewise always fetched to the host (via
 `fetch-databases`), never baked. Everything else (Bakta and its toolchain,
@@ -56,17 +50,11 @@ only in which databases you fetch, see [Tiers](#tiers).
 
 - **`apptainer`** (or `singularity`). On HPC it is almost always preinstalled as
   a module: `module avail apptainer` (or `singularity`), then
-  `module load apptainer`, then `apptainer --version` to confirm. If your cluster
-  genuinely lacks it, email HPC support to add it (it is a standard rootless
-  cluster tool; users normally should not install a system container runtime
-  themselves). User-space fallback on clusters that allow user namespaces:
-  `conda install -c conda-forge apptainer`.
-- A licensed **SignalP 6** tarball (only if you want signal-peptide calls).
-  Register (free for academics) at
-  <https://services.healthtech.dtu.dk/services/SignalP-6.0/> and download once.
+  `module load apptainer`, then `apptainer --version` to confirm.
+- A licensed **SignalP 6** tarball. Not strictly neccisary for the pipeline to run but enhances T5SS calls. Register (free for academics) at
+  <https://services.healthtech.dtu.dk/services/SignalP-6.0/> and download.
 
 ## Install (extended)
-
 
 1. Confirm apptainer runs:
 ```
@@ -100,12 +88,7 @@ Or point it straight at the file:
 scripts/ssign-run $HOME/mygenome.gbff $HOME/ssign_out --tier extended \
   --sif "$SSIGN_SIF" --db-root $HOME/ssign-databases --max-ram 60
 ```
-
-Everything else (Bakta + its toolchain, EggNOG-mapper, DeepLocPro + ESM2,
-DeepSecE + ESM-1b, pLM-BLAST + ProtT5, InterProScan's Java, BLAST+ 2.17) is
-inside the image, so a first run touches the network only for the one database
-fetch.
-
+Notes:
 - `--signalp-env` is auto-detected from your conda envs after step 2; the flag
   only overrides it. No SignalP licence? Drop step 2 and add
   `-- --signalp-mode remote` (uses the DTU webserver, which uploads your
@@ -130,12 +113,8 @@ fetch.
 | pLM-BLAST code + ProtT5 encoder | yes | |
 | HH-suite (`hhblits`/`hhsearch`, full tier) | yes | |
 | **SignalP 6** (DTU academic licence) | no | conda env via `ssign-setup-dtu`, or `--signalp-mode remote` |
-| **InterProScan** engine + member databases | no (only its Java is baked) | fetched by `fetch-databases` |
+| **InterProScan** engine + member databases | no | fetched by `fetch-databases` |
 | **Reference databases** (Bakta DB, EggNOG DB, ECOD; full adds HH-suite DBs + Swiss-Prot) | no | `fetch-databases --tier <t>` |
-
-InterProScan is the in-between one: its ~24 GB software + member-DB directory is
-part of the database set (pulled by `fetch-databases`) and that same directory
-supplies `interproscan.sh`. Only the Java to run it is baked.
 
 ## How a run works
 
@@ -167,21 +146,10 @@ On PBS/SLURM, submit one job per genome that calls `ssign-run` with
 `--max-ram <job GB>`. See [`run.md`](run.md) for ready SLURM and PBS job
 templates, GPU requests, walltime, and per-job output dirs.
 
-## Verify
-
-```bash
-scripts/ssign-run --doctor --tier extended --db-root $HOME/ssign-databases
-```
-
 `--doctor` checks every dependency (Python packages, baked binaries, your fetched
 databases, model weights) and reports what is missing with the fix command. It
 binds the databases + SignalP env exactly as a real run does, so it verifies what
-a run would actually see. It exits non-zero on failure, so you can chain
-`ssign-run --doctor ... && ssign-run genome ...` in a job script.
-
-(Running `doctor` by hand via raw `apptainer` needs the same `-B` database binds a
-run uses, or it reports the databases as missing; `ssign-run --doctor` handles
-that for you.)
+a run would actually see.
 
 ## Tiers
 
@@ -193,15 +161,6 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
 | `extended` | + EggNOG + InterProScan + ECOD30 (pLM-BLAST) | ~100 GB |
 | `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB |
 
-> **macOS or base tier?** You do not need the container. Every base-tier tool is
-> pip-installable, so macOS and base-tier runs use the native path (see
-> [Secondary install options](install-secondary.md)): clone the repo and
-> `pip install -e . -c containers/requirements-base.lock.txt` (the lock pins the
-> base deps). SignalP 6 is DTU-licensed (install locally, or
-> `--signalp-mode remote`); DeepLocPro is open source (install from its GitHub
-> repo, or `--deeplocpro-mode remote`). Extended/full stay on Linux/HPC via the
-> `.sif`.
-
 ## Troubleshooting
 
 - **< 64 GB RAM:** no action needed. EggNOG's in-RAM database load (`--dbmem`)
@@ -209,31 +168,9 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
   local SSD instead (fine for the small substrate set ssign annotates). Force it
   either way with `-- --eggnog-dbmem` / `-- --no-eggnog-dbmem` if you need to.
 - **Air-gapped / no cluster internet:** download the image from Zenodo on an
-  internet-connected machine and copy the `.sif` over, or get it from a colleague.
-  Nothing at run time needs the network except the one-time database fetch.
+  internet-connected machine and copy the `.sif` over.
 - **`image not found: ./ssign.sif`:** pass `--sif /path/to/your.sif` or
   `export SSIGN_SIF=...`; `ssign-run` looks in the current directory by default.
-
-## Without `ssign-run` (raw apptainer)
-
-`ssign-run` only assembles the command below; run it by hand if you can't use the
-wrapper. The essentials are:
-
-```bash
-apptainer run --nv --writable-tmpfs --containall \
-  -B $HOME/ssign-databases:$HOME/ssign-databases \
-  -B $HOME/.conda/envs/signalp6:$HOME/.conda/envs/signalp6:ro \
-  -B genome.gbff:/work/in.gbff:ro -B out:/work/out \
-  --env SSIGN_MAX_RAM_GB=60 \
-  --env EGGNOG_DATA_DIR=$HOME/ssign-databases/eggnog \
-  "$SSIGN_SIF" run /work/in.gbff --outdir /work/out --tier extended \
-    --signalp-mode local --signalp-path $HOME/.conda/envs/signalp6/bin
-```
-
-`ssign-run` additionally auto-detects the ECOD / InterProScan sub-trees under
-`--db-root` and sets `SSIGN_ECOD_DB` / `SSIGN_INTERPROSCAN_PATH`; set them
-yourself here (see [`../reference/env_vars.md`](../reference/env_vars.md)) if you
-go the raw route with those tools on.
 
 ## See also
 
@@ -241,5 +178,5 @@ go the raw route with those tools on.
   image (maintainers).
 - [`run.md`](run.md), running the pipeline: configuration flags and cluster
   specifics (scheduler templates, walltime).
-- [`install-secondary.md`](install-secondary.md), native / pip install without
+- [`install-secondary.md`](install-secondary.md), pip install without
   the container (per-tool setup).
