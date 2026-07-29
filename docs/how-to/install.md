@@ -154,9 +154,9 @@ supplies `interproscan.sh`. Only the Java to run it is baked.
 
 ## On HPC
 
-Get the `.sif` onto the cluster: `apptainer pull` it on the login node, or
-download it on your laptop and `scp` it up. Then fetch the DBs + install SignalP
-once and run per job:
+Get the `.sif` onto the cluster: download it from Zenodo on the login node (if it
+has internet), or download it on your laptop and `scp` it up. Then fetch the DBs +
+install SignalP once and run per job:
 
 ```bash
 scp ssign.sif you@cluster:/path/to/scratch/ssign.sif   # your cluster's scratch/work dir
@@ -208,9 +208,9 @@ Same image every tier; the tier is the database set you fetch plus `--tier`.
   auto-disables when the job's RAM share is under 50 GB, so it mmaps the DB from
   local SSD instead (fine for the small substrate set ssign annotates). Force it
   either way with `-- --eggnog-dbmem` / `-- --no-eggnog-dbmem` if you need to.
-- **No GHCR access / air-gapped:** download the image on an internet-connected
-  machine and copy the `.sif`, or get it from a colleague. Nothing at run time
-  needs the network except the one-time database fetch.
+- **Air-gapped / no cluster internet:** download the image from Zenodo on an
+  internet-connected machine and copy the `.sif` over, or get it from a colleague.
+  Nothing at run time needs the network except the one-time database fetch.
 - **`image not found: ./ssign.sif`:** pass `--sif /path/to/your.sif` or
   `export SSIGN_SIF=...`; `ssign-run` looks in the current directory by default.
 
