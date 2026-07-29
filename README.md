@@ -64,10 +64,10 @@ Full column reference: [output_files.md](docs/reference/output_files.md).
 
 | Parameter             | Default              | Meaning |
 | --------------------- | -------------------- | ------- |
-| `--excluded_systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
-| `--conf_threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
-| `--proximity_window`    | `3`                  | +/-N genes around each SS component. |
-| `--wholeness_threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
+| `--excluded-systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
+| `--conf-threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
+| `--proximity-window`    | `3`                  | +/-N genes around each SS component. |
+| `--wholeness-threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
 | `--enrichment-stats`  | `off`                | Increases compute time to have on but tells you secreted protein enrichment. |
 
 All configurable via CLI flags. Full reference:

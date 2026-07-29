@@ -21,8 +21,8 @@ include each binary / weight / database, or whether the user fetches it later.
 | **ESM-1b / ESM2** backbones | MIT | Baked | n/a |
 | **Bakta / HH-suite / MacSyFinder** (tools) | GPL-family | Baked | n/a |
 | **TXSScan models** | CeCILL | Bundled with MacSyFinder | n/a |
-| **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | Baked | n/a |
 | **SignalP 6.0** (binary + weights) | DTU academic | Not baked (cannot redistribute; DTU reply 2026-05-07) | `ssign-setup-dtu` (DTU portal), or `--signalp-mode remote` |
+| **InterProScan** (engine + member DBs) | Apache-2.0 core + mixed members | Not baked (member DBs forbid redistribution) | `scripts/fetch_databases.sh` (public EBI, no licence gate) |
 | **EggNOG database** (~47 GB) | unspecified | Not baked (size + licence) | `scripts/fetch_databases.sh` |
 | **Bakta DB** | CC-BY 4.0 | Not baked (size) | `scripts/fetch_databases.sh` |
 | **BLAST Swiss-Prot / NR** | NCBI public | Not baked (size) | `scripts/fetch_databases.sh` |
