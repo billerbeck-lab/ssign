@@ -1,52 +1,35 @@
-# Secretion-system substrate localization (per type)
+# Secretion-system substrate localization
 
-How each secretion system ssign handles delivers its substrate, and therefore what
-ssign's three "secreted protein" signals (DeepLocPro localization, SignalP signal
-peptide, DeepSecE substrate-type) should and *does* report. From a literature sweep
-(citations below, with DOIs), cross-checked against ssign's predictions on a curated
-effector set.
+How each secretion system ssign handles delivers its substrate.
 
-## The two-family framework (biology)
+## The two-family framework
 
 Secretion systems split by *where the substrate ends up*:
 
 **Family A, envelope-crossing.** T1SS, T2SS, T5SS (a/b/c). The mature protein ends
-up extracellular or surface-attached. Localization predictors are the right
-instrument here.
+up extracellular or surface-attached.
 
 **Family B, injection.** T3SS, T4SS, T6SS. The effector stays cytoplasmic in the
-producing cell until it is fired directly into a host or neighbouring cell; it
+producing cell until it is transported directly into a host or neighbouring cell; it
 never free-floats outside. By strict producer-cell biology these are cytoplasmic,
-so localization predictors "should" miss them. (In practice DeepLocPro calls many
+so localization predictors "should" miss them. However, in practice DeepLocPro calls many
 of them extracellular anyway, because it is trained on functional "secreted"
-annotations; see the empirical section.)
-
-The SignalP axis is orthogonal: a substrate is SignalP-positive only if it crosses
-the inner membrane via Sec/Tat with a cleavable N-terminal signal peptide.
+annotations.
 
 ## Per-type summary
 
 | Type | Mechanism | Sec signal peptide (SignalP) | Substrate destination | Family |
 |---|---|---|---|---|
-| **T1SS** | 1-step, ABC/MFP/TolC, no periplasm | **No** (uncleaved C-terminal signal) | Extracellular / surface (RTX toxins, serralysins, S-layer) | A |
-| **T2SS** | 2-step: Sec/Tat → periplasm → OM | **Yes** (Sec SPI/SPII, or Tat) | Extracellular / surface (cholera toxin, cellulases, lipases) | A |
+| **T1SS** | 1-step, ABC/MFP/TolC, no periplasm | **No** (uncleaved C-terminal signal) | Extracellular / surface | A |
+| **T2SS** | 2-step: Sec/Tat → periplasm → OM | **Yes** | Extracellular / surface | A |
 | **T3SS** | 1-step injectisome, cytoplasm → host cytosol | **No** (N-terminal + chaperone-binding signal, uncleaved) | Host-cell cytoplasm | B |
-| **T4SS** | 1-step, VirD4 coupling protein, cytoplasm → recipient | **No** (C-terminal / internal signal) | Host/recipient cytoplasm | B |
-| **T5aSS** | Sec → periplasm; β-barrel in OM, passenger to surface | **Yes** (often ESPR-extended) | Surface-retained OR released (β-barrel stays OM) | A |
-| **T5bSS** | Two-partner: TpsA + TpsB, both Sec-exported | **Yes** (both partners) | TpsA released extracellular; TpsB stays OM | A |
-| **T5cSS** | Trimeric autotransporter, Sec → periplasm → OM trimer | **Yes** | Surface-retained (uncleaved adhesin); β-barrel OM | A |
+| **T4SS** | 1-step, VirD4 coupling protein, cytoplasm → recipient | **No** | Host/recipient cytoplasm | B |
+| **T5aSS** | Sec → periplasm; β-barrel in OM, passenger to surface | **Yes** | Surface-retained OR released | A |
+| **T5bSS** | Two-partner: TpsA + TpsB, both Sec-exported | **Yes** | TpsA released extracellular; TpsB stays OM | A |
+| **T5cSS** | Trimeric autotransporter, Sec → periplasm → OM trimer | **Yes** | Surface-retained | A |
 | **T6SS** | 1-step contractile injection, cytoplasm → target | **No** | Target-cell cytoplasm or periplasm | B |
 
-Notable exception: **pertussis-toxin / Ptl-type T4SS** is genuinely two-step (Sec →
-periplasm → Ptl across OM → extracellular), so its subunits are SignalP-positive and
-extracellular, the opposite of VirD4-dependent host-injected effectors.
-
-## What DeepLocPro / DeepSecE actually predict (empirical)
-
-From ssign's predictions on curated corpus effectors. Default runs apply DLP/DSE to
-the ±3-gene **neighbourhood** of detected systems only, so n is the subset of known
-effectors that fell in a neighbourhood: small for some types, biased toward "near
-machinery". Indicative, not definitive; whole-genome predictions would tighten these.
+## What DeepLocPro & DeepSecE actually predict
 
 | Type | DLP ran on | % called **Extracellular** (≥0.8) | DeepSecE call (where it ran) |
 |---|---|---|---|
