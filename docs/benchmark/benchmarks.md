@@ -25,10 +25,30 @@ Because the substrate call requires a secreted-looking protein within ±3 genes 
 its system's machinery, an effector encoded far from its own apparatus cannot be
 recovered, no matter how good the predictors are. How often that happens is
 biology: some systems are operonic (the effector sits beside its transporter),
-others scatter their effectors across the genome. The benchmarking list records
-this per effector in its `reachable_within_3` column, and the split is stark:
-nearly every T1SS effector falls inside the window, while only 1 of 8 T2SS and
-0 of 8 T4SS effectors do. Those are hard limits proximity cannot lift.
+others scatter their effectors across the genome.
+
+The ceiling is the fraction of each type's listed effectors whose own machinery
+sits within ±N genes, taken straight from the list's
+`distance_to_machinery_genes`:
+
+| SS type | in list | ±1 | ±3 | ±5 | ±7 | ±9 |
+|---|---:|---:|---:|---:|---:|---:|
+| T1SS | 18 | 56% | 89% | 89% | 89% | 89% |
+| T2SS | 8 | 13% | 13% | 13% | 13% | 13% |
+| T3SS | 19 | 11% | 21% | 32% | 32% | 37% |
+| T4SS | 8 | 0% | 0% | 0% | 0% | 0% |
+| T5SS † | 19 | 84% | 89% | 95% | 95% | 95% |
+| T6SS | 13 | 54% | 69% | 77% | 77% | 77% |
+| **All** | **85** | **42%** | **55%** | **60%** | **60%** | **61%** |
+
+† T5SS autotransporters self-secrete, so their "machinery" is the component itself
+(distance 0); the window barely applies.
+
+T1SS jumps from 56% to 89% between ±1 and ±3 (the effector is usually the immediate
+neighbour of its transporter), then flattens. T2SS and T4SS stay near zero at every
+window: their effectors are scattered genome-wide, and most T4SS machinery could not
+be placed within reach at all (CagA, the Legionella and Brucella effectors), the
+cross-replicon biology showing through. ssign uses ±3 by default.
 
 ## Actual recall
 
@@ -52,7 +72,7 @@ through a neighbouring T5aSS autotransporter's window (icsA, one gene away), not
 its own T3SS machinery (~24 genes away). It is the only cross-system case in the
 list.
 
-![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away); the hatched T3SS sliver is VirA, recovered via a neighbouring system.](recall_by_type.png)
+![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away).](recall_by_type.png)
 
 An effector counts as recovered if its CDS span overlaps an emitted secreted
 protein. Because Bakta renames every locus on re-annotation, effectors are bridged
