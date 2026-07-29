@@ -72,7 +72,7 @@ through a neighbouring T5aSS autotransporter's window (icsA, one gene away), not
 its own T3SS machinery (~24 genes away). It is the only cross-system case in the
 list.
 
-![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away).](recall_by_type.png)
+![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away).](effector_recovery_by_type.png)
 
 An effector counts as recovered if its CDS span overlaps an emitted secreted
 protein. Because Bakta renames every locus on re-annotation, effectors are bridged
