@@ -72,7 +72,11 @@ filtered by Phase 4's proximity step. See
 **SignalP** also runs here but is evidence-only, not a trigger. It detects
 classical Sec/Tat signal peptides, which many Gram-negative effectors (T3SS,
 T4SS, T6SS, T1SS C-terminal signals) lack by design, so treating it as a
-trigger would under-call those classes.
+trigger would under-call those classes. **The one exception is T5SS
+self-detection:** T5 passengers are Sec-dependent, so there a Sec signal peptide
+*is* a positive trigger (a detected T5 component is called if DeepLocPro
+localizes it OR SignalP finds a Sec signal). See
+[`design_decisions.md` § 3.2](design_decisions.md#32-signalp-is-evidence-only-not-a-trigger).
 
 By default DLP, SignalP, and DeepSecE run only on proteins inside the SS
 neighbourhood (Phase 4) to save compute. Flags (`--enrichment-stats`, `--dlp-whole-genome`,
