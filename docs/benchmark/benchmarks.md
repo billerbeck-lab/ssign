@@ -33,23 +33,32 @@ nearly every T1SS effector falls inside the window, while only 1 of 8 T2SS and
 ## Actual recall
 
 Run end-to-end on the 52 source genomes, ssign recovers **38 of the 85 validated
-effectors (44.7%)**:
+effectors (44.7%)**. Each type splits into how many effectors proximity could
+reach at all (**reachable**: within ±3 genes of their own machinery) and how many
+ssign actually **recovered**:
 
-| SS type | recall |
-|---|---|
-| T1SS | 16/18 (89%) |
-| T2SS | 1/8 (13%) |
-| T3SS | 5/19 (26%) |
-| T4SS | 0/8 (0%) |
-| T5SS | 10/19 (53%) |
-| T6SS | 6/13 (46%) |
-| **Total** | **38/85 (44.7%)** |
+| SS type | in list | reachable ±3 | recovered |
+|---|---:|---:|---:|
+| T1SS | 18 | 16 (89%) | 16 (89%) |
+| T2SS | 8 | 1 (13%) | 1 (13%) |
+| T3SS | 19 | 4 (21%) | 5 (26%) † |
+| T4SS | 8 | 0 (0%) | 0 (0%) |
+| T5SS | 19 | 17 (89%) | 10 (53%) |
+| T6SS | 13 | 9 (69%) | 6 (46%) |
+| **Total** | **85** | **47 (55%)** | **38 (45%)** |
 
-![Per-effector recall by secretion-system type: ssign recovers 38 of 85 validated effectors (44.7%); coloured bars are recovered, grey missed.](per_effector_recall.png)
+† T3SS recovered (5) exceeds reachable (4) by one: VirA (Shigella) is recovered
+through a neighbouring T5aSS autotransporter's window (icsA, one gene away), not
+its own T3SS machinery (~24 genes away). It is the only cross-system case in the
+list.
+
+![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away); the hatched T3SS sliver is VirA, recovered via a neighbouring system.](recall_by_type.png)
 
 An effector counts as recovered if its CDS span overlaps an emitted secreted
-protein. Because Bakta renames every locus on re-annotation, effectors are
-bridged to the run by genome coordinates, not locus tags.
+protein. Because Bakta renames every locus on re-annotation, effectors are bridged
+to the run by genome coordinates, not locus tags. Of the 47 effectors proximity
+can reach, ssign recovers 38 (81%); the gap to 44.7% overall is the grey band,
+effectors that sit outside any proximity window (biology, not a pipeline miss).
 
 ## Reading the result
 
@@ -98,8 +107,8 @@ where that filter is the right instrument, recovery is high.
 The benchmarking list is [`docs/benchmark/ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv).
 The recall matcher tests each listed effector's coordinates against the run's emitted
 secreted proteins (`emitted_overlap`), with three verified RefSeq↔INSDC contig
-aliases reconciled first so all 85 rows resolve. The per-type figure is
-`found_by_ssign` tallied by `ss_type` over that same list.
+aliases reconciled first so all 85 rows resolve. The recall table and figure are
+`reachable_within_3` and `found_by_ssign` tallied by `ss_type` over that same list.
 
 ---
 
