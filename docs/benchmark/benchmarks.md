@@ -1,15 +1,13 @@
 # Benchmarking ssign: effector recovery
 
-Does ssign actually emit the proteins it should? This page reports the
-**effector-recovery benchmark**: run end-to-end on real genomes, how many
-experimentally-validated secretion-system effectors does ssign recover as
-secreted proteins?
+Does ssign find real secretion systems and secreted protein pairs? This page reports the
+**effector-recovery benchmark**. A test run on real genomes to find out how many
+experimentally-validated secretion-system and secreted proteins ssign actually finds.
 
 The answer is bounded by design. ssign only calls a substrate if a
 secreted-looking protein sits within a few genes of detected secretion-system
-machinery (Phase 4, [`pipeline_overview.md`](../explanation/pipeline_overview.md#phase-4-substrate-identification)).
-That proximity filter is what keeps false positives down, but it also means an
-effector encoded far from its own apparatus is unreachable no matter how good
+machinery ([`pipeline_overview.md`](../explanation/pipeline_overview.md#phase-4-substrate-identification)).
+This means a secreted protein encoded far from its own secretion system machinery is unreachable no matter how good
 the predictors are. So the benchmark runs in two parts: first the **ceiling**
 (what the proximity rule *could* recover if detection were perfect), then the
 **actual recall** (what ssign emits end-to-end).
@@ -17,36 +15,17 @@ the predictors are. So the benchmark runs in two parts: first the **ceiling**
 ## The benchmarking list
 
 [`ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv)
-holds **85 experimentally-validated effectors**, one per secretion-system
+holds **85 experimentally-validated effectors** one per secretion-system
 instance, spanning
 T1–T6SS. Every row carries a UniProt accession, the source genome + contig + CDS
-coordinates, the primary reference (DOI), and a verbatim quote from that paper
-showing the protein is secreted by that system type.
-
-| SS type | effectors |
-|---|---:|
-| T1SS | 18 |
-| T2SS | 8 |
-| T3SS | 19 |
-| T4SS | 8 |
-| T5SS | 19 |
-| T6SS | 13 |
-| **Total** | **85** |
-
-The list was built by an exhaustive blind re-read: six independent passes
-re-verified every row from primary evidence, confirming that the UniProt entry is
-the named effector (not a machinery or accessory paralog), that the locus is that
-gene, and that the cited paper experimentally shows secretion by that system.
-Four rows that turned out to be pure T3SS translocon components were dropped,
-leaving the 85.
+coordinates, and the primary reference (DOI). This was created via mining the literature.
 
 ## The proximity ceiling
 
 Before running anything, we asked: given where each effector actually sits in
 gene order relative to its own machinery, what fraction *could* a "within ±N
 genes of a component" rule ever reach? This uses literature-derived machinery
-positions and genome annotation only, never ssign's own detector, so it is a fair
-external bound.
+positions and genome annotation only.
 
 | SS type | ceiling ±3 | ±5 | ±7 |
 |---|---:|---:|---:|
@@ -56,9 +35,7 @@ external bound.
 | T4SS | 6% | 8% | 10% |
 | T6SS | 22% | 24% | 26% |
 
-(Computed over a broader corpus of 499 testable effectors, so the denominators
-differ from the 85-row recall panel below; the per-type *pattern* is what
-carries. T5SS is absent because it self-secretes (the component is the
+T5SS is absent because it self-secretes (the component is the
 substrate), so there is no machinery-to-effector distance to measure.)
 
 The rule is a strong constraint for some systems and almost useless for others:
@@ -68,20 +45,12 @@ The rule is a strong constraint for some systems and almost useless for others:
   instrument here.
 - **T2SS ~1–4% and T4SS ~6–10%.** These effectors are scattered genome-wide,
   thousands of genes from the apparatus. No proximity-based method can recover
-  most of them; this is the clearest limit, and it is biology, not a defect.
-- **T3SS ~21–33% and T6SS ~22–26%.** Intermediate: a clustered minority
-  (LEE-encoded T3SS effectors, T6SS auxiliary-cluster effectors near Hcp/VgrG/PAAR)
-  sits in window; the rest are dispersed.
+  most of them.
 
 ## Actual recall
 
-**Recall = 38 / 85 (44.7%)**, CX3 run `3169556` (2026-07-03), 52 genomes, one
-multi-genome job, `extended` tier (DeepLocPro + DeepSecE + SignalP predictions;
-InterProScan + EggNOG + pLM-BLAST + ProtParam annotation), Bakta re-annotation
-from scratch. All 52 genomes completed every step; no tool timed out.
-
-| SS type | recall |
-|---|---|
+| SS type | total recall | reachable recall |
+|---|---|---|
 | T1SS | 16/18 (89%) |
 | T2SS | 1/8 (13%) |
 | T3SS | 5/19 (26%) |
