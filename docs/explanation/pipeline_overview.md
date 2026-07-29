@@ -1,21 +1,20 @@
 # How the pipeline works
 
-A narrative walkthrough of what ssign does during a run, in the order it
+What ssign does during a run, in the order it
 happens. For per-decision rationale and citations, see
 [`design_decisions.md`](design_decisions.md). For the column-by-column
 output reference, see [`reference/output_files.md`](../reference/output_files.md).
 
 ssign is command-line only: `ssign run <genome> --outdir <out>`. It runs in
 six phases, each producing an intermediate output the next phase consumes.
-(Internally these expand into a ~16-step DAG, roughly one step per tool.)
 
 ```
-input → proteins + gene order
-      → secretion systems detected
-      → secretion candidates predicted
-      → substrates filtered by proximity + voting
-      → optional functional annotation
-      → integrated CSV + report + figures
+→ proteins + gene order
+→ secretion systems detected
+→ secretion candidates predicted
+→ substrates filtered by proximity
+→ optional functional annotation
+→ integrated CSV + report + figures
 ```
 
 ## Phase 1: input processing
@@ -28,7 +27,7 @@ annotations have unknown provenance (old Prokka, recent PGAP, manual curation),
 and one consistent caller across a cohort keeps downstream consensus voting
 comparable. Opt out with `--use-input-annotations`.
 
-For FASTA input, Bakta (or pyrodigal as a fallback) calls ORFs from scratch.
+For FASTA input, Bakta calls ORFs from scratch.
 
 This phase produces three core artefacts: a protein FASTA, a gene-info table
 (one row per CDS with locus, contig, start, end, product), and a gene-order
@@ -51,8 +50,7 @@ Two outputs:
 
 A genome can carry several systems of the same type (e.g. two T6SSs),
 distinguished by their component locations. Flagella, Tad pili, and type-IV
-pili are excluded at the next phase, not here (T3SS is not excluded);
-detection itself is unconditional.
+pili are excluded at the next phase.
 
 ## Phase 3: secreted-protein prediction
 
@@ -64,7 +62,7 @@ secreted:
 - **DeepSecE** predicts which secretion-system *type* a protein is a substrate
   of (T1SE / T2SE / T3SE / T4SE / T6SE).
 
-A protein is flagged as a candidate substrate if **either** of these trips.
+A protein is flagged as a candidate substrate if **either** of these trips (extracellular for DeepLocPro).
 ssign records `n_prediction_tools_agreeing` (0-2) as a confidence signal, and
 `secretion_evidence` lists which tools voted. The "any one" rule is deliberate:
 a missed substrate is a missed biological finding, while false positives get
@@ -77,9 +75,9 @@ T4SS, T6SS, T1SS C-terminal signals) lack by design, so treating it as a
 trigger would under-call those classes.
 
 By default DLP, SignalP, and DeepSecE run only on proteins inside the SS
-neighbourhood (Phase 4) to save compute. Three flags (`--dlp-whole-genome`,
+neighbourhood (Phase 4) to save compute. Flags (`--enrichment-stats`, `--dlp-whole-genome`,
 `--sp-whole-genome`, `--dse-whole-genome`) run them across the whole genome
-instead, which cohort-wide enrichment analysis needs.
+instead.
 
 ssign is offline-first: the canonical path uses local DLP and SignalP installs.
 Without a DTU academic licence you can opt into the DTU webserver fallback
