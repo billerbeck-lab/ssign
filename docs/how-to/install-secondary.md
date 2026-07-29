@@ -1,21 +1,10 @@
 # Secondary install options (native / pip)
 
-The recommended install is the self-contained container, see
-[`install.md`](install.md). Use this page only if you cannot use the container.
-
-This path is lighter-weight: install ssign from the cloned repo with `pip`, plus
+Install ssign from the cloned repo with `pip`, plus
 a handful of optional tools. The trade-off is that you install and maintain the
 external toolchain yourself (Bakta, EggNOG-mapper, BLAST+, HH-suite, InterProScan,
 SignalP 6, DeepLocPro), and those tool versions can drift out of compatibility
-over time. For reproducible, paper-grade runs that behave identically years from
-now, use the [container](install.md#1-container-install-recommended) instead.
-
-Installing from the clone gets you the base pipeline: secretion-system detection,
-secreted-protein prediction (DeepLocPro, DeepSecE, and SignalP, see the
-DeepLocPro and SignalP sections below for installing the DTU tools locally, or
-for the opt-in webserver fallback when you don't have a DTU licence), proximity
-analysis, and reporting. The tools below extend what the pipeline reports and how
-it runs.
+over time. For reproducible runs use the recommended [container](install.md#1-container-install-recommended) instead.
 
 Clone the repo and install the tier you want:
 
@@ -34,9 +23,6 @@ bash scripts/fetch_databases.sh --tier base       # or: extended / full
 
 ### Database tier sizes
 
-Real on-disk numbers, measured 2026-06-03 against the fetched databases.
-Cumulative, each row includes everything from the rows above it:
-
 | Tier | Cumulative size | Adds |
 |---|---|---|
 | base | ~4 GB | Bakta light DB (3.9 GB) |
@@ -44,10 +30,7 @@ Cumulative, each row includes everything from the rows above it:
 | full | ~500 GB | + Bakta full DB (84 GB, replaces light), HH-suite Pfam + PDB70 + UniRef30 (340 GB total), BLASTp-vs-Swiss-Prot (0.3 GB) |
 
 These are databases only. Model weights are separate and shared across all tiers,
-~18 GB total (base auto-downloads the DeepSecE checkpoint and ESM backbones;
-ProtT5 is extended-tier only; DeepLocPro and SignalP weights ship with their own
-installs). The "Acquired by" column says which weights auto-download on first run
-and which come from a user-provided local install; the container bakes all of them:
+~18 GB total.
 
 | Model | Size | Used by | Acquired by |
 |---|---|---|---|
@@ -60,15 +43,8 @@ and which come from a user-provided local install; the container bakes all of th
 
 DeepLocPro/DeepSecE pull their ESM backbones via `esm.pretrained` (torch-hub
 cache), pLM-BLAST pulls ProtT5 via `huggingface_hub`, and the DeepSecE checkpoint
-downloads via `run_deepsece._ensure_checkpoint()`, so those need no separate
-fetch step. The container bakes all of them (container runs are fully offline).
-The two weights you provide yourself are SignalP 6 (DTU tarball) and DeepLocPro
-(its GitHub clone); their weights ship with those local installs (see below).
-
-HH-suite (extracted) is the long pole for full-tier disk. BLASTp defaults to
-Swiss-Prot (tiny, curated); full NR (~800 GB) is opt-in only (too slow to blast a
-real substrate set), fetch it via `fetch_blast_nr` and pass
-`--blastp-db <nr-dir>/nr`.
+downloads via `run_deepsece._ensure_checkpoint()`. The two weights you provide yourself are SignalP 6 (DTU tarball) and DeepLocPro
+(its GitHub clone).
 
 If a tier doesn't fit your storage budget, pick individual tools below.
 
@@ -84,24 +60,17 @@ ssign doctor --tier extended      # or: base / full to match what you installed
 with the exact fix command for each: Python packages, external binaries on PATH
 (Bakta, EggNOG-mapper, HH-suite, BLAST+, InterProScan), on-disk databases (read
 from `~/.ssign/db_root` written by `fetch_databases.sh`, or `SSIGN_*` env vars if
-you set them), and model weights. Exits non-zero on failure so you can chain
-`ssign doctor && ssign run …` in scripts.
-
-If `ssign doctor` is green, the pipeline can run.
+you set them), and model weights.
 
 For environment variables (mirror URLs, database paths, dev-only flags), see
 [`reference/env_vars.md`](../reference/env_vars.md).
 
 ---
 
-## DeepSecE (base tier, GPU recommended)
+## DeepSecE
 
-DeepSecE predicts secretion-system type per protein and runs as a second opinion
-alongside DeepLocPro. It ships in the base tier: the base install already
-includes it (PyTorch plus the ESM protein language model add ~7.3 GB to the
-install), so there is no separate install step. The legacy `ssign[deepsece]`
-extra is a no-op alias kept only so old invocations keep working; it installs
-nothing.
+DeepSecE predicts secretion-system type per protein and runs
+alongside DeepLocPro.
 
 CUDA GPU strongly recommended; CPU runs are slow.
 
@@ -119,9 +88,7 @@ tRNAscan-SE, aragorn) that aren't pip-installable. Without them, **even
 `bakta_db download` fails** because Bakta's startup runs the same dependency
 check as `bakta` itself.
 
-Building that binary set piecemeal always misses one (`ERROR: tRNAscan-SE not
-found`, then `ERROR: PilerCR not found`, ...). Install all of Bakta from conda in
-one shot, which pulls every binary (tRNAscan-SE, aragorn, PilerCR, AMRFinderPlus,
+Install all of Bakta from conda (tRNAscan-SE, aragorn, PilerCR, AMRFinderPlus,
 DIAMOND, HMMER, BLAST+) at compatible versions:
 
 ```bash
@@ -144,24 +111,14 @@ Pass `--bakta-db ~/bakta_db`, or set `SSIGN_BAKTA_DB=~/bakta_db` (read by
 ## EggNOG-mapper (separate install + database)
 
 EggNOG-mapper provides ortholog-based functional annotation (COG, KEGG, GO, PFAM)
-for substrate proteins. It is invoked as a subprocess (`emapper.py`), not
-imported by ssign, and is **not** included in the `[extended]` / `[full]` pip
-extras: upstream eggnog-mapper hard-pins `biopython==1.76` while ssign and Bakta
-need `biopython>=1.78`, which makes the two unsatisfiable in a single pip
-resolution. Install it separately.
-
-The conda path is recommended; bioconda has shipped eggnog-mapper against modern
-biopython for years without breakage:
+for substrate proteins.
 
 ```bash
 conda install -c bioconda eggnog-mapper
 ```
 
 If you don't use conda, `--no-deps` skips the upstream pin and lets ssign's
-biopython (`>=1.80`) satisfy eggnog-mapper at runtime. The only API
-incompatibility (`Bio.Alphabet`, removed in biopython 1.78) is already guarded
-with `try/except` in eggnog-mapper itself, so this works in practice; bioconda
-relies on the same:
+biopython (`>=1.80`) satisfy eggnog-mapper at runtime.
 
 ```bash
 pip install --no-deps eggnog-mapper
@@ -174,26 +131,13 @@ which emapper.py
 emapper.py --version
 ```
 
-> **HPC users (Imperial CX3 and similar):** ssign's bundled `bakta-deps` conda
-> env does **not** ship eggnog-mapper. Either install it into your active ssign
-> venv (the `pip install --no-deps` line above), or install it into `bakta-deps`
-> explicitly with `conda install -n bakta-deps -c bioconda eggnog-mapper` so the
-> runner's auto-discovery picks it up. ssign now hard-fails at pre-flight if
-> `emapper.py` is missing and `--skip-eggnog` is not set, so a missing install no
-> longer wastes a 1-hour PBS allocation.
-
 Fetch the database (~47 GB extracted):
 
 ```bash
 scripts/fetch_databases.sh --tier extended --target ~/.ssign/databases
 ```
 
-This wgets the three required files (`eggnog.db`, `eggnog.taxa.db`,
-`eggnog_proteins.dmnd`) directly from `eggnog5.embl.de`. We don't use
-`download_eggnog_data.py` because eggnog-mapper 2.1.13 (the latest on bioconda as
-of 2026-05) still hardcodes the retired `eggnogdb.embl.de` hostname and produces
-0-byte files with exit-code 0. 2.1.14 fixed it upstream but never reached PyPI,
-so the fetch script bypasses that breakage. Tell ssign where the database lives:
+Tell ssign where the database lives:
 
 ```bash
 ssign run input.gbff --outdir results --eggnog-db ~/.ssign/databases/eggnog
@@ -201,12 +145,6 @@ ssign run input.gbff --outdir results --eggnog-db ~/.ssign/databases/eggnog
 
 EggNOG annotation is on by default at the extended (default) and full tiers; it
 is off only at `--tier base`. Pass `--skip-eggnog` to disable it.
-
-> **HPC / shared scratch users:** `--eggnog-dbmem` (loads `eggnog.db` into RAM,
-> ~44 GB resident) is now **auto** by default: on only when the job's RAM share
-> is >= 50 GB, else the on-disk SQLite is memory-mapped. The runner stages that
-> DB to local scratch first, so the old NFS-mmap hang no longer applies. Force
-> either way with `--eggnog-dbmem` / `--no-eggnog-dbmem`.
 
 ---
 
@@ -231,8 +169,6 @@ TIGRFAM, HAMAP, SMART, PIRSF, SUPERFAMILY, Gene3D, ProSite, CDD) to annotate
 domains, family memberships, and GO terms. ssign uses it to add domain-level
 annotation to substrate proteins. Java required.
 
-The bundle is large (~24 GB extracted) but installs as a single tarball:
-
 ```bash
 # 1. Java 11+ on PATH (Ubuntu / Debian):
 sudo apt install openjdk-17-jre-headless
@@ -248,13 +184,6 @@ Point ssign at the install directory (the one containing `interproscan.sh`):
 ```bash
 export SSIGN_INTERPROSCAN_PATH=~/.ssign/databases/interproscan/interproscan-5.77-108.0
 ```
-
-ssign runs InterProScan with the bacterial-relevant member DBs by default
-(PANTHER, the slowest member and eukaryote-leaning, is excluded). Per-protein
-scan time is typically 5-30 s; a whole-genome run on ~5,000 proteins is 30-90
-minutes. The first run also queries EBI's precalculated-match lookup service for
-a 5-10x speedup on known sequences; add `-dp` behaviour via your own wrapper
-script if you need air-gapped operation.
 
 ---
 
@@ -272,8 +201,7 @@ conda install -c bioconda hhsuite      # recommended
 ```
 
 Download the three databases. Two canonical mirrors host them; **prefer
-Tübingen** (fresher, recommended by Söding lab issue #382) and fall back to GWDG
-only if Tübingen is unreachable.
+Tübingen** and fall back to GWDG if Tübingen is unreachable.
 
 ```bash
 # Pfam (domain families). Tübingen has v38 (2024+); GWDG has v35 (2021).
@@ -302,15 +230,6 @@ export SSIGN_HHSUITE_UNICLUST=$HHSUITE_DBS/UniRef30_2023_02
 These three are read at run time as fallbacks for the matching CLI flags
 (`--hhsuite-pfam-db`, `--hhsuite-pdb70-db`, `--hhsuite-uniclust-db`).
 
-### Mirror caveats
-
-The Söding lab is in maintenance mode; per
-[hh-suite issue #382](https://github.com/soedinglab/hh-suite/issues/382), no
-funding for support, but the files at GWDG are stable. Tübingen has fresher
-builds. If you see a 404 on the GWDG host, probe with `curl -IL` (capital L
-follows the 302 redirect to the sibling domain). If both mirrors are down for an
-extended period, pre-stage the DBs on your HPC scratch directory.
-
 ---
 
 ## pLM-BLAST (clone + database)
@@ -331,13 +250,6 @@ test -f "$SSIGN_PLMBLAST_SCRIPT" && echo OK || echo NOT FOUND
 test -f "$(dirname "$(dirname "$SSIGN_PLMBLAST_SCRIPT")")/embeddings.py" && echo OK || echo NOT FOUND
 ```
 
-> **HPC / persistent shells:** add the `export SSIGN_PLMBLAST_SCRIPT=...` line to
-> `~/.bashrc` (or the equivalent for your shell) AND to any PBS / SLURM batch
-> script that runs ssign. The variable does not survive across new login shells
-> unless persisted. ssign now hard-fails at pre-flight if both the env var and
-> the PATH entry are missing, so a missing install no longer wastes hours of job
-> time.
-
 Pre-built ECOD30 database (~10 GB compressed, ~11 GB extracted):
 
 ```bash
@@ -347,44 +259,17 @@ tar -xzf ecod30db_20240417.tar.gz && rm ecod30db_20240417.tar.gz
 export SSIGN_ECOD_DB=~/pLM-BLAST/db/ECOD30
 ```
 
-Other cluster levels (ECOD50/70/90) live at the same FTP path with names
-`ecod50db_20240417.tar.gz` etc., if you need more redundancy. ECOD30 still has
->=1 representative per F-group so annotation labels are identical across cluster
-levels.
-
-GPU strongly recommended: ProtT5 embedding is ~5-10 sec per 500-aa protein on CPU
-vs ~0.1 sec on a modern GPU. A whole-genome run on CPU (~5,000 proteins) is 10+
-hours just for embedding.
+GPU strongly recommended
 
 ---
 
 ## SignalP 6.0
 
-ssign is offline-first: the canonical path is a local SignalP install. **DTU
-confirmed on 2026-05-07 that SignalP 6.0 cannot be redistributed**, so each user
+**DTU confirmed on 2026-05-07 that SignalP 6.0 cannot be redistributed**, so each user
 acquires it from the DTU portal directly (free academic licence).
 
 If you do not have a DTU licence (or just want to try ssign without one), you can
-opt into the DTU webserver fallback instead with `--signalp-mode remote`. The
-webserver requires no licence on your part and works on any machine with internet
-access. Treat this as a convenience for first-time users and small pilots: the
-route depends on DTU continuing to host the service, which is outside our control
-and can rate-limit, change, or disappear over time. For anything you intend to
-publish or repeat, install locally.
-
-### When the webserver fallback is fine
-
-- Single-genome analyses or few-dozen-genome pilots
-- Quick first runs to evaluate ssign before installing DTU tools
-- Machines without a DTU licence
-
-### When to install locally (the canonical path)
-
-- Cohorts of >100 genomes where webserver throughput becomes the bottleneck
-- Air-gapped environments with no outbound HTTPS to DTU
-- Reproducible / paper-ready runs that need every tool fully offline
-- Any long-running project where you don't want a third-party webserver on the
-  critical path
+opt into the DTU webserver fallback instead with `--signalp-mode remote`.
 
 ### Install (Linux / macOS)
 
@@ -393,8 +278,7 @@ below for you and drops SignalP in `~/.conda/envs/signalp6` (a location ssign
 auto-detects). The manual recipe follows for reference.
 
 SignalP 6.0 pins **Python <= 3.10** and **PyTorch < 2.0**, while ssign itself
-runs on Python 3.10+ with PyTorch 2.x (the real conflict is PyTorch, not the
-interpreter version). Installing SignalP into your ssign env
+runs on Python 3.10+ with PyTorch 2.x. Installing SignalP into your ssign env
 will downgrade PyTorch and break DeepSecE / DeepLocPro / pLM-BLAST. **Install
 SignalP into its own env** and point ssign at the binary.
 
@@ -422,7 +306,7 @@ mamba create -n signalp6 -c conda-forge python=3.10 pip "numpy<2" -y
 # 4. Use the env's binaries by absolute path, avoids needing `mamba init`
 #    (which would permanently modify your shell rc). Works identically
 #    on a laptop and inside an HPC JupyterHub / batch job.
-#
+#This path is lighter-weight: 
 #    The CPU torch wheel is deliberate. We tested swapping in
 #    `torch==1.13.1+cu117` on a CUDA 13 / A40 host: SignalP did NOT
 #    actually move inference to the GPU because the device is baked
@@ -466,36 +350,21 @@ export SSIGN_SIGNALP_PATH=~/.conda/envs/signalp6/bin    # or:
 ssign run input.gbff --outdir results --signalp-path ~/.conda/envs/signalp6/bin
 ```
 
-ssign invokes SignalP with `--organism other --mode fast --format txt`
-(Gram-negatives use the `other` group in v6; v5's `gram-` was removed). Pass
-`--signalp-mode remote` to force the DTU webserver even when a local install is
-available; `--signalp-mode local` forces local and errors out if no binary is
-found.
-
 ---
 
 ## DeepLocPro
 
-ssign is offline-first, so the canonical path is a local DeepLocPro install
-(~5 GB of model files, GPU recommended for cohort speed). Unlike SignalP,
-DeepLocPro is not DTU-licensed: it is open source (CC BY-NC-SA 4.0,
+Unlike SignalP, DeepLocPro is not DTU-licensed: it is open source (CC BY-NC-SA 4.0,
 non-commercial), cloned directly from the maintainer's public GitHub repository
 [Jaimomar99/deeplocpro](https://github.com/Jaimomar99/deeplocpro) at a pinned
-commit. There is no acquisition or licence step; DTU's portal URL is only the web
-prediction service, not the source of the local install.
+commit.
 
 `scripts/ssign-setup-dtu --deeplocpro-only` runs the recipe below for you and
 installs into `~/.conda/envs/deeplocpro` (a location ssign auto-detects).
 
 If you don't want to install locally, opt into the DTU webserver fallback with
-`--deeplocpro-mode remote` (no install needed on your part, internet required).
-Same caveat as SignalP: this is a convenience path that depends on DTU keeping
-the service alive, so use it for trial runs and install locally for production /
-paper work.
+`--deeplocpro-mode remote`.
 
-DeepLocPro's only hard pin is Python >= 3.6, much more permissive than SignalP
-6.0's torch<2 constraint. It could technically live in the ssign venv, but we
-keep it in its own conda-family env for the same reasons we isolate SignalP:
 insulate ssign from any transformers / torch constraint DLP might add in a future
 release, and keep the "DTU tool != ssign env" convention consistent.
 
@@ -553,25 +422,11 @@ ssign run --help                 # confirms ssign itself is on PATH
 ssign run input.gbff --outdir /tmp/test --resume   # pre-flight prints all detected tools
 ```
 
-The pre-flight log lists every external tool plus its detected version (or a
-warning if not found). A missing tool is non-fatal: the corresponding step is
-skipped at run time and the rest of the pipeline continues.
-
-## Canonical command, extended tier (every annotation tool on)
-
-After `fetch_databases.sh --tier extended` has run and every tool from the
-sections above is installed, the canonical command is just:
+## Extended tier (every tool on)
 
 ```bash
 ssign run input.gbff --outdir results
 ```
-
-That's it. `fetch_databases.sh` records the tier at `~/.ssign/tier`; ssign reads
-it and enables exactly the tools the extended bundle ships (EggNOG, InterProScan,
-pLM-BLAST) while leaving BLASTp and HH-suite off; BLASTp-vs-Swiss-Prot and
-HH-suite UniRef30 are full-tier only. The database paths come from
-`~/.ssign/db_root` (also written by `fetch_databases.sh`), no per-DB env var
-exports needed for the common case.
 
 If your databases live somewhere other than what's recorded in
 `~/.ssign/db_root`, set the env vars below to point at them:
@@ -588,9 +443,7 @@ export SSIGN_ECOD_DB=$DBROOT/plm_blast/ECOD30
 # export SSIGN_HHSUITE_UNICLUST=$DBROOT/hhsuite/uniref30
 ```
 
-To deviate from the tier default for one tool (e.g. you have NR locally even on
-an extended-tier install, or you want to skip EggNOG on this specific run), pass
-the per-tool override:
+To deviate from the tier default for one tool pass the per-tool override:
 
 ```bash
 ssign run input.gbff --outdir results --no-skip-blastp        # opt-in to BLASTp
