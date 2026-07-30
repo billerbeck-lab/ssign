@@ -11,12 +11,14 @@ Everything below is relative to your `--outdir`:
 | `<sample-id>_results.csv` | Main results |
 | `<sample-id>_results_raw.csv` | Raw output from tools |
 | `<sample-id>_summary.txt` | Text summary of run |
+| `<sample-id>_enrichment_stats.tsv` | Per-SS-type enrichment stats (with `--enrichment-stats`) |
 | `figures/<sample-id>/01_secreted_by_genome.png` | Secreted proteins by SS type |
 | `figures/<sample-id>/02_physicochemical.png` | Size & physicochemical properties |
 | `figures/<sample-id>/03_cog_category_by_sstype.png` | COG functional category |
 | `figures/<sample-id>/04_kegg_function_by_sstype.png` | KEGG function |
 | `figures/<sample-id>/05_eggnog_description_by_sstype.png` | EggNOG description |
 | `figures/<sample-id>/06_consensus_function_by_sstype.png` | Consensus function |
+| `figures/<sample-id>/<sample-id>_enrichment_fold[_combined].png` | Fold-enrichment charts (with `--enrichment-stats`) |
 | `.ssign/<sample-id>_progress.json` | Resume manifest (used by `--resume`) |
 
 ## Multi-genome layout
@@ -32,9 +34,10 @@ per genome) alongside these per-genome folders:
 | `combined_summary.txt` | Aggregated report, pooled counts, per-type totals, per-tool coverage |
 | `cross_genome_orthologs.csv` | Every pooled substrate with its `sample_id` and cross-genome `ortholog_group` (BLAST+ required) |
 | `cross_genome_ortholog_groups.csv` | Per group: `n_members`, `n_genomes`, `genomes`, `members`, `mean_pident` |
+| `pooled_enrichment_stats.tsv` | Enrichment stats pooled across all genomes (with `--enrichment-stats`) |
 | `figures/0N_pooled_*.png` | Same figures as single-genome runs |
 | `figures/07_cross_genome_orthologs.png` | Ortholog conservation, 2-panel (BLAST+ required) |
-| `figures/pooled_enrichment_fold[_combined].png` | Fold-enrichment charts (with `--enrichment-stats`) |
+| `figures/pooled_enrichment_fold[_combined].png` | Fold-enrichment charts pooled across all genomes (with `--enrichment-stats`) |
 
 There is no combined raw CSV; each genome keeps its own
 `<genome>/<genome>_results_raw.csv`.
