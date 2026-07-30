@@ -73,10 +73,10 @@ compatible with ssign's GPL-3.0. ColabFold and bio_embeddings already
 redistribute these weights (established precedent); ssign archives them inside
 the Zenodo-deposited image rather than as a separate deposit.
 
-## InterProScan: not baked, user provides it
+## InterProScan: not baked
 
 The core engine is **Apache 2.0** (redistribution-friendly), but the bundled
-member databases have mixed licenses, and the show-stoppers are:
+member databases have mixed licenses:
 
 - **PROSITE** (Profiles + Patterns): SIB custom license, non-commercial, no
   derivatives; forbids redistribution outside the InterPro bundle.
