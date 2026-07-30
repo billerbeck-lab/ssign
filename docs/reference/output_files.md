@@ -4,22 +4,20 @@ What ssign writes to your `--outdir` after a successful run.
 
 ## Single-genome layout
 
-```
-results/
-├── <sample-id>_results.csv          Main results, three chunks (see below)
-├── <sample-id>_results_raw.csv      All annotations, no filtering, no column pruning
-├── <sample-id>_summary.txt          Combined report text + enrichment summary
-├── figures/
-│   └── <sample-id>/
-│       ├── 01_secreted_by_genome.png       Secreted proteins by SS type
-│       ├── 02_physicochemical.png          Size & physicochemical properties
-│       ├── 03_cog_category_by_sstype.png   COG functional category
-│       ├── 04_kegg_function_by_sstype.png  KEGG function
-│       ├── 05_eggnog_description_by_sstype.png  EggNOG description
-│       └── 06_consensus_function_by_sstype.png  Curated consensus function
-└── .ssign/
-    └── <sample-id>_progress.json    Resume manifest (used by --resume)
-```
+Everything below is relative to your `--outdir`:
+
+| Path | What it is |
+|---|---|
+| `<sample-id>_results.csv` | Main results, three chunks (see below) |
+| `<sample-id>_results_raw.csv` | All annotations, no filtering, no column pruning |
+| `<sample-id>_summary.txt` | Combined report text + enrichment summary |
+| `figures/<sample-id>/01_secreted_by_genome.png` | Secreted proteins by SS type |
+| `figures/<sample-id>/02_physicochemical.png` | Size & physicochemical properties |
+| `figures/<sample-id>/03_cog_category_by_sstype.png` | COG functional category |
+| `figures/<sample-id>/04_kegg_function_by_sstype.png` | KEGG function |
+| `figures/<sample-id>/05_eggnog_description_by_sstype.png` | EggNOG description |
+| `figures/<sample-id>/06_consensus_function_by_sstype.png` | Curated consensus function |
+| `.ssign/<sample-id>_progress.json` | Resume manifest (used by `--resume`) |
 
 Per-step intermediate files (proteins.faa, gene_info.tsv, individual tool
 outputs, etc.) are written to a temporary work directory during the run and
@@ -32,24 +30,18 @@ When you pass several genomes to one `ssign run`, each genome is written to its
 own subdirectory under `--outdir` (the single-genome layout above, one folder
 per genome), and combined files are added at the output-directory root:
 
-```
-results/
-├── <genome-1>/                      per-genome files (as above)
-├── <genome-2>/
-├── ...
-├── combined_results.csv             Secreted proteins pooled across all genomes,
-│                                    with a leading source_genome column
-├── combined_summary.txt             Aggregated report: pooled counts, per-type
-│                                    totals, per-tool coverage
-├── cross_genome_orthologs.csv       Every pooled substrate with its sample_id and
-│                                    cross-genome ortholog_group (BLAST+ required)
-├── cross_genome_ortholog_groups.csv Per group: n_members, n_genomes, genomes,
-│                                    members, mean_pident
-└── figures/
-    ├── 0N_pooled_*.png              Curated set over all genomes (01-06 numbering)
-    ├── 07_cross_genome_orthologs.png   Ortholog conservation, 2-panel (BLAST+ required)
-    └── pooled_enrichment_fold[_combined].png   (with --enrichment-stats)
-```
+At the `--outdir` root, alongside one subdirectory per genome:
+
+| Path | What it is |
+|---|---|
+| `<genome>/` | Per-genome files, one folder per genome (the single-genome layout above) |
+| `combined_results.csv` | Secreted proteins pooled across all genomes, with a leading `source_genome` column |
+| `combined_summary.txt` | Aggregated report: pooled counts, per-type totals, per-tool coverage |
+| `cross_genome_orthologs.csv` | Every pooled substrate with its `sample_id` and cross-genome `ortholog_group` (BLAST+ required) |
+| `cross_genome_ortholog_groups.csv` | Per group: `n_members`, `n_genomes`, `genomes`, `members`, `mean_pident` |
+| `figures/0N_pooled_*.png` | Curated set over all genomes (01–06 numbering) |
+| `figures/07_cross_genome_orthologs.png` | Ortholog conservation, 2-panel (BLAST+ required) |
+| `figures/pooled_enrichment_fold[_combined].png` | Fold-enrichment charts (with `--enrichment-stats`) |
 
 There is no combined raw CSV; each genome keeps its own
 `<genome>/<genome>_results_raw.csv`.
