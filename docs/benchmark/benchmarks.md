@@ -38,7 +38,7 @@ ssign actually predicts (**predicted**).
 
 Run end-to-end on the 52 source genomes, ssign predicts **38 of the 85 secreted
 proteins (44.7%)**. Proximity can reach 47 of them (own machinery within ±3); ssign
-predicts **37 of those (79%)**, plus VirA serendipitously (38 total).
+predicts **37 of those (78.7%)**, plus VirA serendipitously (38 total, 80.9%).
 
 | SS type | in list | reachable ±3 | predicted |
 |---|---:|---:|---:|
