@@ -1,10 +1,8 @@
 # CLI reference
 
-Complete flag list for the `ssign` command. For "how do I X" recipes, see
-[`how-to/run.md`](../how-to/run.md).
+Complete flag list for the `ssign` command.
 
-`ssign` is a command-line tool with three subcommands (running it with no
-subcommand prints a short usage hint):
+`ssign` is a command-line tool with three subcommands:
 
 ```bash
 ssign run input.gbff --outdir <dir>  # run the pipeline
@@ -57,14 +55,14 @@ form.
 | `--required-fraction-correct` | float | `0.8` | Fraction of SS components that must be correctly localized for the system to pass. |
 | `--deepsece-min-prob` | float | `0.8` | DeepSecE minimum probability to call a protein secreted. |
 | `--signalp-min-prob` | float | `0.5` | SignalP minimum probability for a signal peptide. |
-| `--dlp-confidence-threshold` | float | `0.8` | Minimum DeepLocPro max-probability for an SS-machinery component to count in the localization-correctness gate. Components below this are excluded from both sides of `fraction_correct`. Distinct from `--conf-threshold` (which gates extracellular calls). |
-| `--skip-localization-gate` | bool | `false` | Disable the literature-derived localization-correctness gate (debug / ad-hoc). |
+| `--dlp-confidence-threshold` | float | `0.8` | Minimum DeepLocPro max-probability for an **SS-machinery component** to count in the localization-correctness gate. Components below this are excluded from both sides of `fraction_correct`. Distinct from `--conf-threshold` (which gates extracellular calls). |
+| `--skip-localization-gate` | bool | `false` | Disable the localization-correctness gate. |
 
 ## Enrichment analysis
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--enrichment-stats` | bool | `false` | Per-SS-type circular-shift enrichment test: emits fold (enrichment) + permutation p + BH q per system type for DeepLocPro, DeepSecE, and SignalP, plus enrichment figures. Forces whole-genome DeepLocPro + DeepSecE + SignalP (local; the rotation null needs every gene's positivity in gene order), ~13 min/genome. Pool across genomes for statistical power. |
+| `--enrichment-stats` | bool | `false` | Per-SS-type circular-shift enrichment test: emits fold (enrichment) + permutation p + BH q per system type for DeepLocPro, DeepSecE, and SignalP, plus enrichment figures. Forces whole-genome DeepLocPro + DeepSecE + SignalP (local; the rotation null needs every gene's positivity in gene order), adds compute requirements per genome. Pool across genomes for statistical power. |
 
 ## ORF prediction and annotation
 
@@ -79,9 +77,9 @@ form.
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--deeplocpro-mode` | choice | auto (local when a local install is detected) | `local` (canonical, DTU academic licence required) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). Unset = auto: local if `deeplocpro` is on `PATH`/`--deeplocpro-path`/`$SSIGN_DEEPLOCPRO_PATH`, otherwise ssign stops with install instructions (it does not auto-submit to the webserver). |
+| `--deeplocpro-mode` | choice | auto (local when a local install is detected) | `local` or `remote`. Unset = auto: local if `deeplocpro` is on `PATH`/`--deeplocpro-path`/`$SSIGN_DEEPLOCPRO_PATH`. |
 | `--deeplocpro-path` | path | `""` | Path to local DeepLocPro install. Empty falls back to `deeplocpro` on `PATH`. |
-| `--signalp-mode` | choice | auto (local when a local install is detected) | `local` (canonical; obtain SignalP 6.0 from the DTU portal, DTU does not redistribute it) or `remote` (opt-in fallback: DTU webserver, no licence needed but depends on DTU hosting the service). Unset = auto: local if `signalp6` is on `PATH`/`--signalp-path`/`$SSIGN_SIGNALP_PATH`, otherwise ssign stops with install instructions (it does not auto-submit to the webserver). |
+| `--signalp-mode` | choice | auto (local when a local install is detected) | `local` or `remote`. Unset = auto: local if `signalp6` is on `PATH`/`--signalp-path`/`$SSIGN_SIGNALP_PATH`. |
 | `--signalp-path` | path | `""` | Path to local SignalP 6 install. Empty falls back to `signalp6` on `PATH`. |
 | `--skip-deeplocpro` | bool | `false` | Skip the DeepLocPro step (overrides the `--tier` default). |
 | `--skip-signalp` | bool | `false` | Skip the SignalP step. |
@@ -95,7 +93,7 @@ form.
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--skip-blastp` | bool | `true` (off), `false` at `--tier full` | Skip BLASTp. BLASTp is enabled only at `--tier full`; off at base/extended (the default tier is extended). |
-| `--blastp-db` | path | `""` | Path to BLAST database (NR or Swiss-Prot). |
+| `--blastp-db` | path | `""` | Path to BLAST database. |
 | `--blastp-exclude-taxid` | str | `""` | Comma-separated taxids to exclude (e.g. the query organism). |
 | `--blastp-min-pident` | float | `80.0` | BLASTp percent-identity floor. |
 | `--blastp-min-qcov` | float | `80.0` | BLASTp query-coverage floor. |
@@ -123,7 +121,7 @@ form.
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-plmblast` | bool | `false` | Skip pLM-BLAST. On by default at the extended tier (ECOD30, ~40 min/genome). |
+| `--skip-plmblast` | bool | `false` | Skip pLM-BLAST. On by default at the extended tier. |
 | `--plmblast-db` | path | `""` | Path to ECOD pLM-BLAST database (ECOD30 default; ECOD50/70/90 also supported). |
 | `--plmblast-cpc` | int | `90` | pLM-BLAST cosine percentile cutoff (Kamiński 2023 default). Drop to 70-80 for more permissive matching on short proteins (<200 aa), at the cost of longer search wallclock. |
 
@@ -131,7 +129,7 @@ form.
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-eggnog` | bool | `false` (on), `true` at `--tier base` | Skip EggNOG-mapper. EggNOG is on at the extended (default) and full tiers; off only at `--tier base`. Pass `--skip-eggnog` to disable it. |
+| `--skip-eggnog` | bool | `false` (on), `true` at `--tier base` | Skip EggNOG-mapper. EggNOG is on at the extended (default) and full tiers. |
 | `--eggnog-db` | path | `""` | EggNOG database directory. |
 | `--eggnog-dbmem` | bool | auto | Load `eggnog.db` into RAM (`--dbmem`, ~44 GB resident). Default auto: on only when the job's RAM share is >= 50 GB, else the on-disk SQLite is memory-mapped. Force with `--eggnog-dbmem` / `--no-eggnog-dbmem`. |
 
@@ -139,7 +137,7 @@ form.
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--skip-annotation` | bool | `false` | Skip every annotation tool at once (BLASTp, HH-suite, InterProScan, pLM-BLAST, EggNOG, ProtParam). Predictions and substrate calls still run. A per-tool `--no-skip-<tool>` (e.g. `--no-skip-eggnog`) overrides this to keep that one tool on. |
+| `--skip-annotation` | bool | `false` | Skip every annotation tool at once (BLASTp, HH-suite, InterProScan, pLM-BLAST, EggNOG, ProtParam). Predictions and substrate calls still run. |
 | `--skip-protparam` | bool | `false` | Skip the ProtParam physicochemical-property step. |
 | `--t5ass-annotate-whole` | bool | `false` | For T5aSS (classical autotransporter) substrates, run EggNOG / BLASTp / pLM-BLAST / HHsuite / ProtParam a second time on the full protein and emit `t5ass_whole_*` columns alongside the default passenger-only annotations. Lets you compare functional (passenger) vs structural (β-barrel-dominated whole-AT) hits side by side. InterProScan unchanged (already domain-aware). See `docs/explanation/design_decisions.md` § 4.3. |
 | `--filter-dse-type-mismatch` | bool | `true` | Drop DSE-only substrates whose predicted SS type does not match the nearby MacSyFinder system. |
