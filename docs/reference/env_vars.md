@@ -68,9 +68,6 @@ so `pip install -e '.[extended]'` resolves them automatically.
 | `protobuf` | any | Required by ProtT5's SentencePiece tokenizer at load time. |
 | `mkl`, `mkl-service` | any | pLM-BLAST's `plmblast.py` imports them directly. |
 
-The `transformers` and `numpy` upper bounds are revisited in the v1.x roadmap
-once upstream pLM-BLAST publishes 5.0/2.0-compatible code.
-
 ## Test and developer-only
 
 | Variable | Purpose |
