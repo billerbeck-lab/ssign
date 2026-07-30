@@ -38,7 +38,7 @@ they exist for HPC and mixed-hardware environments.
 ## Database paths read as CLI-flag fallbacks
 
 Each of these is read at run time as a fallback used only when the matching CLI
-flag is unset (the flag always wins), resolving its tool's database or install
+flag is unset, resolving its tool's database or install
 directory. `scripts/fetch_databases.sh` prints a matching `set ...` line for the
 databases it downloads so you can copy a one-liner into your shell rc file.
 Bakta and EggNOG are read under both their **native** tool env var names
