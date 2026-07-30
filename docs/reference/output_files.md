@@ -28,9 +28,7 @@ log line points at the location.
 
 When you pass several genomes to one `ssign run`, each genome is written to its
 own subdirectory under `--outdir` (the single-genome layout above, one folder
-per genome), and combined files are added at the output-directory root:
-
-At the `--outdir` root, alongside one subdirectory per genome:
+per genome). At the `--outdir` root, alongside those per-genome folders:
 
 | Path | What it is |
 |---|---|
