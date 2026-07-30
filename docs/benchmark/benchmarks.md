@@ -1,7 +1,7 @@
-# Benchmarking ssign: effector recovery
+# Benchmarking ssign: secreted-protein prediction
 
 Does ssign find real secretion systems and secreted protein pairs? This page reports the
-**effector-recovery benchmark**. A test run on real genomes to find out how many
+**secreted-protein prediction benchmark**. A test run on real genomes to find out how many
 experimentally-validated secretion-system and secreted proteins ssign actually finds.
 
 By design, ssign only calls a substrate if a
@@ -12,13 +12,13 @@ This means a secreted protein encoded far from its own secretion system machiner
 ## The benchmarking list
 
 [`ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv)
-holds **85 experimentally-validated effectors** one per secretion-system
+holds **85 experimentally-validated secreted proteins**, one per secretion-system
 instance, spanning
 T1–T6SS. Every row carries a UniProt accession, the source genome + contig + CDS
 coordinates, and the primary reference (DOI). This was created via mining the literature.
 
-The ceiling is the fraction of each type's listed effectors whose own machinery
-sits within ±N genes.
+The ceiling is the fraction of each type's listed secreted proteins whose own
+machinery sits within ±N genes.
 
 | SS type | in list | ±1 | ±3 | ±5 | ±7 | ±9 |
 |---|---:|---:|---:|---:|---:|---:|
@@ -34,11 +34,13 @@ sits within ±N genes.
 
 Each type splits into how many secreted proteins proximity could
 reach at all (**reachable**: within ±3 genes of their own machinery) and how many
-ssign actually finds (**recovered**).
+ssign actually predicts (**predicted**).
 
-Run end-to-end on the 52 source genomes, ssign predicts **38 of the total 85 secreted proteins (44.7%) and 38 of the 48 reachable secreted proteins (79.2%)**.
+Run end-to-end on the 52 source genomes, ssign predicts **38 of the 85 secreted
+proteins (44.7%)**. Proximity can reach 47 of them (own machinery within ±3); ssign
+predicts **37 of those (79%)**, plus VirA serendipitously (38 total).
 
-| SS type | in list | reachable ±3 | recovered |
+| SS type | in list | reachable ±3 | predicted |
 |---|---:|---:|---:|
 | T1SS | 18 | 16 (89%) | 16 (89%) |
 | T2SS | 8 | 1 (13%) | 1 (13%) |
@@ -48,16 +50,16 @@ Run end-to-end on the 52 source genomes, ssign predicts **38 of the total 85 sec
 | T6SS | 13 | 9 (69%) | 6 (46%) |
 | **Total** | **85** | **47 (55%)** | **38 (45%)** |
 
-*T3SS recovered (5) exceeds reachable (4) by one: VirA (Shigella) is recovered
+*T3SS predicted (5) exceeds reachable (4) by one: VirA (Shigella) is predicted
 through a neighbouring T5aSS autotransporter's window (icsA, one gene away), not
 its own T3SS machinery (~24 genes away). It is the only cross-system case in the
 list. This is a strange case of serendipity.
 
-An effector counts as recovered if its CDS span overlaps an emitted secreted
-protein. Because Bakta renames every locus on re-annotation, effectors are bridged
-to the run by genome coordinates, not locus tags.
+A listed protein counts as predicted if its CDS span overlaps a secreted protein
+ssign emitted. Because Bakta renames every locus on re-annotation, the listed
+proteins are bridged to the run by genome coordinates, not locus tags.
 
-![Effector recovery by secretion-system type. Green is recovered; amber is reachable but not recovered; grey is unreachable (the effector's own machinery is more than three genes away).](effector_recovery_by_type.png)
+![Secreted-protein prediction by secretion-system type. Green is predicted; amber is reachable but not predicted; grey is unreachable (the protein's own machinery is more than three genes away).](secreted_protein_prediction_by_type.png)
 
 ## Scope
 
@@ -68,7 +70,7 @@ It is entirely possible that some of the systems and secreted proteins being tes
 ## Reproduce
 
 The benchmarking list is [`docs/benchmark/ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv).
-The recall matcher tests each listed effector's coordinates against the run's emitted
+The recall matcher tests each listed protein's coordinates against the run's emitted
 secreted proteins (`emitted_overlap`), with three verified RefSeq↔INSDC contig
 aliases reconciled first so all 85 rows resolve. The recall table and figure are
 `reachable_within_3` and `found_by_ssign` tallied by `ss_type` over that same list.

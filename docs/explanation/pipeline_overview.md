@@ -70,7 +70,7 @@ filtered by Phase 4's proximity step. See
 [`design_decisions.md` § 3.1](design_decisions.md#31-equal-predictor-rule-dlp--dse-both-trigger).
 
 **SignalP** also runs here but is generally evidence-only, not a trigger. It detects
-classical Sec/Tat signal peptides, which many Gram-negative effectors lack. **The one exception is T5SS
+classical Sec/Tat signal peptides, which many Gram-negative secreted proteins lack. **The one exception is T5SS
 self-detection:** T5SS are Sec-dependent, so a Sec signal peptide
 *is* a positive trigger (a detected T5 component is called if DeepLocPro
 localizes it OR SignalP finds a Sec signal). See

@@ -98,7 +98,7 @@ Tuning the proximity window
 `--proximity-window N` (default `3`) controls how many genes on either side of
 each detected SS component are treated as candidate substrates. ssign's approach
 detects substrates that are **co-located** with their secretion system in the
-chromosome; widening the window recovers more candidates near each component but
+chromosome; widening the window captures more candidates near each component but
 does not help with substrates encoded far from the machinery. It also increases false positive rates.
 
 ```bash

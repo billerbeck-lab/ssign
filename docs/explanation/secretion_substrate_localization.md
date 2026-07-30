@@ -9,7 +9,7 @@ Secretion systems split by *where the substrate ends up*:
 **Family A, envelope-crossing.** T1SS, T2SS, T5SS (a/b/c). The mature protein ends
 up extracellular or surface-attached.
 
-**Family B, injection.** T3SS, T4SS, T6SS. The effector stays cytoplasmic in the
+**Family B, injection.** T3SS, T4SS, T6SS. The secreted protein stays cytoplasmic in the
 producing cell until it is transported directly into a host or neighbouring cell; it
 never free-floats outside. By strict producer-cell biology these are cytoplasmic,
 so localization predictors "should" miss them. However, in practice DeepLocPro calls many
@@ -32,7 +32,7 @@ annotations.
 ## How this maps to ssign's signals
 
 - **DeepLocPro** (localization) is the primary "is this secreted?" signal. In
-  practice it flags many injected Family-B effectors (T3SS, T6SS) as extracellular
+  practice it flags many injected Family-B secreted proteins (T3SS, T6SS) as extracellular
   too, not just the envelope-crossing Family-A types, because it is trained on
   functional "secreted" annotations rather than strict producer-cell localization.
   So a localization call is usable across both families.
@@ -45,8 +45,8 @@ annotations.
 - **DeepSecE** is excluded for T3SS (flagellar proteins funnel into its T3SS bin
   and over-call it) and relied on for T6SS.
 
-How often each of these signals actually recovers a validated effector, per system
-type, is measured in [`benchmarks.md`](../benchmark/benchmarks.md).
+How often each of these signals actually predicts a validated secreted protein, per
+system type, is measured in [`benchmarks.md`](../benchmark/benchmarks.md).
 
 ## Citations (per type; DOIs with PubMed verification)
 
@@ -59,8 +59,8 @@ Nivaskumar & Francetic 2014 BBA 10.1016/j.bbamcr.2013.12.020; Ball et al. 2016 S
 10.1038/srep27675 (Tat subset).
 
 **T3SS:** Lara-Tejero & Galán 2019 EcoSal Plus 10.1128/ecosalplus.ESP-0039-2018;
-Stebbins & Galán 2001 Nature 10.1038/35102073 (chaperone holds effector unfolded);
-Myeni et al. 2013 PLoS One 10.1371/journal.pone.0060499 (SipB/SipC translocon ≠ effector).
+Stebbins & Galán 2001 Nature 10.1038/35102073 (chaperone holds the secreted protein unfolded);
+Myeni et al. 2013 PLoS One 10.1371/journal.pone.0060499 (SipB/SipC translocon ≠ secreted protein).
 
 **T4SS:** Christie et al. 2014 BBA 10.1016/j.bbamcr.2013.12.019; Li, Hu & Christie 2019
 Microbiol Spectr 10.1128/microbiolspec.PSIB-0012-2018; Vergunst et al. 2003 Plant Physiol
@@ -75,4 +75,4 @@ classification, ESPR); Doyle & Bernstein 2021 Mol Cell 10.1016/j.molcel.2021.02.
 
 **T6SS:** Cherrak et al. 2019 Microbiol Spectr 10.1128/microbiolspec.PSIB-0031-2019;
 Durand et al. 2014 Trends Microbiol 10.1016/j.tim.2014.06.004; Russell et al. 2011 Nature
-10.1038/nature10244 (effectors reach prey periplasm via apparatus, not donor periplasm).
+10.1038/nature10244 (secreted proteins reach prey periplasm via apparatus, not donor periplasm).

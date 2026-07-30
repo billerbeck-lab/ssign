@@ -149,7 +149,7 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
       to be functionally secreted. Including it pollutes substrate
       lists with flagellar proteins.
     - _Tad pilus:_ similar reasoning, its cargo is structural, not
-      secreted effectors.
+      secreted proteins.
     (T3SS is **not** in the default excluded set, it is detected and
     substrate-called by default. The DeepSecE reliability issue below
     (§3.3) is handled by gating DeepSecE for T3SS, not by excluding the
@@ -172,10 +172,10 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   `secretion_evidence` lists which tools flagged.
 
 - **Rationale:** **DLP** (localisation-based, trained on ~40k bacterial
-  proteins) and **DSE** (secretion-type, trained on secretion-system
-  effectors) measure different biological signals. A protein can be
-  clearly secreted by cellular localisation without being a known
-  effector, and vice versa, treating them as equal predictors captures
+  proteins) and **DSE** (secretion-type, trained on secreted proteins)
+  measure different biological signals. A protein can be clearly secreted
+  by cellular localisation without DeepSecE assigning it a secretion type,
+  and vice versa, treating them as equal predictors captures
   both views. Equality with OR-logic suits secretion prediction, where
   false negatives from either tool are expensive (missed substrates) and
   false positives get filtered by downstream proximity analysis.
@@ -187,10 +187,10 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
 - **PLM-Effector: tested, then removed (2026-07-15).** A third predictor
   (PLM-Effector, an ESM-1b/ESM-2/ProtT5 + XGBoost ensemble) was trialled as
   an equal vote. On P. aeruginosa PAO1 it called ~25% of the proteome as
-  effectors (18% even gated at high confidence), with no reliable enrichment
-  near real secretion systems, the documented failure mode of effector
+  secreted proteins (18% even gated at high confidence), with no reliable enrichment
+  near real secretion systems, the documented failure mode of secreted-protein
   predictors trained on balanced sets and applied genome-wide (PAO1 truly has
-  ~4 T3SS effectors). It was first demoted to opt-in, then removed entirely
+  ~4 T3SS secreted proteins). It was first demoted to opt-in, then removed entirely
   once it earned its keep nowhere in the default pipeline. The downstream
   secretion-classifier project sources that language-model feature
   independently, so nothing here depends on it.
@@ -222,10 +222,10 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
 
 - **Rationale:** SignalP detects **Sec/Tat signal peptides**, which
   cover only a subset of secretion pathways. Many Gram-negative
-  effectors (T3SS, T4SS, T6SS, T1SS C-terminal signals) lack classical
+  secreted proteins (T3SS, T4SS, T6SS, T1SS C-terminal signals) lack classical
   signal peptides, so SignalP correctly reports "no signal peptide"
   for them. Treating SignalP as a trigger would under-call these
-  effector classes. Keeping it as evidence preserves its information
+  secreted-protein classes. Keeping it as evidence preserves its information
   value without biasing the secretion call.
 
 - **Exception, T5SS self-detection:** for a self-detected T5SS component
@@ -258,9 +258,9 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   output class, its classes are non-secreted, T1SE, T2SE, T3SE, T4SE,
   T6SE (`run_deepsece.py` `PREDICTED_LABELS`). The flagellar export
   apparatus is an evolutionary T3SS homolog, so flagellar proteins share
-  sequence features with injectisome effectors and, having no flagellum
+  sequence features with injectisome secreted proteins and, having no flagellum
   bin to land in, get funneled into T3SE. That is why the false
-  positives concentrate in T3SS rather than the other effector types,
+  positives concentrate in T3SS rather than the other secreted-protein types,
   and why the guard is T3SS-specific.
 
 - **Rationale:** DeepSecE over-predicts T3SS at genome scale, dominated
@@ -396,7 +396,7 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
     pLM-BLAST's cpc-90 pre-screen and blastp's bitscore would not
     find meaningful homology on a residue count this small.
 
-  Non-T5aSS substrates (T5bSS, T5cSS, T1SS effectors, etc.) always
+  Non-T5aSS substrates (T5bSS, T5cSS, T1SS secreted proteins, etc.) always
   carry their full sequence, these don't have an autotransporter
   passenger to begin with.
 
@@ -451,9 +451,9 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   boundaries. For fragmented assemblies this prevents proteins on
   different contigs from appearing as "neighbours" of an SS component.
 
-- **Validation:** The effector-recovery benchmark measures how much this
-  proximity rule recovers per system type against a gold set of validated
-  effectors, and the biological ceiling it cannot exceed; see
+- **Validation:** The secreted-protein prediction benchmark measures how much this
+  proximity rule predicts per system type against a set of validated
+  secreted proteins, and the biological ceiling it cannot exceed; see
   [`benchmarks.md`](../benchmark/benchmarks.md).
 
 ### 5.2 T5aSS/T5cSS "hitchhikers"
