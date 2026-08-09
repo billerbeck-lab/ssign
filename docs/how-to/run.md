@@ -125,35 +125,49 @@ For running ssign on more than a handful of genomes with an HPC account. The
 **recommended** cluster path is the self-contained Apptainer/Singularity image
 [`install.md`](install.md).
 
-
-Submit a job
-
-#### PBS template
+### PBS template
 
 ```bash
 #!/bin/bash
 #PBS -N ssign-ecoli
-#PBS -l select=1:ncpus=16:mem=64gb
+#PBS -l select=1:ncpus=16:mem=64gb:ngpus=1
 #PBS -l walltime=06:00:00
 #PBS -j oe
-# For pLM-BLAST add: #PBS -l select=1:ncpus=16:mem=64gb:ngpus=1
 
-module load anaconda3
-source ~/.ssign-env/bin/activate
+module load apptainer
+cd $PBS_O_WORKDIR          # the ssign clone, so scripts/ssign-run resolves
 
-# Database paths (printed by the fetcher in step 2)
-export SSIGN_HHSUITE_PFAM=$EPHEMERAL/ssign-databases/hhsuite/pfam
-# ... other database exports ...
-
-ssign run /path/to/genome.gbff \
-    --outdir $EPHEMERAL/ssign-out/${PBS_JOBID%%.*} \
-    --bakta-db $EPHEMERAL/ssign-databases/bakta/db-light \
-    --cpu-per-genome 16
+scripts/ssign-run /path/to/genome.gbff $EPHEMERAL/ssign-out/${PBS_JOBID%%.*} \
+    --tier extended \
+    --sif $EPHEMERAL/ssign.sif \
+    --db-root $EPHEMERAL/ssign-databases \
+    --stage-image \
+    --scratch $TMPDIR \
+    --max-ram 60 \
+    -- --cpu-per-genome 16
 ```
 
 Submit with `qsub ssign-job.sh`.
 
-#### Make `--outdir` unique per job
+Three of those flags matter more on a cluster than on a laptop:
+
+- `--max-ram` is **required** on PBS. The scheduler hides the job's allocation from
+  the container, so without it ssign sizes tool memory to the whole node and can be
+  killed for overrunning. Pass a little under the `mem=` request. SLURM is read
+  automatically from `SLURM_MEM_PER_NODE`.
+- `--stage-image` copies the `.sif` to node-local disk first, turning a slow
+  network-filesystem startup into one sequential copy.
+- `--scratch` points Bakta's working files at real disk. The container's default
+  `/tmp` is a 64 MiB tmpfs, which Bakta overflows.
+
+Drop `ngpus=1` and add `--cpu` to run without a GPU; the predictors work but are much
+slower. Anything after `--` is passed straight through to `ssign run`.
+
+For the native/pip route instead, activate your environment and call `ssign run`
+directly, exporting the database paths the fetcher printed. See
+[`install-secondary.md`](install-secondary.md).
+
+### Make `--outdir` unique per job
 
 The moment you submit multiple jobs that could land concurrently (array jobs,
 overnight bursts, parameter sweeps), each needs its own output directory. If two

@@ -146,10 +146,9 @@ install SignalP once and run per job:
 scp ssign.sif you@cluster:/path/to/scratch/ssign.sif   # your cluster's scratch/work dir
 ```
 
-On PBS/SLURM, submit one job per genome that calls `ssign-run` with
-`--stage-image` (copies the `.sif` to node-local disk first) and
-`--max-ram <job GB>`. See [`run.md`](run.md) for ready SLURM and PBS job
-templates, GPU requests, walltime, and per-job output dirs.
+On PBS/SLURM, submit one job per genome that calls `ssign-run`. See
+[`run.md`](run.md) for a ready PBS job template, the cluster-specific flags,
+GPU requests, walltime, and per-job output dirs.
 
 `--doctor` checks every dependency (Python packages, baked binaries, your fetched
 databases, model weights) and reports what is missing with the fix command. It
