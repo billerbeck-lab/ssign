@@ -194,6 +194,13 @@ or use a machine with at least 16 GB RAM.
 `RuntimeError: CUDA out of memory` during pLM-BLAST means the GPU lacks VRAM for
 the ProtT5 encoder.
 
+### EggNOG is slow on a node with < 64 GB RAM
+
+No action needed. EggNOG's in-RAM database load (`--dbmem`) auto-disables when the
+job's RAM share is under 50 GB, so it mmaps the database from local SSD instead,
+which is fine for the small substrate set ssign annotates. Force it either way with
+`-- --eggnog-dbmem` / `-- --no-eggnog-dbmem`.
+
 ### Bakta "No space left on device" (container scratch too small)
 
 Inside the Apptainer/Singularity image, `/tmp` is often a small tmpfs that Bakta's
@@ -214,10 +221,10 @@ remote` / `--deeplocpro-mode remote`), ssign stops with install instructions. Po
 `--signalp-path` / `--deeplocpro-path`, or set `$SSIGN_SIGNALP_PATH` /
 `$SSIGN_DEEPLOCPRO_PATH`.
 
-SignalP 6.0 pins PyTorch < 2.0 while every other ssign tool needs PyTorch 2.x, so
-installing it into the main environment breaks DeepSecE. Install SignalP into its
-own conda or venv environment, then point ssign at it via `--signalp-path`.
-Detailed steps are in [`install.md`](install.md).
+SignalP 6.0 has to live in its own environment, so this error usually means the
+install step was skipped or the environment is not where ssign looks. Setup steps
+and why the environment must be separate are in
+[`install-secondary.md`](install-secondary.md#signalp-60).
 
 ### `hhblits binary not found`
 

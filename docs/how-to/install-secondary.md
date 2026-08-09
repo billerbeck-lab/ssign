@@ -4,7 +4,7 @@ Install ssign from the cloned repo with `pip`, plus
 a handful of optional tools. The trade-off is that you install and maintain the
 external toolchain yourself (Bakta, EggNOG-mapper, BLAST+, HH-suite, InterProScan,
 SignalP 6, DeepLocPro), and those tool versions can drift out of compatibility
-over time. For reproducible runs use the recommended [container](install.md#1-container-install-recommended) instead.
+over time. For reproducible runs use the recommended [container](install.md#1-container-install) instead.
 
 Clone the repo and install the tier you want:
 

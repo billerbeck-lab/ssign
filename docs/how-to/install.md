@@ -47,7 +47,7 @@ only in which databases you fetch, see [Tiers](#tiers).
 | Resource | Recommended | Notes |
 | --- | --- | --- |
 | GPU | CUDA NVIDIA, ~16-24 GB VRAM (RTX 6000 / A40 / etc.) | DeepLocPro, DeepSecE, and pLM-BLAST embeddings use it. CPU-only works but the predictors are much slower. |
-| RAM | 32 GB works; **>= 64 GB** recommended | 64 GB only buys the EggNOG in-RAM database speedup (`--dbmem`), which auto-disables below a 50 GB job share, so smaller nodes run fine (just slower EggNOG). See [Troubleshooting](#troubleshooting). |
+| RAM | 32 GB works; **>= 64 GB** recommended | 64 GB only buys the EggNOG in-RAM database speedup (`--dbmem`), which auto-disables below a 50 GB job share, so smaller nodes run fine (just slower EggNOG). See [`run.md`](run.md#troubleshooting). |
 | CPU | 8+ cores (the more the better) | Bakta, HMMER, and the parallel annotation group all scale with cores. |
 | Disk | image ~20 GB + databases ~100 GB + **fast node-local scratch ~100 GB** | The scratch holds the staged image, the cached EggNOG DB, and InterProScan temp; put it on local SSD, not a network mount. |
 
@@ -170,10 +170,6 @@ re-running `fetch-databases` with a new `--tier`; the image does not change.
 
 ## Troubleshooting
 
-- **< 64 GB RAM:** no action needed. EggNOG's in-RAM database load (`--dbmem`)
-  auto-disables when the job's RAM share is under 50 GB, so it mmaps the DB from
-  local SSD instead (fine for the small substrate set ssign annotates). Force it
-  either way with `-- --eggnog-dbmem` / `-- --no-eggnog-dbmem` if you need to.
 - **Air-gapped / no cluster internet:** download the image from Zenodo on an
   internet-connected machine and copy the `.sif` over.
 - **`image not found: ./ssign.sif`:** pass `--sif /path/to/your.sif` or
