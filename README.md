@@ -12,88 +12,24 @@ the proteins they secrete, and annotates those proteins.
 
 **Version `1.0.0`**
 
-## What ssign does
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Stage 1: Secretion-System Prediction                                   │
-│    MacSyFinder v2 + TXSScan models                                      │
-│                                                                         │
-│  Stage 2: Secreted Protein Prediction                                   │
-│    DeepLocPro + DeepSecE + SignalP                                      │
-│                                                                         │
-│  Stage 3: Proximity Analysis & Optional Statistical Analysis            │
-│    Per-SS-component ± gene window                                       │
-│                                                                         │
-│  Stage 4: Optional Functional Annotation                                │
-│    BLASTp, HH-suite, InterProScan, Bakta, EggNOG, pLM-BLAST, ProtParam  │
-│                                                                         │
-│  Stage 5: Integration + Reporting                                       │
-│      HTML report, result tables, summary figures                        │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-Per-stage detail in [pipeline_overview.md](docs/explanation/pipeline_overview.md).
-Per-decision rationale in [design_decisions.md](docs/explanation/design_decisions.md).
-Secreted-protein prediction benchmark in [benchmarks.md](docs/benchmark/benchmarks.md).
-
----
-
 ## Supported inputs
 
 `.gbff`, `.gbk`, `.gb`, `.fasta`, `.fna`, `.fa`, `.faa`, `.gff`
 
-## Output
-
-Per genome, ssign writes to your `--outdir`:
-
-- `<sample-id>_results.csv`: main results (chunked: secreted proteins, then
-  associated systems, then other systems).
-- `<sample-id>_results_raw.csv`: raw outputs of all tools run.
-- `<sample-id>_summary.txt`: plain-text report and enrichment summary.
-- `figures/<sample-id>/*.png`: summary set of overview figures & enrichment fold/significance figures when `--enrichment-stats` is on.
-
-Multi-genome batches write each genome into its own `<outdir>/<sample-id>/`
-subdirectory, plus a combined `combined_results.csv` and `combined_summary.txt`
-at the outdir root.
-
-Full column reference: [output_files.md](docs/reference/output_files.md).
-
 ---
 
-## Key parameters
+## Documentation
 
-| Parameter             | Default              | Meaning |
-| --------------------- | -------------------- | ------- |
-| `--excluded-systems`    | `Flagellum Tad T4aP T4bP MSH ComM Archaeal-T4P` | Surface/uptake appendages skipped by default. |
-| `--conf-threshold`      | `0.8`                | DeepLocPro minimum extracellular probability to be considered a secreted protein. |
-| `--proximity-window`    | `3`                  | +/-N genes around each SS component. |
-| `--wholeness-threshold` | `0.8`                | Minimum MacSyFinder completeness to accept a system. |
-| `--enrichment-stats`  | `off`                | Increases compute time to have on but tells you secreted protein enrichment. |
-
-All configurable via CLI flags. Full reference:
-[cli.md](docs/reference/cli.md) · [run.md](docs/how-to/run.md).
-
-`ssign` is a command-line tool. Run `ssign run --help` for every option and `ssign doctor --tier (your tier)` for verification and troubleshooting.
-
----
-
-## Install tiers
-
-ssign's image itself is ~20gb and then you add one of three tiers, differing in which databases you fetch and which tools are automatically run. Pick the one matching your storage budget and compute access; upgrade later by re-running the fetcher
-with a new `--tier`.
-
-| Tier         | DB disk | Adds |
-| ------------ | ------- | ---- |
-| **base**     | ~4 GB   | Secretion-system detection + secreted-protein prediction (DeepLocPro, DeepSecE, SignalP) + Bakta light |
-| **extended** | ~100 GB | base + EggNOG + InterProScan + pLM-BLAST |
-| **full**     | ~500 GB | extended + Bakta full DB + HH-suite (Pfam + PDB70 + UniRef30) + BLASTp-vs-Swiss-Prot |
-
-**System requirements:** Linux (base, extended, full) or macOS (base only), Python >= 3.10. A CUDA-capable GPU is
-recommended for the neural predictors (DeepLocPro, DeepSecE) and pLM-BLAST.
-
-Full install instructions are in the
-[install guide](docs/how-to/install.md).
+| Page | What it covers |
+| --- | --- |
+| [How the pipeline works](docs/explanation/pipeline_overview.md) | The six phases of a run, in order |
+| [Install](docs/how-to/install.md) | Container install, tiers, hardware, reference databases |
+| [Running ssign](docs/how-to/run.md) | Invocation, choosing flags, HPC job submission |
+| [CLI reference](docs/reference/cli.md) | Every flag, with type and default |
+| [Output files](docs/reference/output_files.md) | What a run writes, column by column |
+| [Design decisions](docs/explanation/design_decisions.md) | Why each choice was made, with citations |
+| [Benchmarks](docs/benchmark/benchmarks.md) | Recall against 85 experimentally-validated secreted proteins |
+| [Licensing](docs/explanation/licensing.md) | Redistribution status of every bundled tool, model and database |
 
 Maintainer build and publish steps: [containers/README.md](containers/README.md).
 
@@ -155,20 +91,17 @@ verified against the primary literature, see
 
 ## Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how to file issues, propose
-features, and submit pull requests. A [Code of Conduct](.github/CODE_OF_CONDUCT.md)
-applies to all project spaces; security issues should be reported privately per
-[SECURITY.md](.github/SECURITY.md).
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) ·
+[Code of Conduct](.github/CODE_OF_CONDUCT.md) ·
+[SECURITY.md](.github/SECURITY.md) (report vulnerabilities privately, not as issues).
 
 ---
 
 ## License
 
-ssign is distributed under the **GNU General Public License v3.0 or later**
-(GPL-3.0-or-later). See [LICENSE](LICENSE). Note that the container image is for
-non-commercial research use (it bundles DeepLocPro under CC BY-NC-SA 4.0); see
-[licensing.md](docs/explanation/licensing.md) for the full per-component
-breakdown.
+**GPL-3.0-or-later** ([LICENSE](LICENSE)). The container image is for
+non-commercial research use only; per-component breakdown in
+[licensing.md](docs/explanation/licensing.md).
 
 ---
 

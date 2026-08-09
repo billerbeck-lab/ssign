@@ -10,6 +10,11 @@ There are two ways to install ssign:
   the external toolchain yourself, and those tool versions can drift over time. See
   [Secondary install options](install-secondary.md).
 
+**System requirements:** Linux at every tier. macOS runs the base tier only, and
+through the native install rather than the container. The native route needs
+Python >= 3.10. A CUDA-capable GPU is recommended for the neural predictors
+(DeepLocPro, DeepSecE) and pLM-BLAST.
+
 ---
 
 # 1. Container install
@@ -155,11 +160,14 @@ a run would actually see.
 
 Same image every tier; the tier is the database set you fetch plus `--tier`.
 
-| Tier | `fetch-databases` pulls | Approx DB size |
-| --- | --- | --- |
-| `base` | Bakta light | ~4 GB |
-| `extended` | + EggNOG + InterProScan + ECOD30 (pLM-BLAST) | ~100 GB |
-| `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB |
+| Tier | `fetch-databases` pulls | Approx DB size | What it gives you |
+| --- | --- | --- | --- |
+| `base` | Bakta light | ~4 GB | Secretion-system detection and secreted-protein prediction (MacSyFinder, DeepLocPro, DeepSecE, SignalP) |
+| `extended` | + EggNOG + InterProScan + ECOD30 (pLM-BLAST) | ~100 GB | base + functional annotation |
+| `full` | + Bakta full + HH-suite (Pfam/PDB70/UniRef30) + BLASTp Swiss-Prot | ~500 GB | extended + structural homology and full-depth annotation |
+
+Pick the tier matching your storage budget and compute access. Upgrade later by
+re-running `fetch-databases` with a new `--tier`; the image does not change.
 
 ## Troubleshooting
 
