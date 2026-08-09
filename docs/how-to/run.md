@@ -57,7 +57,12 @@ top-level `combined_results.csv` aggregates every genome's substrates with a
 
 ## Input formats
 
-`.gbff`, `.gbk`, `.gb`, `.fasta`, `.fna`, `.fa`, `.gff`
+`.gbff`, `.gbk`, `.gb` (GenBank), `.fasta`, `.fna`, `.fa` (nucleotide FASTA),
+`.faa` (protein FASTA), `.gff` (GFF3).
+
+GFF3 carries no sequence, so ssign needs a companion nucleotide FASTA with the same
+stem next to it (e.g. `genome.gff` + `genome.fna`). The container launcher `ssign-run`
+finds and binds that companion automatically.
 
 ## Choosing flags for your situation
 

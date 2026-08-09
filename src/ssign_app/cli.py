@@ -121,8 +121,10 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "input_path",
         nargs="+",
         help=(
-            "One or more input genomes (GenBank .gbff/.gbk, GFF3 .gff, or "
-            "FASTA). Pass multiple files to run them as a single batched job."
+            "One or more input genomes: GenBank (.gbff/.gbk/.gb), nucleotide FASTA "
+            "(.fasta/.fna/.fa), protein FASTA (.faa), or GFF3 (.gff, needs a companion "
+            ".fna/.fasta of the same stem). Pass multiple files to run them as a single "
+            "batched job."
         ),
     )
     g.add_argument(
