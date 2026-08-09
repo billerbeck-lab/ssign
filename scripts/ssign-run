@@ -4,7 +4,9 @@
 # The image bakes the entire free toolchain (Bakta 1.12.0 + its binary deps,
 # EggNOG-mapper, BLAST+ 2.17, MacSyFinder, pLM-BLAST, real HMMER, ...). You
 # supply only what genuinely cannot be bundled:
-#   * a genome file (GenBank / GFF3 / FASTA)
+#   * a genome file: GenBank (.gbff/.gbk/.gb), nucleotide FASTA (.fna/.fasta/.fa),
+#     protein FASTA (.faa), or GFF3 (.gff + a companion .fna/.fasta of the same stem,
+#     which this launcher finds and binds automatically)
 #   * for extended/full: the reference-database root (fetch_databases.sh output)
 #   * SignalP 6 (the only predictor not baked; DeepLocPro is baked in). Provide it
 #     via --signalp-env, or install it with ssign-setup-dtu (auto-detected after);
@@ -132,6 +134,28 @@ fi
 # (it only inspects the image + bound databases, needs no genome or GPU).
 if [ "$DOCTOR" -eq 0 ]; then
     GENOME=$(readlink -f "$GENOME")
+    # Mount the genome under its REAL extension so ssign's extension-first format
+    # detection (detect_format) sees the true type. A fixed in.gbff forced every
+    # input, including FASTA/GFF, to be read as GenBank (Bakta then rejected it).
+    _gbn="$(basename "$GENOME")"
+    case "$_gbn" in
+        *.*) IN_MOUNT="/work/in.${_gbn##*.}" ;;
+        *)   IN_MOUNT="/work/in" ;;
+    esac
+    # GFF3 carries no sequence: ssign needs a companion nucleotide FASTA with the
+    # same stem (runner._find_companion_fasta) to translate CDS coordinates. Bind it
+    # alongside as /work/in.fna so the in-container lookup finds it.
+    GFF_FASTA_BIND=()
+    case "$_gbn" in
+        *.gff|*.gff3|*.gtf)
+            _gstem="${GENOME%.*}"; _gfasta=""
+            for _e in fna fa fasta; do
+                [ -f "${_gstem}.${_e}" ] && { _gfasta="${_gstem}.${_e}"; break; }
+            done
+            [ -n "$_gfasta" ] || die "GFF3 input needs a companion nucleotide FASTA with the same stem next to it (e.g. $(basename "$_gstem").gff + $(basename "$_gstem").fna)"
+            GFF_FASTA_BIND=( -B "$(readlink -f "$_gfasta")":/work/in.fna:ro )
+            ;;
+    esac
     mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
     SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
 
@@ -253,7 +277,7 @@ if [ -n "$TORCH_CACHE" ]; then
     TORCH_CACHE=$(readlink -f "$TORCH_CACHE"); mkdir -p "$TORCH_CACHE"
     BINDS+=( -B "$TORCH_CACHE":/opt/ssign_home/.cache/torch )
 fi
-BINDS+=( -B "$GENOME":/work/in.gbff:ro -B "$OUTDIR":/work/out )
+BINDS+=( -B "$GENOME":"$IN_MOUNT":ro -B "$OUTDIR":/work/out "${GFF_FASTA_BIND[@]}" )
 
 # --- RAM budget -------------------------------------------------------------
 # Under --containall ssign cannot see the scheduler's RAM allocation (no qstat;
@@ -274,5 +298,5 @@ echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
 [ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local SignalP env found; DeepLocPro is baked, but the SignalP step will stop the run unless you install it (ssign-setup-dtu) or add '-- --signalp-mode remote'"
 
 exec apptainer run "${NV_FLAG[@]}" "${WT_FLAG[@]}" --containall "${BINDS[@]}" \
-    "$SIF" run /work/in.gbff --outdir /work/out --tier "$TIER" \
+    "$SIF" run "$IN_MOUNT" --outdir /work/out --tier "$TIER" \
     "${DTU_ARGS[@]}" "${PASSTHRU[@]}"

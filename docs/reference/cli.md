@@ -29,7 +29,7 @@ form.
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `INPUT_PATH` | path (positional) | required | Path to the input genome (GenBank `.gbff`/`.gbk`, GFF3 `.gff`, or FASTA). |
+| `INPUT_PATH` | path (positional) | required | Path to the input genome: GenBank (`.gbff`/`.gbk`/`.gb`), nucleotide FASTA (`.fasta`/`.fna`/`.fa`), protein FASTA (`.faa`), or GFF3 (`.gff`, with a companion `.fna`/`.fasta` of the same stem). |
 | `--outdir` | path | `./results` | Output directory. |
 | `--sample-id` | str | input stem | Prefix for output filenames. Defaults to the input filename's stem. |
 | `--original-filename` | str | `""` | Original filename when `INPUT_PATH` is a temp upload (informational). |
