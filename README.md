@@ -22,14 +22,14 @@ the proteins they secrete, and annotates those proteins.
 
 | Page | What it covers |
 | --- | --- |
-| [How the pipeline works](docs/explanation/pipeline_overview.md) | The six phases of a run, in order |
+| [How the pipeline works](docs/explanation/pipeline_overview.md) | The phases of a run |
 | [Install](docs/how-to/install.md) | Container install, tiers, hardware, reference databases |
-| [Running ssign](docs/how-to/run.md) | Invocation, choosing flags, HPC job submission |
+| [Running ssign](docs/how-to/run.md) | Invocation, HPC job submission |
 | [CLI reference](docs/reference/cli.md) | Every flag, with type and default |
-| [Output files](docs/reference/output_files.md) | What a run writes, column by column |
-| [Design decisions](docs/explanation/design_decisions.md) | Why each choice was made, with citations |
+| [Output files](docs/reference/output_files.md) | What a run writes |
+| [Design decisions](docs/explanation/design_decisions.md) | Why each choice was made |
 | [Benchmarks](docs/benchmark/benchmarks.md) | Recall against 85 experimentally-validated secreted proteins |
-| [Licensing](docs/explanation/licensing.md) | Redistribution status of every bundled tool, model and database |
+| [Licensing](docs/explanation/licensing.md) | Redistribution status of every bundled tool, model, and database |
 
 Maintainer build and publish steps: [containers/README.md](containers/README.md).
 
@@ -91,9 +91,11 @@ verified against the primary literature, see
 
 ## Contributing
 
-[CONTRIBUTING.md](.github/CONTRIBUTING.md) ·
-[Code of Conduct](.github/CODE_OF_CONDUCT.md) ·
-[SECURITY.md](.github/SECURITY.md) (report vulnerabilities privately, not as issues).
+[CONTRIBUTING.md](.github/CONTRIBUTING.md)
+
+[Code of Conduct](.github/CODE_OF_CONDUCT.md)
+
+[SECURITY.md](.github/SECURITY.md)
 
 ---
 
