@@ -98,12 +98,10 @@ Notes:
   only overrides it. No SignalP licence? Drop step 2 and add
   `-- --signalp-mode remote` (uses the DTU webserver, which uploads your
   sequences), or omit SignalP entirely to run without signal-peptide calls.
-- `--max-ram <GB>` = your job's RAM. Required on schedulers that hide the
-  allocation from the container (PBS), else ssign sizes tool memory to the whole
-  node. On SLURM it is read from `SLURM_MEM_PER_NODE` automatically.
-- `--stage-image` copies the `.sif` to fast node-local disk before the run,
-  turning a slow network-filesystem startup into one sequential copy.
-  Recommended on HPC.
+- `--max-ram <GB>` = your job's RAM. Required on PBS and other schedulers that
+  hide the allocation from the container.
+- On a cluster, add `--stage-image`. These and the other cluster-specific flags
+  are covered in [`run.md`](run.md#pbs-template).
 
 ## What's baked vs what you provide
 
