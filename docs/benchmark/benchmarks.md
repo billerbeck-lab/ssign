@@ -1,6 +1,6 @@
-# Benchmarking ssign: secreted-protein prediction
+# Benchmarking ssign
 
-Does ssign find real secretion systems and secreted protein pairs? This page reports the
+Does ssign find real secretion systems and secreted protein pairs? How do variables such as input genome quality or proximity window change the results? This page reports the
 **secreted-protein prediction benchmark**. A test run on real genomes to find out how many
 experimentally-validated secretion-system and secreted proteins ssign actually finds.
 
@@ -12,23 +12,7 @@ This means a secreted protein encoded far from its own secretion system machiner
 ## The benchmarking list
 
 [`ssign_benchmarking_list.csv`](ssign_benchmarking_list.csv)
-holds **85 experimentally-validated secreted proteins**, one per secretion-system
-instance, spanning
-T1–T6SS. Every row carries a UniProt accession, the source genome + contig + CDS
-coordinates, and the primary reference (DOI). This was created via mining the literature.
-
-The ceiling is the fraction of each type's listed secreted proteins whose own
-machinery sits within ±N genes.
-
-| SS type | in list | ±1 | ±3 | ±5 | ±7 | ±9 |
-|---|---:|---:|---:|---:|---:|---:|
-| T1SS | 18 | 56% | 89% | 89% | 89% | 89% |
-| T2SS | 8 | 13% | 13% | 13% | 13% | 13% |
-| T3SS | 19 | 11% | 21% | 32% | 32% | 37% |
-| T4SS | 8 | 0% | 0% | 0% | 0% | 0% |
-| T5SS | 19 | 84% | 89% | 95% | 95% | 95% |
-| T6SS | 13 | 54% | 69% | 77% | 77% | 77% |
-| **All** | **85** | **42%** | **55%** | **60%** | **60%** | **61%** |
+holds **85 experimentally-validated secreted proteins** from 52 genomes, each paired to a secretion system instance, spanning T1–T6SS.
 
 ## Actual recall
 
@@ -71,26 +55,25 @@ and 500 contigs (uniform-random breakpoints, median contig N50 falling from 3.6 
 13 kb) and re-run; recovery is the fraction of the complete-genome pairs still found.
 At 50 contigs (120 kb N50) 96% of all found pairs and 88% of the known pairs are still
 recovered; at 500 contigs (13 kb N50, a poor short-read draft) 70% and 55% remain.
-T5SS is least affected, because its autotransporters are self-detected rather than
-found through a proximity window. Each fragmentation level is an independent random
-shatter and a per-type curve rests on only 5–13 known pairs, so the thin per-type lines
-carry sampling variance and can rise between levels; the pooled line is the summary.
+Each fragmentation level is an independent random
+shatter and thus
+carry sampling variance that can cause a rise between levels.
 
 ![Recovery of found and known secretion-system and secreted-protein pairs as each genome is shattered into more contigs (top axis: median contig N50). Left, all pairs ssign calls; right, the known benchmark pairs. Lines are per SS type; the dashed line pools all types.](robustness_fragmentation.png)
 
 ### Proximity window
 
-The ±3 proximity window was widened to ±1–±15 genes by recomputing calls from the
-saved whole-genome predictions, reproducing the shipped ±3 calls exactly. Widening it
-enlarges the candidate pool steadily, from 554 pairs at ±1 to 1,266 at ±15, while the
-known pairs recovered level off: 32 of 80 on-panel known pairs at ±3, and 38 by ±15.
-Past ±3 the pool keeps growing while few further known pairs are gained.
+The ±3 proximity window was widened to ±1–±15 genes.
+Past ±3 the pool keeps growing while few further known pairs are gained. 
+This suggests that perhaps ±3 is the optimal window to capture real pairs while minimizing false positive ones. 
 
 ![Effect of the ±N proximity window. Left, all pairs ssign calls; right, the known benchmark pairs recovered (of 80 on-panel). As the window widens the candidate pool keeps growing while known recovery levels off; the dashed line pools all types.](robustness_proximity_window.png)
 
 ## Scope
 
 This test shows that ssign is indeed effective at identifying secretion systems and the proteins they secrete for the majority of those that are in the proximity window. It also shows that it cannot identify all types of systems well, especially T2SS and T4SS are out of scope for this tool, due to how far away the proteins they secrete sit from the system machinery.
+
+The default proximity window of ±3 appears to be the optimal window for maximizing the number of found systems and secreted protein pairs while minimizing potential false positives. This test also shows that ssign is relatively robust for lower quality genomes, staying moderately productive until at least 50 contigs.
 
 It is entirely possible that some of the systems and secreted proteins being tested here were used for the training of the tools ssign employs. This is a known limitation of this test and not accounted for. However the test still shows that the identification of secretion systems _and_ the proteins they secrete is a novel use ssign succeeds at.
 
