@@ -53,8 +53,8 @@ Draft assemblies split a genome into contigs, which can separate a secreted prot
 from its machinery. Each of the 52 genomes was shattered into 1, 5, 20, 50, 100, 250,
 and 500 contigs (uniform-random breakpoints, median contig N50 falling from 3.6 Mb to
 13 kb) and re-run; recovery is the fraction of the complete-genome pairs still found.
-At 50 contigs (120 kb N50) 96% of all found pairs and 88% of the known pairs are still
-recovered; at 500 contigs (13 kb N50, a poor short-read draft) 70% and 55% remain.
+At 50 contigs (120 kb N50) 95% of all found pairs and 88% of the known pairs are still
+recovered; at 500 contigs (13 kb N50, a poor short-read draft) 68% and 55% remain.
 Each fragmentation level is an independent random
 shatter and thus
 carries sampling variance that can cause a rise between levels.
