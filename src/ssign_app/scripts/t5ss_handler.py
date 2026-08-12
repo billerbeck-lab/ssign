@@ -59,6 +59,7 @@ if _scripts_dir not in _sys.path:
 from ssign_lib.constants import (  # noqa: E402
     LINKER_LENGTH,
     MIN_PASSENGER_LENGTH,
+    T5_SELF_SECRETING_TYPES,
     is_sec_signal_peptide,
 )
 from ssign_lib.parsing import parse_int_or_none  # noqa: E402
@@ -248,6 +249,13 @@ def main():
                 "barrel_start": pfam_hits.get(locus, {}).get("PF03797", ("", ""))[0],
             }
         )
+
+        # Only self-secreting autotransporters (T5aSS/T5cSS) are their own substrate.
+        # T5bSS's component is the TpsB outer-membrane translocator (machinery), not a
+        # secreted protein; its passenger TpsA is a separate gene found via the proximity
+        # window. The classification row above still records the translocator (diagnostic).
+        if ss_type not in T5_SELF_SECRETING_TYPES:
+            continue
 
         try:
             dlp_prob = float(pred.get("dlp_extracellular_prob", pred.get("extracellular_prob", 0)))

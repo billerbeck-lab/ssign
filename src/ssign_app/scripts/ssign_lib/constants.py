@@ -63,6 +63,15 @@ ENRICH_DSE_NO_WINDOW = frozenset({"T3SS"})
 # Written in system_filtering; read by the figures to split self vs hitchhiker.
 SUBSTRATE_SOURCE_T5_SELF = "T5SS-self"
 
+# T5 subtypes whose detected component IS the secreted protein: single-ORF
+# autotransporters (passenger + barrel in one chain), so the component is emitted as
+# its own substrate (SUBSTRATE_SOURCE_T5_SELF). T5bSS is deliberately excluded — its
+# component is the TpsB outer-membrane translocator (machinery, not secreted); the
+# secreted passenger TpsA is a separate gene found via the proximity window. Same
+# membership as ENRICH_AUTOTRANSPORTER_TYPES; aliased so the substrate path doesn't
+# import an ENRICH_-prefixed name.
+T5_SELF_SECRETING_TYPES = ENRICH_AUTOTRANSPORTER_TYPES
+
 # Enrichment mode tokens (the `mode` column): ordinary neighbour window vs
 # autotransporter self-detection. Autotransporters (T5a/c) emit both.
 ENRICH_MODE_SELF = "self"

@@ -184,14 +184,22 @@ def test_parse_sp_end(raw, expected):
 
 @pytest.mark.parametrize("ss_type", ["T5aSS", "T5bSS", "T5cSS"])
 def test_every_t5_subtype_recognised(monkeypatch, tmp_dir, ss_type):
-    substrates, _ = _run_t5ss(
+    substrates, domains = _run_t5ss(
         monkeypatch,
         tmp_dir,
         [make_ss_component_row("AT_1", ss_type)],
         [make_prediction_row("AT_1", dlp_ext=0.9)],
     )
-    assert {r["locus_tag"] for r in substrates} == {"AT_1"}
-    assert substrates[0]["nearby_ss_types"] == ss_type
+    # every subtype is recognised: a classification row is written
+    assert {r["locus_tag"] for r in domains} == {"AT_1"}
+    assert domains[0]["ss_type"] == ss_type
+    # only self-secreting autotransporters (T5a/T5c) are emitted as their own substrate;
+    # T5bSS's component is the TpsB translocator (machinery), not a secreted protein
+    if ss_type in ("T5aSS", "T5cSS"):
+        assert {r["locus_tag"] for r in substrates} == {"AT_1"}
+        assert substrates[0]["nearby_ss_types"] == ss_type
+    else:
+        assert substrates == []
 
 
 def test_non_t5_component_ignored(monkeypatch, tmp_dir):
@@ -359,16 +367,18 @@ def test_wrapper_flags_missing_signalp_for_clean_at(monkeypatch, tmp_dir):
 
 
 def test_wrapper_flags_missing_signalp_for_t5b_components(monkeypatch, tmp_dir):
-    """T5bSS/T5cSS bypass the geometric filter but still get no_signalp flagged."""
+    """T5bSS emits no substrate (the TpsB translocator is machinery, not a secreted
+    protein), but its classification row still records the no_signalp flag."""
     pred = make_prediction_row("T5b_1", dlp_ext=0.9)
     pred["signalp_cs_position"] = ""
-    substrates, _ = _run_t5ss(
+    substrates, domains = _run_t5ss(
         monkeypatch,
         tmp_dir,
         [make_ss_component_row("T5b_1", "T5bSS")],
         [pred],
     )
-    assert substrates[0]["t5_quality_flag"] == "no_signalp"
+    assert substrates == []
+    assert domains[0]["t5_quality_flag"] == "no_signalp"
 
 
 def test_no_t5_components_writes_empty_outputs(monkeypatch, tmp_dir):
@@ -519,14 +529,16 @@ def test_sec_gate_applies_to_every_t5_subtype(monkeypatch, tmp_dir, ss_type):
     # T5aSS needs a barrel hit to avoid Unclassified-AT; other subtypes
     # bypass that classifier entirely.
     pfam_hits = {"COMP_1": {"PF03797": (1300, 1555)}} if ss_type == "T5aSS" else {}
-    substrates, _ = _run_t5ss(
+    _substrates, domains = _run_t5ss(
         monkeypatch,
         tmp_dir,
         [make_ss_component_row("COMP_1", ss_type)],
         [_pred_with_signalp("COMP_1", "TAT")],
         pfam_hits=pfam_hits,
     )
-    assert substrates[0]["t5_quality_flag"] == "no_sec_signal"
+    # the sec-gate flag is set on the classification row for every subtype (only the
+    # self-secreting autotransporters additionally carry it onto a substrate row)
+    assert domains[0]["t5_quality_flag"] == "no_sec_signal"
 
 
 def test_structural_flag_wins_over_sec_gate(monkeypatch, tmp_dir):
