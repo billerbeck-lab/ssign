@@ -228,16 +228,19 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   secreted-protein classes. Keeping it as evidence preserves its information
   value without biasing the secretion call.
 
-- **Exception, T5SS self-detection:** for a self-detected T5SS component
-  (autotransporter T5aSS/T5cSS, or the T5bSS translocator) a **Sec**
-  signal peptide *is* a positive trigger, because T5 passengers are
+- **Exception, T5SS self-detection:** for a self-secreting autotransporter
+  component (T5aSS/T5cSS), where the component itself is the secreted protein,
+  a **Sec** signal peptide *is* a positive trigger, because T5 passengers are
   Sec-dependent (they cross the inner membrane via the Sec translocon, so
   a Sec signal is an expected hallmark of a genuine substrate). The
   component is called if DeepLocPro localizes it **OR** SignalP finds a
   Sec signal (Tat excluded). This gate lives in
   `system_filtering._t5_self_has_evidence`, separate from the
   `is_secreted` / `n_prediction_tools_agreeing` columns above, which still
-  never read SignalP. openspec: `signalp-t5ss-substrate-call`.
+  never read SignalP. T5bSS is excluded here: its component is the TpsB
+  outer-membrane translocator (machinery, not a secreted protein), and its
+  passenger TpsA is found via the proximity window, not self-detection.
+  openspec: `signalp-t5ss-substrate-call`.
 
 - **Citations:**
   - [Teufel et al. (2022). _Nature Biotechnology_ 40(7):1023–1025](https://doi.org/10.1038/s41587-021-01156-3), SignalP 6.0.
@@ -396,7 +399,7 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
     pLM-BLAST's cpc-90 pre-screen and blastp's bitscore would not
     find meaningful homology on a residue count this small.
 
-  Non-T5aSS substrates (T5bSS, T5cSS, T1SS secreted proteins, etc.) always
+  Non-T5aSS substrates (T5cSS, T1SS secreted proteins, etc.) always
   carry their full sequence, these don't have an autotransporter
   passenger to begin with.
 
