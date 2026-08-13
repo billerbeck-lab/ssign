@@ -22,7 +22,11 @@
 #   ssign-run GENOME OUTDIR [options] [-- extra `ssign run` args...]
 #
 # Positional:
-#   GENOME                 input genome (GenBank / GFF3 / FASTA)
+#   GENOME                 input genome (GenBank / GFF3 / FASTA), OR a directory of
+#                          genome files for a POOLED multi-genome run (one `ssign run`
+#                          over all of them: pooled enrichment + cross-genome orthologs).
+#                          Directory mode takes self-contained inputs only
+#                          (.gbff/.gbk/.gb/.fasta/.fna/.fa/.faa), not GFF3.
 #   OUTDIR                 output directory (created if absent)
 #
 # Options:
@@ -122,7 +126,7 @@ fi
 
 # --- validate ---------------------------------------------------------------
 command -v apptainer >/dev/null || die "apptainer not on PATH (install it, or 'module load apptainer')"
-[ "$DOCTOR" -eq 1 ] || [ -f "$GENOME" ] || die "genome not found: $GENOME"
+[ "$DOCTOR" -eq 1 ] || [ -f "$GENOME" ] || [ -d "$GENOME" ] || die "genome not found (file or directory): $GENOME"
 [ -f "$SIF" ]    || die "image not found: $SIF (pass --sif or set \$SSIGN_SIF)"
 case "$TIER" in base|extended|full) ;; *) die "invalid --tier '$TIER' (base|extended|full)" ;; esac
 if [ "$TIER" != "base" ] && [ -z "$DBROOT" ]; then
@@ -134,28 +138,50 @@ fi
 # (it only inspects the image + bound databases, needs no genome or GPU).
 if [ "$DOCTOR" -eq 0 ]; then
     GENOME=$(readlink -f "$GENOME")
-    # Mount the genome under its REAL extension so ssign's extension-first format
-    # detection (detect_format) sees the true type. A fixed in.gbff forced every
-    # input, including FASTA/GFF, to be read as GenBank (Bakta then rejected it).
-    _gbn="$(basename "$GENOME")"
-    case "$_gbn" in
-        *.*) IN_MOUNT="/work/in.${_gbn##*.}" ;;
-        *)   IN_MOUNT="/work/in" ;;
-    esac
-    # GFF3 carries no sequence: ssign needs a companion nucleotide FASTA with the
-    # same stem (runner._find_companion_fasta) to translate CDS coordinates. Bind it
-    # alongside as /work/in.fna so the in-container lookup finds it.
-    GFF_FASTA_BIND=()
-    case "$_gbn" in
-        *.gff|*.gff3|*.gtf)
-            _gstem="${GENOME%.*}"; _gfasta=""
-            for _e in fna fa fasta; do
-                [ -f "${_gstem}.${_e}" ] && { _gfasta="${_gstem}.${_e}"; break; }
-            done
-            [ -n "$_gfasta" ] || die "GFF3 input needs a companion nucleotide FASTA with the same stem next to it (e.g. $(basename "$_gstem").gff + $(basename "$_gstem").fna)"
-            GFF_FASTA_BIND=( -B "$(readlink -f "$_gfasta")":/work/in.fna:ro )
-            ;;
-    esac
+    IN_ARGS=()          # in-container genome path(s) passed to `ssign run`
+    GENOME_BINDS=()     # the genome bind mount(s)
+    if [ -d "$GENOME" ]; then
+        # Directory = multi-genome POOLED run: bind the folder and hand every genome
+        # file to ONE `ssign run`, so a single MultiGenomeRunner pools enrichment +
+        # cross-genome orthologs across them. (GFF3 dirs are not supported here — a
+        # per-genome companion-FASTA lookup is ambiguous in a shared folder; use
+        # self-contained inputs: .gbff/.gbk/.gb/.fasta/.fna/.fa/.faa.)
+        GENOME_BINDS=( -B "$GENOME":/work/genomes:ro )
+        shopt -s nullglob
+        for _g in "$GENOME"/*.gbff "$GENOME"/*.gbk "$GENOME"/*.gb \
+                  "$GENOME"/*.fasta "$GENOME"/*.fna "$GENOME"/*.fa "$GENOME"/*.faa; do
+            IN_ARGS+=( "/work/genomes/$(basename "$_g")" )
+        done
+        shopt -u nullglob
+        [ "${#IN_ARGS[@]}" -gt 0 ] || die "no genome files (.gbff/.gbk/.gb/.fasta/.fna/.fa/.faa) in directory: $GENOME"
+        GENOME_DESC="${#IN_ARGS[@]} genomes from $GENOME (pooled)"
+    else
+        # Single genome: mount under its REAL extension so ssign's extension-first
+        # format detection (detect_format) sees the true type. A fixed in.gbff forced
+        # every input, including FASTA/GFF, to be read as GenBank (Bakta then rejected).
+        _gbn="$(basename "$GENOME")"
+        case "$_gbn" in
+            *.*) IN_MOUNT="/work/in.${_gbn##*.}" ;;
+            *)   IN_MOUNT="/work/in" ;;
+        esac
+        # GFF3 carries no sequence: ssign needs a companion nucleotide FASTA with the
+        # same stem (runner._find_companion_fasta) to translate CDS coordinates. Bind it
+        # alongside as /work/in.fna so the in-container lookup finds it.
+        GFF_FASTA_BIND=()
+        case "$_gbn" in
+            *.gff|*.gff3|*.gtf)
+                _gstem="${GENOME%.*}"; _gfasta=""
+                for _e in fna fa fasta; do
+                    [ -f "${_gstem}.${_e}" ] && { _gfasta="${_gstem}.${_e}"; break; }
+                done
+                [ -n "$_gfasta" ] || die "GFF3 input needs a companion nucleotide FASTA with the same stem next to it (e.g. $(basename "$_gstem").gff + $(basename "$_gstem").fna)"
+                GFF_FASTA_BIND=( -B "$(readlink -f "$_gfasta")":/work/in.fna:ro )
+                ;;
+        esac
+        IN_ARGS=( "$IN_MOUNT" )
+        GENOME_BINDS=( -B "$GENOME":"$IN_MOUNT":ro "${GFF_FASTA_BIND[@]}" )
+        GENOME_DESC="$GENOME"
+    fi
     mkdir -p "$OUTDIR"; OUTDIR=$(readlink -f "$OUTDIR")
     SCRATCH="${SCRATCH:-$OUTDIR/.ssign_scratch}"; mkdir -p "$SCRATCH"; SCRATCH=$(readlink -f "$SCRATCH")
 
@@ -277,7 +303,7 @@ if [ -n "$TORCH_CACHE" ]; then
     TORCH_CACHE=$(readlink -f "$TORCH_CACHE"); mkdir -p "$TORCH_CACHE"
     BINDS+=( -B "$TORCH_CACHE":/opt/ssign_home/.cache/torch )
 fi
-BINDS+=( -B "$GENOME":"$IN_MOUNT":ro -B "$OUTDIR":/work/out "${GFF_FASTA_BIND[@]}" )
+BINDS+=( "${GENOME_BINDS[@]}" -B "$OUTDIR":/work/out )
 
 # --- RAM budget -------------------------------------------------------------
 # Under --containall ssign cannot see the scheduler's RAM allocation (no qstat;
@@ -291,12 +317,12 @@ fi
 
 # --- run --------------------------------------------------------------------
 echo "ssign-run: tier=$TIER  image=$SIF  gpu=$([ "${#NV_FLAG[@]}" -gt 0 ] && echo yes || echo no)"
-echo "ssign-run: genome=$GENOME"
+echo "ssign-run: genome=$GENOME_DESC"
 echo "ssign-run: outdir=$OUTDIR  scratch=$SCRATCH"
 [ -n "$DBROOT" ] && echo "ssign-run: db-root=$DBROOT"
 [ -n "$MAXRAM" ] && echo "ssign-run: RAM budget SSIGN_MAX_RAM_GB=${MAXRAM} GB"
 [ "${#DTU_ARGS[@]}" -gt 0 ] || echo "ssign-run: no local SignalP env found; DeepLocPro is baked, but the SignalP step will stop the run unless you install it (ssign-setup-dtu) or add '-- --signalp-mode remote'"
 
 exec apptainer run "${NV_FLAG[@]}" "${WT_FLAG[@]}" --containall "${BINDS[@]}" \
-    "$SIF" run "$IN_MOUNT" --outdir /work/out --tier "$TIER" \
+    "$SIF" run "${IN_ARGS[@]}" --outdir /work/out --tier "$TIER" \
     "${DTU_ARGS[@]}" "${PASSTHRU[@]}"
