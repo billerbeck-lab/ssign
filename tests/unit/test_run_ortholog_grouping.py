@@ -174,6 +174,28 @@ class TestComputeGroupStats:
         )
         assert stats[0]["members"] == "A;B;C"
 
+    def test_equal_sized_groups_get_stable_ids(self):
+        # Three 2-member groups all tie on size. `groups` is keyed by a Union-Find
+        # representative and built by iterating a SET of ids, so its order follows string
+        # hashing and differs between interpreter runs; sorting on size alone let the
+        # OG_NNN labels shuffle. Ties break on the smallest member, so the assignment is
+        # a function of the data alone.
+        groups = {"r1": {"p004", "p005"}, "r2": {"p000", "p001"}, "r3": {"p002", "p003"}}
+        hits = [("p000", "p001", 90.0, 90.0), ("p002", "p003", 90.0, 90.0), ("p004", "p005", 90.0, 90.0)]
+        stats = compute_group_stats(groups, hits, {f"p{i:03d}" for i in range(6)})
+        assert [(s["ortholog_group"], s["members"]) for s in stats] == [
+            ("OG_001", "p000;p001"),
+            ("OG_002", "p002;p003"),
+            ("OG_003", "p004;p005"),
+        ]
+
+    def test_size_still_outranks_the_tiebreak(self):
+        # The tiebreak must only apply within a size, never reorder across sizes: the
+        # 2-member group wins OG_001 even though its members sort after the singleton's.
+        groups = {"r1": {"z1"}, "r2": {"z8", "z9"}}
+        stats = compute_group_stats(groups, hits=[("z8", "z9", 90.0, 90.0)], all_protein_ids={"z1", "z8", "z9"})
+        assert [(s["ortholog_group"], s["n_members"]) for s in stats] == [("OG_001", 2), ("OG_002", 1)]
+
     def test_og_id_zero_padded(self):
         # 3-digit zero-padding contract pinned: OG_001, OG_002, ...
         groups = {f"rep{i}": {f"P{i}"} for i in range(1, 6)}
