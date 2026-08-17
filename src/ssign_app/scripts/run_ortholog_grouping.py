@@ -4,9 +4,26 @@
 Algorithm:
 1. Collect all filtered substrate sequences across genomes
 2. Run all-vs-all BLASTp (local makeblastdb + blastp)
-3. Filter hits: >= min_pident AND >= min_qcov
+3. Filter hits: >= min_pident AND >= min_qcov of BOTH sequences (see below)
 4. Single-linkage clustering via Union-Find
 5. Output: CSV mapping locus_tag → ortholog_group + group stats
+
+Coverage is required of the subject as well as the query. Requiring it of the query
+alone does not constrain the pair, because BLAST reports every pair in both directions
+and a hit passing either way is kept: the test collapses to "does the alignment cover
+min_qcov of the SHORTER sequence", leaving the longer one unconstrained. A 177 aa
+protein aligning over its whole length to 8.6% of a 2069 aa protein then qualifies as
+its ortholog, and single linkage propagates that: the two are fused, and so is
+everything else either of them touches. Observed on a 74-genome Xanthobacter run, where
+it produced a 118-member "group" spanning 177-2069 aa in which only 32% of member pairs
+resembled each other at all.
+
+Groups therefore also carry `edge_density` -- the share of member pairs that actually
+had a qualifying hit. Single linkage needs only a spanning tree, so a group can be a
+chain rather than a family, and no other column distinguishes the two: a real family is
+at or near 100%, a chain is far below it. `mean_pident` cannot serve, since it averages
+only the hits that already cleared min_pident and so is conditioned on the threshold
+that built the group.
 
 Requires NCBI BLAST+ (makeblastdb, blastp) on PATH. If not installed the
 step is skipped gracefully (every substrate becomes its own singleton
@@ -39,6 +56,7 @@ _COL_SSEQID = 1
 _COL_PIDENT = 2
 _COL_ALN_LEN = 3
 _COL_QLEN = 12
+_COL_SLEN = 13
 _BLAST_MIN_FIELDS = 14
 
 
@@ -93,7 +111,8 @@ def run_local_blast(
 ):
     """Run all-vs-all BLASTp locally.
 
-    Returns list of (query, subject, pident, qcov) tuples.
+    Returns list of (query, subject, pident, coverage) tuples, where coverage is the
+    lower of the query and subject coverages -- the one that had to clear min_qcov.
 
     Raises:
         BlastpUnavailableError: BLAST+ not installed (caller soft-skips).
@@ -148,13 +167,17 @@ def run_local_blast(
                     continue
                 pident = float(parts[_COL_PIDENT])
                 aln_len = int(parts[_COL_ALN_LEN])
-                qlen = int(parts[_COL_QLEN])
-                qcov = 100.0 * aln_len / max(qlen, 1)
+                qcov = 100.0 * aln_len / max(int(parts[_COL_QLEN]), 1)
+                scov = 100.0 * aln_len / max(int(parts[_COL_SLEN]), 1)
+                # Both, not just the query: see the module docstring. Requiring the
+                # query alone lets a short protein qualify as the ortholog of a long
+                # one it merely aligns to a fragment of.
+                coverage = min(qcov, scov)
 
-                if pident >= min_pident and qcov >= min_qcov:
-                    hits.append((query, subject, pident, qcov))
+                if pident >= min_pident and coverage >= min_qcov:
+                    hits.append((query, subject, pident, coverage))
 
-        logger.info(f"Found {len(hits)} ortholog-quality hits (>={min_pident}% id, >={min_qcov}% qcov)")
+        logger.info(f"Found {len(hits)} ortholog-quality hits (>={min_pident}% id, >={min_qcov}% coverage of both)")
         return hits
 
 
@@ -194,11 +217,16 @@ def compute_group_stats(groups, hits, all_protein_ids):
     for idx, (rep, members) in enumerate(sorted(groups.items(), key=lambda x: -len(x[1])), 1):
         within_ids = []
         member_list = sorted(members)
+        n_pairs = n_linked = 0
         for i, m1 in enumerate(member_list):
             for m2 in member_list[i + 1 :]:
+                n_pairs += 1
+                linked = False
                 for key in [(m1, m2), (m2, m1)]:
                     if key in hit_identities:
                         within_ids.extend(hit_identities[key])
+                        linked = True
+                n_linked += linked
 
         mean_id = sum(within_ids) / len(within_ids) if within_ids else 100.0
 
@@ -208,6 +236,12 @@ def compute_group_stats(groups, hits, all_protein_ids):
                 "n_members": len(members),
                 "members": ";".join(sorted(members)),
                 "mean_pident": round(mean_id, 1),
+                # Share of member pairs that actually had a qualifying hit. Single
+                # linkage needs only a spanning tree, so this is what separates a
+                # family (at or near 100) from a chain (far below it). A singleton has
+                # no pairs and is reported as 100 rather than 0, matching mean_pident's
+                # convention for the same case.
+                "edge_density": round(100.0 * n_linked / n_pairs, 1) if n_pairs else 100.0,
             }
         )
 
@@ -242,7 +276,10 @@ def main():
         "--min-pident", type=float, default=40.0, help="Minimum %% identity for ortholog assignment (default: 40)"
     )
     parser.add_argument(
-        "--min-qcov", type=float, default=70.0, help="Minimum query coverage %% for ortholog assignment (default: 70)"
+        "--min-qcov",
+        type=float,
+        default=70.0,
+        help="Minimum coverage %% of BOTH sequences for ortholog assignment (default: 70)",
     )
     parser.add_argument("--evalue", type=float, default=1e-5, help="E-value threshold for BLASTp (default: 1e-5)")
     parser.add_argument(
@@ -321,7 +358,9 @@ def main():
 
     if args.output_groups:
         with open(args.output_groups, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=["ortholog_group", "n_members", "members", "mean_pident"])
+            writer = csv.DictWriter(
+                f, fieldnames=["ortholog_group", "n_members", "members", "mean_pident", "edge_density"]
+            )
             writer.writeheader()
             for gs in group_stats:
                 writer.writerow(gs)

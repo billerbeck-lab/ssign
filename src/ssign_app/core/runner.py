@@ -3842,7 +3842,7 @@ def run_cross_genome_orthologs(
         genome_lists = df_grp["members"].map(_genomes_for)
         df_grp["n_genomes"] = genome_lists.map(len)
         df_grp["genomes"] = genome_lists.map(";".join)
-        ordered = ["ortholog_group", "n_members", "n_genomes", "genomes", "members", "mean_pident"]
+        ordered = ["ortholog_group", "n_members", "n_genomes", "genomes", "members", "mean_pident", "edge_density"]
         df_grp = df_grp[[c for c in ordered if c in df_grp.columns]]
         df_grp.to_csv(groups_csv, index=False)
     except Exception as e:
