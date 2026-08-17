@@ -197,6 +197,153 @@ class TestComputeGroupStats:
         assert stats[0]["mean_pident"] == 100.0
 
 
+class TestEdgeDensity:
+    """Single linkage needs only a spanning tree, so a group can be a chain rather
+    than a family. edge_density is the only column that tells them apart."""
+
+    def test_every_pair_hit_is_100(self):
+        groups = {"rep1": {"A", "B", "C"}}
+        stats = compute_group_stats(
+            groups,
+            hits=[("A", "B", 90.0, 90.0), ("B", "C", 90.0, 90.0), ("A", "C", 90.0, 90.0)],
+            all_protein_ids={"A", "B", "C"},
+        )
+        assert stats[0]["edge_density"] == 100.0
+
+    def test_chain_is_below_100(self):
+        # A-B-C with no A-C hit: 2 of 3 possible pairs. Same members and same
+        # mean_pident as the clique above, so only edge_density separates them.
+        groups = {"rep1": {"A", "B", "C"}}
+        stats = compute_group_stats(
+            groups,
+            hits=[("A", "B", 90.0, 90.0), ("B", "C", 90.0, 90.0)],
+            all_protein_ids={"A", "B", "C"},
+        )
+        assert stats[0]["edge_density"] == 66.7
+        assert stats[0]["mean_pident"] == 90.0
+
+    def test_reciprocal_hits_counted_once(self):
+        # BLAST reports each pair in both directions; that is one edge, not two,
+        # so a fully-linked pair must not exceed 100.
+        groups = {"rep1": {"A", "B"}}
+        stats = compute_group_stats(
+            groups,
+            hits=[("A", "B", 90.0, 90.0), ("B", "A", 88.0, 90.0)],
+            all_protein_ids={"A", "B"},
+        )
+        assert stats[0]["edge_density"] == 100.0
+
+    def test_singleton_is_100(self):
+        # No pairs at all. Reported as 100 to match mean_pident's convention for
+        # the same case, rather than 0, which would read as "maximally chained".
+        stats = compute_group_stats({"rep1": {"A"}}, hits=[], all_protein_ids={"A"})
+        assert stats[0]["edge_density"] == 100.0
+
+
+# ---------------------------------------------------------------------------
+# run_local_blast — hit filtering
+# ---------------------------------------------------------------------------
+
+
+def _blast_row(qseqid, sseqid, pident, aln_len, qlen, slen):
+    """One BLAST outfmt-6 line in the column order of BLAST_OUTFMT.
+
+    Only pident, length, qlen and slen are read; the rest are filled with
+    placeholders so the field count matches what the parser requires.
+    """
+    return "\t".join(
+        str(v) for v in (qseqid, sseqid, pident, aln_len, 0, 0, 1, aln_len, 1, aln_len, "1e-40", 100.0, qlen, slen)
+    )
+
+
+def _stub_blast(monkeypatch, rows):
+    """Make run_local_blast see `rows` as the BLASTp output, without BLAST+."""
+
+    class _Result:
+        returncode = 0
+        stderr = ""
+        stdout = ""
+
+    def _run(cmd, *a, **k):
+        if "-out" in cmd and "-query" in cmd:  # the blastp call
+            with open(cmd[cmd.index("-out") + 1], "w") as fh:
+                fh.write("\n".join(rows) + ("\n" if rows else ""))
+        return _Result()
+
+    monkeypatch.setattr(run_ortholog_grouping.subprocess, "run", _run)
+
+
+class TestRunLocalBlastCoverage:
+    """Coverage must be required of BOTH sequences.
+
+    BLAST reports every pair in both directions and a hit passing either way is
+    kept, so checking the query alone collapses to "covers 70% of the SHORTER
+    sequence" and leaves the longer one unconstrained. The short-vs-long pair here
+    is the real one that produced a 118-member chained group on a 74-genome
+    Xanthobacter run: 177 aa aligning over its whole length to 8.6% of 2069 aa.
+    """
+
+    def test_short_fully_covered_by_long_fragment_is_rejected(self, monkeypatch, tmp_dir):
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"short": "MKT", "long": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("short", "long", 45.0, 177, 177, 2069)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits == []
+
+    def test_same_pair_reported_the_other_way_is_also_rejected(self, monkeypatch, tmp_dir):
+        # Query coverage is now the failing side rather than the passing one. The
+        # verdict must not depend on which way round BLAST happened to report it.
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"short": "MKT", "long": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("long", "short", 45.0, 177, 2069, 177)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits == []
+
+    def test_genuine_ortholog_still_passes(self, monkeypatch, tmp_dir):
+        # Similar lengths, aligned nearly end to end: 96% of both.
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("A", "B", 80.0, 480, 500, 500)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert len(hits) == 1
+        query, subject, pident, coverage = hits[0]
+        assert (query, subject, pident) == ("A", "B", 80.0)
+        assert coverage == pytest.approx(96.0)
+
+    def test_coverage_reported_is_the_lower_of_the_two(self, monkeypatch, tmp_dir):
+        # 400/500 = 80% of the query, 400/450 = 88.9% of the subject. Both clear
+        # 70, and the tuple must carry the binding one so a caller cannot read the
+        # flattering side.
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("A", "B", 75.0, 400, 500, 450)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits[0][3] == pytest.approx(80.0)
+
+    def test_identity_threshold_still_applies(self, monkeypatch, tmp_dir):
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("A", "B", 30.0, 480, 500, 500)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits == []
+
+    def test_self_hits_dropped(self, monkeypatch, tmp_dir):
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(
+            monkeypatch,
+            [_blast_row("A", "A", 100.0, 500, 500, 500), _blast_row("A", "B", 85.0, 490, 500, 500)],
+        )
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert [(h[0], h[1]) for h in hits] == [("A", "B")]
+
+
 # ---------------------------------------------------------------------------
 # _find_blast_binary
 # ---------------------------------------------------------------------------
