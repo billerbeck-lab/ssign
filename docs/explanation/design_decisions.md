@@ -320,6 +320,19 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   Multiple tools vote; the most-supported category becomes
   `broad_annotation`, with tool names listed as evidence.
 
+- **Two of those categories are scoring floors** and can only win when no
+  functional category was proposed at all: `Autotransporter passenger`
+  and `Hypothetical`, in that order of preference. Both state something
+  other than activity — the first names an architectural family, the
+  second names the absence of information — so neither may outvote a
+  real functional call. Without this, two functional-name tools echoing
+  "autotransporter" (weight 3 each) beat a domain tool finding a
+  glycoside hydrolase (weight 2), and the activity is lost: measured on
+  the 74-genome *Xanthobacter* run, that was happening to 107 of the 231
+  proteins carrying the label, and to 119 of 768 in the benchmark panel.
+  A glycoside hydrolase exported by an autotransporter is still a
+  glycoside hydrolase.
+
 - **Rationale:**
   - 27 categories is a pragmatic compromise between "too broad to be
     useful" (4-5 COG-style superclasses) and "too granular to vote"
@@ -464,11 +477,11 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
 - **What:** A classical or trimeric autotransporter (T5aSS/T5cSS) is a
   single self-contained polypeptide: its passenger threads through its
   own outer-membrane β-barrel, so the component *is* the substrate (the
-  "self" signal). Separately, secreted-predicted proteins are found
-  significantly enriched in the ±3-gene window around T5a/c components.
-  We call these neighbours **hitchhikers**, on the hypothesis that they
-  may piggyback out through the shared T5 pore rather than encoding their
-  own machinery.
+  "self" signal). Separately, secreted-predicted proteins are reported
+  in the ±3-gene window around T5a/c components. We call these
+  neighbours **hitchhikers**, on the hypothesis that they may piggyback
+  out through the shared T5 pore rather than encoding their own
+  machinery.
 
 - **How it surfaces:** Because proximity runs its ±3 window around every
   SS component (§ 5.1), T5a/c neighbours are already substrate-called
@@ -479,8 +492,25 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   window, DLP-or-SignalP for self). Figures show the two populations as
   distinct `(self)` / `(hitchhiker)` categories.
 
-- **Status:** The hitchhiker enrichment is descriptive (it quantifies the
-  clustering); the pore-sharing mechanism is a hypothesis, not a claim.
+- **Status:** Real but small, and not reproducible across both panels.
+  All figures below are pooled runs with the COMBINED predictor; the
+  per-genome tests are underpowered by design (§ *Key Parameters*) and
+  must not be used to judge this, nor may folds be summed across genomes.
+
+  | | benchmark panel (52 genomes) | *Xanthobacter* (74 genomes) |
+  |---|---|---|
+  | T5aSS **self** | 6.70x, q = 0.0002 | 7.72x, q < 0.001 |
+  | T5aSS hitchhiker window | 1.65x, q = 0.0014 | 1.22x, q = 0.182 |
+  | T5cSS hitchhiker window | 0.98x, q = 0.541 | 0.00x, q = 1.000 |
+
+  The T5aSS hitchhiker window is significantly enriched in the benchmark
+  panel and not in *Xanthobacter*. T5cSS hitchhikers are enriched in
+  neither. In both panels the effect is far below the self signal from
+  the same test on the same genomes, where only the mask differs.
+
+  So the clustering is measurable but weak and panel-dependent, and the
+  pore-sharing mechanism remains a hypothesis rather than a claim. This
+  is the least supported category ssign emits.
 
 ---
 

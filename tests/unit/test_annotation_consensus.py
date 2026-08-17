@@ -10,6 +10,7 @@ preserved output-dict schema.
 import pandas as pd
 from annotation_consensus import (
     APPARATUS,
+    AUTOTRANSPORTER,
     CATEGORY_NAMES,
     CATEGORY_PATTERNS,
     UNCLASSIFIED,
@@ -147,6 +148,26 @@ class TestFloors:
         assert result["broad_annotation"] == UNCLASSIFIED
         assert result["broad_consensus_annotation"] == UNCLASSIFIED  # no empty "()"
         assert result["n_tools_agreeing"] == 0
+
+    def test_function_beats_autotransporter_identity_label(self):
+        """A domain tool's functional call must survive two name tools saying
+        "autotransporter", which states the architecture rather than the activity."""
+        result = compute_consensus(
+            {
+                "EggNOG": "autotransporter",
+                "GBFF": "autotransporter domain-containing protein",
+                "InterProScan": "glycoside hydrolase family 5",
+            }
+        )
+        assert result["broad_annotation"] == "Glycoside hydrolase/CAZy"
+
+    def test_autotransporter_still_wins_when_nothing_functional_proposed(self):
+        result = compute_consensus({"EggNOG": "autotransporter", "GBFF": "autotransporter beta-domain"})
+        assert result["broad_annotation"] == AUTOTRANSPORTER
+
+    def test_autotransporter_outranks_hypothetical(self):
+        result = compute_consensus({"EggNOG": "autotransporter", "GBFF": "hypothetical protein"})
+        assert result["broad_annotation"] == AUTOTRANSPORTER
 
 
 class TestConfidenceTierFromWeightedSupport:

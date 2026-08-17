@@ -14,9 +14,14 @@ per-tool annotation descriptions:
     ordered rule set (first match wins); no title-case fallback is minted.
   - Machinery / translocator components are detected by component identity and
     map to ``Apparatus-associated``, which competes in the weighted vote.
-  - ``Hypothetical`` is a floor (never beats a functional call). When no tool
-    yields a functional, apparatus, or hypothetical call the result is
-    ``Unclassified`` (honest, not an invented label).
+  - ``Autotransporter passenger`` and ``Hypothetical`` are floors (never beat a
+    functional call), most-informative first. The autotransporter label states
+    which architectural family a protein belongs to, not what it does: a
+    glycoside hydrolase exported by an autotransporter is still a glycoside
+    hydrolase, so a domain tool finding that must not be outvoted by two
+    functional-name tools echoing "autotransporter". When no tool yields a
+    functional, apparatus, or floor call the result is ``Unclassified``
+    (honest, not an invented label).
 
 Output dict keys are unchanged so ``integrate_annotations`` and the CSV schema
 stay the same:
@@ -38,7 +43,8 @@ from collections import Counter
 
 APPARATUS = "Apparatus-associated"
 UNCLASSIFIED = "Unclassified"
-HYPOTHETICAL = "Hypothetical"  # the sole scoring floor (see _FLOORS)
+HYPOTHETICAL = "Hypothetical"  # scoring floor (see _FLOOR_ORDER)
+AUTOTRANSPORTER = "Autotransporter passenger"  # identity, not function: also a floor
 
 # Ordered MOST-SPECIFIC -> generic; first match wins per description. The
 # "__APPARATUS__" sentinel routes translocator/secretion context to
@@ -98,7 +104,7 @@ CATEGORY_PATTERNS = [
     ),
     ("S-layer", r"s.?layer|surface.?layer|paracrystalline|\brsaa\b"),
     ("Lectin/CBM", r"\blectin\b|carbohydrate.?binding module|\bcbm\d"),
-    ("Autotransporter passenger", r"autotransporter|passenger.?domain"),
+    (AUTOTRANSPORTER, r"autotransporter|passenger.?domain"),  # FLOOR
     ("Chaperone", r"chaperone|foldase|\beag\b|duf4123"),
     ("Regulatory", r"regulat|transcription|repressor|activator|two.?component|response.?regulator|sensor.?kinase"),
     (
@@ -127,7 +133,10 @@ _IS_FOLD = re.compile(
     re.IGNORECASE,
 )
 
-_FLOORS = {HYPOTHETICAL}
+# Floors never outvote a functional call; they decide the winner only when no
+# functional category was proposed at all. Ordered most to least informative.
+_FLOOR_ORDER = (AUTOTRANSPORTER, HYPOTHETICAL)
+_FLOORS = set(_FLOOR_ORDER)
 
 # Tool credibility weight: functional-name tools > domain tools > structure-only.
 # Keys match integrate_annotations.TOOL_HIT_COLUMNS; default 2 for any new tool.
@@ -252,9 +261,9 @@ def compute_consensus(tool_descriptions: dict[str, str]) -> dict:
     if scores:
         broad = scores.most_common(1)[0][0]
         weighted_support = scores[broad]
-    elif floors.get(HYPOTHETICAL):
-        broad = HYPOTHETICAL
-        weighted_support = 0  # a hypothetical winner is no confident functional call -> Low tier
+    elif floor_winner := next((f for f in _FLOOR_ORDER if floors.get(f)), None):
+        broad = floor_winner
+        weighted_support = 0  # a floor winner is no confident functional call -> Low tier
     else:
         broad = UNCLASSIFIED
         weighted_support = 0
