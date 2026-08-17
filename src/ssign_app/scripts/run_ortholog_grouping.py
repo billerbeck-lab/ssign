@@ -214,7 +214,13 @@ def compute_group_stats(groups, hits, all_protein_ids):
         hit_identities[(query, subject)].append(pident)
 
     stats = []
-    for idx, (rep, members) in enumerate(sorted(groups.items(), key=lambda x: -len(x[1])), 1):
+    # Ties are broken on the smallest member id, not left to dict order. `groups` is keyed
+    # by a Union-Find representative and built by iterating a set of protein ids, so its
+    # order follows string hashing and changes between interpreter runs. Sorting on size
+    # alone therefore handed equal-sized groups different OG_NNN labels each run, and those
+    # labels are user-facing: they are the `ortholog_group` column, and `xg_ortholog_group`
+    # in every integrated CSV. Same input, same ids.
+    for idx, (rep, members) in enumerate(sorted(groups.items(), key=lambda x: (-len(x[1]), min(x[1]))), 1):
         within_ids = []
         member_list = sorted(members)
         n_pairs = n_linked = 0
