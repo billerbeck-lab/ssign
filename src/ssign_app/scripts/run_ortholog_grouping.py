@@ -18,6 +18,12 @@ everything else either of them touches. Observed on a 74-genome Xanthobacter run
 it produced a 118-member "group" spanning 177-2069 aa in which only 32% of member pairs
 resembled each other at all.
 
+Coverage counts RESIDUES, from the alignment's start/end offsets on each sequence -- not
+outfmt-6 `length`, which is aligned columns including gap columns. Dividing `length` by a
+sequence's length credits gaps to coverage and can exceed 100%, admitting hits that do not
+meet the stated threshold; the gappier the alignment the more it over-credits, which is
+worst for exactly the weak pairs the threshold exists to exclude.
+
 Groups therefore also carry `edge_density` -- the share of member pairs that actually
 had a qualifying hit. Single linkage needs only a spanning tree, so a group can be a
 chain rather than a family, and no other column distinguishes the two: a real family is
@@ -55,6 +61,10 @@ _COL_QSEQID = 0
 _COL_SSEQID = 1
 _COL_PIDENT = 2
 _COL_ALN_LEN = 3
+_COL_QSTART = 6
+_COL_QEND = 7
+_COL_SSTART = 8
+_COL_SEND = 9
 _COL_QLEN = 12
 _COL_SLEN = 13
 _BLAST_MIN_FIELDS = 14
@@ -166,9 +176,14 @@ def run_local_blast(
                 if query == subject:
                     continue
                 pident = float(parts[_COL_PIDENT])
-                aln_len = int(parts[_COL_ALN_LEN])
-                qcov = 100.0 * aln_len / max(int(parts[_COL_QLEN]), 1)
-                scov = 100.0 * aln_len / max(int(parts[_COL_SLEN]), 1)
+                # Residue spans, NOT outfmt-6 `length`. `length` is aligned COLUMNS
+                # including gap columns, so dividing it by a sequence length credits gaps
+                # as coverage and can exceed 100%. The spans count only residues each
+                # sequence actually contributes, and are bounded by its length.
+                q_aligned = abs(int(parts[_COL_QEND]) - int(parts[_COL_QSTART])) + 1
+                s_aligned = abs(int(parts[_COL_SEND]) - int(parts[_COL_SSTART])) + 1
+                qcov = 100.0 * q_aligned / max(int(parts[_COL_QLEN]), 1)
+                scov = 100.0 * s_aligned / max(int(parts[_COL_SLEN]), 1)
                 # Both, not just the query: see the module docstring. Requiring the
                 # query alone lets a short protein qualify as the ortholog of a long
                 # one it merely aligns to a fragment of.

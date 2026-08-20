@@ -267,14 +267,35 @@ class TestEdgeDensity:
 # ---------------------------------------------------------------------------
 
 
-def _blast_row(qseqid, sseqid, pident, aln_len, qlen, slen):
+def _blast_row(qseqid, sseqid, pident, aln_len, qlen, slen, q_aligned=None, s_aligned=None):
     """One BLAST outfmt-6 line in the column order of BLAST_OUTFMT.
 
-    Only pident, length, qlen and slen are read; the rest are filled with
-    placeholders so the field count matches what the parser requires.
+    `q_aligned`/`s_aligned` are how many RESIDUES of each sequence the alignment spans,
+    which is what coverage is measured on. They default to `aln_len`, i.e. a gapless
+    alignment where columns and residues coincide. Pass them explicitly to model a gapped
+    alignment, where `length` counts gap columns that neither sequence contributes a
+    residue to.
     """
+    q_aligned = aln_len if q_aligned is None else q_aligned
+    s_aligned = aln_len if s_aligned is None else s_aligned
     return "\t".join(
-        str(v) for v in (qseqid, sseqid, pident, aln_len, 0, 0, 1, aln_len, 1, aln_len, "1e-40", 100.0, qlen, slen)
+        str(v)
+        for v in (
+            qseqid,
+            sseqid,
+            pident,
+            aln_len,
+            0,
+            0,
+            1,
+            q_aligned,
+            1,
+            s_aligned,
+            "1e-40",
+            100.0,
+            qlen,
+            slen,
+        )
     )
 
 
@@ -353,6 +374,57 @@ class TestRunLocalBlastCoverage:
 
         hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
         assert hits == []
+
+
+class TestCoverageCountsResiduesNotColumns:
+    """Coverage is residues aligned, not outfmt-6 `length`.
+
+    `length` counts alignment COLUMNS including gap columns, which no sequence
+    contributes a residue to. Dividing it by a sequence length therefore credits gaps as
+    coverage: the gappier the alignment the more it over-credits, which is worst for
+    exactly the weak pairs min_qcov exists to exclude.
+    """
+
+    def test_gapped_alignment_no_longer_over_credits(self, monkeypatch, tmp_dir):
+        # 400 aligned columns, but 100 of them are gaps in the query, so the query
+        # contributes only 300 of its 500 residues.
+        #   by columns:  400/500 = 80%  -> passes 70 and should not
+        #   by residues: 300/500 = 60%  -> correctly rejected
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(
+            monkeypatch,
+            [_blast_row("A", "B", 45.0, 400, 500, 400, q_aligned=300, s_aligned=400)],
+        )
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits == []
+
+    def test_coverage_cannot_exceed_100_percent(self, monkeypatch, tmp_dir):
+        # 600 aligned columns spanning a 500 aa query and a 550 aa subject -- the extra
+        # columns are gaps. By columns BOTH sides read over 100% (120.0 and 109.1), so
+        # even taking the lower of the two leaves an impossible coverage; by residues
+        # each is exactly fully covered.
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(
+            monkeypatch,
+            [_blast_row("A", "B", 85.0, 600, 500, 550, q_aligned=500, s_aligned=550)],
+        )
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert len(hits) == 1
+        assert hits[0][3] == pytest.approx(100.0)
+
+    def test_gapless_alignment_is_unaffected(self, monkeypatch, tmp_dir):
+        # Where there are no gaps, columns and residues coincide and the answer is the
+        # one it always was. This is the case every other test in this file models.
+        fasta = os.path.join(tmp_dir, "in.faa")
+        write_fasta({"A": "MKT", "B": "GGG"}, fasta)
+        _stub_blast(monkeypatch, [_blast_row("A", "B", 80.0, 480, 500, 500)])
+
+        hits = run_ortholog_grouping.run_local_blast(fasta, min_pident=40.0, min_qcov=70.0)
+        assert hits[0][3] == pytest.approx(96.0)
 
     def test_self_hits_dropped(self, monkeypatch, tmp_dir):
         fasta = os.path.join(tmp_dir, "in.faa")
