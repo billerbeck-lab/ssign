@@ -76,15 +76,9 @@ This test shows that ssign is indeed effective at identifying secretion systems 
 The default proximity window of ±3 appears to be the optimal window for maximizing the number of found systems and secreted protein pairs while minimizing the overall candidate pool and thus potential false positives. This test also shows that ssign is relatively robust for lower quality genomes, staying moderately productive until at least 50 contigs.
 
 Some of the systems and secreted proteins tested here were used to train the tools ssign
-employs. This has now been measured rather than assumed:
-**56 of the 85 proteins (66%) are in at least one predictor's training set, and so are 29
-of the 38 ssign predicts.** The full audit, per tool and per protein, is in
+employs, so read the recall figures above as an upper bound. How much, and what it does
+and does not affect, is measured in
 [`training_data_overlap.md`](training_data_overlap.md).
-
-Read the recall figures above as an upper bound. Two things survive the overlap: which
-proteins proximity can reach at all is a fact about genome layout, not about any tool;
-and pairing a system to its substrate is a task none of the four tools performs, so it
-cannot have been memorised from their training data.
 
 ## Reproduce
 
