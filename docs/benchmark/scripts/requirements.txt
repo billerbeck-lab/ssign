@@ -1,0 +1,9 @@
+# Pinned deps for the training-data overlap audit (docs/benchmark/training_data_overlap.md).
+# Kept separate from ssign's own dependencies: these scripts are analysis, not pipeline.
+#
+# pyopal is pinned exactly because the results depend on it: its default scoring
+# matrix is BLOSUM50 with gap_open=3, and match_training_set.py overrides that to
+# BLOSUM62 11/1. A version that renamed or reordered those constructor arguments
+# would silently change the homolog tiers.
+pyopal==0.7.3
+pyhmmer>=0.10

@@ -29,6 +29,7 @@ the proteins they secrete, and annotates those proteins.
 | [Output files](docs/reference/output_files.md) | What a run writes |
 | [Design decisions](docs/explanation/design_decisions.md) | Why each choice was made |
 | [Benchmarks](docs/benchmark/benchmarks.md) | Recall against 85 experimentally-validated secreted proteins |
+| [Training-data overlap](docs/benchmark/training_data_overlap.md) | How much of the benchmark the detection tools were trained on |
 | [Licensing](docs/explanation/licensing.md) | Redistribution status of every bundled tool, model, and database |
 
 Maintainer build and publish steps: [containers/README.md](containers/README.md).
