@@ -1,0 +1,86 @@
+instance_id,ss_type,subtype,gene,uniprot,organism,found_by_ssign,run_unit,emitted_locus,join_reason,deeplocpro_called,deeplocpro_value,deepsece_called,deepsece_value,signalp_called,signalp_prediction,deeplocpro_trained_on,deepsece_trained_on,signalp_trained_on,txsscan_models_this_protein,tools_that_called_it,tools_that_called_it_and_were_clean,has_independent_support
+T1SS_02,T1SS,,aprA,Q03023,Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1),yes,NC_002516.2,NFOBNJ_01299,emitted_overlap,yes,0.995,yes,0.997,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_03,T1SS,,rsaA,P35828,Caulobacter vibrioides (strain ATCC 19089 / CIP 103742 / CB 15) (Caulobacter crescentus),yes,AE005673,OOFJFA_01011,emitted_overlap,no,0.756,yes,0.999,no,OTHER,no,yes,no,no,deepsece,-,no
+T1SS_04,T1SS,,cya,P0DKX7,Bordetella pertussis Tohama I,yes,BX470248,KAKDJD_00761,emitted_overlap,yes,0.93,yes,0.948,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_06,T1SS,,prtA,Q7N8R3,Photorhabdus laumondii subsp. laumondii TT01,yes,BX470251,DMPCOF_00663,emitted_overlap,yes,0.991,yes,0.994,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T1SS_07,T1SS,,aprA,Q1ID47,Pseudomonas entomophila (strain L48),yes,CT573326,ADCAEP_01464,emitted_overlap,yes,0.999,yes,0.996,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R01,T1SS,,Serralysin,P23694,Serratia marcescens,no,NZ_JBCGCZ010000007.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T1SS_R02,T1SS,,apxIA,P55128,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae),yes,NZ_CBDBTK010000022.1,KKEJGA_00582,emitted_overlap,yes,0.951,yes,0.988,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R03,T1SS,,apxIIA,P15377,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae),no,NC_010939.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T1SS_R04,T1SS,,apxIIIA,P55131,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumoniae),yes,NZ_CP031859.1,JPEEAK_01353,emitted_overlap,yes,0.986,yes,0.976,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R05,T1SS,,hasA,Q54450,Serratia marcescens,yes,NZ_CP018927.1,BDEGOO_00321,emitted_overlap,yes,0.998,yes,0.982,no,OTHER,yes,yes,no,no,deeplocpro;deepsece,-,no
+T1SS_R06,T1SS,,hlyA,P08715,Escherichia coli,yes,NZ_CP031766.1,NJDLCG_05342,emitted_overlap,yes,0.983,yes,0.985,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R07,T1SS,,lktA,P0C082,Mannheimia haemolytica (Pasteurella haemolytica),yes,NZ_CP006957.3,OKNMBO_02445,emitted_overlap,yes,0.988,yes,0.989,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T1SS_R10,T1SS,,ltxA,P16462,Aggregatibacter actinomycetemcomitans (Actinobacillus actinomycetemcomitans) (Haemophilus actinomycetemcomitans),yes,NZ_JABJZG010000001.1,BKOJAN_00117,emitted_overlap,yes,0.871,yes,0.987,no,OTHER,yes,yes,no,no,deeplocpro;deepsece,-,no
+T1SS_R11,T1SS,,prtA,Q07295,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi),yes,NZ_JBBBOO010000010.1,PGMPLP_0087,emitted_overlap,yes,1.0,yes,0.996,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R12,T1SS,,prtA1,Q84F70,Photorhabdus luminescens (Xenorhabdus luminescens),yes,NZ_CAWQBW010000010.1,MKINFJ_0047,emitted_overlap,yes,0.991,yes,0.993,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T1SS_R13,T1SS,,prtB,P16316,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi),yes,NZ_CP023467.1,NBALGM_02260,emitted_overlap,yes,1.0,yes,0.997,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R14,T1SS,,prtC,P16317,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia chrysanthemi),yes,NZ_CP023467.1,NBALGM_02259,emitted_overlap,yes,1.0,yes,0.997,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T1SS_R15,T1SS,,rtxA,A1YKW7,Kingella kingae,yes,NZ_LN869922.1,ALNNFM_00316,emitted_overlap,yes,0.988,yes,0.989,no,OTHER,yes,no,no,no,deeplocpro;deepsece,deepsece,yes
+T2SS_01,T2SS,,lipoprotein,Q9KPR8,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T2SS_02,T2SS,,tagA-related,Q9KN18,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T2SS_03,T2SS,,lapA,P35482,Pseudomonas aeruginosa PAO1,yes,NC_002516.2,NFOBNJ_00713,emitted_overlap,yes,0.957,yes,0.983,yes,SP,yes,no,no,no,deeplocpro;deepsece;signalp,deepsece;signalp,yes
+T2SS_04,T2SS,,paAP,Q9HZQ8,Pseudomonas aeruginosa PAO1,no,NC_002516.2,,overlap_not_emitted,,,,,,,yes,yes,yes,no,-,-,
+T2SS_05,T2SS,,plaA,Q5ZT22,Legionella pneumophila Philadelphia-1,no,NC_002942.5,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T2SS_09,T2SS,,aerA,P09167,Aeromonas hydrophila ATCC 7966,no,NC_008570.1,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
+T2SS_13,T2SS,,stmPr1,Q93IQ4,Stenotrophomonas maltophilia K279a,no,NC_010943.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T2SS_15,T2SS,,pelI,E0SM75,Dickeya dadantii 3937,no,NC_014500.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_01,T3SS,,CopN,O84091,Chlamydia trachomatis D/UW-3/CX,yes,NC_000117.1,CIBMCK_0091,emitted_overlap,yes,0.992,yes,0.997,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T3SS_03,T3SS,,EspZ,Q7DB68,Escherichia coli O157:H7 Sakai,yes,NC_002128.1,NLKKIN_04858,emitted_overlap,yes,0.867,yes,0.997,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T3SS_04,T3SS,,EspJ,Q8XB62,Escherichia coli O157:H7 Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_05,T3SS,,NleC,Q8X834,Escherichia coli O157:H7 Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_06,T3SS,,NleG,Q8XAN6,Escherichia coli O157:H7 Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_07,T3SS,,EspL2,A0A0H3JP21,Escherichia coli O157:H7 Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_08,T3SS,,YopJ_YopP,Q9RI13,Yersinia pestis CO92,no,NC_003131.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_09,T3SS,,SipA,P0CL52,Salmonella enterica Typhimurium LT2,no,NC_003197.2,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
+T3SS_11,T3SS,,PipA,Q8ZQ60,Salmonella enterica Typhimurium LT2,no,NC_003197.2,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_17,T3SS,,VopS,Q87P32,Vibrio parahaemolyticus RIMD 2210633,no,NC_004603.1,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
+T3SS_20,T3SS,,VirA,Q7BU69,Shigella flexneri 2a 301,yes,NC_004337.2,EICGHA_05231,emitted_overlap,yes,0.999,no,0.992,no,OTHER,yes,no,no,no,deeplocpro,-,no
+T3SS_21,T3SS,,BipC,Q63K35,Burkholderia pseudomallei K96243,yes,NC_006351.1,LNAIFI_01608,emitted_overlap,yes,0.995,yes,0.995,no,OTHER,no,yes,no,no,deeplocpro;deepsece,deeplocpro,yes
+T3SS_24,T3SS,,EspH,B7UMA2,Escherichia coli O127:H6 E2348/69 (EPEC),yes,NC_011601.1,FDFAGP_04181,emitted_overlap,yes,0.997,yes,0.99,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
+T3SS_25,T3SS,,NleD,B7UNX6,Escherichia coli O127:H6 (strain E2348/69 / EPEC),no,NC_011601.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_26,T3SS,,NleE,B7UI22,Escherichia coli O127:H6 (strain E2348/69 / EPEC),no,NC_011601.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T3SS_27,T3SS,,NleF,B7UR63,Escherichia coli O127:H6 (strain E2348/69 / EPEC),no,NC_011601.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T3SS_29,T3SS,,NleA_EspI,D2TJZ4,Citrobacter rodentium (strain ICC168),no,NC_013716.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T3SS_31,T3SS,,NleB,D2TT37,Citrobacter rodentium (strain ICC168),no,NC_013716.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T3SS_32,T3SS,,EspJ,D2TRY1,Citrobacter rodentium (strain ICC168),no,NC_013716.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T4SS_01,T4SS,,CagA,P55980,Helicobacter pylori 26695,no,NC_000915.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T4SS_02,T4SS,,Ceg14,Q5ZYD5,Legionella pneumophila Philadelphia 1,no,NC_002942.5,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T4SS_05,T4SS,,VirE3,A0A2Z2PK47,Agrobacterium fabrum str. C58,no,NC_003063.2_NC_003065.3,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T4SS_07,T4SS,,BepA,Q6G2A9,Bartonella henselae Houston-1,no,NC_005956.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T4SS_08,T4SS,,BtpB,Q2YN91,Brucella abortus 2308,no,NC_007618.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T4SS_09,T4SS,,VceC,Q2YQ34,Brucella abortus 2308,no,NC_007618.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T4SS_10,T4SS,,Ats-1,Q2GJL5,Anaplasma phagocytophilum HZ,no,NC_007797.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T4SS_11,T4SS,,Etf-1,Q2GG12,Ehrlichia chaffeensis Arkansas,no,NC_007799.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T5SS_01,T5SS,T5aSS,espP,Q7BSW5,Escherichia coli O157:H7 str. Sakai,yes,NC_002128.1,NLKKIN_00082,emitted_overlap,no,0.732,no,0.567,yes,SP,no,no,yes,yes,signalp,-,no
+T5SS_02,T5SS,T5aSS,flu,P39180,Escherichia coli K-12 MG1655,yes,NC_000913.3,KOIAIB_02103,emitted_overlap,no,0.427,no,0.742,yes,SP,yes,no,yes,yes,signalp,-,no
+T5SS_03,T5SS,T5aSS,iga,Q9K0B4,Neisseria meningitidis MC58,yes,AE002098,NEGFHK_00701,emitted_overlap,no,0.583,no,0.657,yes,SP,no,no,no,yes,signalp,signalp,yes
+T5SS_04,T5SS,T5aSS,pic,Q7BS42,Escherichia coli O44:H18 str. 042 (EAEC),yes,NC_017626.1,DCENBD_04908,emitted_overlap,no,0.745,no,0.434,yes,LIPO,yes,no,yes,yes,signalp,-,no
+T5SS_05,T5SS,T5aSS,sat,Q8FDW4,Escherichia coli O6:H1 str. CFT073 (UPEC),yes,NC_004431.1,HELNJG_03447,emitted_overlap,no,0.721,no,0.735,yes,SP,no,no,yes,yes,signalp,-,no
+T5SS_06,T5SS,T5bSS,bcpA,Q2SV12,Burkholderia thailandensis E264,no,NC_007650.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T5SS_07,T5SS,T5bSS,cdiA,Q0T963,Escherichia coli UPEC 536,no,NC_008253.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T5SS_08,T5SS,T5bSS,cdrA,Q9HVG6,Pseudomonas aeruginosa PAO1,yes,NC_002516.2,NFOBNJ_04813,emitted_overlap,yes,0.906,no,0.412,yes,SP,yes,no,no,no,deeplocpro;signalp,signalp,yes
+T5SS_09,T5SS,T5bSS,fhaB,P12255,Bordetella pertussis Tohama I,no,BX470248,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
+T5SS_10,T5SS,T5bSS,hmw1A,Q48031,Haemophilus influenzae R2846 (strain 12),yes,NC_017452.1,AJBMGG_00724,emitted_overlap,yes,0.953,no,0.332,yes,LIPO,no,no,no,no,deeplocpro;signalp,deeplocpro;signalp,yes
+T5SS_11,T5SS,T5bSS,hpmA,B4F0Z9,Proteus mirabilis HI4320,no,NC_010554.1_NC_010555.1,,overlap_not_emitted,,,,,,,no,no,yes,no,-,-,
+T5SS_12,T5SS,T5bSS,hxuA,P44602,Haemophilus influenzae Rd KW20,yes,NC_000907.1,CCMPAC_00289,emitted_overlap,yes,0.976,no,0.811,yes,SP,yes,no,no,no,deeplocpro;signalp,signalp,yes
+T5SS_13,T5SS,T5bSS,lspA1,Q7VLE8,Haemophilus ducreyi 35000HP,no,NC_002940.2,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T5SS_14,T5SS,T5bSS,lspA2,Q9ZHL0,Haemophilus ducreyi 35000HP,no,NC_002940.2,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T5SS_15,T5SS,T5bSS,shlA,P15320,Serratia marcescens subsp. marcescens Db11,no,NZ_HG326223.1,,overlap_not_emitted,,,,,,,yes,no,yes,no,-,-,
+T5SS_16,T5SS,T5cSS,nadA,Q9JXK7,Neisseria meningitidis serogroup B str. MC58,yes,AE002098,NEGFHK_02005,emitted_overlap,no,0.087,no,0.741,yes,SP,yes,no,no,yes,signalp,signalp,yes
+T5SS_17,T5SS,T5cSS,yadA,A1JUB7,Yersinia enterocolitica subsp. enterocolitica 8081,yes,NC_008791.1,DIBMGG_00062,emitted_overlap,no,0.08,no,0.638,yes,SP,yes,no,no,yes,signalp,signalp,yes
+T5SS_18,T5SS,T5dSS,plpD,Q9HYQ6,Pseudomonas aeruginosa PAO1,no,NC_002516.2,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T5SS_19,T5SS,T5eSS,eae,P43261,Escherichia coli O157:H7 str. Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
+T6SS_01,T6SS,,TseL,Q9KS43,Vibrio cholerae N16961,yes,NC_002505.1,ACMILJ_01404,emitted_overlap,yes,0.808,yes,0.993,no,OTHER,yes,yes,no,no,deeplocpro;deepsece,-,no
+T6SS_02,T6SS,,VasX,Q9KNE5,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
+T6SS_03,T6SS,,TseH,Q9KMN9,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T6SS_04,T6SS,,VgrG-3,Q9KN42,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,yes,yes,no,yes,-,-,
+T6SS_05,T6SS,,Tse7,Q9I733,Pseudomonas aeruginosa PAO1,no,NC_002516.2,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T6SS_06,T6SS,,TplE_alias_Tle4,Q9I3K2,Pseudomonas aeruginosa PAO1,yes,NC_002516.2,NFOBNJ_01564,emitted_overlap,no,0.637,yes,0.998,no,OTHER,yes,yes,no,no,deepsece,-,no
+T6SS_08,T6SS,,Tae_Atu4347,Q7CUP8,Agrobacterium tumefaciens C58,yes,NC_003063.2_NC_003065.3,AAOKNN_01320,emitted_overlap,yes,0.993,yes,0.999,no,OTHER,no,yes,no,no,deeplocpro;deepsece,deeplocpro,yes
+T6SS_09,T6SS,,TseM,Q2T422,Burkholderia thailandensis E264,no,NC_007650.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T6SS_10,T6SS,,Tle1,Q2SV36,Burkholderia thailandensis E264,yes,NC_007650.1,EGNGPM_05100,emitted_overlap,no,0.483,yes,0.999,no,OTHER,no,yes,no,no,deepsece,-,no
+T6SS_13,T6SS,,YezP_Zn_binding,-,Yersinia pseudotuberculosis YPIII,no,NC_010465.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,
+T6SS_16,T6SS,,EvpQ_C70_protease,A0AAU8P3V9,Edwardsiella piscicida EIB202,no,NC_013508.1,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
+T6SS_17,T6SS,,Tae4_Stm,A0A0F6AX79,Salmonella enterica Typhimurium 14028,yes,NC_016856.1,KHNKPC_00292,emitted_overlap,yes,0.991,yes,0.999,no,OTHER,no,yes,no,no,deeplocpro;deepsece,deeplocpro,yes
+T6SS_18,T6SS,,Tle1_Sci1,B7LG63,Escherichia coli 042,yes,NC_017626.1,DCENBD_04851,emitted_overlap,yes,0.839,yes,0.989,no,OTHER,no,no,no,no,deeplocpro;deepsece,deeplocpro;deepsece,yes
