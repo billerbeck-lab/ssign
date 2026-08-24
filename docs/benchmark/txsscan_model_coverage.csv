@@ -1,0 +1,86 @@
+instance_id,ss_type,subtype,gene,organism,contig,run_unit,compatible_models,models_missing_from_txsscan,detected_in_genome,status,cause,component_profiles_hit,best_wholeness,reachable_within_3,found_by_ssign
+T1SS_02,T1SS,,aprA,Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP ,NC_002516.2,NC_002516.2,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_03,T1SS,,rsaA,Caulobacter vibrioides (strain ATCC 19089 / CIP 103742 / CB ,AE005673.1,AE005673,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_04,T1SS,,cya,Bordetella pertussis Tohama I,BX470248.1,BX470248,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_06,T1SS,,prtA,Photorhabdus laumondii subsp. laumondii TT01,BX470251.1,BX470251,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_07,T1SS,,aprA,Pseudomonas entomophila (strain L48),CT573326.1,CT573326,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R01,T1SS,,Serralysin,Serratia marcescens,NZ_JBCGCZ010000007.1,NZ_JBCGCZ010000007.1,T1SS,-,T1SS,detected,,,,no,no
+T1SS_R02,T1SS,,apxIA,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumonia,NZ_CBDBTK010000022.1,NZ_CBDBTK010000022.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R03,T1SS,,apxIIA,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumonia,NC_010939.1,NC_010939.1,T1SS,-,T1SS,detected,,,,no,no
+T1SS_R04,T1SS,,apxIIIA,Actinobacillus pleuropneumoniae (Haemophilus pleuropneumonia,NZ_CP031859.1,NZ_CP031859.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R05,T1SS,,hasA,Serratia marcescens,NZ_CP018927.1,NZ_CP018927.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R06,T1SS,,hlyA,Escherichia coli,NZ_CP031766.1,NZ_CP031766.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R07,T1SS,,lktA,Mannheimia haemolytica (Pasteurella haemolytica),NZ_CP006957.3,NZ_CP006957.3,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R10,T1SS,,ltxA,Aggregatibacter actinomycetemcomitans (Actinobacillus actino,NZ_JABJZG010000001.1,NZ_JABJZG010000001.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R11,T1SS,,prtA,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia ,NZ_JBBBOO010000010.1,NZ_JBBBOO010000010.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R12,T1SS,,prtA1,Photorhabdus luminescens (Xenorhabdus luminescens),NZ_CAWQBW010000010.1,NZ_CAWQBW010000010.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R13,T1SS,,prtB,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia ,NZ_CP023467.1,NZ_CP023467.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R14,T1SS,,prtC,Dickeya chrysanthemi (Pectobacterium chrysanthemi) (Erwinia ,NZ_CP023467.1,NZ_CP023467.1,T1SS,-,T1SS,detected,,,,yes,yes
+T1SS_R15,T1SS,,rtxA,Kingella kingae,NZ_LN869922.1,NZ_LN869922.1,T1SS,-,T1SS,detected,,,,yes,yes
+T2SS_01,T2SS,,lipoprotein,Vibrio cholerae N16961,NC_002505.1,NC_002505.1,T2SS,-,T2SS,detected,,,,no,no
+T2SS_02,T2SS,,tagA-related,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,T2SS,-,T2SS,detected,,,,no,no
+T2SS_03,T2SS,,lapA,Pseudomonas aeruginosa PAO1,NC_002516.2,NC_002516.2,T2SS,-,T2SS,detected,,,,yes,yes
+T2SS_04,T2SS,,paAP,Pseudomonas aeruginosa PAO1,NC_002516.2,NC_002516.2,T2SS,-,T2SS,detected,,,,no,no
+T2SS_05,T2SS,,plaA,Legionella pneumophila Philadelphia-1,NC_002942.5,NC_002942.5,T2SS,-,T2SS,detected,,,,no,no
+T2SS_09,T2SS,,aerA,Aeromonas hydrophila ATCC 7966,NC_008570.1,NC_008570.1,T2SS,-,T2SS,detected,,,,no,no
+T2SS_13,T2SS,,stmPr1,Stenotrophomonas maltophilia K279a,NC_010943.1,NC_010943.1,T2SS,-,T2SS,detected,,,,no,no
+T2SS_15,T2SS,,pelI,Dickeya dadantii 3937,NC_014500.1,NC_014500.1,T2SS,-,T2SS,detected,,,,no,no
+T3SS_01,T3SS,,CopN,Chlamydia trachomatis D/UW-3/CX,NC_000117.1,NC_000117.1,T3SS,-,T3SS,detected,,,,yes,yes
+T3SS_03,T3SS,,EspZ,Escherichia coli O157:H7 Sakai,NC_002695.2,NC_002128.1,T3SS,-,T3SS,detected,,,,yes,yes
+T3SS_04,T3SS,,EspJ,Escherichia coli O157:H7 Sakai,NC_002695.2,NC_002128.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_05,T3SS,,NleC,Escherichia coli O157:H7 Sakai,NC_002695.2,NC_002128.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_06,T3SS,,NleG,Escherichia coli O157:H7 Sakai,NC_002695.2,NC_002128.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_07,T3SS,,EspL2,Escherichia coli O157:H7 Sakai,NC_002695.2,NC_002128.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_08,T3SS,,YopJ_YopP,Yersinia pestis CO92,NC_003131.1,NC_003131.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_09,T3SS,,SipA,Salmonella enterica Typhimurium LT2,NC_003197.2,NC_003197.2,T3SS,-,T3SS,detected,,,,no,no
+T3SS_11,T3SS,,PipA,Salmonella enterica Typhimurium LT2,NC_003197.2,NC_003197.2,T3SS,-,T3SS,detected,,,,no,no
+T3SS_17,T3SS,,VopS,Vibrio parahaemolyticus RIMD 2210633,NC_004603.1,NC_004603.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_20,T3SS,,VirA,Shigella flexneri 2a 301,NC_004851.1,NC_004337.2,T3SS,-,T3SS,detected,,,,no,yes
+T3SS_21,T3SS,,BipC,Burkholderia pseudomallei K96243,NC_006351.1,NC_006351.1,T3SS,-,T3SS,detected,,,,yes,yes
+T3SS_24,T3SS,,EspH,Escherichia coli O127:H6 E2348/69 (EPEC),NC_011601.1,NC_011601.1,T3SS,-,T3SS,detected,,,,yes,yes
+T3SS_25,T3SS,,NleD,Escherichia coli O127:H6 (strain E2348/69 / EPEC),NC_011601.1,NC_011601.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_26,T3SS,,NleE,Escherichia coli O127:H6 (strain E2348/69 / EPEC),NC_011601.1,NC_011601.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_27,T3SS,,NleF,Escherichia coli O127:H6 (strain E2348/69 / EPEC),NC_011601.1,NC_011601.1,T3SS,-,T3SS,detected,,,,no,no
+T3SS_29,T3SS,,NleA_EspI,Citrobacter rodentium (strain ICC168),NC_013716.1,NC_013716.1,T3SS,-,-,low_wholeness,T3SS at 0.778; all below ssign's 0.8,,0.778,no,no
+T3SS_31,T3SS,,NleB,Citrobacter rodentium (strain ICC168),NC_013716.1,NC_013716.1,T3SS,-,-,low_wholeness,T3SS at 0.778; all below ssign's 0.8,,0.778,no,no
+T3SS_32,T3SS,,EspJ,Citrobacter rodentium (strain ICC168),NC_013716.1,NC_013716.1,T3SS,-,-,low_wholeness,T3SS at 0.778; all below ssign's 0.8,,0.778,no,no
+T4SS_01,T4SS,,CagA,Helicobacter pylori 26695,NC_000915.1,NC_000915.1,"pT4SSi,pT4SSt",-,-,not_colocalised,7 component profiles matched but no cluster passed: The quorum of genes required (6) is not reached: 2; The quorum of genes required (6) is not reached: 4,"T4SS_T_virB10,T4SS_T_virB11,T4SS_T_virB2,T4SS_T_virB6,T4SS_T_virB8,T4SS_t4cp1,T4SS_virb4",,no,no
+T4SS_02,T4SS,,Ceg14,Legionella pneumophila Philadelphia 1,NC_002942.5,NC_002942.5,"pT4SSi,pT4SSt",-,-,low_wholeness,"pT4SSt at 0.727, pT4SSi at 0.588; all below ssign's 0.8",,0.727,no,no
+T4SS_05,T4SS,,VirE3,Agrobacterium fabrum str. C58,NC_003065.3,NC_003063.2_NC_003065.3,"pT4SSi,pT4SSt",-,pT4SSt,detected,,,,no,no
+T4SS_07,T4SS,,BepA,Bartonella henselae Houston-1,NC_005956.1,NC_005956.1,"pT4SSi,pT4SSt",-,pT4SSt,detected,,,,no,no
+T4SS_08,T4SS,,BtpB,Brucella abortus 2308,NC_007618.1,NC_007618.1,"pT4SSi,pT4SSt",-,pT4SSt,detected,,,,no,no
+T4SS_09,T4SS,,VceC,Brucella abortus 2308,NC_007618.1,NC_007618.1,"pT4SSi,pT4SSt",-,pT4SSt,detected,,,,no,no
+T4SS_10,T4SS,,Ats-1,Anaplasma phagocytophilum HZ,NC_007797.1,NC_007797.1,"pT4SSi,pT4SSt",-,-,not_colocalised,7 component profiles matched but no cluster passed: The quorum of genes required (6) is not reached: 3; The quorum of mandatory genes required (1) is not reached: 0,"T4SS_T_virB11,T4SS_T_virB3,T4SS_T_virB6,T4SS_T_virB8,T4SS_T_virB9,T4SS_t4cp1,T4SS_virb4",,no,no
+T4SS_11,T4SS,,Etf-1,Ehrlichia chaffeensis Arkansas,NC_007799.1,NC_007799.1,"pT4SSi,pT4SSt",-,-,not_colocalised,7 component profiles matched but no cluster passed: The quorum of mandatory genes required (1) is not reached: 0; The quorum of genes required (6) is not reached: 4,"T4SS_T_virB11,T4SS_T_virB3,T4SS_T_virB6,T4SS_T_virB8,T4SS_T_virB9,T4SS_t4cp1,T4SS_virb4",,no,no
+T5SS_01,T5SS,T5aSS,espP,Escherichia coli O157:H7 str. Sakai,NC_002128.1,NC_002128.1,T5aSS,-,T5aSS,detected,,,,self,yes
+T5SS_02,T5SS,T5aSS,flu,Escherichia coli K-12 MG1655,NC_000913.3,NC_000913.3,T5aSS,-,T5aSS,detected,,,,self,yes
+T5SS_03,T5SS,T5aSS,iga,Neisseria meningitidis MC58,NC_003112.2,AE002098,T5aSS,-,T5aSS,detected,,,,self,yes
+T5SS_04,T5SS,T5aSS,pic,Escherichia coli O44:H18 str. 042 (EAEC),NC_017626.1,NC_017626.1,T5aSS,-,T5aSS,detected,,,,self,yes
+T5SS_05,T5SS,T5aSS,sat,Escherichia coli O6:H1 str. CFT073 (UPEC),NC_004431.1,NC_004431.1,T5aSS,-,T5aSS,detected,,,,self,yes
+T5SS_06,T5SS,T5bSS,bcpA,Burkholderia thailandensis E264,NC_007651.1,NC_007650.1,T5bSS,-,T5bSS,detected,,,,yes,no
+T5SS_07,T5SS,T5bSS,cdiA,Escherichia coli UPEC 536,NC_008253.1,NC_008253.1,T5bSS,-,T5bSS,detected,,,,yes,no
+T5SS_08,T5SS,T5bSS,cdrA,Pseudomonas aeruginosa PAO1,AE004091.2,NC_002516.2,T5bSS,-,T5bSS,detected,,,,yes,yes
+T5SS_09,T5SS,T5bSS,fhaB,Bordetella pertussis Tohama I,NC_002929.2,BX470248,T5bSS,-,T5bSS,detected,,,,no,no
+T5SS_10,T5SS,T5bSS,hmw1A,Haemophilus influenzae R2846 (strain 12),NC_017452.1,NC_017452.1,T5bSS,-,T5bSS,detected,,,,yes,yes
+T5SS_11,T5SS,T5bSS,hpmA,Proteus mirabilis HI4320,NC_010554.1,NC_010554.1_NC_010555.1,T5bSS,-,T5bSS,detected,,,,yes,no
+T5SS_12,T5SS,T5bSS,hxuA,Haemophilus influenzae Rd KW20,NC_000907.1,NC_000907.1,T5bSS,-,T5bSS,detected,,,,yes,yes
+T5SS_13,T5SS,T5bSS,lspA1,Haemophilus ducreyi 35000HP,NC_002940.2,NC_002940.2,T5bSS,-,T5bSS,detected,,,,no,no
+T5SS_14,T5SS,T5bSS,lspA2,Haemophilus ducreyi 35000HP,NC_002940.2,NC_002940.2,T5bSS,-,T5bSS,detected,,,,yes,no
+T5SS_15,T5SS,T5bSS,shlA,Serratia marcescens subsp. marcescens Db11,NZ_HG326223.1,NZ_HG326223.1,T5bSS,-,T5bSS,detected,,,,yes,no
+T5SS_16,T5SS,T5cSS,nadA,Neisseria meningitidis serogroup B str. MC58,NC_003112.2,AE002098,T5cSS,-,T5cSS,detected,,,,self,yes
+T5SS_17,T5SS,T5cSS,yadA,Yersinia enterocolitica subsp. enterocolitica 8081,NC_008791.1,NC_008791.1,T5cSS,-,T5cSS,detected,,,,self,yes
+T5SS_18,T5SS,T5dSS,plpD,Pseudomonas aeruginosa PAO1,AE004091.2,NC_002516.2,-,-,-,no_model,no TXSScan model,,,self,no
+T5SS_19,T5SS,T5eSS,eae,Escherichia coli O157:H7 str. Sakai,NC_002695.2,NC_002128.1,-,-,-,no_model,no TXSScan model,,,self,no
+T6SS_01,T6SS,,TseL,Vibrio cholerae N16961,NC_002505.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
+T6SS_02,T6SS,,VasX,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,no,no
+T6SS_03,T6SS,,TseH,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,no,no
+T6SS_04,T6SS,,VgrG-3,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,no
+T6SS_05,T6SS,,Tse7,Pseudomonas aeruginosa PAO1,NC_002516.2,NC_002516.2,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,no,no
+T6SS_06,T6SS,,TplE_alias_Tle4,Pseudomonas aeruginosa PAO1,NC_002516.2,NC_002516.2,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
+T6SS_08,T6SS,,Tae_Atu4347,Agrobacterium tumefaciens C58,NC_003063.2,NC_003063.2_NC_003065.3,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
+T6SS_09,T6SS,,TseM,Burkholderia thailandensis E264,NC_007650.1,NC_007650.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,no
+T6SS_10,T6SS,,Tle1,Burkholderia thailandensis E264,NC_007651.1,NC_007650.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
+T6SS_13,T6SS,,YezP_Zn_binding,Yersinia pseudotuberculosis YPIII,NC_010465.1,NC_010465.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,no
+T6SS_16,T6SS,,EvpQ_C70_protease,Edwardsiella piscicida EIB202,NC_013508.1,NC_013508.1,"T6SSi,T6SSii,T6SSiii",-,-,low_wholeness,T6SSi at 0.786; all below ssign's 0.8,,0.786,no,no
+T6SS_17,T6SS,,Tae4_Stm,Salmonella enterica Typhimurium 14028,NC_016856.1,NC_016856.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
+T6SS_18,T6SS,,Tle1_Sci1,Escherichia coli 042,NC_017626.1,NC_017626.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
