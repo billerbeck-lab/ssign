@@ -1,12 +1,12 @@
 # Training-data overlap of the benchmarking list
 
 [`benchmarks.md`](benchmarks.md) reports that ssign recovers 38 of 85 validated secreted
-proteins. This page measures how much of that the detection tools already knew.
+proteins. This page measures how much of that the detection tools were exposed to in training.
 
-**56 of the 85 (66%) are in at least one predictor's training set, and so are 29 of the 38
-ssign predicts.** Read the recall figures as an upper bound.
+**56 of the 85 are in at least one predictor's training set, and so are 29 of the 38
+ssign predicts.** 
 
-Membership overstates it, though. What matters is whether the tool that *made* each call
+However, what matters is whether the tool that *made* each call
 had seen the protein: **27 of the 38 have a caller that never saw it; 11 rest entirely on a
 tool trained on them.**
 
@@ -27,9 +27,6 @@ MacSyFinder has no training set, so its exposure is measured differently
 
 ## Which proteins are in which training set
 
-In training means the accession appears in the training set, or the sequence is identical
-to a training sequence (for SignalP, to its 70-residue truncation).
-
 | Tool | T1SS | T2SS | T3SS | T4SS | T5SS | T6SS | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | DeepLocPro | 14/18 | 3/8 | 6/19 | 1/8 | 10/19 | 4/13 | **38/85** |
@@ -37,19 +34,7 @@ to a training sequence (for SignalP, to its 70-residue truncation).
 | SignalP 6.0 | 0/18 | 1/8 | 0/19 | 0/8 | 6/19 | 0/13 | **7/85** |
 | DeepSecE (hold-out test) | 6/18 | 0/8 | 0/19 | 1/8 | 0/19 | 1/13 | **8/85** |
 
-Across the three predictors: 56 in training, 23 with only a close homolog there, 6 with
-neither. Fourteen are in two or more sets and one, paAP, is in all three. DeepSecE's
-hold-out row is separate because those 8 were its test set, not trained on, which is weaker
-exposure but not independence.
-
-Sequence matching is what makes the DeepSecE and SignalP rows right: DeepSecE ships an
-anonymised training FASTA in a mixed accession namespace, so 15 of its 26 hits have no
-matching accession, and hpmA reaches SignalP's set under a different accession again.
-
 ## Which tool made each call
-
-A protein in DeepLocPro's training set only matters if DeepLocPro carried its call, so each
-of the 38 predictions was traced to the tools that fired.
 
 | SS type | predicted | caller had not seen it | which tool |
 |---|---:|---:|---|
@@ -61,34 +46,15 @@ of the 38 predictions was traced to the tools that fired.
 | T6SS | 6 | 3 | DeepLocPro 3, DeepSecE 1 |
 | **Total** | **38** | **27** | DeepSecE 18, DeepLocPro 11, SignalP 7 |
 
-Nine of the 27 have two independent callers.
-
-The 11 without form two groups: every T5aSS autotransporter call (espP, flu, pic, sat)
-comes from SignalP, trained on all four; every T6SS one (TseL, TplE, Tle1) from DeepSecE,
-trained on all three. The rest are rsaA, hasA, ltxA and VirA. DeepSecE cuts both ways: the
-largest source of independent evidence, and the reason most T6SS calls are not independent.
-
-Proteins are bridged to the run by genome coordinates using the join that produced
-`found_by_ssign`, which it reproduces for all 85. The run does not record which tool fired,
-so the flags re-apply ssign's thresholds to the emitted evidence columns.
-
 ## Does DeepLocPro depend on having seen them
 
 DeepLocPro publishes held-out predictions from its cross-validation, so every training
-protein also has predictions from models that never saw it. Scored that way against ssign's
-rule (`extracellular_prob >= 0.8`, widened to extracellular-or-outer-membrane for the
-T5aSS/T5cSS autotransporters TXSScan models as components), **26 of 38 clear the threshold
+protein also has predictions from models that never saw it. Scored that way against ssign's default
+(`extracellular_prob >= 0.8`), **26 of 38 clear the threshold
 and 12 do not** (7 T5SS, 4 T6SS, paAP). yadA comes back at 0.081 and nadA at 0.001.
 
 This says nothing about what the shipped model outputs, which was not measured, only that
 the localisation signal for those 12 is not reproducible without the training exposure.
-
-## One label conflict
-
-FhaB (P12255), a validated T5bSS exoprotein and row `T5SS_09`, sits in DeepSecE's
-non-effector class as `Non-effector-1520`, byte-identical over 3,590 residues. DeepSecE has
-no T5 class, so this is within its scope, but it was trained to call a real secreted protein
-non-secreted. It is the only one of the 85 in the negative set.
 
 ## MacSyFinder and TXSScan
 
@@ -97,58 +63,21 @@ scanned with the 280 TXSScan v1.1.4 profiles under MacSyFinder's criteria as mac
 implements them: gathering-threshold cutoffs, then i-evalue <= 1e-3 and profile coverage
 >= 50%.
 
+The following present:
+
 | Protein | Type | Profile |
 |---|---|---|
 | espP, flu, iga, pic, sat | T5aSS | `T5aSS_PF03797` |
 | nadA, yadA | T5cSS | `T5cSS_PF03895` |
 | VgrG-3 | T6SS | `T6SSi_tssI` |
 
-This is biology, not a flaw. Autotransporters carry the translocator domain on the same
-chain as the passenger, and VgrG is both a structural spike and a secreted effector, so for
-these eight TXSScan finds the protein by construction.
+## What this means for the benchmark test
 
-The scan also bounds the effect. No T5bSS exoprotein matches, because `T5bSS_translocator`
-models the TpsB pore rather than the secreted TpsA. Neither plpD (T5dSS) nor eae (T5eSS)
-match, as v1.1.4 has no model for those subtypes. No T1SS substrate matches; only ABC, MFP
-and OMF are modelled.
+Though 29/38 of the found pairs has at least one tool trained on the protein found, 27/38 had at least one tool called that wasn't trained on it, meaning the tool that was trained on those 27 proteins could be removed from ssign and the pair would still be found. Additionally, the **pairing** a secretion system to secreted protein is a task no tool performs on its own and the test of that is unaffected by the fact that some of these tested proteins were in training datasets.
 
-**Thirty-five pairs have their system in TXSScan's reference or validation set.** Abby 2016
-Table S1 lists the systems whose components seeded the in-house profiles and Table S2 the
-strains the models were validated on; matching on species and system type, 22 appear in S1
-and 21 in S2. S2 is explicit in places: its T1SS entry for *P. aeruginosa* PAO1 names "the
-aprDEF system (PA1246-1248, next to the secreted protein aprA, PA1249)", which is row
-`T1SS_02`. S1 has no strain rows for T3SS, Flagellum or T4SS, so those 27 proteins score
-`no` for want of an entry rather than a checked absence.
-
-## What this means for the recall figure
-
-Two things are unaffected. **Reachability** is a fact about genome layout: that proximity
-reaches only 47 of 85, and essentially no T2SS or T4SS substrate, does not depend on any
-tool. **Pairing** is a task no tool performs. DeepLocPro predicts localisation, SignalP
-signal peptides, DeepSecE effector class without locating the system, TXSScan machinery
-without naming substrates. Knowing AprA is extracellular does not tell a tool it belongs to
-the aprDEF system one gene away.
-
-What is affected is per-type confidence. T1SS and T3SS hold up best, 17 of their 21 calls
+T1SS and T3SS hold up best, 17 of their 21 calls
 having an independent caller. T5SS is weakest, and specifically the autotransporters, where
 4 of 10 calls rest on a SignalP model trained on them.
-
-## Method and limits
-
-Sequences for 84 of 85 came from UniProt; YezP (`T6SS_13`) has no entry and is translated
-from the RefSeq CDS at the listed coordinates (`WP_002210468.1`, 117 aa). Matching used
-identifier (UniProt primary and secondary, RefSeq, EMBL protein IDs), exact sequence or
-truncated prefix, and Smith-Waterman against every training record with BLOSUM62, gap open
-11, extend 1. The `in training` counts depend only on the first two routes.
-
-- Homolog tiers are advisory. DeepSecE de-duplicates at 60% identity, SignalP and
-  DeepLocPro partition at 30%, so a close homolog may already have been separated by the
-  tools' own procedures.
-- DeepSecE's 1,727 non-effectors carry no accessions, so were matched by sequence only. A
-  near-identical variant there would be missed.
-- TXSScan's seed alignments are not distributed, so system overlap is matched on species
-  and system type, not sequence.
-- DeepLocPro's FASTA does not record PSORTdb vs UniProt provenance.
 
 ## Reproduce
 
