@@ -29,8 +29,8 @@ from _paths import BENCHMARK_CSV, ROOT, WORK
 sys.path.insert(0, os.path.join(ROOT, "validation_sweeps", "benchmark", "scripts"))
 from rerun_coords import RerunIndex, _emitted_path, _unit_dirs  # noqa: E402
 
-CONF = 0.8               # constants.CONF_THRESHOLD
-VALID_SEC = ("SP", "LIPO")   # constants.VALID_SEC_SIGNAL_TYPES: Sec/SPI + Sec/SPII
+CONF = 0.8  # constants.CONF_THRESHOLD
+VALID_SEC = ("SP", "LIPO")  # constants.VALID_SEC_SIGNAL_TYPES: Sec/SPI + Sec/SPII
 # TXSScan profiles whose hit means the protein IS the modelled component, so the
 # wider extracellular-or-outer-membrane rule applies (T5SS_COMPONENT_RULES).
 EXT_OR_OM = {"T5aSS_PF03797", "T5cSS_PF03895"}
@@ -49,7 +49,7 @@ def secreted_rows(path):
     if start is None:
         return []
     end = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == ""), len(lines))
-    block = lines[start + 1:end]
+    block = lines[start + 1 : end]
     return list(csv.DictReader(io.StringIO("\n".join(block)))) if block else []
 
 
@@ -75,10 +75,15 @@ for b in csv.DictReader(open(BENCHMARK_CSV)):
     o = overlap[iid]
     j = idx.emitted_overlap(b["contig"], int(b["start"]), int(b["stop"]), b["strand"])
     row = {
-        "instance_id": iid, "ss_type": b["ss_type"], "subtype": b["subtype"],
-        "gene": b["gene"], "uniprot": b["uniprot"], "organism": b["organism"],
+        "instance_id": iid,
+        "ss_type": b["ss_type"],
+        "subtype": b["subtype"],
+        "gene": b["gene"],
+        "uniprot": b["uniprot"],
+        "organism": b["organism"],
         "found_by_ssign": b["found_by_ssign"],
-        "run_unit": j["unit"] if j else "", "emitted_locus": j["emitted_locus"] if j else "",
+        "run_unit": j["unit"] if j else "",
+        "emitted_locus": j["emitted_locus"] if j else "",
         "join_reason": j["reason"] if j else "contig_absent_from_run",
     }
     ev = evidence.get((row["run_unit"], row["emitted_locus"])) if row["emitted_locus"] else None
@@ -86,21 +91,33 @@ for b in csv.DictReader(open(BENCHMARK_CSV)):
         wide = iid in self_component
         dlp_val = max(f(ev.get("dlp_extracellular_prob")), f(ev.get("outer_membrane_prob")) if wide else 0.0)
         dlp = dlp_val >= CONF
-        dse = (bool((ev.get("dse_ss_type") or "").strip())
-               and f(ev.get("dse_max_prob")) >= CONF
-               and str(ev.get("dse_type_match", "")).strip().lower() in ("true", "yes", "1"))
+        dse = (
+            bool((ev.get("dse_ss_type") or "").strip())
+            and f(ev.get("dse_max_prob")) >= CONF
+            and str(ev.get("dse_type_match", "")).strip().lower() in ("true", "yes", "1")
+        )
         sp = any((ev.get("signalp_prediction") or "").upper().startswith(k) for k in VALID_SEC)
-        row.update({
-            "deeplocpro_called": "yes" if dlp else "no",
-            "deeplocpro_value": round(dlp_val, 3),
-            "deepsece_called": "yes" if dse else "no",
-            "deepsece_value": round(f(ev.get("dse_max_prob")), 3),
-            "signalp_called": "yes" if sp else "no",
-            "signalp_prediction": (ev.get("signalp_prediction") or "").strip(),
-        })
+        row.update(
+            {
+                "deeplocpro_called": "yes" if dlp else "no",
+                "deeplocpro_value": round(dlp_val, 3),
+                "deepsece_called": "yes" if dse else "no",
+                "deepsece_value": round(f(ev.get("dse_max_prob")), 3),
+                "signalp_called": "yes" if sp else "no",
+                "signalp_prediction": (ev.get("signalp_prediction") or "").strip(),
+            }
+        )
     else:
-        row.update({"deeplocpro_called": "", "deeplocpro_value": "", "deepsece_called": "",
-                    "deepsece_value": "", "signalp_called": "", "signalp_prediction": ""})
+        row.update(
+            {
+                "deeplocpro_called": "",
+                "deeplocpro_value": "",
+                "deepsece_called": "",
+                "deepsece_value": "",
+                "signalp_called": "",
+                "signalp_prediction": "",
+            }
+        )
     row["deeplocpro_trained_on"] = "yes" if o["deeplocpro_status"] == "IN_TRAINING" else "no"
     row["deepsece_trained_on"] = "yes" if o["deepsece_train_status"] == "IN_TRAINING" else "no"
     row["signalp_trained_on"] = "yes" if o["signalp6_status"] == "IN_TRAINING" else "no"

@@ -5,7 +5,7 @@ Writes:
   work/benchmark_uniprot.json   per-protein record (sequence, secondary ACs, xrefs)
   work/benchmark_proteins.fasta sequences keyed by instance_id
 
-84 of the 85 resolve from UniProt. YezP (T6SS_13) has no UniProtKB entry at all,
+All but one resolve from UniProt. YezP (T6SS_13) has no UniProtKB entry at all,
 so it is taken from the RefSeq CDS at the coordinates recorded in the
 benchmarking list; that fallback is handled here rather than as a manual patch,
 so the whole audit reproduces from this one script.

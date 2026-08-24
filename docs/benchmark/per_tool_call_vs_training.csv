@@ -69,8 +69,6 @@ T5SS_14,T5SS,T5bSS,lspA2,Q9ZHL0,Haemophilus ducreyi 35000HP,no,NC_002940.2,,over
 T5SS_15,T5SS,T5bSS,shlA,P15320,Serratia marcescens subsp. marcescens Db11,no,NZ_HG326223.1,,overlap_not_emitted,,,,,,,yes,no,yes,no,-,-,
 T5SS_16,T5SS,T5cSS,nadA,Q9JXK7,Neisseria meningitidis serogroup B str. MC58,yes,AE002098,NEGFHK_02005,emitted_overlap,no,0.087,no,0.741,yes,SP,yes,no,no,yes,signalp,signalp,yes
 T5SS_17,T5SS,T5cSS,yadA,A1JUB7,Yersinia enterocolitica subsp. enterocolitica 8081,yes,NC_008791.1,DIBMGG_00062,emitted_overlap,no,0.08,no,0.638,yes,SP,yes,no,no,yes,signalp,signalp,yes
-T5SS_18,T5SS,T5dSS,plpD,Q9HYQ6,Pseudomonas aeruginosa PAO1,no,NC_002516.2,,overlap_not_emitted,,,,,,,no,no,no,no,-,-,
-T5SS_19,T5SS,T5eSS,eae,P43261,Escherichia coli O157:H7 str. Sakai,no,NC_002128.1,,overlap_not_emitted,,,,,,,yes,no,no,no,-,-,
 T6SS_01,T6SS,,TseL,Q9KS43,Vibrio cholerae N16961,yes,NC_002505.1,ACMILJ_01404,emitted_overlap,yes,0.808,yes,0.993,no,OTHER,yes,yes,no,no,deeplocpro;deepsece,-,no
 T6SS_02,T6SS,,VasX,Q9KNE5,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,yes,yes,no,no,-,-,
 T6SS_03,T6SS,,TseH,Q9KMN9,Vibrio cholerae N16961,no,NC_002505.1,,overlap_not_emitted,,,,,,,no,yes,no,no,-,-,

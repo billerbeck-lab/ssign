@@ -69,8 +69,6 @@ T5SS_14,T5SS,T5bSS,lspA2,Haemophilus ducreyi 35000HP,NC_002940.2,NC_002940.2,T5b
 T5SS_15,T5SS,T5bSS,shlA,Serratia marcescens subsp. marcescens Db11,NZ_HG326223.1,NZ_HG326223.1,T5bSS,-,T5bSS,detected,,,,yes,no
 T5SS_16,T5SS,T5cSS,nadA,Neisseria meningitidis serogroup B str. MC58,NC_003112.2,AE002098,T5cSS,-,T5cSS,detected,,,,self,yes
 T5SS_17,T5SS,T5cSS,yadA,Yersinia enterocolitica subsp. enterocolitica 8081,NC_008791.1,NC_008791.1,T5cSS,-,T5cSS,detected,,,,self,yes
-T5SS_18,T5SS,T5dSS,plpD,Pseudomonas aeruginosa PAO1,AE004091.2,NC_002516.2,-,-,-,no_model,no TXSScan model,,,self,no
-T5SS_19,T5SS,T5eSS,eae,Escherichia coli O157:H7 str. Sakai,NC_002695.2,NC_002128.1,-,-,-,no_model,no TXSScan model,,,self,no
 T6SS_01,T6SS,,TseL,Vibrio cholerae N16961,NC_002505.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,yes,yes
 T6SS_02,T6SS,,VasX,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,no,no
 T6SS_03,T6SS,,TseH,Vibrio cholerae N16961,NC_002506.1,NC_002505.1,"T6SSi,T6SSii,T6SSiii",-,T6SSi,detected,,,,no,no

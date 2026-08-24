@@ -24,16 +24,18 @@ from _paths import (
 W = WORK
 bench = {r["instance_id"]: r for r in csv.DictReader(open(BENCHMARK_CSV))}
 
+
 def load(path):
     if not os.path.exists(path):
         raise SystemExit(f"missing {path}")
     return {r["instance_id"]: r for r in csv.DictReader(open(path), delimiter="\t")}
 
+
 tools = {
-    "deeplocpro":       load(f"{W}/overlap_deeplocpro.tsv"),
-    "signalp6":         load(f"{W}/overlap_signalp6_train.tsv"),
-    "signalp6_complete":load(f"{W}/overlap_signalp6_complete.tsv"),
-    "deepsece_train":   load(f"{W}/overlap_deepsece_train.tsv"),
+    "deeplocpro": load(f"{W}/overlap_deeplocpro.tsv"),
+    "signalp6": load(f"{W}/overlap_signalp6_train.tsv"),
+    "signalp6_complete": load(f"{W}/overlap_signalp6_complete.tsv"),
+    "deepsece_train": load(f"{W}/overlap_deepsece_train.tsv"),
     "deepsece_holdout": load(f"{W}/overlap_deepsece_holdout.tsv"),
 }
 
@@ -60,9 +62,14 @@ rows = []
 missing = set()
 for iid, b in bench.items():
     o = {
-        "instance_id": iid, "ss_type": b["ss_type"], "subtype": b["subtype"],
-        "gene": b["gene"], "uniprot": b["uniprot"], "organism": b["organism"],
-        "reachable_within_3": b["reachable_within_3"], "found_by_ssign": b["found_by_ssign"],
+        "instance_id": iid,
+        "ss_type": b["ss_type"],
+        "subtype": b["subtype"],
+        "gene": b["gene"],
+        "uniprot": b["uniprot"],
+        "organism": b["organism"],
+        "reachable_within_3": b["reachable_within_3"],
+        "found_by_ssign": b["found_by_ssign"],
     }
     for tag, d in tools.items():
         # A protein that failed to resolve upstream is absent from the tool TSVs.
@@ -70,9 +77,13 @@ for iid, b in bench.items():
         r = d.get(iid)
         if r is None:
             missing.add(iid)
-            r = {"verdict": "UNRESOLVED", "best_pct_identity": "",
-                 "best_identical_residue_fraction": "", "matched_record": "",
-                 "best_hit_header": ""}
+            r = {
+                "verdict": "UNRESOLVED",
+                "best_pct_identity": "",
+                "best_identical_residue_fraction": "",
+                "matched_record": "",
+                "best_hit_header": "",
+            }
         o[f"{tag}_status"] = r["verdict"]
         o[f"{tag}_pct_identity"] = r["best_pct_identity"]
         o[f"{tag}_identical_residue_pct"] = r["best_identical_residue_fraction"]
@@ -85,8 +96,7 @@ for iid, b in bench.items():
     o["txsscan_system_in_profile_seed_set"] = g.get("S1_reference_same_system", "no")
     o["txsscan_system_in_validation_set"] = g.get("S2_validation_same_system", "no")
 
-    trained_on = [t for t in ("deeplocpro", "signalp6", "deepsece_train")
-                  if o[f"{t}_status"] in SEEN]
+    trained_on = [t for t in ("deeplocpro", "signalp6", "deepsece_train") if o[f"{t}_status"] in SEEN]
     o["n_predictors_trained_on_it"] = len(trained_on)
     o["predictors_trained_on_it"] = ";".join(trained_on) or "-"
     o["in_deepsece_holdout_test"] = "yes" if o["deepsece_holdout_status"] in SEEN else "no"
@@ -118,17 +128,23 @@ with open(OUT_CSV, "w", newline="") as fh:
 
 # ---------------- summary ----------------
 L = []
+
+
 def P(s=""):
     L.append(s)
     print(s)
 
-P(f"benchmark proteins: {len(rows)}")
+
+N = len(rows)  # list size, so the denominators follow the list rather than a frozen 85
+P(f"benchmark proteins: {N}")
 P()
 P("=== per-tool: benchmark proteins present in the tool's TRAINING data ===")
 for tag, label in TOOL_LABELS:
     c = Counter(r[f"{tag}_status"] for r in rows)
-    P(f"{label:<26} IN_TRAINING={c[IN_TRAINING]:<3} near-identical={c[NEAR_IDENTICAL_HOMOLOG]:<3} "
-      f"close={c[CLOSE_HOMOLOG]:<3} distant={c[DISTANT_HOMOLOG]:<3} none={c[NO_MEANINGFUL_MATCH]}")
+    P(
+        f"{label:<26} IN_TRAINING={c[IN_TRAINING]:<3} near-identical={c[NEAR_IDENTICAL_HOMOLOG]:<3} "
+        f"close={c[CLOSE_HOMOLOG]:<3} distant={c[DISTANT_HOMOLOG]:<3} none={c[NO_MEANINGFUL_MATCH]}"
+    )
 P()
 P("=== per-tool IN_TRAINING, broken down by SS type ===")
 types = ["T1SS", "T2SS", "T3SS", "T4SS", "T5SS", "T6SS"]
@@ -140,22 +156,24 @@ for tag, label in TOOL_LABELS:
         d = sum(1 for r in rows if r["ss_type"] == t)
         cells.append(f"{n}/{d}")
     tot = sum(1 for r in rows if r[f"{tag}_status"] == IN_TRAINING)
-    P(f"{label:<26}" + "".join(f"{c:>8}" for c in cells) + f"{str(tot)+'/85':>8}")
+    P(f"{label:<26}" + "".join(f"{c:>8}" for c in cells) + f"{f'{tot}/{N}':>8}")
 P()
 P("=== overall substrate-level leakage (DLP / SignalP / DeepSecE training sets) ===")
 c = Counter(r["substrate_leakage"] for r in rows)
 for k in ("direct", "homolog_only", "none"):
-    P(f"  {k:<14} {c[k]:>3}/85  ({100*c[k]/85:.0f}%)")
-P(f"  seen by >=2 predictors: {sum(1 for r in rows if r['n_predictors_trained_on_it'] >= 2)}/85")
-P(f"  seen by all 3:          {sum(1 for r in rows if r['n_predictors_trained_on_it'] == 3)}/85")
+    P(f"  {k:<14} {c[k]:>3}/{N}  ({100 * c[k] / N:.0f}%)")
+P(f"  seen by >=2 predictors: {sum(1 for r in rows if r['n_predictors_trained_on_it'] >= 2)}/{N}")
+P(f"  seen by all 3:          {sum(1 for r in rows if r['n_predictors_trained_on_it'] == 3)}/{N}")
 P()
 P("=== MacSyFinder / TXSScan (rule-based; no training set) ===")
 c = Counter(r["machinery_leakage"] for r in rows)
-for k, lbl in [("protein_is_a_modelled_component", "protein IS a modelled component"),
-               ("its_system_seeded_the_profiles", "its system seeded the HMM profiles"),
-               ("its_system_was_a_validation_case", "its system was a validation case"),
-               ("none", "no documented exposure")]:
-    P(f"  {lbl:<38} {c[k]:>3}/85")
+for k, lbl in [
+    ("protein_is_a_modelled_component", "protein IS a modelled component"),
+    ("its_system_seeded_the_profiles", "its system seeded the HMM profiles"),
+    ("its_system_was_a_validation_case", "its system was a validation case"),
+    ("none", "no documented exposure"),
+]:
+    P(f"  {lbl:<38} {c[k]:>3}/{N}")
 P()
 P("=== the number that matters: leakage among the proteins ssign actually predicts ===")
 found = [r for r in rows if r["found_by_ssign"] == "yes"]
@@ -169,7 +187,7 @@ P(f"  {'type':<6} {'predicted':>9} {'direct-leak':>12} {'clean':>7}")
 for t in types:
     g = [r for r in found if r["ss_type"] == t]
     d = sum(1 for r in g if r["substrate_leakage"] == "direct")
-    P(f"  {t:<6} {len(g):>9} {d:>12} {len(g)-d:>7}")
+    P(f"  {t:<6} {len(g):>9} {d:>12} {len(g) - d:>7}")
 
 open(f"{W}/summary.txt", "w").write("\n".join(L) + "\n")
 print(f"\nwrote {OUT_CSV} and {W}/summary.txt")

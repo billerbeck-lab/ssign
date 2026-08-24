@@ -1,9 +1,9 @@
 # Training-data overlap of the benchmarking list
 
-[`benchmarks.md`](benchmarks.md) reports that ssign recovers 38 of 85 validated secreted
+[`benchmarks.md`](benchmarks.md) reports that ssign recovers 38 of 83 validated secreted
 proteins. This page measures how much of that the detection tools were exposed to in training.
 
-**56 of the 85 are in at least one predictor's training set, and so are 29 of the 38
+**55 of the 83 are in at least one predictor's training set, and so are 29 of the 38
 ssign predicts.** 
 
 However, what matters is whether the tool that *made* each call
@@ -29,10 +29,10 @@ MacSyFinder has no training set, so its exposure is measured differently
 
 | Tool | T1SS | T2SS | T3SS | T4SS | T5SS | T6SS | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| DeepLocPro | 14/18 | 3/8 | 6/19 | 1/8 | 10/19 | 4/13 | **38/85** |
-| DeepSecE (training) | 3/18 | 4/8 | 3/19 | 4/8 | 1/19 | 11/13 | **26/85** |
-| SignalP 6.0 | 0/18 | 1/8 | 0/19 | 0/8 | 6/19 | 0/13 | **7/85** |
-| DeepSecE (hold-out test) | 6/18 | 0/8 | 0/19 | 1/8 | 0/19 | 1/13 | **8/85** |
+| DeepLocPro | 14/18 | 3/8 | 6/19 | 1/8 | 9/17 | 4/13 | **37/83** |
+| DeepSecE (training) | 3/18 | 4/8 | 3/19 | 4/8 | 1/17 | 11/13 | **26/83** |
+| SignalP 6.0 | 0/18 | 1/8 | 0/19 | 0/8 | 6/17 | 0/13 | **7/83** |
+| DeepSecE (hold-out test) | 6/18 | 0/8 | 0/19 | 1/8 | 0/17 | 1/13 | **8/83** |
 
 ## Which tool made each call
 
@@ -49,16 +49,17 @@ MacSyFinder has no training set, so its exposure is measured differently
 ## Does DeepLocPro depend on having seen them
 
 DeepLocPro publishes held-out predictions from its cross-validation, so every training
-protein also has predictions from models that never saw it. Scored that way against ssign's default
-(`extracellular_prob >= 0.8`), **26 of 38 clear the threshold
-and 12 do not** (7 T5SS, 4 T6SS, paAP). yadA comes back at 0.081 and nadA at 0.001.
+protein also has predictions from models that never saw it. Scored that way against ssign's rule
+(`extracellular_prob >= 0.8`, or outer-membrane instead for the T5aSS/T5cSS autotransporters,
+which sit in the membrane they thread through), **26 of 37 clear the threshold and 11 do not**
+(6 T5SS, 4 T6SS, paAP). yadA comes back at 0.081 and nadA at 0.048.
 
 This says nothing about what the shipped model outputs, which was not measured, only that
 the localisation signal for those 12 is not reproducible without the training exposure.
 
 ## MacSyFinder and TXSScan
 
-**Eight benchmark proteins are themselves modelled as machinery components.** All 85 were
+**Eight benchmark proteins are themselves modelled as machinery components.** All 83 were
 scanned with the 280 TXSScan v1.1.4 profiles under MacSyFinder's criteria as macsylib
 implements them: gathering-threshold cutoffs, then i-evalue <= 1e-3 and profile coverage
 >= 50%.
@@ -95,3 +96,6 @@ python scripts/deeplocpro_heldout_check.py
 python scripts/aggregate_overlap.py            # writes training_data_overlap.csv
 python scripts/per_tool_call_vs_training.py    # writes per_tool_call_vs_training.csv
 ```
+
+`match_txsscan_organisms.py` and `deeplocpro_heldout_check.py` read the cached UniProt
+records, so re-run `fetch_benchmark_uniprot.py` first whenever the list changes.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-reference the 85 ssign benchmark proteins against a tool's training set.
+"""Cross-reference the ssign benchmark proteins against a tool's training set.
 
 Three independent match routes, because training sets use different identifier
 namespaces and sometimes carry a homolog rather than the exact protein:

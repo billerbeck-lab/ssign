@@ -156,14 +156,15 @@ with open(f"{W}/txsscan_organism_overlap.tsv", "w") as fh:
     for r in rows:
         fh.write("\t".join(str(r.get(c, "")).replace("\t", " ") for c in cols) + "\n")
 
+n = len(rows)  # denominators follow the list, which loses rows as types are retired
 s1s = sum(r["S1_reference_same_system"] == "yes" for r in rows)
 s2s = sum(r["S2_validation_same_system"] == "yes" for r in rows)
 both = sum(r["S1_reference_same_system"] == "yes" or r["S2_validation_same_system"] == "yes" for r in rows)
 anyt = sum(r["S1_reference_any_system"] == "yes" or r["S2_validation_any_system"] == "yes" for r in rows)
-print(f"SAME system type + same species, Table S1 (profile seeds):     {s1s}/85")
-print(f"SAME system type + same species, Table S2 (validation):        {s2s}/85")
-print(f"SAME system type in either table:                              {both}/85")
-print(f"species present anywhere in either table (any system type):    {anyt}/85\n")
+print(f"SAME system type + same species, Table S1 (profile seeds):     {s1s}/{n}")
+print(f"SAME system type + same species, Table S2 (validation):        {s2s}/{n}")
+print(f"SAME system type in either table:                              {both}/{n}")
+print(f"species present anywhere in either table (any system type):    {anyt}/{n}\n")
 print(f"{'id':<10} {'type':<7} {'species':<38} S1 S2")
 for r in rows:
     if r["S1_reference_same_system"] == "yes" or r["S2_validation_same_system"] == "yes":

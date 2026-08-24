@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scan the 85 benchmark proteins with the TXSScan HMM profiles.
+"""Scan the benchmark proteins with the TXSScan HMM profiles.
 
 MacSyFinder has no training set, so the leakage question for it is different:
 is the *secreted protein itself* modelled as a machinery component? For most
@@ -18,7 +18,7 @@ defaults in `config.py`), not the looser paraphrase in the 2016 paper:
     `(ali_to - ali_from + 1) / profile_length >= 0.5`. Both comparators are
     inclusive; using strict `<` and `>` drops boundary hits.
   * i-evalues scale with the size of the searched database. MacSyFinder searches
-    a whole proteome, so scanning only these 85 sequences would make every
+    a whole proteome, so scanning only these few sequences would make every
     i-evalue ~60x optimistic. Z is therefore fixed to a representative proteome
     size rather than left at the query count. GA is the binding constraint for
     all but two profiles, so the exact value barely matters.

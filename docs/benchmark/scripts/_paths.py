@@ -4,6 +4,7 @@ Downloaded training data is large and stays out of git. Point SSIGN_OVERLAP_DIR
 at a working directory holding `raw/` (downloaded training sets) and `work/`
 (intermediate files); it defaults to the current working directory.
 """
+
 import os
 
 BASE = os.path.abspath(os.environ.get("SSIGN_OVERLAP_DIR", os.getcwd()))

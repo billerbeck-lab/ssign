@@ -56,7 +56,15 @@ for r in csv.DictReader(open(os.path.join(WORK, "txsscan_profile_hits.tsv")), de
         self_component.add(r["instance_id"])
 
 recs = json.load(open(os.path.join(WORK, "benchmark_uniprot.json")))
-over = {r["instance_id"]: r for r in csv.DictReader(open(os.path.join(WORK, "overlap_deeplocpro.tsv")), delimiter="\t")}
+# Restrict the overlap table to proteins still on the list: match_training_set.py's
+# output is kept as-is when rows are retired from the benchmark, so counting over
+# all of it would report a training-set size for a list that no longer exists.
+listed = {r["instance_id"] for r in recs}
+over = {
+    r["instance_id"]: r
+    for r in csv.DictReader(open(os.path.join(WORK, "overlap_deeplocpro.tsv")), delimiter="\t")
+    if r["instance_id"] in listed
+}
 
 rows = []
 for r in recs:
