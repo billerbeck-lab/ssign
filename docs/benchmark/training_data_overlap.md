@@ -50,12 +50,13 @@ MacSyFinder has no training set, so its exposure is measured differently
 
 DeepLocPro publishes held-out predictions from its cross-validation, so every training
 protein also has predictions from models that never saw it. Scored that way against ssign's rule
-(`extracellular_prob >= 0.8`, or outer-membrane instead for the T5aSS/T5cSS autotransporters,
-which sit in the membrane they thread through), **26 of 37 clear the threshold and 11 do not**
-(6 T5SS, 4 T6SS, paAP). yadA comes back at 0.081 and nadA at 0.048.
+(`extracellular_prob >= 0.8`, or for the T5aSS/T5cSS autotransporters either extracellular or
+outer-membrane above 0.8, since the barrel stays in the membrane its passenger threads through),
+**26 of 37 clear the threshold and 11 do not** (6 T5SS, 4 T6SS, paAP). yadA comes back at 0.081
+and nadA at 0.048.
 
 This says nothing about what the shipped model outputs, which was not measured, only that
-the localisation signal for those 12 is not reproducible without the training exposure.
+the localisation signal for those 11 is not reproducible without the training exposure.
 
 ## MacSyFinder and TXSScan
 
