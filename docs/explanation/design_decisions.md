@@ -189,11 +189,19 @@ has a **Decision** (what we do) and **Rationale / evidence** (why).
   an equal vote. On P. aeruginosa PAO1 it called ~25% of the proteome as
   secreted proteins (18% even gated at high confidence), with no reliable enrichment
   near real secretion systems, the documented failure mode of secreted-protein
-  predictors trained on balanced sets and applied genome-wide (PAO1 truly has
-  ~4 T3SS secreted proteins). It was first demoted to opt-in, then removed entirely
+  predictors trained on balanced sets and applied genome-wide (PAO1 encodes three
+  injected T3SS substrates -- ExoS, ExoT and ExoY; it is exoU-negative, so the
+  earlier "~4 (ExoS/T/U/Y)" reading of this note counted a gene this strain does
+  not carry). It was first demoted to opt-in, then removed entirely
   once it earned its keep nowhere in the default pipeline. The downstream
   secretion-classifier project sources that language-model feature
-  independently, so nothing here depends on it.
+  independently, so nothing here depends on it. The evidence is rebuilt as
+  plottable data by
+  `validation_sweeps/benchmark/paper_figures/figS_plme_pao1.py`, which re-tests
+  all three predictors on the same 5,572 PAO1 proteins under the *current*
+  circular-shift enrichment test: PLM-Effector is significantly enriched at 0 of
+  12 type x threshold tests, DeepLocPro at 3 of 6 types; PLM-Effector recovers 0
+  of the 5 PAO1 pairs in the benchmark list, DeepSecE 5 and DeepLocPro 4.
 
 - **Revision (2026-06-19): enrichment test is a circular-shift permutation, not a
   binomial.** The opt-in enrichment test asks, per SS type, whether secreted-predicted
