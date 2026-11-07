@@ -4,6 +4,23 @@ All notable changes to **ssign** are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `--threads` on `run_signalp.py`, for `signalp6 --torch_num_threads`.
+  Mirrors the flag the Bakta, BLASTp, EggNOG, InterProScan and pLM-BLAST
+  wrappers already expose, and routes through the same `resolve_threads()`
+  helper, so omitting it is identical to the previous behaviour. SignalP
+  runs CPU-threaded in `--mode fast`, so this number sets the step's
+  wall-clock; being able to pin and log it is what makes a SignalP timing
+  measurement reproducible.
+
+### Changed
+
+- The local SignalP log line now records the sequence count and thread
+  count it ran with.
+
 ## [1.0.0] - 2026-07-19
 
 ### Added

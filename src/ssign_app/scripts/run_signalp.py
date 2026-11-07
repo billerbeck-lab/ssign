@@ -38,7 +38,7 @@ from ssign_lib.constants import (  # noqa: E402
     TOOL_TIMEOUT_S,
 )
 from ssign_lib.fasta_io import count_sequences  # noqa: E402
-from ssign_lib.resources import parallel_share_cpus  # noqa: E402
+from ssign_lib.resources import resolve_threads  # noqa: E402
 from ssign_lib.retry import retry_with_backoff  # noqa: E402
 from ssign_lib.subprocess_diag import dump_failure_log  # noqa: E402
 
@@ -51,8 +51,17 @@ DTU_POLL_INTERVAL = 5
 # ── Local mode ──
 
 
-def run_local_signalp(input_fasta, signalp_path, output_dir, timeout=TOOL_TIMEOUT_S):
-    """Run SignalP 6.0 CLI locally."""
+def run_local_signalp(input_fasta, signalp_path, output_dir, timeout=TOOL_TIMEOUT_S, threads=None):
+    """Run SignalP 6.0 CLI locally.
+
+    `threads=None` (default) resolves via `resolve_threads()` to the
+    scheduler-aware CPU count, divided by the parallel-group size when the
+    runner launched this wrapper inside one — identical to the previous
+    direct `parallel_share_cpus()` call, so no run changes behaviour. The
+    parameter exists so a caller can pin the count: SignalP's wall-clock is
+    set by its torch thread count, and a timing measurement is not
+    reproducible unless that number can be fixed and recorded.
+    """
     # Handle 0-sequence input gracefully: write empty output and return
     n_seqs = count_sequences(input_fasta)
     if n_seqs == 0:
@@ -62,6 +71,7 @@ def run_local_signalp(input_fasta, signalp_path, output_dir, timeout=TOOL_TIMEOU
             f.write("locus_tag\tsignalp_prediction\tsignalp_probability\tsignalp_cs_position\n")
         return empty_out
 
+    n_threads = resolve_threads(threads)
     signalp_bin = os.path.join(signalp_path, "signalp6") if signalp_path else "signalp6"
 
     cmd = [
@@ -79,15 +89,16 @@ def run_local_signalp(input_fasta, signalp_path, output_dir, timeout=TOOL_TIMEOU
         "txt",
         "--mode",
         "fast",
-        # Threads — divides the per-job allocation by the size of the
-        # parallel prediction group (DLP+DSE+SignalP) when the runner
-        # sets SSIGN_PARALLEL_GROUP_SIZE. Standalone invocations get the
-        # full effective_cpu_count. See ssign_lib/resources.py.
+        # Threads — `threads` when pinned by the caller, else the
+        # per-job allocation divided by the size of the parallel
+        # prediction group (DLP+DSE+SignalP) when the runner sets
+        # SSIGN_PARALLEL_GROUP_SIZE. Standalone invocations get the full
+        # effective_cpu_count. See ssign_lib/resources.py.
         "--torch_num_threads",
-        str(parallel_share_cpus()),
+        str(n_threads),
     ]
 
-    logger.info(f"Running local SignalP: {' '.join(cmd[:4])}...")
+    logger.info(f"Running local SignalP on {n_seqs} sequences with {n_threads} threads: {' '.join(cmd[:4])}...")
     # FRAGILE: subprocess call requires signalp6 binary on PATH or at signalp_path
     # If this breaks: install SignalP 6.0 locally or switch to --mode remote
     try:
@@ -413,12 +424,25 @@ def main():
         default=TOOL_TIMEOUT_S,
         help="Subprocess timeout in seconds (the runner passes a size-scaled value; default is the flat floor)",
     )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=None,
+        help=(
+            "Threads for signalp6 --torch_num_threads (local mode). When "
+            "omitted, resolves to the scheduler-aware effective CPU count, "
+            "divided by the parallel-group size if the runner launched this "
+            "wrapper inside one."
+        ),
+    )
     args = parser.parse_args()
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             if args.mode == "local":
-                results_path = run_local_signalp(args.input, args.signalp_path, tmpdir, timeout=args.timeout)
+                results_path = run_local_signalp(
+                    args.input, args.signalp_path, tmpdir, timeout=args.timeout, threads=args.threads
+                )
             else:
                 results_path = run_remote_signalp(args.input, tmpdir)
 
