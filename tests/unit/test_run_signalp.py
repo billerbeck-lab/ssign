@@ -262,3 +262,89 @@ class TestFindOutputFile:
         target = os.path.join(subdir, "prediction_results.txt")
         open(target, "w").close()
         assert find_output_file(tmp_dir) == target
+
+
+# ---------------------------------------------------------------------------
+# run_local_signalp thread resolution
+# ---------------------------------------------------------------------------
+
+
+class TestLocalSignalpThreads:
+    """`threads=None` must keep resolving to the parallel-group-aware CPU
+    share (so no existing run changes), and an explicit count must reach
+    signalp6's `--torch_num_threads`.
+
+    SignalP runs CPU-threaded in `--mode fast`, so this number sets the
+    step's wall-clock. Pinning it is what makes a timing measurement
+    reproducible, and the group divisor is what the runner relies on to stop
+    DLP+DSE+SignalP oversubscribing a shared node.
+    """
+
+    def _stub_subprocess_run(self, captured):
+        class _Done:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        def _fake(cmd, **kwargs):
+            captured.append(list(cmd))
+            # find_output_file() runs next and needs a file to discover
+            out_dir = cmd[cmd.index("--output_dir") + 1]
+            with open(os.path.join(out_dir, "prediction_results.txt"), "w") as f:
+                f.write("# SignalP-6.0\n")
+            return _Done()
+
+        return _fake
+
+    @staticmethod
+    def _fasta(tmp_path):
+        p = tmp_path / "in.faa"
+        p.write_text(">GENE_001\nMKKTLLALSLVLA\n")
+        return str(p)
+
+    def test_threads_none_resolves_to_parallel_share(self, monkeypatch, tmp_path):
+        import subprocess
+
+        from run_signalp import run_local_signalp
+        from ssign_lib.resources import parallel_share_cpus
+
+        captured = []
+        monkeypatch.setattr(subprocess, "run", self._stub_subprocess_run(captured))
+
+        run_local_signalp(self._fasta(tmp_path), "", str(tmp_path), threads=None)
+
+        assert len(captured) == 1
+        cmd = captured[0]
+        i = cmd.index("--torch_num_threads")
+        assert cmd[i + 1] == str(parallel_share_cpus())
+
+    def test_explicit_threads_passes_through(self, monkeypatch, tmp_path):
+        import subprocess
+
+        from run_signalp import run_local_signalp
+
+        captured = []
+        monkeypatch.setattr(subprocess, "run", self._stub_subprocess_run(captured))
+
+        run_local_signalp(self._fasta(tmp_path), "", str(tmp_path), threads=3)
+
+        cmd = captured[0]
+        i = cmd.index("--torch_num_threads")
+        assert cmd[i + 1] == "3"
+
+    def test_none_still_honours_the_parallel_group_divisor(self, monkeypatch, tmp_path):
+        # The runner sets this before launching DLP+DSE+SignalP concurrently.
+        import subprocess
+
+        from run_signalp import run_local_signalp
+        from ssign_lib.resources import effective_cpu_count
+
+        captured = []
+        monkeypatch.setattr(subprocess, "run", self._stub_subprocess_run(captured))
+        monkeypatch.setenv("SSIGN_PARALLEL_GROUP_SIZE", "3")
+
+        run_local_signalp(self._fasta(tmp_path), "", str(tmp_path))
+
+        cmd = captured[0]
+        i = cmd.index("--torch_num_threads")
+        assert cmd[i + 1] == str(max(1, effective_cpu_count() // 3))
